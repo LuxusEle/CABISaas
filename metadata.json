@@ -1,0 +1,7 @@
+{
+  "name": "CabMkr Pro",
+  "description": "A high-speed, mobile-first cabinet BOM calculator for professional cabinet makers.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
