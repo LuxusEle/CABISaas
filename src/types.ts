@@ -20,12 +20,14 @@ export enum PresetType {
   TALL_OVEN = 'Tall Oven/Micro',
   TALL_UTILITY = 'Tall Utility',
   SINK_UNIT = 'Sink Unit',
+  HOOD_UNIT = 'Cooker Hood',
+  COOKER_HOB = 'Cooker Hob',
   FILLER = 'Filler Panel'
 }
 
 export interface CostSettings {
   pricePerSheet: number;
-  pricePerHardwareUnit: number; 
+  pricePerHardwareUnit: number;
   laborRatePerHour: number;
   laborHoursPerCabinet: number;
   marginPercent: number;
@@ -36,7 +38,7 @@ export interface ProjectSettings {
   // Appearance
   currency: string;
   logoUrl?: string;
-  
+
   // Dimensions
   baseHeight: number;
   wallHeight: number;
@@ -45,12 +47,14 @@ export interface ProjectSettings {
   depthWall: number;
   depthTall: number;
   thickness: 16 | 18 | 19;
-  
+  counterThickness: number;
+  toeKickHeight: number;
+
   // Nesting Settings
   sheetWidth: number;
   sheetLength: number;
   kerf: number;
-  
+
   // Costing
   costs: CostSettings;
 }
@@ -60,8 +64,8 @@ export interface Obstacle {
   type: 'door' | 'window' | 'column' | 'pipe';
   fromLeft: number;
   width: number;
-  height?: number;
-  elevation?: number;
+  height: number;
+  sillHeight?: number; // Distance from floor to bottom of window
   depth?: number;
 }
 
@@ -70,9 +74,10 @@ export interface CabinetUnit {
   preset: PresetType;
   type: CabinetType;
   width: number;
-  qty: number; 
+  qty: number;
   fromLeft: number;
   isAutoFilled?: boolean;
+  label?: string;
 }
 
 export interface Zone {

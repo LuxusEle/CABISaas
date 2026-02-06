@@ -1,0 +1,140 @@
+{
+    "schemaVersion": "1.0.0",
+    "project": {
+        "projectId": "mock-kitchen-pro",
+        "name": "Mock Pro Kitchen Export",
+        "createdAt": "2026-02-07",
+        "notes": "Mock JSON for testing external construction drawing tools."
+    },
+    "units": {
+        "lengthUnit": "m",
+        "angleUnit": "deg",
+        "axisConvention": {
+            "x": "right",
+            "y": "up",
+            "z": "forward",
+            "planViewPlane": "XZ",
+            "elevationUpAxis": "Y"
+        }
+    },
+    "site": {
+        "floorLevelY": 0,
+        "ceilingHeight": 2.4
+    },
+    "room": {
+        "roomId": "kitchen-01",
+        "name": "Main Kitchen",
+        "floorPolygon": {
+            "closed": true,
+            "points": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 3.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 3.0,
+                    "y": 0.0,
+                    "z": 3.6
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 3.6
+                }
+            ]
+        },
+        "walls": [
+            {
+                "wallId": "Wall A",
+                "from": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "to": {
+                    "x": 3.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "thickness": 0.12,
+                "height": 2.4,
+                "openings": [
+                    {
+                        "openingId": "W1",
+                        "type": "window",
+                        "atDistanceFromFromPoint": 1.2,
+                        "width": 0.6,
+                        "height": 1.1,
+                        "sillHeight": 0.9
+                    }
+                ]
+            }
+        ]
+    },
+    "objects": [
+        {
+            "id": "cab-001",
+            "category": "cabinet",
+            "cabinetKind": "sink_base",
+            "label": "Sink Unit 600",
+            "box": {
+                "position": {
+                    "x": 1.2,
+                    "y": 0.0,
+                    "z": 0.6
+                },
+                "size": {
+                    "length": 0.6,
+                    "height": 0.72,
+                    "depth": 0.56
+                },
+                "rotation": {
+                    "yaw": 0,
+                    "pitch": 0,
+                    "roll": 0
+                },
+                "origin": "bottom-left-back"
+            },
+            "fixtures": {
+                "sink": {
+                    "type": "single_bowl",
+                    "bowlWidth": 0.5,
+                    "bowlDepth": 0.4
+                },
+                "faucet": {
+                    "type": "standard"
+                }
+            }
+        },
+        {
+            "id": "cab-002",
+            "category": "cabinet",
+            "cabinetKind": "hood_unit",
+            "label": "Cooker Hood 900",
+            "box": {
+                "position": {
+                    "x": 1.8,
+                    "y": 1.4,
+                    "z": 0.32
+                },
+                "size": {
+                    "length": 0.9,
+                    "height": 0.72,
+                    "depth": 0.32
+                },
+                "rotation": {
+                    "yaw": 0,
+                    "pitch": 0,
+                    "roll": 0
+                },
+                "origin": "bottom-left-back"
+            }
+        }
+    ]
+}
