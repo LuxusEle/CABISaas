@@ -1,4 +1,5 @@
-import { Project, Zone, CabinetUnit, BOMGroup, BOMItem, CabinetType, PresetType, ProjectSettings, ZoneId } from '../types';
+
+import { Project, Zone, CabinetUnit, BOMGroup, BOMItem, CabinetType, PresetType, ProjectSettings } from '../types';
 
 // Helper to generate unique IDs
 const uuid = () => Math.random().toString(36).substr(2, 9);
@@ -16,71 +17,53 @@ const HW = {
 const STD_WIDTHS = [900, 600, 500, 450, 400, 300];
 
 export const autoFillZone = (zone: Zone): Zone => {
-  // 1. Filter out existing auto-filled items to regenerate them
+  // 1. Keep Manual Cabinets and Obstacles
   const manualCabs = zone.cabinets.filter(c => !c.isAutoFilled);
   const obstacles = zone.obstacles;
 
-  // 2. Build a Timeline of Occupied Space
-  // We need to know where manual cabinets end up visually to calculate true gaps.
-  // Since we don't have X coordinates stored, we simulate the flow.
-  
-  interface PlacedItem {
-    start: number;
-    end: number;
-    originalIndex: number; // -1 for obstacle
-    type: 'cabinet' | 'obstacle';
-  }
+  // 2. Build Timeline of Occupied Space
+  interface Range { start: number; end: number; }
+  const occupied: Range[] = [];
 
-  const placedItems: PlacedItem[] = [];
+  // Add obstacles
+  obstacles.forEach(o => occupied.push({ start: o.fromLeft, end: o.fromLeft + o.width }));
   
-  // Sort obstacles
-  const sortedObs = [...obstacles].sort((a, b) => a.fromLeft - b.fromLeft);
-  
-  // Add obstacles to timeline
-  sortedObs.forEach(obs => {
-    placedItems.push({ start: obs.fromLeft, end: obs.fromLeft + obs.width, originalIndex: -1, type: 'obstacle' });
-  });
+  // Add manual cabinets
+  manualCabs.forEach(c => occupied.push({ start: c.fromLeft, end: c.fromLeft + c.width }));
 
-  // Flow manual cabinets to find their positions
-  let cursor = 0;
-  manualCabs.forEach((cab, idx) => {
-    // Determine position based on obstacles
-    let isClear = false;
-    while (!isClear) {
-      isClear = true;
-      for (const obs of sortedObs) {
-        // Overlap check
-        if (cursor >= obs.fromLeft && cursor < (obs.fromLeft + obs.width)) {
-          cursor = obs.fromLeft + obs.width;
-          isClear = false;
-        } else if (cursor < obs.fromLeft && (cursor + cab.width) > obs.fromLeft) {
-             cursor = obs.fromLeft + obs.width;
-             isClear = false;
-        }
+  // Sort and Merge Overlapping Ranges
+  occupied.sort((a, b) => a.start - b.start);
+  
+  const merged: Range[] = [];
+  if (occupied.length > 0) {
+    let current = occupied[0];
+    for (let i = 1; i < occupied.length; i++) {
+      if (occupied[i].start < current.end) {
+        // Overlap, extend current
+        current.end = Math.max(current.end, occupied[i].end);
+      } else {
+        // No overlap, push current and start new
+        merged.push(current);
+        current = occupied[i];
       }
     }
-    placedItems.push({ start: cursor, end: cursor + cab.width, originalIndex: idx, type: 'cabinet' });
-    cursor += cab.width;
-  });
+    merged.push(current);
+  }
 
-  // Sort all items by start position to find gaps between them
-  placedItems.sort((a, b) => a.start - b.start);
+  // 3. Fill Gaps
+  const newCabinetList: CabinetUnit[] = [...manualCabs];
+  let cursor = 0;
 
-  // 3. Find Gaps and Generate Auto Cabinets
-  const newCabinetList: CabinetUnit[] = [];
-  let currentPos = 0;
-
-  // We iterate through the timeline.
-  // If we find a gap, we fill it with auto-cabinets.
-  // If we find a manual cabinet, we push it to the list.
-  
-  // Helper to fill a gap
-  const fillGap = (start: number, end: number) => {
+  const fillRange = (start: number, end: number) => {
     let remaining = end - start;
+    let currentX = start;
+
     if (remaining < 300) {
-      if(remaining > 0) {
-         // Tiny gap filler
-         newCabinetList.push({ id: uuid(), preset: PresetType.FILLER, type: CabinetType.BASE, width: remaining, qty: 1, isAutoFilled: true });
+      if (remaining > 50) { // Only fill if gap is usable > 50mm
+        newCabinetList.push({ 
+          id: uuid(), preset: PresetType.FILLER, type: CabinetType.BASE, 
+          width: remaining, qty: 1, isAutoFilled: true, fromLeft: currentX 
+        });
       }
       return;
     }
@@ -89,40 +72,44 @@ export const autoFillZone = (zone: Zone): Zone => {
       const width = STD_WIDTHS.find(w => w <= remaining) || remaining;
       
       if (width >= 300) {
-        // Add Base
-        newCabinetList.push({ id: uuid(), preset: PresetType.BASE_DOOR, type: CabinetType.BASE, width: width, qty: 1, isAutoFilled: true });
-        // Add Wall
-        newCabinetList.push({ id: uuid(), preset: PresetType.WALL_STD, type: CabinetType.WALL, width: width, qty: 1, isAutoFilled: true });
+        // Base
+        newCabinetList.push({ 
+          id: uuid(), preset: PresetType.BASE_DOOR, type: CabinetType.BASE, 
+          width: width, qty: 1, isAutoFilled: true, fromLeft: currentX 
+        });
+        
+        // Wall
+        newCabinetList.push({ 
+          id: uuid(), preset: PresetType.WALL_STD, type: CabinetType.WALL, 
+          width: width, qty: 1, isAutoFilled: true, fromLeft: currentX 
+        });
+
         remaining -= width;
+        currentX += width;
       } else {
-        newCabinetList.push({ id: uuid(), preset: PresetType.FILLER, type: CabinetType.BASE, width: remaining, qty: 1, isAutoFilled: true });
+        newCabinetList.push({ 
+          id: uuid(), preset: PresetType.FILLER, type: CabinetType.BASE, 
+          width: remaining, qty: 1, isAutoFilled: true, fromLeft: currentX 
+        });
         remaining = 0;
       }
     }
   };
 
-  placedItems.forEach(item => {
-    // Gap before this item?
-    if (item.start > currentPos) {
-      fillGap(currentPos, item.start);
+  merged.forEach(range => {
+    if (range.start > cursor) {
+      fillRange(cursor, range.start);
     }
-    
-    // If it's a cabinet, add it to list
-    if (item.type === 'cabinet') {
-      newCabinetList.push(manualCabs[item.originalIndex]);
-    }
-    
-    currentPos = Math.max(currentPos, item.end);
+    cursor = Math.max(cursor, range.end);
   });
 
-  // Final gap after last item
-  if (currentPos < zone.totalLength) {
-    fillGap(currentPos, zone.totalLength);
+  if (cursor < zone.totalLength) {
+    fillRange(cursor, zone.totalLength);
   }
 
   return {
     ...zone,
-    cabinets: newCabinetList
+    cabinets: newCabinetList.sort((a, b) => a.fromLeft - b.fromLeft)
   };
 };
 
@@ -186,7 +173,6 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
 
   // --- PRESET SPECIFIC LOGIC & HARDWARE ---
 
-  // 1. Base 2-Door
   if (unit.preset === PresetType.BASE_DOOR) {
     parts.push({
       id: uuid(), name: 'Shelf', qty: 1, width: depth - 20, length: horizWidth, 
@@ -197,7 +183,6 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
     parts.push({ id: uuid(), name: HW.LEG, qty: 4, width: 0, length: 0, material: 'Hardware', isHardware: true });
   }
 
-  // 2. Base 3-Drawer
   if (unit.preset === PresetType.BASE_DRAWER_3) {
     parts.push({ id: uuid(), name: 'Drawer Bottom', qty: 3, width: depth - 50, length: horizWidth - 26, material: '16mm White', label: labelPrefix });
     parts.push({ id: uuid(), name: 'Drawer Side', qty: 6, width: depth - 10, length: 150, material: '16mm White', label: labelPrefix });
@@ -206,7 +191,6 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
     parts.push({ id: uuid(), name: HW.LEG, qty: 4, width: 0, length: 0, material: 'Hardware', isHardware: true });
   }
 
-  // 3. Wall Standard
   if (unit.preset === PresetType.WALL_STD) {
     parts.push({
       id: uuid(), name: 'Shelf', qty: 2, width: depth - 20, length: horizWidth, 
@@ -217,7 +201,6 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
     parts.push({ id: uuid(), name: HW.HANGER, qty: 1, width: 0, length: 0, material: 'Hardware', isHardware: true });
   }
   
-  // 4. Tall Oven/Micro
   if (unit.preset === PresetType.TALL_OVEN) {
     parts.push({
       id: uuid(), name: 'Fixed Shelf (Oven)', qty: 2, width: depth, length: horizWidth, 
@@ -230,15 +213,21 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
   return parts;
 };
 
-export const generateProjectBOM = (project: Project): { groups: BOMGroup[], hardwareSummary: Record<string, number>, totalArea: number } => {
+export const generateProjectBOM = (project: Project): { groups: BOMGroup[], hardwareSummary: Record<string, number>, totalArea: number, totalLinearFeet: number } => {
   const groups: BOMGroup[] = [];
   const hardwareSummary: Record<string, number> = {};
   let totalArea = 0;
+  let totalLinearFeet = 0;
 
   project.zones.filter(z => z.active).forEach(zone => {
+    let zoneLen = 0;
+    
     zone.cabinets.forEach((unit, index) => {
+      if (unit.type !== CabinetType.WALL) {
+        zoneLen += unit.width;
+      }
+
       const parts = generateCabinetParts(unit, project.settings, index);
-      
       const woodParts = parts.filter(p => !p.isHardware);
       const hwParts = parts.filter(p => p.isHardware);
 
@@ -256,18 +245,23 @@ export const generateProjectBOM = (project: Project): { groups: BOMGroup[], hard
         items: woodParts
       });
     });
+    
+    totalLinearFeet += (zoneLen / 304.8); 
   });
 
   return {
     groups,
     hardwareSummary,
-    totalArea: parseFloat(totalArea.toFixed(2))
+    totalArea: parseFloat(totalArea.toFixed(2)),
+    totalLinearFeet: parseFloat(totalLinearFeet.toFixed(1))
   };
 };
 
 export const createNewProject = (): Project => ({
   id: uuid(),
-  name: 'New Project',
+  name: 'New Kitchen',
+  designer: 'Me',
+  company: 'My Shop',
   settings: {
     baseHeight: 720,
     wallHeight: 720,
@@ -275,12 +269,48 @@ export const createNewProject = (): Project => ({
     depthBase: 560,
     depthWall: 320,
     depthTall: 580,
-    thickness: 16
+    thickness: 16,
+    sheetWidth: 1220,
+    sheetLength: 2440,
+    kerf: 4
   },
   zones: [
-    { id: ZoneId.WALL_A, active: true, totalLength: 3000, obstacles: [], cabinets: [] },
-    { id: ZoneId.WALL_B, active: false, totalLength: 3000, obstacles: [], cabinets: [] },
-    { id: ZoneId.WALL_C, active: false, totalLength: 3000, obstacles: [], cabinets: [] },
-    { id: ZoneId.ISLAND, active: false, totalLength: 2400, obstacles: [], cabinets: [] },
+    { id: 'Wall A', active: true, totalLength: 3000, obstacles: [], cabinets: [] }
   ]
 });
+
+export const exportToCSV = (groups: BOMGroup[], project: Project) => {
+  const headers = ['Cabinet', 'Part Name', 'Material', 'Length (mm)', 'Width (mm)', 'Qty', 'Label'];
+  const rows = [headers.join(',')];
+
+  groups.forEach(group => {
+    group.items.forEach(item => {
+      // Escape quotes in strings
+      const safeName = item.name.replace(/"/g, '""');
+      const safeMat = item.material.replace(/"/g, '""');
+      const safeLabel = (item.label || '').replace(/"/g, '""');
+      
+      rows.push([
+        `"${group.cabinetName}"`,
+        `"${safeName}"`,
+        `"${safeMat}"`,
+        item.length,
+        item.width,
+        item.qty,
+        `"${safeLabel}"`
+      ].join(','));
+    });
+  });
+
+  const csvContent = rows.join("\n");
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  
+  const link = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+  link.setAttribute("href", url);
+  link.setAttribute("download", `${project.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_bom.csv`);
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};

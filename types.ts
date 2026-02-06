@@ -1,3 +1,4 @@
+
 export enum ZoneId {
   WALL_A = 'Wall A',
   WALL_B = 'Wall B',
@@ -31,6 +32,10 @@ export interface ProjectSettings {
   depthWall: number;
   depthTall: number;
   thickness: 16 | 18 | 19;
+  // Nesting Settings
+  sheetWidth: number;  // e.g., 1220
+  sheetLength: number; // e.g., 2440
+  kerf: number;        // e.g., 3
 }
 
 export interface Obstacle {
@@ -49,11 +54,12 @@ export interface CabinetUnit {
   type: CabinetType;
   width: number;
   qty: number; 
+  fromLeft: number; // Absolute X Position
   isAutoFilled?: boolean;
 }
 
 export interface Zone {
-  id: ZoneId;
+  id: string;
   active: boolean;
   totalLength: number;
   obstacles: Obstacle[];
@@ -63,6 +69,8 @@ export interface Zone {
 export interface Project {
   id: string;
   name: string;
+  designer: string;
+  company: string;
   settings: ProjectSettings;
   zones: Zone[];
 }
@@ -82,6 +90,32 @@ export interface BOMGroup {
   cabinetId: string;
   cabinetName: string;
   items: BOMItem[];
+}
+
+// Nesting Types
+export interface PlacedPart {
+  x: number;
+  y: number;
+  width: number;
+  length: number;
+  rotated: boolean;
+  partId: string;
+  label: string;
+}
+
+export interface SheetLayout {
+  id: string;
+  material: string;
+  width: number;
+  length: number;
+  parts: PlacedPart[];
+  waste: number; // percentage
+}
+
+export interface OptimizationResult {
+  sheets: SheetLayout[];
+  totalSheets: number;
+  totalWaste: number;
 }
 
 export enum Screen {
