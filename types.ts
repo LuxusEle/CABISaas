@@ -23,6 +23,14 @@ export enum PresetType {
   FILLER = 'Filler Panel'
 }
 
+export interface CostSettings {
+  pricePerSheet: number;
+  pricePerHardwareUnit: number; // Avg cost per hinge/slide/leg for MVP speed
+  laborRatePerHour: number;
+  laborHoursPerCabinet: number;
+  marginPercent: number;
+}
+
 // Global Project Settings
 export interface ProjectSettings {
   baseHeight: number;
@@ -33,19 +41,21 @@ export interface ProjectSettings {
   depthTall: number;
   thickness: 16 | 18 | 19;
   // Nesting Settings
-  sheetWidth: number;  // e.g., 1220
-  sheetLength: number; // e.g., 2440
-  kerf: number;        // e.g., 3
+  sheetWidth: number;
+  sheetLength: number;
+  kerf: number;
+  // Costing
+  costs: CostSettings;
 }
 
 export interface Obstacle {
   id: string;
   type: 'door' | 'window' | 'column' | 'pipe';
-  fromLeft: number; // Distance from left
+  fromLeft: number;
   width: number;
-  height?: number; // Height of object
-  elevation?: number; // Off floor (for windows)
-  depth?: number; // Protrusion depth (columns)
+  height?: number;
+  elevation?: number;
+  depth?: number;
 }
 
 export interface CabinetUnit {
@@ -54,7 +64,7 @@ export interface CabinetUnit {
   type: CabinetType;
   width: number;
   qty: number; 
-  fromLeft: number; // Absolute X Position
+  fromLeft: number;
   isAutoFilled?: boolean;
 }
 
@@ -82,7 +92,7 @@ export interface BOMItem {
   width: number;
   length: number;
   material: string;
-  label?: string; // e.g., "Cab #1 - Side"
+  label?: string;
   isHardware?: boolean;
 }
 
@@ -109,7 +119,7 @@ export interface SheetLayout {
   width: number;
   length: number;
   parts: PlacedPart[];
-  waste: number; // percentage
+  waste: number;
 }
 
 export interface OptimizationResult {
