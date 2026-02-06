@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Home, Layers, Calculator, Zap, ArrowLeft, Trash2, Plus, Box, DoorOpen, Wand2, Moon, Sun, Table2, FileSpreadsheet, X, Pencil, Save, List, Settings, Printer, Download, Scissors, LayoutDashboard, DollarSign, Map } from 'lucide-react';
 import { Screen, Project, ZoneId, PresetType, CabinetType, CabinetUnit, Obstacle } from './types';
-import { createNewProject, generateProjectBOM, autoFillZone, exportToCSV, resolveCollisions, calculateProjectCost } from './services/bomService';
+import { createNewProject, generateProjectBOM, autoFillZone, exportToExcel, resolveCollisions, calculateProjectCost } from './services/bomService';
 import { optimizeCuts } from './services/nestingService';
 
 // Components
@@ -10,6 +10,37 @@ import { Button } from './components/Button';
 import { NumberInput } from './components/NumberInput';
 import { WallVisualizer } from './components/WallVisualizer';
 import { CutPlanVisualizer } from './components/CutPlanVisualizer';
+
+// --- PRINT TITLE BLOCK ---
+const TitleBlock = ({ project, pageTitle }: { project: Project, pageTitle: string }) => (
+  <div className="hidden print:flex fixed bottom-0 left-0 right-0 border-t-2 border-black bg-white p-4 text-xs font-mono justify-between items-end z-50">
+     <div className="border-r-2 border-black pr-6 mr-6 flex flex-col justify-end">
+        <div className="font-black text-2xl tracking-tighter">CABENGINE<span className="text-slate-400">PRO</span></div>
+     </div>
+     <div className="flex-1 grid grid-cols-5 gap-6">
+        <div>
+           <div className="font-bold text-[8px] uppercase text-slate-400 mb-1">Project Name</div>
+           <div className="font-bold text-sm truncate">{project.name}</div>
+        </div>
+        <div>
+           <div className="font-bold text-[8px] uppercase text-slate-400 mb-1">Company/Client</div>
+           <div className="font-bold text-sm truncate">{project.company}</div>
+        </div>
+        <div>
+           <div className="font-bold text-[8px] uppercase text-slate-400 mb-1">Drawing View</div>
+           <div className="font-bold text-sm truncate uppercase">{pageTitle}</div>
+        </div>
+         <div>
+           <div className="font-bold text-[8px] uppercase text-slate-400 mb-1">Date</div>
+           <div className="font-bold text-sm">{new Date().toLocaleDateString()}</div>
+        </div>
+         <div>
+           <div className="font-bold text-[8px] uppercase text-slate-400 mb-1">Page</div>
+           <div className="font-bold text-sm">Automated BOM</div>
+        </div>
+     </div>
+  </div>
+);
 
 // --- MAIN APP COMPONENT ---
 
@@ -83,14 +114,18 @@ export default function App() {
 
       <style>{`
         @media print {
-          @page { size: landscape; margin: 0.5cm; }
-          body, #root, #main-content, .overflow-y-auto, .overflow-hidden {
+          @page { size: landscape; margin: 0; }
+          body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          #root, #main-content, .overflow-y-auto, .overflow-hidden {
             position: relative; height: auto !important; overflow: visible !important;
             background-color: white !important; color: black !important; display: block !important;
           }
           .print\\:hidden, aside, .md\\:hidden { display: none !important; }
           .print\\:block { display: block !important; }
-          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          .print\\:flex { display: flex !important; }
+          .print\\:text-black { color: black !important; }
+          .print\\:border-black { border-color: black !important; }
+          .print\\:bg-white { background-color: white !important; }
         }
       `}</style>
     </div>
@@ -126,13 +161,19 @@ const ScreenProjectSetup = ({ project, setProject }: { project: Project, setProj
     <div className="flex-1 overflow-y-auto p-4 md:p-8">
       <div className="max-w-4xl mx-auto space-y-8">
         <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-4">Project Setup</h2>
+        
         <section className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-4">
            <h3 className="text-slate-500 font-bold uppercase text-xs tracking-wider mb-2">Project Info</h3>
            <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-1"><label className="text-xs font-bold text-slate-400">Project Name</label><input className="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border dark:border-slate-700 dark:text-white" value={project.name} onChange={e => setProject({...project, name: e.target.value})} /></div>
               <div className="space-y-1"><label className="text-xs font-bold text-slate-400">Company Name</label><input className="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border dark:border-slate-700 dark:text-white" value={project.company} onChange={e => setProject({...project, company: e.target.value})} /></div>
            </div>
+           <div className="grid md:grid-cols-2 gap-4">
+              <div className="space-y-1"><label className="text-xs font-bold text-slate-400">Currency Symbol</label><input className="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border dark:border-slate-700 dark:text-white" value={project.settings.currency} onChange={e => setProject({...project, settings: {...project.settings, currency: e.target.value}})} placeholder="$" /></div>
+              <div className="space-y-1"><label className="text-xs font-bold text-slate-400">Logo URL (Optional)</label><input className="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border dark:border-slate-700 dark:text-white" value={project.settings.logoUrl || ''} onChange={e => setProject({...project, settings: {...project.settings, logoUrl: e.target.value}})} placeholder="https://..." /></div>
+           </div>
         </section>
+
         <section className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-6">
           <h3 className="text-slate-500 font-bold uppercase text-xs tracking-wider mb-4">Dimensions & Nesting</h3>
           <div className="grid md:grid-cols-3 gap-6">
@@ -269,11 +310,11 @@ const ScreenWallEditor = ({ project, setProject, setScreen }: { project: Project
 
            <div className="flex-1 bg-white dark:bg-slate-950 overflow-y-auto pb-20 md:pb-0">
              <table className="w-full text-left text-sm">
-                <thead className="bg-slate-100 dark:bg-slate-900 text-slate-500 font-bold text-xs uppercase sticky top-0"><tr><th className="p-3">#</th><th className="p-3">Type</th><th className="p-3">Item</th><th className="p-3 text-right">Width</th></tr></thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                <thead className="bg-slate-100 dark:bg-amber-950/40 text-slate-500 dark:text-amber-500 font-bold text-xs uppercase sticky top-0 border-b dark:border-amber-500/30"><tr><th className="p-3">#</th><th className="p-3">Type</th><th className="p-3">Item</th><th className="p-3 text-right">Width</th></tr></thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-amber-900/20">
                   {[...currentZone.obstacles, ...currentZone.cabinets].map((item, i) => {
                      const isCab = 'preset' in item;
-                     return (<tr key={item.id} onClick={() => openEdit(isCab?'cabinet':'obstacle', isCab ? i - currentZone.obstacles.length : i)} className="hover:bg-amber-50 dark:hover:bg-slate-900 cursor-pointer"><td className="p-3 text-slate-400 font-mono">{i+1}</td><td className="p-3 text-amber-600 font-bold">{isCab ? (item as CabinetUnit).type : 'Obstacle'}</td><td className="p-3 font-medium dark:text-white">{isCab ? (item as CabinetUnit).preset : (item as Obstacle).type} <span className="text-slate-400 text-xs ml-2">@{item.fromLeft}mm</span></td><td className="p-3 text-right font-mono font-bold dark:text-white">{item.width}</td></tr>)
+                     return (<tr key={item.id} onClick={() => openEdit(isCab?'cabinet':'obstacle', isCab ? i - currentZone.obstacles.length : i)} className="hover:bg-amber-50 dark:hover:bg-amber-900/20 cursor-pointer transition-colors"><td className="p-3 text-slate-400 font-mono">{i+1}</td><td className="p-3 text-amber-600 font-bold">{isCab ? (item as CabinetUnit).type : 'Obstacle'}</td><td className="p-3 font-medium dark:text-amber-100">{isCab ? (item as CabinetUnit).preset : (item as Obstacle).type} <span className="text-slate-400 dark:text-amber-500/50 text-xs ml-2">@{item.fromLeft}mm</span></td><td className="p-3 text-right font-mono font-bold dark:text-white">{item.width}</td></tr>)
                   })}
                 </tbody>
              </table>
@@ -284,7 +325,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen }: { project: Project
       {/* MODAL */}
       {modalMode !== 'none' && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center p-4">
-           <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl p-6 shadow-2xl animate-in slide-in-from-bottom-10">
+           <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl p-6 shadow-2xl animate-in slide-in-from-bottom-10 border border-slate-200 dark:border-slate-800">
               <div className="flex justify-between mb-4"><h3 className="font-bold text-xl dark:text-white capitalize">{modalMode.replace('_', ' ')}</h3><button onClick={() => setModalMode('none')}><X/></button></div>
               <div className="space-y-4 max-h-[60vh] overflow-y-auto">
                  {modalMode.includes('cabinet') ? (
@@ -330,51 +371,98 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
   const [activeView, setActiveView] = useState<'list' | 'cutplan' | 'wallplan'>('list');
   const cutPlan = useMemo(() => optimizeCuts(data.groups.flatMap(g => g.items), project.settings), [data, project.settings]);
   const costs = useMemo(() => calculateProjectCost(data, cutPlan, project.settings), [data, cutPlan, project.settings]);
-  
+  const currency = project.settings.currency || '$';
+
+  // Calculate Sheet Summary for Table
+  const materialSummary = useMemo(() => {
+    const summary: Record<string, { sheets: number, waste: number, area: number }> = {};
+    cutPlan.sheets.forEach(s => {
+      if (!summary[s.material]) summary[s.material] = { sheets: 0, waste: 0, area: s.width * s.length };
+      summary[s.material].sheets++;
+      summary[s.material].waste += s.waste;
+    });
+    return Object.entries(summary).map(([mat, data]) => ({
+      material: mat,
+      sheets: data.sheets,
+      waste: Math.round(data.waste / data.sheets),
+      dims: `${project.settings.sheetLength} x ${project.settings.sheetWidth}`
+    }));
+  }, [cutPlan, project.settings]);
+
   const handlePrint = () => setTimeout(() => window.print(), 100);
 
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 w-full overflow-hidden">
+      <TitleBlock project={project} pageTitle={activeView === 'list' ? 'Material BOM' : activeView === 'cutplan' ? 'Cut Patterns' : 'Elevations'} />
+      
       <div className="p-4 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex flex-col md:flex-row justify-between gap-4 shrink-0 print:hidden">
          <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg self-start overflow-x-auto">
              {['list', 'cutplan', 'wallplan'].map((v) => (
                <button key={v} onClick={() => setActiveView(v as any)} className={`px-4 py-2 text-sm font-bold rounded-md capitalize ${activeView === v ? 'bg-white dark:bg-slate-700 shadow text-slate-900 dark:text-white' : 'text-slate-500'}`}>{v === 'list' ? 'Material List' : v === 'cutplan' ? 'Cut Plan' : 'Wall Plans'}</button>
              ))}
          </div>
-         <div className="flex gap-2 w-full md:w-auto"><Button variant="secondary" size="md" onClick={handlePrint} className="flex-1 md:flex-none"><Printer size={18} className="mr-2"/> Print</Button><Button variant="primary" size="md" onClick={() => exportToCSV(data.groups, project)} className="flex-1 md:flex-none"><Download size={18} className="mr-2"/> CSV</Button></div>
+         <div className="flex gap-2 w-full md:w-auto"><Button variant="secondary" size="md" onClick={handlePrint} className="flex-1 md:flex-none"><Printer size={18} className="mr-2"/> Print / Save PDF</Button><Button variant="primary" size="md" onClick={() => exportToExcel(data.groups, cutPlan, project)} className="flex-1 md:flex-none"><FileSpreadsheet size={18} className="mr-2"/> Export Excel</Button></div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-8 bg-white dark:bg-slate-950 print:p-0 print:overflow-visible h-full">
-         <div className="border-b border-slate-200 dark:border-slate-800 pb-6 print:block">
-            <h1 className="text-3xl font-black text-slate-900 dark:text-white">{project.company || "Cabinet Project"}</h1>
-            <p className="text-slate-500">Project: {project.name}</p>
+         <div className="border-b border-slate-200 dark:border-slate-800 pb-6 print:block flex justify-between items-start">
+            <div>
+               <h1 className="text-3xl font-black text-slate-900 dark:text-white">{project.company || "Cabinet Project"}</h1>
+               <p className="text-slate-500">Project: {project.name}</p>
+            </div>
+            {project.settings.logoUrl && <img src={project.settings.logoUrl} alt="Logo" className="h-12 object-contain" />}
          </div>
          
-         {/* COSTING CARD */}
-         <div className="bg-slate-900 text-white p-6 rounded-2xl print:break-inside-avoid shadow-xl">
-             <h3 className="text-amber-500 font-bold mb-4 flex items-center gap-2"><DollarSign size={20}/> Cost Estimate</h3>
+         {/* COSTING CARD (Print Safe) */}
+         <div className="bg-slate-900 text-white p-6 rounded-2xl print:bg-white print:text-black print:border-2 print:border-black print:break-inside-avoid shadow-xl print:shadow-none">
+             <h3 className="text-amber-500 font-bold mb-4 flex items-center gap-2 print:text-black"><DollarSign size={20}/> Cost Estimate</h3>
              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                <div><div className="text-slate-400 text-xs uppercase">Material</div><div className="text-xl font-bold">${costs.materialCost.toFixed(2)}</div></div>
-                <div><div className="text-slate-400 text-xs uppercase">Hardware</div><div className="text-xl font-bold">${costs.hardwareCost.toFixed(2)}</div></div>
-                <div><div className="text-slate-400 text-xs uppercase">Labor</div><div className="text-xl font-bold">${costs.laborCost.toFixed(2)}</div></div>
-                <div><div className="text-amber-500 text-xs uppercase">Total (inc. Margin)</div><div className="text-3xl font-black">${costs.totalPrice.toFixed(2)}</div></div>
+                <div><div className="text-slate-400 text-xs uppercase print:text-black">Material</div><div className="text-xl font-bold">{currency}{costs.materialCost.toFixed(2)}</div></div>
+                <div><div className="text-slate-400 text-xs uppercase print:text-black">Hardware</div><div className="text-xl font-bold">{currency}{costs.hardwareCost.toFixed(2)}</div></div>
+                <div><div className="text-slate-400 text-xs uppercase print:text-black">Labor</div><div className="text-xl font-bold">{currency}{costs.laborCost.toFixed(2)}</div></div>
+                <div><div className="text-amber-500 text-xs uppercase print:text-black">Total</div><div className="text-3xl font-black">{currency}{costs.totalPrice.toFixed(2)}</div></div>
              </div>
              {/* Edit Cost Settings (Simple) */}
              <div className="mt-4 pt-4 border-t border-slate-700 flex flex-wrap gap-4 print:hidden">
-                <div className="flex items-center gap-2"><span className="text-xs text-slate-400">Sheet Price:</span><input type="number" className="bg-slate-800 w-20 rounded px-2 py-1 text-sm" value={project.settings.costs.pricePerSheet} onChange={e => setProject({...project, settings: {...project.settings, costs: {...project.settings.costs, pricePerSheet: Number(e.target.value)}}})} /></div>
-                <div className="flex items-center gap-2"><span className="text-xs text-slate-400">Labor/Hr:</span><input type="number" className="bg-slate-800 w-20 rounded px-2 py-1 text-sm" value={project.settings.costs.laborRatePerHour} onChange={e => setProject({...project, settings: {...project.settings, costs: {...project.settings.costs, laborRatePerHour: Number(e.target.value)}}})} /></div>
+                <div className="flex items-center gap-2"><span className="text-xs text-slate-400">Sheet Price:</span><input type="number" className="bg-slate-800 w-20 rounded px-2 py-1 text-sm text-white" value={project.settings.costs.pricePerSheet} onChange={e => setProject({...project, settings: {...project.settings, costs: {...project.settings.costs, pricePerSheet: Number(e.target.value)}}})} /></div>
+                <div className="flex items-center gap-2"><span className="text-xs text-slate-400">Labor/Hr:</span><input type="number" className="bg-slate-800 w-20 rounded px-2 py-1 text-sm text-white" value={project.settings.costs.laborRatePerHour} onChange={e => setProject({...project, settings: {...project.settings, costs: {...project.settings.costs, laborRatePerHour: Number(e.target.value)}}})} /></div>
              </div>
+         </div>
+
+         {/* MATERIAL SUMMARY TABLE (Always Visible in List/Cut Plan) */}
+         <div className="break-inside-avoid">
+             <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Layers/> Material Sheets Order</h3>
+             <table className="w-full text-sm text-left border-collapse border border-slate-200 dark:border-slate-700 print:border-black">
+               <thead className="bg-slate-100 dark:bg-slate-800 print:bg-slate-200">
+                 <tr>
+                   <th className="p-3 border border-slate-200 dark:border-slate-700 print:border-black">Material</th>
+                   <th className="p-3 border border-slate-200 dark:border-slate-700 print:border-black">Sheet Size</th>
+                   <th className="p-3 border border-slate-200 dark:border-slate-700 print:border-black">Qty Needed</th>
+                   <th className="p-3 border border-slate-200 dark:border-slate-700 print:border-black">Avg Waste</th>
+                 </tr>
+               </thead>
+               <tbody>
+                 {materialSummary.map((m) => (
+                   <tr key={m.material}>
+                     <td className="p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">{m.material}</td>
+                     <td className="p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">{m.dims}mm</td>
+                     <td className="p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-lg">{m.sheets}</td>
+                     <td className="p-3 border border-slate-200 dark:border-slate-700 print:border-black">{m.waste}%</td>
+                   </tr>
+                 ))}
+               </tbody>
+             </table>
          </div>
 
          {/* LIST VIEW */}
          <div className={activeView === 'list' ? 'block' : 'hidden print:block'}>
             <div className="grid md:grid-cols-2 gap-6 print:grid-cols-2 print:gap-4">
               {data.groups.map((group, i) => (
-                <div key={i} className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden break-inside-avoid print:border-slate-300">
-                   <div className="bg-slate-50 dark:bg-slate-800 px-4 py-2 font-bold text-sm border-b border-slate-200 dark:border-slate-800">{group.cabinetName}</div>
+                <div key={i} className="border border-slate-200 dark:border-amber-900/40 rounded-xl overflow-hidden break-inside-avoid print:border-slate-300 print:border-2 print:border-black">
+                   <div className="bg-slate-50 dark:bg-amber-950 px-4 py-2 font-bold text-sm border-b border-slate-200 dark:border-amber-900 text-slate-900 dark:text-amber-500 print:bg-slate-200 print:text-black print:border-black">{group.cabinetName}</div>
                    <table className="w-full text-sm">
-                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                        {group.items.map((item, j) => (<tr key={j}><td className="p-2 pl-4 text-slate-600 dark:text-slate-300">{item.name}</td><td className="p-2 text-right font-mono text-xs">{item.length} x {item.width}</td><td className="p-2 pr-4 text-right font-bold">x{item.qty}</td></tr>))}
+                      <tbody className="divide-y divide-slate-100 dark:divide-amber-900/20 print:divide-slate-300">
+                        {group.items.map((item, j) => (<tr key={j} className="hover:bg-slate-50 dark:hover:bg-amber-900/20"><td className="p-2 pl-4 text-slate-600 dark:text-amber-100/80 print:text-black">{item.name}</td><td className="p-2 text-right font-mono text-xs text-slate-500 dark:text-amber-500/60 print:text-black">{item.length} x {item.width}</td><td className="p-2 pr-4 text-right font-bold text-slate-900 dark:text-amber-500 print:text-black">x{item.qty}</td></tr>))}
                       </tbody>
                    </table>
                 </div>
@@ -388,22 +476,22 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
              <div className="space-y-8">{cutPlan.sheets.map((sheet, i) => <CutPlanVisualizer key={i} sheet={sheet} index={i} settings={project.settings} />)}</div>
          </div>
 
-         {/* WALL PLAN VIEW (NEW) */}
+         {/* WALL PLAN VIEW */}
          <div className={activeView === 'wallplan' ? 'block' : 'hidden print:block print:break-before-page'}>
              <h3 className="text-xl font-bold mb-4 print:mt-4 flex items-center gap-2"><Map/> Wall Elevations</h3>
              <div className="space-y-12">
                {project.zones.filter(z => z.active).map((zone) => (
-                 <div key={zone.id} className="break-inside-avoid border border-slate-200 dark:border-slate-800 p-4 rounded-xl print:border-slate-300">
+                 <div key={zone.id} className="break-inside-avoid border border-slate-200 dark:border-slate-800 p-4 rounded-xl print:border-black print:border-2">
                     <h4 className="font-bold text-lg mb-2 border-b pb-2">{zone.id}</h4>
-                    <div className="h-[300px] mb-4 border border-slate-100 dark:border-slate-900 bg-slate-50 dark:bg-slate-950">
+                    <div className="h-[300px] mb-4 border border-slate-100 dark:border-slate-900 bg-slate-50 dark:bg-slate-950 print:bg-white print:border-black">
                        <WallVisualizer zone={zone} height={project.settings.tallHeight + 200} />
                     </div>
                     {/* Legend Table */}
                     <table className="w-full text-sm text-left">
-                       <thead><tr className="border-b"><th className="pb-1">ID</th><th className="pb-1">Description</th><th className="pb-1 text-right">Width</th><th className="pb-1 text-right">Qty</th></tr></thead>
+                       <thead><tr className="border-b dark:border-slate-800 print:border-black"><th className="pb-1 dark:text-slate-400 print:text-black">ID</th><th className="pb-1 dark:text-slate-400 print:text-black">Description</th><th className="pb-1 text-right dark:text-slate-400 print:text-black">Width</th><th className="pb-1 text-right dark:text-slate-400 print:text-black">Qty</th></tr></thead>
                        <tbody>
                           {zone.cabinets.map((cab, idx) => (
-                             <tr key={idx}><td className="py-1 text-slate-500 font-mono">#{idx+1}</td><td className="py-1 font-bold">{cab.preset}</td><td className="py-1 text-right font-mono">{cab.width}</td><td className="py-1 text-right">1</td></tr>
+                             <tr key={idx}><td className="py-1 text-slate-500 font-mono print:text-black">#{idx+1}</td><td className="py-1 font-bold dark:text-slate-200 print:text-black">{cab.preset}</td><td className="py-1 text-right font-mono dark:text-slate-400 print:text-black">{cab.width}</td><td className="py-1 text-right dark:text-slate-400 print:text-black">1</td></tr>
                           ))}
                        </tbody>
                     </table>

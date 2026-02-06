@@ -25,7 +25,7 @@ export enum PresetType {
 
 export interface CostSettings {
   pricePerSheet: number;
-  pricePerHardwareUnit: number; // Avg cost per hinge/slide/leg for MVP speed
+  pricePerHardwareUnit: number; 
   laborRatePerHour: number;
   laborHoursPerCabinet: number;
   marginPercent: number;
@@ -33,6 +33,11 @@ export interface CostSettings {
 
 // Global Project Settings
 export interface ProjectSettings {
+  // Appearance
+  currency: string;
+  logoUrl?: string;
+  
+  // Dimensions
   baseHeight: number;
   wallHeight: number;
   tallHeight: number;
@@ -40,10 +45,12 @@ export interface ProjectSettings {
   depthWall: number;
   depthTall: number;
   thickness: 16 | 18 | 19;
+  
   // Nesting Settings
   sheetWidth: number;
   sheetLength: number;
   kerf: number;
+  
   // Costing
   costs: CostSettings;
 }

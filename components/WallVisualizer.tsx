@@ -159,35 +159,41 @@ export const WallVisualizer: React.FC<Props> = ({
         onClick={(e) => { e.stopPropagation(); onCabinetClick?.(index); }} 
         className="cursor-pointer hover:opacity-80 transition-opacity"
       >
-        <rect x={x} y={y} width={w} height={h} fill={fillColor} stroke={strokeColor} strokeWidth="2"/>
+        <rect x={x} y={y} width={w} height={h} fill={fillColor} stroke={strokeColor} strokeWidth="2" className="print:stroke-black print:stroke-2" />
         {details}
-        <text x={x + w/2} y={y + h/2} fill="var(--text-color)" fontSize={Math.min(80, w/3)} textAnchor="middle" dominantBaseline="middle" fontWeight="bold" style={{pointerEvents: 'none'}}>{w}</text>
+        <text x={x + w/2} y={y + h/2} fill="var(--text-color)" fontSize={Math.min(80, w/3)} textAnchor="middle" dominantBaseline="middle" fontWeight="bold" style={{pointerEvents: 'none'}} className="print:fill-black">{w}</text>
       </g>
     );
   };
 
   return (
-    <div className="w-full bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 overflow-hidden relative shadow-inner select-none print:border-none">
+    <div className="w-full bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 overflow-hidden relative shadow-inner select-none print:border-none print:bg-white print:shadow-none">
       <style>{`
         :root { --bg-wall: #ffffff; --bg-void: #f1f5f9; --grid-line: #e2e8f0; --wall-border: #94a3b8; --cab-stroke: #f59e0b; --cab-fill: rgba(245, 158, 11, 0.2); --obs-stroke: #64748b; --obs-fill: #e2e8f0; --text-color: #f59e0b; }
         .dark { --bg-wall: #0F172A; --bg-void: #020617; --grid-line: #1e293b; --wall-border: #64748b; --cab-stroke: #fbbf24; --cab-fill: rgba(251, 191, 36, 0.1); --obs-stroke: #475569; --obs-fill: #1e293b; --text-color: #fbbf24; }
-        @media print { .print-hidden { display: none; } .bg-slate-50, .dark .bg-slate-950 { background-color: white !important; } svg { background-color: white !important; } .dark { --bg-wall: #fff; --bg-void: #fff; --grid-line: #eee; --wall-border: #000; --cab-stroke: #000; --cab-fill: #eee; --obs-stroke: #000; --obs-fill: #ddd; --text-color: #000; } }
+        @media print { 
+          .print-hidden { display: none; } 
+          .bg-slate-50, .dark .bg-slate-950 { background-color: white !important; } 
+          svg { background-color: white !important; } 
+          .dark { --bg-wall: #fff; --bg-void: #fff; --grid-line: #ccc; --wall-border: #000; --cab-stroke: #000; --cab-fill: #fff; --obs-stroke: #000; --obs-fill: #eee; --text-color: #000; } 
+          :root { --bg-wall: #fff; --bg-void: #fff; --grid-line: #ccc; --wall-border: #000; --cab-stroke: #000; --cab-fill: #fff; --obs-stroke: #000; --obs-fill: #eee; --text-color: #000; } 
+        }
       `}</style>
       
       <div className="absolute top-2 left-2 text-[10px] text-slate-400 font-mono z-10 px-2 rounded opacity-50 print-hidden">ELEVATION VIEW</div>
       
       <svg ref={svgRef} viewBox={`-50 -100 ${viewWidth + 100} ${viewHeight + 150}`} className="w-full h-48 md:h-full bg-[var(--bg-void)] touch-none" preserveAspectRatio="xMidYMax meet">
-        <rect x="0" y="0" width={zone.totalLength} height={height} fill="var(--bg-wall)" className="stroke-[var(--wall-border)]" strokeWidth="2"/>
+        <rect x="0" y="0" width={zone.totalLength} height={height} fill="var(--bg-wall)" className="stroke-[var(--wall-border)] print:stroke-black print:stroke-2" strokeWidth="2"/>
         <defs><pattern id="gridPattern" width="500" height="500" patternUnits="userSpaceOnUse"><path d="M 500 0 L 0 0 0 500" fill="none" stroke="var(--grid-line)" strokeWidth="1"/></pattern></defs>
         <rect x="0" y="0" width={zone.totalLength} height={height} fill="url(#gridPattern)" />
-        <line x1="0" y1={height + 50} x2={zone.totalLength} y2={height + 50} stroke="var(--wall-border)" strokeWidth="1" markerEnd="url(#arrow)" markerStart="url(#arrow)" />
-        <text x={zone.totalLength/2} y={height + 90} textAnchor="middle" fill="var(--obs-stroke)" fontSize="40">TOTAL {zone.totalLength}mm</text>
-        <line x1="-100" y1={height} x2={viewWidth + 100} y2={height} stroke="var(--wall-border)" strokeWidth="4" />
+        <line x1="0" y1={height + 50} x2={zone.totalLength} y2={height + 50} stroke="var(--wall-border)" strokeWidth="1" markerEnd="url(#arrow)" markerStart="url(#arrow)" className="print:stroke-black" />
+        <text x={zone.totalLength/2} y={height + 90} textAnchor="middle" fill="var(--obs-stroke)" fontSize="40" className="print:fill-black font-mono">TOTAL {zone.totalLength}mm</text>
+        <line x1="-100" y1={height} x2={viewWidth + 100} y2={height} stroke="var(--wall-border)" strokeWidth="4" className="print:stroke-black" />
         {zone.obstacles.map((obs, idx) => (
           <g key={obs.id} onMouseDown={(e) => handleMouseDown(e, 'obstacle', idx, obs.fromLeft)} onTouchStart={(e) => handleMouseDown(e, 'obstacle', idx, obs.fromLeft)} onClick={(e) => { e.stopPropagation(); onObstacleClick?.(idx); }} className="cursor-pointer hover:opacity-80 transition-opacity">
-             <rect x={obs.fromLeft} y={height - (obs.elevation || 0) - (obs.height || 2100)} width={obs.width} height={obs.height || 2100} fill="var(--obs-fill)" stroke="var(--obs-stroke)" strokeWidth="2" fillOpacity="0.8"/>
-             {obs.type === 'window' && obs.elevation && <text x={obs.fromLeft + obs.width/2} y={height - 20} textAnchor="middle" fontSize="40" fill="var(--obs-stroke)">ELEV: {obs.elevation}</text>}
-            <text x={obs.fromLeft + obs.width/2} y={height - (obs.elevation||0) - (obs.height||2100)/2} fill="var(--obs-stroke)" fontSize="100" textAnchor="middle" dominantBaseline="middle" style={{textTransform: 'uppercase', opacity: 0.5, pointerEvents: 'none'}}>{obs.type}</text>
+             <rect x={obs.fromLeft} y={height - (obs.elevation || 0) - (obs.height || 2100)} width={obs.width} height={obs.height || 2100} fill="var(--obs-fill)" stroke="var(--obs-stroke)" strokeWidth="2" fillOpacity="0.8" className="print:stroke-black print:fill-slate-200" />
+             {obs.type === 'window' && obs.elevation && <text x={obs.fromLeft + obs.width/2} y={height - 20} textAnchor="middle" fontSize="40" fill="var(--obs-stroke)" className="print:fill-black">ELEV: {obs.elevation}</text>}
+            <text x={obs.fromLeft + obs.width/2} y={height - (obs.elevation||0) - (obs.height||2100)/2} fill="var(--obs-stroke)" fontSize="100" textAnchor="middle" dominantBaseline="middle" style={{textTransform: 'uppercase', opacity: 0.5, pointerEvents: 'none'}} className="print:fill-black print:opacity-100">{obs.type}</text>
           </g>
         ))}
         {zone.cabinets.map((unit, idx) => renderCabinetDetail(unit, idx))}

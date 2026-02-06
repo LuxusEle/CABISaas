@@ -16,10 +16,6 @@ const HW = {
 // --- COLLISION LOGIC ---
 
 export const resolveCollisions = (zone: Zone): Zone => {
-  // We only shove cabinets, we assume Obstacles are fixed constraints usually, 
-  // but for simplicity, we will just ensure cabinets don't overlap each other.
-  // We sort by Position Left.
-  
   const sortedCabs = [...zone.cabinets].sort((a, b) => a.fromLeft - b.fromLeft);
   
   for (let i = 0; i < sortedCabs.length - 1; i++) {
@@ -29,14 +25,10 @@ export const resolveCollisions = (zone: Zone): Zone => {
     const currentRight = current.fromLeft + current.width;
     
     if (currentRight > next.fromLeft) {
-      // Overlap detected! Push 'next' to the right
       next.fromLeft = currentRight; 
     }
   }
 
-  // Ensure we didn't push past the wall length? 
-  // For MVP, we let it flow over, user can see it in visualizer.
-  
   return {
     ...zone,
     cabinets: sortedCabs
@@ -236,7 +228,7 @@ export const calculateProjectCost = (
 ): CostBreakdown => {
   const { costs } = settings;
   
-  // 1. Material (Sheets)
+  // 1. Material (Sheets) - Uses nested result for accuracy
   const materialCost = nestingData.totalSheets * costs.pricePerSheet;
   
   // 2. Hardware
@@ -266,6 +258,7 @@ export const createNewProject = (): Project => ({
   designer: 'Me',
   company: 'My Shop',
   settings: {
+    currency: '$',
     baseHeight: 720,
     wallHeight: 720,
     tallHeight: 2100,
@@ -289,25 +282,128 @@ export const createNewProject = (): Project => ({
   ]
 });
 
-export const exportToCSV = (groups: BOMGroup[], project: Project) => {
-  const headers = ['Cabinet', 'Part Name', 'Material', 'Length (mm)', 'Width (mm)', 'Qty', 'Label'];
-  const rows = [headers.join(',')];
-
+// EXCEL (XML Spreadsheet) EXPORT
+export const exportToExcel = (groups: BOMGroup[], nestingData: OptimizationResult, project: Project) => {
+  const timestamp = new Date().toISOString().slice(0, 10);
+  
+  // 1. Prepare Data for Sheets
+  
+  // Sheet 1: Parts List
+  let partsRows = '';
   groups.forEach(group => {
     group.items.forEach(item => {
-      const safeName = item.name.replace(/"/g, '""');
-      const safeMat = item.material.replace(/"/g, '""');
-      const safeLabel = (item.label || '').replace(/"/g, '""');
-      rows.push([`"${group.cabinetName}"`,`"${safeName}"`,`"${safeMat}"`,item.length,item.width,item.qty,`"${safeLabel}"`].join(','));
+      partsRows += `
+      <Row>
+        <Cell><Data ss:Type="String">${group.cabinetName}</Data></Cell>
+        <Cell><Data ss:Type="String">${item.name}</Data></Cell>
+        <Cell><Data ss:Type="String">${item.material}</Data></Cell>
+        <Cell><Data ss:Type="Number">${item.length}</Data></Cell>
+        <Cell><Data ss:Type="Number">${item.width}</Data></Cell>
+        <Cell><Data ss:Type="Number">${item.qty}</Data></Cell>
+        <Cell><Data ss:Type="String">${item.label || ''}</Data></Cell>
+      </Row>`;
     });
   });
 
-  const csvContent = rows.join("\n");
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  // Sheet 2: Material BOM (Sheets Count)
+  const materialCounts: Record<string, { sheets: number, wasteSum: number, count: number }> = {};
+  
+  nestingData.sheets.forEach(sheet => {
+    if (!materialCounts[sheet.material]) {
+      materialCounts[sheet.material] = { sheets: 0, wasteSum: 0, count: 0 };
+    }
+    materialCounts[sheet.material].sheets += 1;
+    materialCounts[sheet.material].wasteSum += sheet.waste;
+    materialCounts[sheet.material].count += 1;
+  });
+
+  let materialRows = '';
+  Object.keys(materialCounts).forEach(mat => {
+    const data = materialCounts[mat];
+    const avgWaste = Math.round(data.wasteSum / data.count);
+    const estCost = data.sheets * project.settings.costs.pricePerSheet;
+    
+    materialRows += `
+    <Row>
+      <Cell><Data ss:Type="String">${mat}</Data></Cell>
+      <Cell><Data ss:Type="Number">${data.sheets}</Data></Cell>
+      <Cell><Data ss:Type="String">${project.settings.sheetLength} x ${project.settings.sheetWidth}</Data></Cell>
+      <Cell><Data ss:Type="Number">${avgWaste}</Data></Cell>
+      <Cell><Data ss:Type="Number">${estCost}</Data></Cell>
+    </Row>`;
+  });
+
+  // XML Template
+  const xml = `<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:html="http://www.w3.org/TR/REC-html40">
+ <DocumentProperties xmlns="urn:schemas-microsoft-com:office:office">
+  <Author>${project.company}</Author>
+  <Created>${timestamp}</Created>
+ </DocumentProperties>
+ <Styles>
+  <Style ss:ID="Default" ss:Name="Normal">
+   <Alignment ss:Vertical="Bottom"/>
+   <Borders/>
+   <Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="11" ss:Color="#000000"/>
+   <Interior/>
+   <NumberFormat/>
+   <Protection/>
+  </Style>
+  <Style ss:ID="Header">
+   <Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="11" ss:Color="#FFFFFF" ss:Bold="1"/>
+   <Interior ss:Color="#D97706" ss:Pattern="Solid"/>
+  </Style>
+ </Styles>
+ <Worksheet ss:Name="Parts List">
+  <Table>
+   <Column ss:Width="200"/>
+   <Column ss:Width="120"/>
+   <Column ss:Width="120"/>
+   <Column ss:Width="80"/>
+   <Column ss:Width="80"/>
+   <Column ss:Width="60"/>
+   <Column ss:Width="150"/>
+   <Row ss:StyleID="Header">
+    <Cell><Data ss:Type="String">Cabinet</Data></Cell>
+    <Cell><Data ss:Type="String">Part Name</Data></Cell>
+    <Cell><Data ss:Type="String">Material</Data></Cell>
+    <Cell><Data ss:Type="String">Length</Data></Cell>
+    <Cell><Data ss:Type="String">Width</Data></Cell>
+    <Cell><Data ss:Type="String">Qty</Data></Cell>
+    <Cell><Data ss:Type="String">Label</Data></Cell>
+   </Row>
+   ${partsRows}
+  </Table>
+ </Worksheet>
+ <Worksheet ss:Name="Material BOM">
+  <Table>
+   <Column ss:Width="150"/>
+   <Column ss:Width="100"/>
+   <Column ss:Width="150"/>
+   <Column ss:Width="100"/>
+   <Column ss:Width="100"/>
+   <Row ss:StyleID="Header">
+    <Cell><Data ss:Type="String">Material</Data></Cell>
+    <Cell><Data ss:Type="String">Sheets Required</Data></Cell>
+    <Cell><Data ss:Type="String">Sheet Size</Data></Cell>
+    <Cell><Data ss:Type="String">Avg Waste %</Data></Cell>
+    <Cell><Data ss:Type="String">Est. Cost</Data></Cell>
+   </Row>
+   ${materialRows}
+  </Table>
+ </Worksheet>
+</Workbook>`;
+
+  const blob = new Blob([xml], { type: 'application/vnd.ms-excel' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.setAttribute("href", url);
-  link.setAttribute("download", `${project.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_bom.csv`);
+  link.setAttribute("download", `${project.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_bom.xls`);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
