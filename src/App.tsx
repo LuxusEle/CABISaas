@@ -18,6 +18,7 @@ import { AuthModal } from './components/AuthModal';
 import { CustomCabinetEditor } from './components/CustomCabinetEditor';
 import { CustomCabinetLibrary } from './components/CustomCabinetLibrary';
 import { customCabinetService } from './services/customCabinetService';
+import { projectService } from './services/projectService';
 
 // --- PRINT TITLE BLOCK ---
 const TitleBlock = ({ project, pageTitle }: { project: Project, pageTitle: string }) => (
@@ -96,21 +97,61 @@ export default function App() {
 
   const toggleTheme = () => setIsDark(!isDark);
 
+  useEffect(() => {
+    // Skip auto-save if we're on Home screen or if project is just the initial blank one
+    if (screen === Screen.HOME || !project.id || project.id.length < 20) return;
+
+    const timer = setTimeout(() => {
+      handleSaveProject(project);
+    }, 2000); // 2 second debounce
+
+    return () => clearTimeout(timer);
+  }, [project, screen]);
+
+  const handleSaveProject = async (projectToSave: Project) => {
+    const isNew = projectToSave.id.length < 20; // Simple check for uuid() vs DB UUID
+    const { data, error } = isNew
+      ? await projectService.createProject(projectToSave)
+      : await projectService.updateProject(projectToSave.id, projectToSave);
+
+    if (error) {
+      console.error("Save error:", error);
+      alert("Saving failed. Please try again.");
+    } else if (data) {
+      setProject(data);
+      return data;
+    }
+    return null;
+  };
+
   const handleStartProject = () => {
-    requireAuth(() => {
-      setProject(createNewProject());
-      setScreen(Screen.PROJECT_SETUP);
+    requireAuth(async () => {
+      const newProj = createNewProject();
+      const savedProj = await handleSaveProject(newProj);
+      if (savedProj) {
+        setProject(savedProj);
+        setScreen(Screen.PROJECT_SETUP);
+      }
     });
   };
 
   const renderContent = () => {
     switch (screen) {
-      case Screen.HOME: return <ScreenHome onNewProject={handleStartProject} />;
+      case Screen.HOME:
+        return (
+          <ScreenHome
+            onNewProject={handleStartProject}
+            onLoadProject={(p) => {
+              setProject(p);
+              setScreen(Screen.WALL_EDITOR);
+            }}
+          />
+        );
       case Screen.PROJECT_SETUP: return <ScreenProjectSetup project={project} setProject={setProject} />;
-      case Screen.WALL_EDITOR: return <ScreenWallEditor project={project} setProject={setProject} setScreen={setScreen} />;
+      case Screen.WALL_EDITOR: return <ScreenWallEditor project={project} setProject={setProject} setScreen={setScreen} onSave={() => handleSaveProject(project)} />;
       case Screen.BOM_REPORT: return <ScreenBOMReport project={project} setProject={setProject} />;
       case Screen.TOOLS: return <ScreenPlanView project={project} />;
-      default: return <ScreenHome onNewProject={handleStartProject} />;
+      default: return <ScreenHome onNewProject={handleStartProject} onLoadProject={(p) => { setProject(p); setScreen(Screen.WALL_EDITOR); }} />;
     }
   };
 
@@ -221,20 +262,80 @@ const MobileNavButton = ({ active, onClick, icon, label }: any) => (
 
 // --- SCREENS ---
 
-const ScreenHome = ({ onNewProject }: { onNewProject: () => void }) => (
-  <div className="flex flex-col h-full p-6 space-y-8 bg-slate-50 dark:bg-slate-950 items-center justify-center max-w-4xl mx-auto w-full overflow-y-auto">
-    <div className="text-center space-y-2 mb-8">
-      <h1 className="text-5xl md:text-6xl font-black tracking-tight text-slate-900 dark:text-white">CAB<span className="text-amber-600 dark:text-amber-500">ENGINE</span></h1>
-    </div>
-    <div className="w-full max-w-md space-y-4">
-      <Button variant="primary" size="xl" onClick={onNewProject} leftIcon={<Layers size={28} />} className="w-full py-8 text-xl shadow-xl shadow-amber-500/20">Start New Project</Button>
-      <div className="grid grid-cols-2 gap-4">
-        <Button variant="secondary" size="lg" className="h-28 flex-col gap-2"><Calculator size={28} className="text-amber-600" /><span>Quick Parts</span></Button>
-        <Button variant="secondary" size="lg" className="h-28 flex-col gap-2"><Zap size={28} className="text-amber-600" /><span>Area Calc</span></Button>
+const ScreenHome = ({ onNewProject, onLoadProject }: { onNewProject: () => void, onLoadProject: (p: Project) => void }) => {
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadProjects = async () => {
+      const { data } = await projectService.getProjects();
+      if (data) setProjects(data);
+      setLoading(false);
+    };
+    loadProjects();
+  }, []);
+
+  return (
+    <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 items-center justify-center max-w-6xl mx-auto w-full overflow-y-auto p-6">
+      <div className="text-center space-y-2 mb-8">
+        <h1 className="text-5xl md:text-6xl font-black tracking-tight text-slate-900 dark:text-white">CAB<span className="text-amber-600 dark:text-amber-500">ENGINE</span></h1>
+        <p className="text-slate-500 dark:text-slate-400 font-medium italic">Professional Cabinet Engineering Suite</p>
+      </div>
+
+      <div className="grid md:grid-cols-3 gap-8 w-full items-start">
+        {/* Main Action Side */}
+        <div className="md:col-span-1 space-y-4">
+          <Button variant="primary" size="xl" onClick={onNewProject} leftIcon={<Layers size={28} />} className="w-full py-12 text-xl shadow-xl shadow-amber-500/20 flex-col gap-2">
+            <span>Start New Project</span>
+          </Button>
+          <div className="grid grid-cols-2 gap-4">
+            <Button variant="secondary" size="lg" className="h-28 flex-col gap-2"><Calculator size={28} className="text-amber-600" /><span>Quick Parts</span></Button>
+            <Button variant="secondary" size="lg" className="h-28 flex-col gap-2"><Zap size={28} className="text-amber-600" /><span>Area Calc</span></Button>
+          </div>
+        </div>
+
+        {/* Project List Side */}
+        <div className="md:col-span-2 bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm min-h-[400px]">
+          <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+            <List className="text-amber-500" /> Recent Projects
+          </h2>
+
+          {loading ? (
+            <div className="flex flex-col items-center justify-center h-64 text-slate-400 gap-4">
+              <div className="w-8 h-8 border-4 border-amber-500/20 border-t-amber-500 rounded-full animate-spin" />
+              <p>Fetching your designs...</p>
+            </div>
+          ) : projects.length > 0 ? (
+            <div className="grid sm:grid-cols-2 gap-4">
+              {projects.map(p => (
+                <button
+                  key={p.id}
+                  onClick={() => onLoadProject(p)}
+                  className="flex flex-col text-left p-4 rounded-xl border border-slate-100 dark:border-slate-800 hover:border-amber-300 dark:hover:border-amber-900 hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-all group"
+                >
+                  <div className="font-bold text-slate-800 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 truncate mb-1">{p.name}</div>
+                  <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-3">Edited {new Date().toLocaleDateString()}</div>
+                  <div className="mt-auto flex items-center justify-between">
+                    <div className="text-xs text-slate-500 dark:text-slate-400">{p.zones.reduce((acc, z) => acc + z.cabinets.length, 0)} Cabinets</div>
+                    <div className="text-amber-600 dark:text-amber-500"><Box size={14} /></div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-64 text-center px-4">
+              <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4 text-slate-400">
+                <Layers size={32} />
+              </div>
+              <h3 className="font-bold text-slate-700 dark:text-slate-300 mb-1">No Projects Yet</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Start your first cabinet design by clicking the button on the left.</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 const ScreenPlanView = ({ project }: { project: Project }) => (
   <div className="flex flex-col h-full w-full overflow-hidden">
@@ -278,7 +379,7 @@ const ScreenProjectSetup = ({ project, setProject }: { project: Project, setProj
   </div>
 );
 
-const ScreenWallEditor = ({ project, setProject, setScreen }: { project: Project, setProject: React.Dispatch<React.SetStateAction<Project>>, setScreen: (s: Screen) => void }) => {
+const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project: Project, setProject: React.Dispatch<React.SetStateAction<Project>>, setScreen: (s: Screen) => void, onSave: () => void }) => {
   const [activeTab, setActiveTab] = useState<string>(project.zones[0]?.id || 'Wall A');
   const currentZoneIndex = project.zones.findIndex(z => z.id === activeTab);
   const currentZone = project.zones[currentZoneIndex];
@@ -479,6 +580,8 @@ const ScreenWallEditor = ({ project, setProject, setScreen }: { project: Project
 
           <div className="min-h-[240px] bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 relative z-10 transition-all min-h-0">
             <div className="absolute top-4 right-4 z-20 flex gap-2">
+              <Button size="xs" variant="secondary" onClick={onSave} className="bg-amber-100 hover:bg-amber-200 text-amber-900 border-amber-200 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-900"><Save size={14} className="mr-1" /> Save</Button>
+              <div className="w-px h-6 bg-slate-200 dark:bg-slate-800 mx-1" />
               <Button size="xs" variant={visualMode === 'elevation' ? 'primary' : 'secondary'} onClick={() => setVisualMode('elevation')}>Elevation</Button>
               <Button size="xs" variant={visualMode === 'iso' ? 'primary' : 'secondary'} onClick={() => setVisualMode('iso')}>3D ISO</Button>
             </div>
