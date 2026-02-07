@@ -81,14 +81,20 @@ export default function App() {
     // Listen to auth changes
     const subscription = authService.onAuthStateChange((user) => {
       setUser(user);
+      // If user logged out and not on landing page, redirect to landing
+      if (!user && screen !== Screen.LANDING) {
+        setScreen(Screen.LANDING);
+      }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [screen]);
 
   // Function to require authentication before action
   const requireAuth = (action: () => void) => {
     if (!user) {
+      setScreen(Screen.LANDING);
+      setAuthModalMode('login');
       setShowAuthModal(true);
     } else {
       action();
@@ -147,6 +153,18 @@ export default function App() {
   };
 
   const renderContent = () => {
+    // Check authentication for protected screens
+    const protectedScreens = [Screen.DASHBOARD, Screen.PROJECT_SETUP, Screen.WALL_EDITOR, Screen.BOM_REPORT, Screen.TOOLS];
+    if (!user && protectedScreens.includes(screen)) {
+      // Redirect to landing page if not authenticated
+      return (
+        <LandingPage
+          onGetStarted={() => openAuthModal('signup')}
+          onSignIn={() => openAuthModal('login')}
+        />
+      );
+    }
+
     switch (screen) {
       case Screen.LANDING:
         return (
@@ -259,6 +277,10 @@ export default function App() {
             if (screen === Screen.LANDING) {
               setScreen(Screen.DASHBOARD);
             }
+          }}
+          onLogout={() => {
+            setShowAuthModal(false);
+            setScreen(Screen.LANDING);
           }}
         />
       )}

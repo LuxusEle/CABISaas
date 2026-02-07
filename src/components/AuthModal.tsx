@@ -6,11 +6,12 @@ import type { User } from '@supabase/supabase-js';
 interface AuthModalProps {
   onClose: () => void;
   onSuccess: () => void;
+  onLogout?: () => void;
   user?: User | null;
   initialMode?: 'login' | 'signup';
 }
 
-export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, user, initialMode = 'login' }) => {
+export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogout, user, initialMode = 'login' }) => {
   const [mode, setMode] = useState<'login' | 'signup'>(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -53,7 +54,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, user, 
 
   const handleLogout = async () => {
     await authService.signOut();
-    onSuccess();
+    if (onLogout) {
+      onLogout();
+    } else {
+      onSuccess();
+    }
   };
 
   // If user is logged in, show profile view
