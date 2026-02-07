@@ -69,6 +69,16 @@ export interface Obstacle {
   depth?: number;
 }
 
+export interface CustomCabinetConfig {
+  num_shelves: number;
+  num_drawers: number;
+  num_doors: number;
+  shelf_positions?: number[];
+  hinges?: number;
+  slides?: number;
+  handles?: number;
+}
+
 export interface CabinetUnit {
   id: string;
   preset: PresetType;
@@ -78,6 +88,9 @@ export interface CabinetUnit {
   fromLeft: number;
   isAutoFilled?: boolean;
   label?: string;
+  // Custom cabinet support
+  customPresetId?: string; // ID of custom preset from database
+  customConfig?: CustomCabinetConfig; // Custom configuration
 }
 
 export interface Zone {

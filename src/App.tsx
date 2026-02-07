@@ -1,9 +1,11 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Home, Layers, Calculator, Zap, ArrowLeft, Trash2, Plus, Box, DoorOpen, Wand2, Moon, Sun, Table2, FileSpreadsheet, X, Pencil, Save, List, Settings, Printer, Download, Scissors, LayoutDashboard, DollarSign, Map } from 'lucide-react';
+import { Home, Layers, Calculator, Zap, ArrowLeft, Trash2, Plus, Box, DoorOpen, Wand2, Moon, Sun, Table2, FileSpreadsheet, X, Pencil, Save, List, Settings, Printer, Download, Scissors, LayoutDashboard, DollarSign, Map, LogOut } from 'lucide-react';
 import { Screen, Project, ZoneId, PresetType, CabinetType, CabinetUnit, Obstacle } from './types';
 import { createNewProject, generateProjectBOM, autoFillZone, exportToExcel, resolveCollisions, calculateProjectCost, exportProjectToConstructionJSON, buildProjectConstructionData } from './services/bomService';
 import { optimizeCuts } from './services/nestingService';
+import { authService } from './services/authService';
+import type { User } from '@supabase/supabase-js';
 
 // Components
 import { Button } from './components/Button';
@@ -12,6 +14,7 @@ import { WallVisualizer } from './components/WallVisualizer';
 import { CutPlanVisualizer } from './components/CutPlanVisualizer';
 import { IsometricVisualizer } from './components/IsometricVisualizer';
 import { KitchenPlanCanvas } from './components/KitchenPlanCanvas.tsx';
+import { AuthModal } from './components/AuthModal';
 
 // --- PRINT TITLE BLOCK ---
 const TitleBlock = ({ project, pageTitle }: { project: Project, pageTitle: string }) => (
@@ -49,9 +52,38 @@ const TitleBlock = ({ project, pageTitle }: { project: Project, pageTitle: strin
 export default function App() {
   const [screen, setScreen] = useState<Screen>(Screen.HOME);
   const [project, setProject] = useState<Project>(createNewProject());
+  const [user, setUser] = useState<User | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
   const [isDark, setIsDark] = useState(() => {
     try { return localStorage.getItem('app-theme') !== 'false'; } catch { return true; }
   });
+
+  // Check authentication on mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { user } = await authService.getCurrentUser();
+      setUser(user);
+      setAuthLoading(false);
+    };
+    checkAuth();
+
+    // Listen to auth changes
+    const subscription = authService.onAuthStateChange((user) => {
+      setUser(user);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Function to require authentication before action
+  const requireAuth = (action: () => void) => {
+    if (!user) {
+      setShowAuthModal(true);
+    } else {
+      action();
+    }
+  };
 
   useEffect(() => {
     localStorage.setItem('app-theme', String(isDark));
@@ -62,8 +94,10 @@ export default function App() {
   const toggleTheme = () => setIsDark(!isDark);
 
   const handleStartProject = () => {
-    setProject(createNewProject());
-    setScreen(Screen.PROJECT_SETUP);
+    requireAuth(() => {
+      setProject(createNewProject());
+      setScreen(Screen.PROJECT_SETUP);
+    });
   };
 
   const renderContent = () => {
@@ -91,12 +125,29 @@ export default function App() {
           <div className="mb-8 text-amber-500"><LayoutDashboard size={28} /></div>
           <nav className="flex flex-col gap-6 w-full px-2">
             <NavButton active={screen === Screen.HOME} onClick={() => setScreen(Screen.HOME)} icon={<Home size={24} />} label="Home" />
-            <NavButton active={screen === Screen.PROJECT_SETUP} onClick={() => setScreen(Screen.PROJECT_SETUP)} icon={<Settings size={24} />} label="Setup" />
-            <NavButton active={screen === Screen.WALL_EDITOR} onClick={() => setScreen(Screen.WALL_EDITOR)} icon={<Box size={24} />} label="Walls" />
-            <NavButton active={screen === Screen.BOM_REPORT} onClick={() => setScreen(Screen.BOM_REPORT)} icon={<Table2 size={24} />} label="BOM" />
-            <NavButton active={screen === Screen.TOOLS} onClick={() => setScreen(Screen.TOOLS)} icon={<Map size={24} />} label="Plan" />
+            <NavButton active={screen === Screen.PROJECT_SETUP} onClick={() => requireAuth(() => setScreen(Screen.PROJECT_SETUP))} icon={<Settings size={24} />} label="Setup" />
+            <NavButton active={screen === Screen.WALL_EDITOR} onClick={() => requireAuth(() => setScreen(Screen.WALL_EDITOR))} icon={<Box size={24} />} label="Walls" />
+            <NavButton active={screen === Screen.BOM_REPORT} onClick={() => requireAuth(() => setScreen(Screen.BOM_REPORT))} icon={<Table2 size={24} />} label="BOM" />
+            <NavButton active={screen === Screen.TOOLS} onClick={() => requireAuth(() => setScreen(Screen.TOOLS))} icon={<Map size={24} />} label="Plan" />
           </nav>
-          <div className="mt-auto">
+          <div className="mt-auto flex flex-col gap-2">
+            {user ? (
+              <button
+                onClick={() => setShowAuthModal(true)}
+                className="p-3 rounded-xl bg-slate-800 text-amber-500 hover:bg-slate-700 transition-colors"
+                title={user.email}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowAuthModal(true)}
+                className="p-3 rounded-xl bg-slate-800 text-slate-400 hover:bg-slate-700 transition-colors"
+                title="Login"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+              </button>
+            )}
             <button onClick={toggleTheme} className="p-3 rounded-xl bg-slate-800 text-amber-500 hover:bg-slate-700 transition-colors">{isDark ? <Sun size={20} /> : <Moon size={20} />}</button>
           </div>
         </aside>
@@ -133,6 +184,27 @@ export default function App() {
           .print\\:bg-white { background-color: white !important; }
         }
       `}</style>
+
+      {/* Auth Modal */}
+      {showAuthModal && (
+        <AuthModal
+          user={user}
+          onClose={() => setShowAuthModal(false)}
+          onSuccess={() => {
+            setShowAuthModal(false);
+          }}
+        />
+      )}
+
+      {/* Loading State */}
+      {authLoading && (
+        <div className="fixed inset-0 bg-slate-900 flex items-center justify-center z-50">
+          <div className="text-center">
+            <div className="font-black text-3xl mb-4">CAB<span className="text-amber-500">ENGINE</span></div>
+            <div className="text-slate-400">Loading...</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
