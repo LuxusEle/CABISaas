@@ -3,7 +3,7 @@ import { Loader2 } from 'lucide-react';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'outline';
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   isLoading?: boolean;
   leftIcon?: React.ReactNode;
 }
@@ -28,6 +28,7 @@ export const Button: React.FC<ButtonProps> = ({
   };
 
   const sizes = {
+    xs: "h-8 px-3 text-xs",
     sm: "h-10 px-4 text-sm",
     md: "h-12 px-6 text-base",
     lg: "h-14 px-8 text-lg", // Standard mobile touch target

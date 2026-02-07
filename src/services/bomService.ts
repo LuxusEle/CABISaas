@@ -205,6 +205,40 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
 
   parts.push({ id: uuid(), name: 'Back Panel', qty: 1, width: unit.width - 2, length: height - 2, material: '6mm MDF', label: labelPrefix });
 
+  // Check for custom configuration
+  if (unit.customConfig) {
+    const config = unit.customConfig;
+
+    // Add custom shelves
+    if (config.num_shelves > 0) {
+      parts.push({ id: uuid(), name: 'Shelf', qty: config.num_shelves, width: depth - 20, length: horizWidth, material: `${thickness}mm White`, label: labelPrefix });
+    }
+
+    // Add custom drawers
+    if (config.num_drawers > 0) {
+      parts.push({ id: uuid(), name: 'Drawer Bottom', qty: config.num_drawers, width: depth - 50, length: horizWidth - 26, material: '16mm White', label: labelPrefix });
+      parts.push({ id: uuid(), name: 'Drawer Side', qty: config.num_drawers * 2, width: depth - 10, length: 150, material: '16mm White', label: labelPrefix });
+    }
+
+    // Add custom hardware
+    const hinges = config.hinges ?? (config.num_doors > 0 ? (unit.width > 400 ? config.num_doors * 2 : config.num_doors) : 0);
+    const slides = config.slides ?? config.num_drawers;
+    const handles = config.handles ?? (config.num_doors + config.num_drawers);
+
+    if (hinges > 0) parts.push({ id: uuid(), name: HW.HINGE, qty: hinges, width: 0, length: 0, material: 'Hardware', isHardware: true });
+    if (slides > 0) parts.push({ id: uuid(), name: HW.SLIDE, qty: slides, width: 0, length: 0, material: 'Hardware', isHardware: true });
+    if (handles > 0) parts.push({ id: uuid(), name: HW.HANDLE, qty: handles, width: 0, length: 0, material: 'Hardware', isHardware: true });
+
+    // Add legs for base cabinets, hangers for wall cabinets
+    if (unit.type === CabinetType.BASE || unit.type === CabinetType.TALL) {
+      parts.push({ id: uuid(), name: HW.LEG, qty: 4, width: 0, length: 0, material: 'Hardware', isHardware: true });
+    } else if (unit.type === CabinetType.WALL) {
+      parts.push({ id: uuid(), name: HW.HANGER, qty: 1, width: 0, length: 0, material: 'Hardware', isHardware: true });
+    }
+
+    return parts;
+  }
+
   // Preset Hardware
   if (unit.preset === PresetType.BASE_DOOR) {
     parts.push({ id: uuid(), name: 'Shelf', qty: 1, width: depth - 20, length: horizWidth, material: `${thickness}mm White`, label: labelPrefix });
