@@ -530,7 +530,7 @@ export const buildProjectConstructionData = (project: Project): ConstructionPlan
           position: {
             x: mmToM(unit.fromLeft),
             y: unit.type === CabinetType.WALL ? mmToM(1400) : 0,
-            z: unit.type === CabinetType.WALL ? mmToM(300) : mmToM(600)
+            z: 0
           },
           size: {
             length: mmToM(unit.width),

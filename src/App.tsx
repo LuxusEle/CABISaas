@@ -11,7 +11,7 @@ import { NumberInput } from './components/NumberInput';
 import { WallVisualizer } from './components/WallVisualizer';
 import { CutPlanVisualizer } from './components/CutPlanVisualizer';
 import { IsometricVisualizer } from './components/IsometricVisualizer';
-import { KitchenPlanCanvas } from './components/KitchenPlanCanvas';
+import { KitchenPlanCanvas } from './components/KitchenPlanCanvas.tsx';
 
 // --- PRINT TITLE BLOCK ---
 const TitleBlock = ({ project, pageTitle }: { project: Project, pageTitle: string }) => (

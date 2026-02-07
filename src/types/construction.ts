@@ -64,7 +64,11 @@ export interface ConstructionPlanJSON {
     lengthUnit?: 'm' | 'cm' | 'mm' | 'in' | 'ft' | string;
     planViewPlane?: PlanViewPlane;
     axisConvention?: {
+      x?: string;
+      y?: string;
+      z?: string;
       planViewPlane?: PlanViewPlane;
+      elevationUpAxis?: string;
     };
   };
   room: ConstructionRoom;

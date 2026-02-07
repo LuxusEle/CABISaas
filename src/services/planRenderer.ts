@@ -20,29 +20,43 @@ function getXZ(point: any): { x: number; z: number } {
 function computeBounds(data: ConstructionPlanJSON): { minX: number; maxX: number; minZ: number; maxZ: number } {
   const points: Array<{ x: number; z: number }> = [];
 
-  const floorPoints = data?.room?.floorPolygon?.points ?? [];
-  for (const p of floorPoints) points.push(getXZ(p));
+  // Initialize with a small fake bounds if empty
+  const defaultBounds = { minX: 0, maxX: 1, minZ: 0, maxZ: 1 };
 
+  // 1. Prioritize cabinets and walls for the "actual" drawing area
   const walls = data?.room?.walls ?? [];
   for (const w of walls) {
-    points.push(getXZ(w.from));
-    points.push(getXZ(w.to));
+    if (w.from) points.push(getXZ(w.from));
+    if (w.to) points.push(getXZ(w.to));
   }
 
   const objects = data?.objects ?? [];
+  let hasCabinets = false;
   for (const obj of objects) {
     if (obj?.category !== 'cabinet') continue;
     const pos = obj?.box?.position;
     const size = obj?.box?.size;
     if (!pos || !size) continue;
+
+    // Ignore items at exact (0,0) if they are likely placeholder/uninitialized 
+    // unless they are the only things there
+    if (pos.x === 0 && pos.z === 0 && size.length === 0) continue;
+
     const x0 = pos.x ?? 0;
     const z0 = pos.z ?? 0;
     const x1 = x0 + (size.length ?? 0);
     const z1 = z0 + (size.depth ?? 0);
     points.push({ x: x0, z: z0 }, { x: x1, z: z1 });
+    hasCabinets = true;
   }
 
-  if (points.length === 0) return { minX: 0, maxX: 1, minZ: 0, maxZ: 1 };
+  // 2. Only include floor points if it's tight or we have nothing else
+  if (!hasCabinets && points.length === 0) {
+    const floorPoints = data?.room?.floorPolygon?.points ?? [];
+    for (const p of floorPoints) points.push(getXZ(p));
+  }
+
+  if (points.length === 0) return defaultBounds;
 
   let minX = Infinity;
   let maxX = -Infinity;
@@ -56,7 +70,7 @@ function computeBounds(data: ConstructionPlanJSON): { minX: number; maxX: number
     maxZ = Math.max(maxZ, p.z);
   }
 
-  if (!Number.isFinite(minX)) return { minX: 0, maxX: 1, minZ: 0, maxZ: 1 };
+  if (!Number.isFinite(minX)) return defaultBounds;
   return { minX, maxX, minZ, maxZ };
 }
 
@@ -94,6 +108,7 @@ function cabinetFillForKind(kind?: string): string {
 
 function drawFloor(ctx: CanvasRenderingContext2D, floorPointsPx: Array<{ x: number; y: number }>) {
   if (floorPointsPx.length < 3) return;
+  const dpr = window.devicePixelRatio || 1;
   ctx.save();
   ctx.beginPath();
   ctx.moveTo(floorPointsPx[0].x, floorPointsPx[0].y);
@@ -103,9 +118,10 @@ function drawFloor(ctx: CanvasRenderingContext2D, floorPointsPx: Array<{ x: numb
   ctx.fillStyle = '#ffffff';
   ctx.fill();
 
-  ctx.strokeStyle = '#0f172a';
-  ctx.lineWidth = 2;
-  ctx.stroke();
+  // Removing floor stroke to eliminate the stray line around the room
+  // ctx.strokeStyle = '#0f172a';
+  // ctx.lineWidth = 1.5 * dpr;
+  // ctx.stroke();
   ctx.restore();
 }
 
@@ -113,96 +129,28 @@ function drawWalls(
   ctx: CanvasRenderingContext2D,
   walls: ConstructionPlanJSON['room']['walls'],
   mapPoint: (pt: { x: number; z: number }) => { x: number; y: number },
-  scalePxPerMeter: number,
+  finalScale: number,
   lengthUnit: string
 ) {
+  const dpr = window.devicePixelRatio || 1;
   ctx.save();
-  ctx.strokeStyle = '#0f172a';
-  ctx.lineCap = 'butt';
+  ctx.strokeStyle = '#64748b'; // Slate-500 for a cleaner look
+  ctx.lineCap = 'round';
 
-  for (const wall of walls) {
-    const from = getXZ(wall.from);
-    const to = getXZ(wall.to);
+  for (const wall of walls ?? []) {
+    const fromM = { x: toMeters(getXZ(wall.from).x, lengthUnit), z: toMeters(getXZ(wall.from).z, lengthUnit) };
+    const toM = { x: toMeters(getXZ(wall.to).x, lengthUnit), z: toMeters(getXZ(wall.to).z, lengthUnit) };
+    const a = mapPoint(fromM);
+    const b = mapPoint(toM);
 
-    const ax = toMeters(from.x, lengthUnit);
-    const az = toMeters(from.z, lengthUnit);
-    const bx = toMeters(to.x, lengthUnit);
-    const bz = toMeters(to.z, lengthUnit);
-
-    const thicknessM = toMeters(wall.thickness ?? 0.12, lengthUnit);
-    const lineWidth = Math.max(1, thicknessM * scalePxPerMeter);
-
-    const a = mapPoint({ x: ax, z: az });
-    const b = mapPoint({ x: bx, z: bz });
-
-    const openings = wall.openings ?? [];
-    if (!openings.length) {
-      ctx.lineWidth = lineWidth;
-      ctx.beginPath();
-      ctx.moveTo(a.x, a.y);
-      ctx.lineTo(b.x, b.y);
-      ctx.stroke();
-      continue;
-    }
-
-    const dx = bx - ax;
-    const dz = bz - az;
-    const wallLen = Math.hypot(dx, dz) || 1;
-    const ux = dx / wallLen;
-    const uz = dz / wallLen;
-
-    const cuts: Array<{ start: number; end: number }> = [];
-    for (const op of openings) {
-      const at = toMeters(op.atDistanceFromFromPoint ?? 0, lengthUnit);
-      const w = toMeters(op.width ?? 0, lengthUnit);
-      const start = Math.max(0, at - w / 2);
-      const end = Math.min(wallLen, at + w / 2);
-      if (end > start) cuts.push({ start, end });
-    }
-    cuts.sort((c1, c2) => c1.start - c2.start);
-
-    const merged: Array<{ start: number; end: number }> = [];
-    for (const c of cuts) {
-      const last = merged[merged.length - 1];
-      if (!last || c.start > last.end) merged.push({ ...c });
-      else last.end = Math.max(last.end, c.end);
-    }
-
-    let cursor = 0;
-    const segments: Array<{ start: number; end: number }> = [];
-    for (const c of merged) {
-      if (c.start > cursor) segments.push({ start: cursor, end: c.start });
-      cursor = Math.max(cursor, c.end);
-    }
-    if (cursor < wallLen) segments.push({ start: cursor, end: wallLen });
-
-    ctx.lineWidth = lineWidth;
-    for (const seg of segments) {
-      const sx = ax + ux * seg.start;
-      const sz = az + uz * seg.start;
-      const ex = ax + ux * seg.end;
-      const ez = az + uz * seg.end;
-      const s = mapPoint({ x: sx, z: sz });
-      const e = mapPoint({ x: ex, z: ez });
-      ctx.beginPath();
-      ctx.moveTo(s.x, s.y);
-      ctx.lineTo(e.x, e.y);
-      ctx.stroke();
-    }
-
-    ctx.lineWidth = 1;
-    for (const c of merged) {
-      const mid = (c.start + c.end) / 2;
-      const mx = ax + ux * mid;
-      const mz = az + uz * mid;
-      const p = mapPoint({ x: mx, z: mz });
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, 2.5, 0, Math.PI * 2);
-      ctx.fillStyle = '#0f172a';
-      ctx.fill();
-    }
+    // Using a thin consistent line instead of a physical-scaled thickness 
+    // to avoid massive black bars in the on-screen preview.
+    ctx.lineWidth = 2 * dpr;
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    // ctx.stroke(); // Removed wall baseline to eliminate the "middle line" artifact
   }
-
   ctx.restore();
 }
 
@@ -212,21 +160,20 @@ function drawCabinets(
   mapPoint: (pt: { x: number; z: number }) => { x: number; y: number },
   lengthUnit: string
 ) {
+  const dpr = window.devicePixelRatio || 1;
   ctx.save();
   ctx.strokeStyle = '#0f172a';
-  ctx.lineWidth = 2;
-  ctx.font = '12px system-ui, -apple-system, Segoe UI, Roboto, Arial';
+  ctx.lineWidth = 1 * dpr;
+  ctx.font = `${Math.round(10 * dpr)}px system-ui, sans-serif`;
 
   for (const obj of objects ?? []) {
-    if (obj?.category !== 'cabinet') continue;
-    const pos = obj?.box?.position;
-    const size = obj?.box?.size;
-    if (!pos || !size) continue;
-
-    const xM = toMeters(pos.x ?? 0, lengthUnit);
-    const zM = toMeters(pos.z ?? 0, lengthUnit);
-    const wM = toMeters(size.length ?? 0, lengthUnit);
-    const dM = toMeters(size.depth ?? 0, lengthUnit);
+    if (obj.category !== 'cabinet') continue;
+    const pos = obj.box.position;
+    const size = obj.box.size;
+    const xM = toMeters(pos.x, lengthUnit);
+    const zM = toMeters(pos.z, lengthUnit);
+    const wM = toMeters(size.length, lengthUnit);
+    const dM = toMeters(size.depth, lengthUnit);
 
     const p0 = mapPoint({ x: xM, z: zM });
     const p1 = mapPoint({ x: xM + wM, z: zM + dM });
@@ -240,62 +187,51 @@ function drawCabinets(
     ctx.fillRect(x, y, w, h);
     ctx.strokeRect(x, y, w, h);
 
-    const label = String(obj.label ?? obj.id ?? '').trim();
-    if (label) {
-      const padding = 6;
-      const maxWidth = Math.max(0, w - padding * 2);
-      if (maxWidth > 20) {
-        ctx.save();
-        ctx.fillStyle = '#0f172a';
-        ctx.textBaseline = 'middle';
-        ctx.textAlign = 'center';
-        const text = label.length > 24 ? `${label.slice(0, 24)}…` : label;
-        ctx.fillText(text, x + w / 2, y + h / 2, maxWidth);
-        ctx.restore();
-      }
+    const label = String(obj.label || '').trim();
+    if (label && w > 12 * dpr) {
+      ctx.fillStyle = '#0f172a';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, x + w / 2, y + h / 2, w - 4 * dpr);
     }
   }
-
   ctx.restore();
 }
 
 function drawScaleBar(
   ctx: CanvasRenderingContext2D,
   boundsMeters: { minX: number; maxX: number; minZ: number; maxZ: number },
-  scalePxPerMeter: number,
-  canvasWidth: number,
-  canvasHeight: number
+  scale: number,
+  pWidth: number,
+  pHeight: number
 ) {
+  const dpr = window.devicePixelRatio || 1;
+  const roomW = Math.max(0.001, boundsMeters.maxX - boundsMeters.minX);
+  const barM = pickScaleBarMeters(roomW);
+  const barPx = barM * scale;
+
+  const margin = 24 * dpr;
+  const x0 = pWidth - margin - barPx;
+  const y0 = pHeight - margin;
+
   ctx.save();
-  const roomWidth = Math.max(0.001, boundsMeters.maxX - boundsMeters.minX);
-  const barM = pickScaleBarMeters(roomWidth);
-  const barPx = barM * scalePxPerMeter;
-
-  const margin = 18;
-  const x0 = canvasWidth - margin - barPx;
-  const y0 = canvasHeight - margin;
-
   ctx.strokeStyle = '#0f172a';
   ctx.fillStyle = '#0f172a';
-  ctx.lineWidth = 2;
+  ctx.lineWidth = 2 * dpr;
 
   ctx.beginPath();
   ctx.moveTo(x0, y0);
   ctx.lineTo(x0 + barPx, y0);
+  ctx.moveTo(x0, y0 - 5 * dpr);
+  ctx.lineTo(x0, y0 + 5 * dpr);
+  ctx.moveTo(x0 + barPx, y0 - 5 * dpr);
+  ctx.lineTo(x0 + barPx, y0 + 5 * dpr);
   ctx.stroke();
 
-  ctx.beginPath();
-  ctx.moveTo(x0, y0 - 6);
-  ctx.lineTo(x0, y0 + 6);
-  ctx.moveTo(x0 + barPx, y0 - 6);
-  ctx.lineTo(x0 + barPx, y0 + 6);
-  ctx.stroke();
-
-  ctx.font = '12px system-ui, -apple-system, Segoe UI, Roboto, Arial';
+  ctx.font = `bold ${Math.round(11 * dpr)}px system-ui`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'bottom';
-  ctx.fillText(formatMeters(barM), x0 + barPx / 2, y0 - 8);
-
+  ctx.fillText(formatMeters(barM), x0 + barPx / 2, y0 - 6 * dpr);
   ctx.restore();
 }
 
@@ -305,6 +241,8 @@ export type KitchenPlanRenderOptions = {
   paddingPx?: number;
   scalePxPerMeter?: number;
   background?: string;
+  forceFill?: boolean;
+  dprOverride?: number;
 };
 
 export function renderKitchenPlanToCanvas(
@@ -322,20 +260,29 @@ export function renderKitchenPlanToCanvas(
     height = 700,
     paddingPx = 40,
     scalePxPerMeter = 100,
-    background = '#f8fafc',
+    background = '#ffffff',
+    forceFill = false,
+    dprOverride,
   } = options;
 
-  const dpr = window.devicePixelRatio || 1;
+  // 1. Physical vs Logical sizing (DPI)
+  const dpr = dprOverride ?? (window.devicePixelRatio || 1);
   canvas.width = Math.floor(width * dpr);
   canvas.height = Math.floor(height * dpr);
   canvas.style.width = `${width}px`;
   canvas.style.height = `${height}px`;
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-  ctx.clearRect(0, 0, width, height);
+  // We convert everything to physical pixels immediately to avoid context scaling errors
+  const pWidth = canvas.width;
+  const pHeight = canvas.height;
+  const pPadding = paddingPx * dpr;
+
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, pWidth, pHeight);
   ctx.fillStyle = background;
-  ctx.fillRect(0, 0, width, height);
+  ctx.fillRect(0, 0, pWidth, pHeight);
 
+  // 2. Coordinate Mapping Setup
   const boundsRaw = computeBounds(data);
   const boundsMeters = {
     minX: toMeters(boundsRaw.minX, lengthUnit),
@@ -347,24 +294,50 @@ export function renderKitchenPlanToCanvas(
   const roomW = Math.max(0.001, boundsMeters.maxX - boundsMeters.minX);
   const roomH = Math.max(0.001, boundsMeters.maxZ - boundsMeters.minZ);
 
-  const fitScale = Math.min((width - paddingPx * 2) / roomW, (height - paddingPx * 2) / roomH);
-  const finalScale = Math.min(scalePxPerMeter, fitScale);
+  const availW = pWidth - pPadding * 2;
+  const availH = pHeight - pPadding * 2;
+
+  const scaleNoRot = Math.min(availW / roomW, availH / roomH);
+  const scaleRot = Math.min(availW / roomH, availH / roomW);
+  const shouldRotate = scaleRot > scaleNoRot;
+
+  const bestScale = shouldRotate ? scaleRot : scaleNoRot;
+  const finalScale = forceFill ? bestScale : Math.min(scalePxPerMeter * dpr, bestScale);
+
+  const effectiveRoomW = shouldRotate ? roomH : roomW;
+  const effectiveRoomH = shouldRotate ? roomW : roomH;
+
+  const offsetX = (pWidth - effectiveRoomW * finalScale) / 2;
+  const offsetY = (pHeight - effectiveRoomH * finalScale) / 2;
 
   const mapPoint = ({ x, z }: { x: number; z: number }) => {
-    const px = paddingPx + (x - boundsMeters.minX) * finalScale;
-    const py = paddingPx + (boundsMeters.maxZ - z) * finalScale;
-    return { x: px, y: py };
+    const dx = x - boundsMeters.minX;
+    const dz = z - boundsMeters.minZ;
+
+    if (shouldRotate) {
+      const px = offsetX + dz * finalScale;
+      const py = offsetY + dx * finalScale;
+      return { x: px, y: py };
+    } else {
+      const px = offsetX + dx * finalScale;
+      const py = offsetY + (boundsMeters.maxZ - z) * finalScale;
+      return { x: px, y: py };
+    }
   };
 
+  // 3. Drawing
   const floorPoints = (data?.room?.floorPolygon?.points ?? []).map((p) => {
     const pt = getXZ(p);
     return mapPoint({ x: toMeters(pt.x, lengthUnit), z: toMeters(pt.z, lengthUnit) });
   });
-  drawFloor(ctx, floorPoints);
+
+  if (floorPoints.length >= 3) {
+    drawFloor(ctx, floorPoints);
+  }
 
   drawWalls(ctx, data?.room?.walls ?? [], mapPoint, finalScale, lengthUnit);
   drawCabinets(ctx, data?.objects ?? [], mapPoint, lengthUnit);
-  drawScaleBar(ctx, boundsMeters, finalScale, width, height);
+  drawScaleBar(ctx, boundsMeters, finalScale, pWidth, pHeight);
 }
 
 export type CanvasPdfExportOptions = {
@@ -392,13 +365,15 @@ export function exportCanvasToPDF(canvas: HTMLCanvasElement, options: CanvasPdfE
   const pageW = pdf.internal.pageSize.getWidth();
   const pageH = pdf.internal.pageSize.getHeight();
 
-  const dpr = window.devicePixelRatio || 1;
-  const logicalW = canvas.width / dpr;
-  const logicalH = canvas.height / dpr;
+  // For high-res canvas exports, we don't divide by DPR because we want the pixel-perfect quality.
+  // The scale calculation handles fitting the image to the page.
+  const imgWpx = canvas.width;
+  const imgHpx = canvas.height;
 
+  // Assume 96 DPI for logical-to-mm conversion of the target area
   const pxToMm = (px: number) => (px * 25.4) / 96;
-  const imgWmm = pxToMm(logicalW);
-  const imgHmm = pxToMm(logicalH);
+  const imgWmm = pxToMm(imgWpx);
+  const imgHmm = pxToMm(imgHpx);
 
   const maxW = pageW - marginMm * 2;
   const maxH = pageH - marginMm * 2;
