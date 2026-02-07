@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Home, Layers, Calculator, Zap, ArrowLeft, Trash2, Plus, Box, DoorOpen, Wand2, Moon, Sun, Table2, FileSpreadsheet, X, Pencil, Save, List, Settings, Printer, Download, Scissors, LayoutDashboard, DollarSign, Map, LogOut, Menu } from 'lucide-react';
+import { Home, Layers, Calculator, Zap, ArrowLeft, ArrowRight, Trash2, Plus, Box, DoorOpen, Wand2, Moon, Sun, Table2, FileSpreadsheet, X, Pencil, Save, List, Settings, Printer, Download, Scissors, LayoutDashboard, DollarSign, Map, LogOut, Menu } from 'lucide-react';
 import { Screen, Project, ZoneId, PresetType, CabinetType, CabinetUnit, Obstacle } from './types';
 import { createNewProject, generateProjectBOM, autoFillZone, exportToExcel, resolveCollisions, calculateProjectCost, exportProjectToConstructionJSON, buildProjectConstructionData } from './services/bomService';
 import { optimizeCuts } from './services/nestingService';
@@ -196,7 +196,16 @@ export default function App() {
       {/* MOBILE HEADER */}
       <div className="md:hidden h-14 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 shrink-0 z-40 print:hidden">
         <div className="font-black text-lg">CAB<span className="text-amber-500">ENGINE</span></div>
-        <button onClick={toggleTheme} className="p-2 rounded-full bg-slate-100 dark:bg-slate-800">{isDark ? <Sun size={18} /> : <Moon size={18} />}</button>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => setShowAuthModal(true)} 
+            className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+            title={user?.email || "Login"}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+          </button>
+          <button onClick={toggleTheme} className="p-2 rounded-full bg-slate-100 dark:bg-slate-800">{isDark ? <Sun size={18} /> : <Moon size={18} />}</button>
+        </div>
       </div>
 
       <div className="flex-1 flex overflow-hidden">
@@ -243,6 +252,7 @@ export default function App() {
       {/* MOBILE NAV */}
       {(screen !== Screen.LANDING && screen !== Screen.DASHBOARD) && (
         <div className="md:hidden h-16 bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex items-stretch justify-around z-50 shrink-0 print:hidden safe-area-bottom">
+          <MobileNavButton active={screen === Screen.DASHBOARD} onClick={() => setScreen(Screen.DASHBOARD)} icon={<Home size={20} />} label="Home" />
           <MobileNavButton active={screen === Screen.PROJECT_SETUP} onClick={() => setScreen(Screen.PROJECT_SETUP)} icon={<Settings size={20} />} label="Setup" />
           <MobileNavButton active={screen === Screen.WALL_EDITOR} onClick={() => setScreen(Screen.WALL_EDITOR)} icon={<Box size={20} />} label="Editor" />
           <MobileNavButton active={screen === Screen.BOM_REPORT} onClick={() => setScreen(Screen.BOM_REPORT)} icon={<Table2 size={20} />} label="BOM" />
@@ -452,6 +462,47 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
   const [showCustomEditor, setShowCustomEditor] = useState(false);
   const [customCabinets, setCustomCabinets] = useState<any[]>([]);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [mobileTableCollapsed, setMobileTableCollapsed] = useState(true);
+  
+  // Undo/Redo history
+  const [history, setHistory] = useState<{ zones: typeof project.zones; timestamp: number }[]>([]);
+  const [redoStack, setRedoStack] = useState<{ zones: typeof project.zones; timestamp: number }[]>([]);
+  const maxHistorySize = 20;
+
+  // Save state to history
+  const saveToHistory = () => {
+    setHistory(prev => {
+      const newHistory = [{ zones: JSON.parse(JSON.stringify(project.zones)), timestamp: Date.now() }, ...prev].slice(0, maxHistorySize);
+      return newHistory;
+    });
+    // Clear redo stack when new action occurs
+    setRedoStack([]);
+  };
+
+  // Undo function
+  const handleUndo = () => {
+    if (history.length > 0) {
+      const [lastState, ...remainingHistory] = history;
+      // Save current state to redo stack
+      setRedoStack(prev => [{ zones: JSON.parse(JSON.stringify(project.zones)), timestamp: Date.now() }, ...prev].slice(0, maxHistorySize));
+      setProject(prev => ({ ...prev, zones: lastState.zones }));
+      setHistory(remainingHistory);
+    }
+  };
+
+  // Redo function
+  const handleRedo = () => {
+    if (redoStack.length > 0) {
+      const [nextState, ...remainingRedo] = redoStack;
+      // Save current state to history
+      setHistory(prev => [{ zones: JSON.parse(JSON.stringify(project.zones)), timestamp: Date.now() }, ...prev].slice(0, maxHistorySize));
+      setProject(prev => ({ ...prev, zones: nextState.zones }));
+      setRedoStack(remainingRedo);
+    }
+  };
+
+  const canUndo = history.length > 0;
+  const canRedo = redoStack.length > 0;
 
   // Load custom cabinets
   useEffect(() => {
@@ -522,7 +573,10 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
   const [presetFilter, setPresetFilter] = useState<'Base' | 'Wall' | 'Tall'>('Base');
   const [visualMode, setVisualMode] = useState<'elevation' | 'iso'>('elevation');
 
-  const updateZone = (newZone: typeof currentZone) => {
+  const updateZone = (newZone: typeof currentZone, skipHistory = false) => {
+    if (!skipHistory) {
+      saveToHistory();
+    }
     const newZones = [...project.zones];
     newZones[currentZoneIndex] = newZone;
     setProject({ ...project, zones: newZones });
@@ -609,46 +663,46 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
 
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 overflow-hidden relative">
-      {/* Mobile Sidebar Overlay */}
+      {/* Mobile Bottom Sheet Overlay */}
       {mobileSidebarOpen && (
         <div className="fixed inset-0 z-40 md:hidden" onClick={() => setMobileSidebarOpen(false)}>
-          <div className="absolute inset-0 bg-black/50" />
+          <div className="absolute inset-0 bg-black/60" />
         </div>
       )}
       
-      {/* Mobile Sidebar Drawer */}
-      <div className={`fixed md:hidden top-0 left-0 h-full w-[280px] bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 z-50 transform transition-transform duration-300 ${mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800">
-          <span className="font-bold text-slate-900 dark:text-white">Menu</span>
-          <button onClick={() => setMobileSidebarOpen(false)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 min-w-[44px] min-h-[44px] flex items-center justify-center">
-            <X size={20} />
+      {/* Mobile Bottom Sheet - Menu Only */}
+      <div 
+        className={`fixed md:hidden left-0 right-0 bg-white dark:bg-slate-900 rounded-t-3xl z-50 transform transition-transform duration-300 ease-out shadow-2xl ${mobileSidebarOpen ? 'translate-y-0' : 'translate-y-full'}`}
+        style={{ 
+          bottom: 'calc(env(safe-area-inset-bottom) + 80px)',
+          maxHeight: 'calc(70vh - env(safe-area-inset-bottom))'
+        }}
+      >
+        {/* Drag Handle */}
+        <div className="flex justify-center pt-3 pb-1">
+          <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-600 rounded-full" />
+        </div>
+        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-800">
+          <span className="font-bold text-lg text-slate-900 dark:text-white">Menu</span>
+          <button onClick={() => setMobileSidebarOpen(false)} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 min-w-[44px] min-h-[44px] flex items-center justify-center">
+            <X size={24} />
           </button>
         </div>
-        <div className="p-4 border-b border-slate-200 dark:border-slate-800">
-          <NumberInput label="Wall Length" value={currentZone.totalLength} onChange={(e) => updateZone({ ...currentZone, totalLength: e })} step={100} />
-        </div>
-        <div className="p-4 space-y-2 flex-1 overflow-y-auto">
-          <div className="flex justify-between items-center">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Zones</span>
-            <button onClick={addZone} className="text-xs font-bold text-amber-500 hover:underline min-h-[32px] px-2">+ Add</button>
+        <div className="p-4 space-y-4 overflow-y-auto" style={{ maxHeight: 'calc(70vh - 140px)' }}>
+          {/* Wall Length */}
+          <div>
+            <NumberInput label="Wall Length" value={currentZone.totalLength} onChange={(e) => updateZone({ ...currentZone, totalLength: e })} step={100} />
           </div>
-          {project.zones.map(z => (
-            <div key={z.id} className={`flex items-center justify-between p-3 rounded-lg cursor-pointer min-h-[48px] ${activeTab === z.id ? 'bg-amber-50 dark:bg-slate-800 text-amber-600 border border-amber-500' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`} onClick={() => { setActiveTab(z.id); setMobileSidebarOpen(false); }}>
-              <span className="font-medium">{z.id}</span>
-              <button onClick={(e) => { e.stopPropagation(); deleteZone(z.id); }} className="p-2 rounded hover:bg-red-100 dark:hover:bg-red-900/20 min-w-[40px] min-h-[40px] flex items-center justify-center">
-                <Trash2 size={16} className="text-slate-400 hover:text-red-500" />
-              </button>
-            </div>
-          ))}
-        </div>
-        <div className="p-4 space-y-2 border-t border-slate-200 dark:border-slate-800">
-          <Button size="md" variant="secondary" className="w-full text-sm min-h-[48px]" onClick={handleAutoFill}><Wand2 size={16} className="mr-2" /> Auto Fill</Button>
-          <Button size="md" variant="secondary" className="w-full text-sm min-h-[48px]" onClick={clearZone}><Trash2 size={16} className="mr-2" /> Clear Zone</Button>
-          <div className="grid grid-cols-2 gap-2 mt-2">
-            <Button size="lg" onClick={() => { openAdd('obstacle'); setMobileSidebarOpen(false); }} variant="outline" className="text-xs flex-col h-20 min-h-[80px]"><DoorOpen size={20} />+ Obstacle</Button>
-            <Button size="lg" onClick={() => { openAdd('cabinet'); setMobileSidebarOpen(false); }} variant="primary" className="text-xs flex-col h-20 min-h-[80px]"><Box size={20} />+ Cabinet</Button>
-          </div>
-          <Button size="lg" variant="primary" className="w-full mt-4 font-black min-h-[48px]" onClick={() => setScreen(Screen.BOM_REPORT)}>CALCULATE BOM</Button>
+          
+          {/* Clear Zone */}
+          <Button size="lg" variant="danger" className="w-full min-h-[56px] font-bold" onClick={() => { clearZone(); setMobileSidebarOpen(false); }}>
+            <Trash2 size={20} className="mr-2" /> Clear Zone
+          </Button>
+          
+          {/* Calculate BOM */}
+          <Button size="xl" variant="primary" className="w-full font-black min-h-[64px] text-xl mb-4" onClick={() => { setMobileSidebarOpen(false); setScreen(Screen.BOM_REPORT); }}>
+            CALCULATE BOM
+          </Button>
         </div>
       </div>
 
@@ -686,94 +740,221 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
         {/* VISUALIZER */}
         <div
           ref={mainPanelRef}
-          className="flex-1 min-w-0 relative min-h-0 grid"
-          style={{ gridTemplateRows: `auto 1fr ${tablePanelHeight}px` }}
+          className="flex-1 min-w-0 relative min-h-0 flex flex-col"
         >
-          {/* Mobile Menu Toggle + Tabs */}
-          <div ref={tabsRowRef} className="flex items-center px-2 pt-2 gap-1 overflow-x-auto bg-slate-100 dark:bg-slate-900 shrink-0 border-b dark:border-slate-800">
-            <button 
-              onClick={() => setMobileSidebarOpen(true)} 
-              className="md:hidden flex-none p-2 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 min-w-[44px] min-h-[44px] flex items-center justify-center"
-            >
-              <Menu size={20} />
-            </button>
-            {project.zones.map(z => (
-              <button 
-                key={z.id} 
-                onClick={() => setActiveTab(z.id)} 
-                className={`px-3 sm:px-4 py-2 text-sm font-bold rounded-t-lg transition-all whitespace-nowrap min-h-[44px] ${activeTab === z.id ? 'bg-white dark:bg-slate-950 text-amber-500 shadow-sm border-t-2 border-amber-500' : 'text-slate-500 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300'}`}
-              >
-                {z.id}
-              </button>
-            ))}
-            <button 
-              onClick={addZone} 
-              className="px-3 sm:px-4 py-2 text-sm font-bold rounded-t-lg bg-slate-200 dark:bg-slate-800 text-slate-500 hover:text-amber-500 transition-colors min-h-[44px]"
-            >
-              +
-            </button>
-          </div>
-
-          <div className="min-h-[200px] sm:min-h-[240px] bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 relative z-10 transition-all min-h-0">
-            <div className="absolute top-2 sm:top-4 right-2 sm:right-4 z-20 flex flex-wrap gap-1 sm:gap-2 justify-end">
-              <Button size="xs" variant="secondary" onClick={onSave} className="bg-white hover:bg-amber-50 text-slate-700 border border-slate-300 shadow-sm hover:shadow hover:border-amber-300 dark:bg-slate-800 dark:text-amber-400 dark:border-slate-700 dark:hover:bg-slate-700 dark:hover:border-amber-600 transition-all min-h-[36px]">
-                <Save size={14} className="mr-1" /> <span className="hidden sm:inline">Save</span>
-              </Button>
-              <div className="hidden sm:block w-px h-6 bg-slate-200 dark:bg-slate-800 mx-1" />
-              <Button size="xs" variant={visualMode === 'elevation' ? 'primary' : 'secondary'} onClick={() => setVisualMode('elevation')} className={`${visualMode === 'elevation' ? 'shadow-md' : 'shadow-sm hover:shadow'} border transition-all min-h-[36px] text-xs sm:text-sm`}>Elevation</Button>
-              <Button size="xs" variant={visualMode === 'iso' ? 'primary' : 'secondary'} onClick={() => setVisualMode('iso')} className={`${visualMode === 'iso' ? 'shadow-md' : 'shadow-sm hover:shadow'} border transition-all min-h-[36px] text-xs sm:text-sm`}>3D</Button>
-            </div>
-            {visualMode === 'elevation' ? (
-              <WallVisualizer zone={currentZone} height={project.settings.tallHeight + 300} onCabinetClick={(i) => openEdit('cabinet', i)} onObstacleClick={(i) => openEdit('obstacle', i)} onCabinetMove={handleCabinetMove} onObstacleMove={handleObstacleMove} onDragEnd={handleDragEnd} />
-            ) : (
-              <IsometricVisualizer project={project} />
-            )}
-          </div>
-
-          <div className="min-h-0 bg-white dark:bg-slate-950 overflow-hidden flex flex-col">
-            <div
-              onMouseDown={startResize}
-              onTouchStart={startResize}
-              className="h-8 sm:h-10 shrink-0 flex items-center justify-center border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-500 text-xs sm:text-sm font-bold uppercase tracking-wider cursor-row-resize select-none touch-manipulation"
-              title="Drag to resize"
-            >
-              <span className="hidden sm:inline">Drag to resize</span>
-              <span className="sm:hidden">↕ Resize</span>
-            </div>
-
-            <div className="flex-1 min-h-0 overflow-auto pb-safe">
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[500px] text-left text-sm">
-                  <thead className="bg-slate-100 dark:bg-amber-950/40 text-slate-500 dark:text-amber-500 font-bold text-xs uppercase sticky top-0 z-20 border-b dark:border-amber-500/30">
-                    <tr>
-                      <th className="p-2 sm:p-3 whitespace-nowrap">#</th>
-                      <th className="p-2 sm:p-3 whitespace-nowrap">Type</th>
-                      <th className="p-2 sm:p-3 whitespace-nowrap">Item</th>
-                      <th className="p-2 sm:p-3 text-right whitespace-nowrap">Width</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-amber-900/20">
-                    {[...currentZone.obstacles, ...currentZone.cabinets].map((item, i) => {
-                      const isCab = 'preset' in item;
-                      return (
-                        <tr 
-                          key={item.id} 
-                          onClick={() => openEdit(isCab ? 'cabinet' : 'obstacle', isCab ? i - currentZone.obstacles.length : i)} 
-                          className="hover:bg-amber-50 dark:hover:bg-amber-900/20 cursor-pointer transition-colors"
-                        >
-                          <td className="p-2 sm:p-3 text-slate-400 font-mono whitespace-nowrap">{isCab ? (item as CabinetUnit).label : i + 1}</td>
-                          <td className="p-2 sm:p-3 text-amber-600 font-bold whitespace-nowrap">{isCab ? (item as CabinetUnit).type : 'Obstacle'}</td>
-                          <td className="p-2 sm:p-3 font-medium dark:text-amber-100">
-                            <span className="truncate max-w-[120px] sm:max-w-none inline-block">{isCab ? (item as CabinetUnit).preset : (item as Obstacle).type}</span>
-                            <span className="text-slate-400 dark:text-amber-500/50 text-xs ml-2 whitespace-nowrap">@{item.fromLeft}mm</span>
-                          </td>
-                          <td className="p-2 sm:p-3 text-right font-mono font-bold dark:text-white whitespace-nowrap">{item.width}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+          {/* Desktop: Grid layout with resizable table */}
+          <div className="hidden md:grid flex-1 min-h-0" style={{ gridTemplateRows: `auto 1fr ${tablePanelHeight}px` }}>
+            {/* Tabs Row with Controls */}
+            <div ref={tabsRowRef} className="flex items-center justify-between px-2 pt-2 gap-1 overflow-x-auto bg-slate-100 dark:bg-slate-900 shrink-0 border-b dark:border-slate-800">
+              {/* Left: Zone Tabs */}
+              <div className="flex items-center gap-1">
+                {project.zones.map(z => (
+                  <button 
+                    key={z.id} 
+                    onClick={() => setActiveTab(z.id)} 
+                    className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-all whitespace-nowrap min-h-[44px] ${activeTab === z.id ? 'bg-white dark:bg-slate-950 text-amber-500 shadow-sm border-t-2 border-amber-500' : 'text-slate-500 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300'}`}
+                  >
+                    {z.id}
+                  </button>
+                ))}
+                <button 
+                  onClick={addZone} 
+                  className="px-4 py-2 text-sm font-bold rounded-t-lg bg-slate-200 dark:bg-slate-800 text-slate-500 hover:text-amber-500 transition-colors min-h-[44px]"
+                >
+                  +
+                </button>
               </div>
+              
+              {/* Center: View Controls */}
+              <div className="flex items-center gap-2">
+                <Button size="xs" variant="secondary" onClick={onSave} className="bg-white hover:bg-amber-50 text-slate-700 border border-slate-300 shadow-sm hover:shadow hover:border-amber-300 dark:bg-slate-800 dark:text-amber-400 dark:border-slate-700 dark:hover:bg-slate-700 dark:hover:border-amber-600 transition-all min-h-[36px]">
+                  <Save size={14} className="mr-1.5" /> Save
+                </Button>
+                <div className="w-px h-6 bg-slate-400 dark:bg-slate-600" />
+                <Button size="xs" variant={visualMode === 'elevation' ? 'primary' : 'secondary'} onClick={() => setVisualMode('elevation')} className={`${visualMode === 'elevation' ? 'shadow-md' : 'shadow-sm hover:shadow'} border transition-all min-h-[36px]`}>Elevation</Button>
+                <Button size="xs" variant={visualMode === 'iso' ? 'primary' : 'secondary'} onClick={() => setVisualMode('iso')} className={`${visualMode === 'iso' ? 'shadow-md' : 'shadow-sm hover:shadow'} border transition-all min-h-[36px]`}>3D ISO</Button>
+              </div>
+              
+              {/* Right: Undo/Redo */}
+              <div className="flex items-center gap-2">
+                <Button size="xs" variant="secondary" onClick={handleUndo} disabled={!canUndo} className={`bg-white hover:bg-amber-50 text-slate-700 border border-slate-300 shadow-sm hover:shadow hover:border-amber-300 dark:bg-slate-800 dark:text-amber-400 dark:border-slate-700 dark:hover:bg-slate-700 dark:hover:border-amber-600 transition-all min-h-[36px] ${!canUndo ? 'opacity-50' : ''}`}>
+                  <ArrowLeft size={14} />
+                </Button>
+                <Button size="xs" variant="secondary" onClick={handleRedo} disabled={!canRedo} className={`bg-white hover:bg-amber-50 text-slate-700 border border-slate-300 shadow-sm hover:shadow hover:border-amber-300 dark:bg-slate-800 dark:text-amber-400 dark:border-slate-700 dark:hover:bg-slate-700 dark:hover:border-amber-600 transition-all min-h-[36px] ${!canRedo ? 'opacity-50' : ''}`}>
+                  <ArrowRight size={14} />
+                </Button>
+              </div>
+            </div>
+
+            {/* Canvas */}
+            <div className="min-h-[240px] bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 relative z-10 transition-all min-h-0">
+              {visualMode === 'elevation' ? (
+                <WallVisualizer zone={currentZone} height={project.settings.tallHeight + 300} onCabinetClick={(i) => openEdit('cabinet', i)} onObstacleClick={(i) => openEdit('obstacle', i)} onCabinetMove={handleCabinetMove} onObstacleMove={handleObstacleMove} onDragEnd={handleDragEnd} />
+              ) : (
+                <IsometricVisualizer project={project} />
+              )}
+            </div>
+
+            {/* Table */}
+            <div className="min-h-0 bg-white dark:bg-slate-950 overflow-hidden flex flex-col">
+              <div
+                onMouseDown={startResize}
+                onTouchStart={startResize}
+                className="h-10 shrink-0 flex items-center justify-center border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-500 text-sm font-bold uppercase tracking-wider cursor-row-resize select-none"
+                title="Drag to resize"
+              >
+                Drag to resize
+              </div>
+
+              <div className="flex-1 min-h-0 overflow-auto">
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[500px] text-left text-sm">
+                    <thead className="bg-slate-100 dark:bg-amber-950/40 text-slate-500 dark:text-amber-500 font-bold text-xs uppercase sticky top-0 z-20 border-b dark:border-amber-500/30">
+                      <tr>
+                        <th className="p-3 whitespace-nowrap">#</th>
+                        <th className="p-3 whitespace-nowrap">Type</th>
+                        <th className="p-3 whitespace-nowrap">Item</th>
+                        <th className="p-3 text-right whitespace-nowrap">Width</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-amber-900/20">
+                      {[...currentZone.obstacles, ...currentZone.cabinets].map((item, i) => {
+                        const isCab = 'preset' in item;
+                        return (
+                          <tr 
+                            key={item.id} 
+                            onClick={() => openEdit(isCab ? 'cabinet' : 'obstacle', isCab ? i - currentZone.obstacles.length : i)} 
+                            className="hover:bg-amber-50 dark:hover:bg-amber-900/20 cursor-pointer transition-colors"
+                          >
+                            <td className="p-3 text-slate-400 font-mono whitespace-nowrap">{isCab ? (item as CabinetUnit).label : i + 1}</td>
+                            <td className="p-3 text-amber-600 font-bold whitespace-nowrap">{isCab ? (item as CabinetUnit).type : 'Obstacle'}</td>
+                            <td className="p-3 font-medium dark:text-amber-100">
+                              <span className="truncate inline-block">{isCab ? (item as CabinetUnit).preset : (item as Obstacle).type}</span>
+                              <span className="text-slate-400 dark:text-amber-500/50 text-xs ml-2 whitespace-nowrap">@{item.fromLeft}mm</span>
+                            </td>
+                            <td className="p-3 text-right font-mono font-bold dark:text-white whitespace-nowrap">{item.width}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Mobile: Stack layout */}
+          <div className="md:hidden flex flex-col h-full">
+            {/* Tabs Row with Controls */}
+            <div className="flex items-center justify-between px-2 pt-2 gap-1 overflow-x-auto bg-slate-100 dark:bg-slate-900 shrink-0 border-b dark:border-slate-800">
+              {/* Left: Zone Tabs */}
+              <div className="flex items-center gap-1">
+                {project.zones.map(z => (
+                  <button 
+                    key={z.id} 
+                    onClick={() => setActiveTab(z.id)} 
+                    className={`px-3 py-2 text-sm font-bold rounded-t-lg transition-all whitespace-nowrap min-h-[44px] ${activeTab === z.id ? 'bg-white dark:bg-slate-950 text-amber-500 shadow-sm border-t-2 border-amber-500' : 'text-slate-500 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300'}`}
+                  >
+                    {z.id}
+                  </button>
+                ))}
+                <button 
+                  onClick={addZone} 
+                  className="px-3 py-2 text-sm font-bold rounded-t-lg bg-slate-200 dark:bg-slate-800 text-slate-500 hover:text-amber-500 transition-colors min-h-[44px]"
+                >
+                  +
+                </button>
+              </div>
+              
+              {/* Right: View Controls and Undo/Redo */}
+              <div className="flex items-center gap-1">
+                <Button size="xs" variant="secondary" onClick={onSave} className="bg-white hover:bg-amber-50 text-slate-700 border border-slate-300 shadow-sm hover:shadow hover:border-amber-300 dark:bg-slate-800 dark:text-amber-400 dark:border-slate-700 dark:hover:bg-slate-700 dark:hover:border-amber-600 transition-all min-h-[36px] px-2">
+                  <Save size={14} />
+                </Button>
+                <Button size="xs" variant={visualMode === 'elevation' ? 'primary' : 'secondary'} onClick={() => setVisualMode('elevation')} className={`${visualMode === 'elevation' ? 'shadow-md' : 'shadow-sm hover:shadow'} border transition-all min-h-[36px] px-2 text-xs`}>Elv</Button>
+                <Button size="xs" variant={visualMode === 'iso' ? 'primary' : 'secondary'} onClick={() => setVisualMode('iso')} className={`${visualMode === 'iso' ? 'shadow-md' : 'shadow-sm hover:shadow'} border transition-all min-h-[36px] px-2 text-xs`}>3D</Button>
+                <div className="w-px h-5 bg-slate-400 dark:bg-slate-600 mx-1" />
+                <Button size="xs" variant="secondary" onClick={handleUndo} disabled={!canUndo} className={`bg-white hover:bg-amber-50 text-slate-700 border border-slate-300 shadow-sm hover:shadow hover:border-amber-300 dark:bg-slate-800 dark:text-amber-400 dark:border-slate-700 dark:hover:bg-slate-700 dark:hover:border-amber-600 transition-all min-h-[36px] px-2 ${!canUndo ? 'opacity-50' : ''}`}>
+                  <ArrowLeft size={14} />
+                </Button>
+                <Button size="xs" variant="secondary" onClick={handleRedo} disabled={!canRedo} className={`bg-white hover:bg-amber-50 text-slate-700 border border-slate-300 shadow-sm hover:shadow hover:border-amber-300 dark:bg-slate-800 dark:text-amber-400 dark:border-slate-700 dark:hover:bg-slate-700 dark:hover:border-amber-600 transition-all min-h-[36px] px-2 ${!canRedo ? 'opacity-50' : ''}`}>
+                  <ArrowRight size={14} />
+                </Button>
+              </div>
+            </div>
+
+            {/* Canvas */}
+            <div className="flex-1 min-h-0 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 relative">
+              {visualMode === 'elevation' ? (
+                <WallVisualizer zone={currentZone} height={project.settings.tallHeight + 300} onCabinetClick={(i) => openEdit('cabinet', i)} onObstacleClick={(i) => openEdit('obstacle', i)} onCabinetMove={handleCabinetMove} onObstacleMove={handleObstacleMove} onDragEnd={handleDragEnd} />
+              ) : (
+                <IsometricVisualizer project={project} />
+              )}
+            </div>
+
+            {/* Mobile Action Buttons - Below Canvas */}
+            <div className="shrink-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-2">
+              <div className="grid grid-cols-4 gap-2">
+                <Button size="sm" variant="secondary" onClick={() => setMobileSidebarOpen(true)} className="min-h-[52px] text-xs flex flex-col items-center justify-center gap-0.5">
+                  <Menu size={18} /><span>Menu</span>
+                </Button>
+                <Button size="sm" variant="secondary" onClick={handleAutoFill} className="min-h-[52px] text-xs flex flex-col items-center justify-center gap-0.5">
+                  <Wand2 size={18} /><span>Auto</span>
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => openAdd('obstacle')} className="min-h-[52px] text-xs flex flex-col items-center justify-center gap-0.5">
+                  <DoorOpen size={18} /><span>Obs</span>
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => openAdd('cabinet')} className="min-h-[52px] text-xs flex flex-col items-center justify-center gap-0.5">
+                  <Box size={18} /><span>Cab</span>
+                </Button>
+              </div>
+            </div>
+
+            {/* Collapsible Table */}
+            <div className={`shrink-0 bg-white dark:bg-slate-950 overflow-hidden flex flex-col transition-all duration-300 ${mobileTableCollapsed ? 'h-10' : 'flex-1 min-h-0'}`}>
+              <button
+                onClick={() => setMobileTableCollapsed(!mobileTableCollapsed)}
+                className="h-10 shrink-0 flex items-center justify-between px-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-500 text-xs font-bold uppercase tracking-wider"
+              >
+                <span>{mobileTableCollapsed ? `Show Items (${currentZone.cabinets.length + currentZone.obstacles.length})` : 'Hide Items'}</span>
+                <span className="transform transition-transform">{mobileTableCollapsed ? '▲' : '▼'}</span>
+              </button>
+
+              {!mobileTableCollapsed && (
+                <div className="flex-1 min-h-0 overflow-auto">
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[400px] text-left text-sm">
+                      <thead className="bg-slate-100 dark:bg-amber-950/40 text-slate-500 dark:text-amber-500 font-bold text-xs uppercase sticky top-0 z-20 border-b dark:border-amber-500/30">
+                        <tr>
+                          <th className="p-2 whitespace-nowrap">#</th>
+                          <th className="p-2 whitespace-nowrap">Type</th>
+                          <th className="p-2 whitespace-nowrap">Item</th>
+                          <th className="p-2 text-right whitespace-nowrap">W</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-amber-900/20">
+                        {[...currentZone.obstacles, ...currentZone.cabinets].map((item, i) => {
+                          const isCab = 'preset' in item;
+                          return (
+                            <tr 
+                              key={item.id} 
+                              onClick={() => openEdit(isCab ? 'cabinet' : 'obstacle', isCab ? i - currentZone.obstacles.length : i)} 
+                              className="hover:bg-amber-50 dark:hover:bg-amber-900/20 cursor-pointer transition-colors"
+                            >
+                              <td className="p-2 text-slate-400 font-mono whitespace-nowrap">{isCab ? (item as CabinetUnit).label : i + 1}</td>
+                              <td className="p-2 text-amber-600 font-bold whitespace-nowrap text-xs">{isCab ? (item as CabinetUnit).type : 'Obs'}</td>
+                              <td className="p-2 font-medium dark:text-amber-100 text-xs">
+                                <span className="truncate max-w-[100px] inline-block">{isCab ? (item as CabinetUnit).preset : (item as Obstacle).type}</span>
+                              </td>
+                              <td className="p-2 text-right font-mono font-bold dark:text-white whitespace-nowrap text-xs">{item.width}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -781,8 +962,8 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
 
       {/* MODAL */}
       {modalMode !== 'none' && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 sm:p-6 shadow-2xl animate-in slide-in-from-bottom-10 border border-slate-200 dark:border-slate-800 max-h-[90vh] sm:max-h-[85vh] overflow-hidden flex flex-col">
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 pb-20 sm:pb-4">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 sm:p-6 shadow-2xl animate-in slide-in-from-bottom-10 border border-slate-200 dark:border-slate-800 max-h-[85vh] sm:max-h-[85vh] overflow-hidden flex flex-col">
             <div className="flex justify-between items-center mb-4 pb-2 border-b border-slate-100 dark:border-slate-800">
               <h3 className="font-bold text-lg sm:text-xl dark:text-white capitalize">{modalMode.replace('_', ' ')}</h3>
               <button onClick={() => setModalMode('none')} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 min-w-[44px] min-h-[44px] flex items-center justify-center">
