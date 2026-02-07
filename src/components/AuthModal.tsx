@@ -7,10 +7,11 @@ interface AuthModalProps {
   onClose: () => void;
   onSuccess: () => void;
   user?: User | null;
+  initialMode?: 'login' | 'signup';
 }
 
-export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, user }) => {
-  const [mode, setMode] = useState<'login' | 'signup'>('login');
+export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, user, initialMode = 'login' }) => {
+  const [mode, setMode] = useState<'login' | 'signup'>(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -58,8 +59,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, user }
   // If user is logged in, show profile view
   if (user) {
     return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-w-md w-full p-6 relative">
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+        <style>{`
+          @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
+          @keyframes modalPop {
+            0% { opacity: 0; transform: scale(0.9) translateY(20px); }
+            70% { transform: scale(1.02) translateY(-5px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+          }
+          .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+          .animate-modal-pop { animation: modalPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+        `}</style>
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6 relative animate-modal-pop border border-slate-200 dark:border-slate-700">
           <button
             onClick={onClose}
             className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
@@ -89,8 +103,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, user }
 
   // Otherwise show login/signup form
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-w-md w-full p-6 relative">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes modalPop {
+          0% { opacity: 0; transform: scale(0.9) translateY(20px); }
+          70% { transform: scale(1.02) translateY(-5px); }
+          100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        .animate-modal-pop { animation: modalPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+      `}</style>
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6 relative animate-modal-pop border border-slate-200 dark:border-slate-700">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"

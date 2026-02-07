@@ -17,6 +17,7 @@ import { KitchenPlanCanvas } from './components/KitchenPlanCanvas.tsx';
 import { AuthModal } from './components/AuthModal';
 import { CustomCabinetEditor } from './components/CustomCabinetEditor';
 import { CustomCabinetLibrary } from './components/CustomCabinetLibrary';
+import { LandingPage } from './components/LandingPage';
 import { customCabinetService } from './services/customCabinetService';
 import { projectService } from './services/projectService';
 
@@ -58,6 +59,7 @@ export default function App() {
   const [project, setProject] = useState<Project>(createNewProject());
   const [user, setUser] = useState<User | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState<'login' | 'signup'>('login');
   const [authLoading, setAuthLoading] = useState(true);
   const [isDark, setIsDark] = useState(() => {
     try { return localStorage.getItem('app-theme') !== 'false'; } catch { return true; }
@@ -135,23 +137,25 @@ export default function App() {
     });
   };
 
+  const openAuthModal = (mode: 'login' | 'signup') => {
+    setAuthModalMode(mode);
+    setShowAuthModal(true);
+  };
+
   const renderContent = () => {
     switch (screen) {
       case Screen.HOME:
         return (
-          <ScreenHome
-            onNewProject={handleStartProject}
-            onLoadProject={(p) => {
-              setProject(p);
-              setScreen(Screen.WALL_EDITOR);
-            }}
+          <LandingPage
+            onGetStarted={() => openAuthModal('signup')}
+            onSignIn={() => openAuthModal('login')}
           />
         );
       case Screen.PROJECT_SETUP: return <ScreenProjectSetup project={project} setProject={setProject} />;
       case Screen.WALL_EDITOR: return <ScreenWallEditor project={project} setProject={setProject} setScreen={setScreen} onSave={() => handleSaveProject(project)} />;
       case Screen.BOM_REPORT: return <ScreenBOMReport project={project} setProject={setProject} />;
       case Screen.TOOLS: return <ScreenPlanView project={project} />;
-      default: return <ScreenHome onNewProject={handleStartProject} onLoadProject={(p) => { setProject(p); setScreen(Screen.WALL_EDITOR); }} />;
+      default: return <LandingPage onGetStarted={() => openAuthModal('signup')} onSignIn={() => openAuthModal('login')} />;
     }
   };
 
@@ -233,9 +237,22 @@ export default function App() {
       {showAuthModal && (
         <AuthModal
           user={user}
+          initialMode={authModalMode}
           onClose={() => setShowAuthModal(false)}
-          onSuccess={() => {
+          onSuccess={async () => {
             setShowAuthModal(false);
+            // Auto-start project creation after successful signup from landing page
+            if (authModalMode === 'signup' && screen === Screen.HOME) {
+              // Small delay to ensure auth state is updated
+              setTimeout(async () => {
+                const newProj = createNewProject();
+                const { data } = await projectService.createProject(newProj);
+                if (data) {
+                  setProject(data);
+                  setScreen(Screen.PROJECT_SETUP);
+                }
+              }, 100);
+            }
           }}
         />
       )}
