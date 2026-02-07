@@ -15,6 +15,9 @@ import { CutPlanVisualizer } from './components/CutPlanVisualizer';
 import { IsometricVisualizer } from './components/IsometricVisualizer';
 import { KitchenPlanCanvas } from './components/KitchenPlanCanvas.tsx';
 import { AuthModal } from './components/AuthModal';
+import { CustomCabinetEditor } from './components/CustomCabinetEditor';
+import { CustomCabinetLibrary } from './components/CustomCabinetLibrary';
+import { customCabinetService } from './services/customCabinetService';
 
 // --- PRINT TITLE BLOCK ---
 const TitleBlock = ({ project, pageTitle }: { project: Project, pageTitle: string }) => (
@@ -286,6 +289,17 @@ const ScreenWallEditor = ({ project, setProject, setScreen }: { project: Project
   const tabsRowRef = useRef<HTMLDivElement | null>(null);
   const resizingRef = useRef(false);
   const dragStartRef = useRef<{ startY: number; startHeight: number } | null>(null);
+  const [showCustomEditor, setShowCustomEditor] = useState(false);
+  const [customCabinets, setCustomCabinets] = useState<any[]>([]);
+
+  // Load custom cabinets
+  useEffect(() => {
+    const loadCustomCabinets = async () => {
+      const { data } = await customCabinetService.getCustomPresets();
+      if (data) setCustomCabinets(data);
+    };
+    loadCustomCabinets();
+  }, []);
 
   useEffect(() => {
     const onMove = (e: MouseEvent | TouchEvent) => {
@@ -514,21 +528,70 @@ const ScreenWallEditor = ({ project, setProject, setScreen }: { project: Project
                       <button key={f} onClick={() => setPresetFilter(f as any)} className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${presetFilter === f ? 'bg-white dark:bg-slate-600 shadow text-amber-600 dark:text-amber-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}>{f}</button>
                     ))}
                   </div>
-                  {/* PRESET GRID BUTTONS */}
-                  <div className="grid grid-cols-2 gap-2 max-h-[160px] overflow-y-auto mb-4">
-                    {Object.values(PresetType)
-                      .filter(p => {
-                        if (presetFilter === 'Base') return p.includes('Base') || p.includes('Sink') || p.includes('Filler') || p.includes('Corner');
-                        if (presetFilter === 'Wall') return p.includes('Wall');
-                        return p.includes('Tall');
-                      })
-                      .map(t => (
-                        <button key={t} onClick={() => setTempCabinet({ ...tempCabinet, preset: t, type: presetFilter === 'Wall' ? CabinetType.WALL : presetFilter === 'Tall' ? CabinetType.TALL : CabinetType.BASE })}
-                          className={`p-2 text-[10px] md:text-xs font-bold rounded-lg border text-left transition-all ${tempCabinet.preset === t ? 'border-amber-500 bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 ring-1 ring-amber-500' : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 dark:text-slate-300'}`}>
-                          {t}
+
+                  {/* CUSTOM CABINETS + PRESET GRID */}
+                  <div className="space-y-2 mb-4">
+                    {/* Custom Cabinets for this type */}
+                    {customCabinets
+                      .filter(c => c.base_type === presetFilter)
+                      .map(custom => (
+                        <button
+                          key={custom.id}
+                          onClick={() => setTempCabinet({
+                            ...tempCabinet,
+                            customPresetId: custom.id,
+                            customConfig: {
+                              num_shelves: custom.num_shelves,
+                              num_drawers: custom.num_drawers,
+                              num_doors: custom.num_doors,
+                              hinges: custom.hinges,
+                              slides: custom.slides,
+                              handles: custom.handles,
+                            },
+                            type: presetFilter === 'Wall' ? CabinetType.WALL : presetFilter === 'Tall' ? CabinetType.TALL : CabinetType.BASE,
+                          })}
+                          className={`w-full p-2 rounded-lg border transition-all ${tempCabinet.customPresetId === custom.id ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/30 ring-1 ring-amber-500' : 'border-purple-300 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30'}`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <Wand2 size={14} className="text-purple-600 dark:text-purple-400" />
+                              <span className="font-semibold text-sm text-slate-800 dark:text-white">{custom.name}</span>
+                            </div>
+                            <div className="text-xs text-slate-600 dark:text-slate-400 flex gap-2">
+                              <span>🗄️Shelf {custom.num_shelves}</span>
+                              <span>📦Drawer {custom.num_drawers}</span>
+                              <span>🚪Door {custom.num_doors}</span>
+                            </div>
+                          </div>
                         </button>
                       ))}
+
+                    {/* Standard Presets */}
+                    <div className="grid grid-cols-2 gap-2 max-h-[160px] overflow-y-auto">
+                      {Object.values(PresetType)
+                        .filter(p => {
+                          if (presetFilter === 'Base') return p.includes('Base') || p.includes('Sink') || p.includes('Filler') || p.includes('Corner');
+                          if (presetFilter === 'Wall') return p.includes('Wall');
+                          return p.includes('Tall');
+                        })
+                        .map(t => (
+                          <button key={t} onClick={() => setTempCabinet({ ...tempCabinet, preset: t, type: presetFilter === 'Wall' ? CabinetType.WALL : presetFilter === 'Tall' ? CabinetType.TALL : CabinetType.BASE, customPresetId: undefined, customConfig: undefined })}
+                            className={`p-2 text-[10px] md:text-xs font-bold rounded-lg border text-left transition-all ${tempCabinet.preset === t && !tempCabinet.customPresetId ? 'border-amber-500 bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 ring-1 ring-amber-500' : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 dark:text-slate-300'}`}>
+                            {t}
+                          </button>
+                        ))}
+                    </div>
                   </div>
+
+                  {/* Customize Button */}
+                  <button
+                    onClick={() => setShowCustomEditor(true)}
+                    className="w-full mb-4 py-2 px-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold rounded-lg transition-all flex items-center justify-center gap-2"
+                  >
+                    <Wand2 size={16} />
+                    Customize This Cabinet
+                  </button>
+
                   <NumberInput label="Width" value={tempCabinet.width} onChange={v => setTempCabinet({ ...tempCabinet, width: v })} step={50} />
                   <NumberInput label="Position (Left)" value={tempCabinet.fromLeft} onChange={v => setTempCabinet({ ...tempCabinet, fromLeft: v })} step={50} />
                 </>
@@ -539,6 +602,24 @@ const ScreenWallEditor = ({ project, setProject, setScreen }: { project: Project
             </div>
           </div>
         </div>
+      )}
+
+      {/* Custom Cabinet Editor Modal */}
+      {showCustomEditor && (
+        <CustomCabinetEditor
+          basePreset={tempCabinet.preset}
+          baseType={presetFilter as 'Base' | 'Wall' | 'Tall'}
+          initialName={tempCabinet.customPresetId ? customCabinets.find(c => c.id === tempCabinet.customPresetId)?.name : ''}
+          initialDescription={tempCabinet.customPresetId ? customCabinets.find(c => c.id === tempCabinet.customPresetId)?.description : ''}
+          initialConfig={tempCabinet.customConfig}
+          onClose={() => setShowCustomEditor(false)}
+          onSave={async () => {
+            setShowCustomEditor(false);
+            // Reload custom cabinets
+            const { data } = await customCabinetService.getCustomPresets();
+            if (data) setCustomCabinets(data);
+          }}
+        />
       )}
     </div>
   );
