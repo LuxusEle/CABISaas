@@ -580,10 +580,10 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
 
           <div className="min-h-[240px] bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 relative z-10 transition-all min-h-0">
             <div className="absolute top-4 right-4 z-20 flex gap-2">
-              <Button size="xs" variant="secondary" onClick={onSave} className="bg-amber-100 hover:bg-amber-200 text-amber-900 border-amber-200 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-900"><Save size={14} className="mr-1" /> Save</Button>
+              <Button size="xs" variant="secondary" onClick={onSave} className="bg-white hover:bg-amber-50 text-slate-700 border border-slate-300 shadow-sm hover:shadow hover:border-amber-300 dark:bg-slate-800 dark:text-amber-400 dark:border-slate-700 dark:hover:bg-slate-700 dark:hover:border-amber-600 transition-all"><Save size={14} className="mr-1.5" /> Save</Button>
               <div className="w-px h-6 bg-slate-200 dark:bg-slate-800 mx-1" />
-              <Button size="xs" variant={visualMode === 'elevation' ? 'primary' : 'secondary'} onClick={() => setVisualMode('elevation')}>Elevation</Button>
-              <Button size="xs" variant={visualMode === 'iso' ? 'primary' : 'secondary'} onClick={() => setVisualMode('iso')}>3D ISO</Button>
+              <Button size="xs" variant={visualMode === 'elevation' ? 'primary' : 'secondary'} onClick={() => setVisualMode('elevation')} className={`${visualMode === 'elevation' ? 'shadow-md' : 'shadow-sm hover:shadow'} border transition-all`}>Elevation</Button>
+              <Button size="xs" variant={visualMode === 'iso' ? 'primary' : 'secondary'} onClick={() => setVisualMode('iso')} className={`${visualMode === 'iso' ? 'shadow-md' : 'shadow-sm hover:shadow'} border transition-all`}>3D ISO</Button>
             </div>
             {visualMode === 'elevation' ? (
               <WallVisualizer zone={currentZone} height={project.settings.tallHeight + 300} onCabinetClick={(i) => openEdit('cabinet', i)} onObstacleClick={(i) => openEdit('obstacle', i)} onCabinetMove={handleCabinetMove} onObstacleMove={handleObstacleMove} onDragEnd={handleDragEnd} />
