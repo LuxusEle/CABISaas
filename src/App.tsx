@@ -200,8 +200,9 @@ export default function App() {
       </div>
 
       <div className="flex-1 flex overflow-hidden">
-        {/* DESKTOP SIDEBAR */}
-        <aside className="hidden md:flex w-20 flex-col items-center py-6 bg-slate-900 border-r border-slate-800 shrink-0 z-50 print:hidden">
+        {/* DESKTOP SIDEBAR - Hidden on landing page */}
+        {screen !== Screen.LANDING && (
+          <aside className="hidden md:flex w-20 flex-col items-center py-6 bg-slate-900 border-r border-slate-800 shrink-0 z-50 print:hidden">
           <div className="mb-8 text-amber-500"><LayoutDashboard size={28} /></div>
           <nav className="flex flex-col gap-6 w-full px-2">
             <NavButton active={screen === Screen.DASHBOARD} onClick={() => setScreen(Screen.DASHBOARD)} icon={<Home size={24} />} label="Home" />
@@ -231,6 +232,7 @@ export default function App() {
             <button onClick={toggleTheme} className="p-3 rounded-xl bg-slate-800 text-amber-500 hover:bg-slate-700 transition-colors">{isDark ? <Sun size={20} /> : <Moon size={20} />}</button>
           </div>
         </aside>
+        )}
 
         {/* MAIN */}
         <main className="flex-1 flex flex-col overflow-hidden relative" id="main-content">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowRight, Sparkles, Box, Ruler, Calculator, ChevronDown } from 'lucide-react';
+import { ArrowRight, Sparkles, Box, Ruler, Calculator, ChevronDown, Sun, Moon } from 'lucide-react';
 import { Button } from './Button';
 
 interface LandingPageProps {
@@ -179,12 +179,28 @@ const ParticleBackground: React.FC = () => {
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn }) => {
   const [scrollY, setScrollY] = useState(0);
+  const [isDark, setIsDark] = useState(() => {
+    try { return localStorage.getItem('app-theme') !== 'false'; } catch { return true; }
+  });
 
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem('app-theme', String(isDark));
+    if (isDark) document.documentElement.classList.add('dark');
+    else document.documentElement.classList.remove('dark');
+  }, [isDark]);
+
+  const scrollToSection = (id: string) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white dark:bg-gradient-to-b dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-slate-900 dark:text-white overflow-x-hidden">
@@ -231,7 +247,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
         }
       `}</style>
 
-      {/* Navigation -->
+      {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
@@ -241,16 +257,31 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
                 CAB<span className="text-amber-500">ENGINE</span>
               </span>
             </div>
-            <div className="flex items-center gap-4">
-              <button 
-                onClick={onSignIn}
-                className="text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors font-medium"
+            <div className="flex items-center gap-6">
+              {/* Navigation Links */}
+              <div className="hidden md:flex items-center gap-6">
+                <button 
+                  onClick={() => scrollToSection('features')}
+                  className="text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 transition-colors text-sm font-medium"
+                >
+                  Features
+                </button>
+                <button 
+                  onClick={() => scrollToSection('cta')}
+                  className="text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 transition-colors text-sm font-medium"
+                >
+                  About
+                </button>
+              </div>
+              
+              {/* Theme Toggle */}
+              <button
+                onClick={() => setIsDark(!isDark)}
+                className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-amber-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                aria-label="Toggle theme"
               >
-                Sign In
+                {isDark ? <Sun size={20} /> : <Moon size={20} />}
               </button>
-              <Button size="sm" onClick={onGetStarted} className="animate-glow">
-                Get Started
-              </Button>
             </div>
           </div>
         </div>
@@ -344,7 +375,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
       </section>
 
       {/* Features Section */}
-      <section className="relative py-24 bg-slate-100 dark:bg-slate-950">
+      <section id="features" className="relative py-24 bg-slate-100 dark:bg-slate-950">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-black mb-4">
@@ -391,7 +422,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
       </section>
 
       {/* CTA Section */}
-      <section className="relative py-24 overflow-hidden bg-white dark:bg-transparent">
+      <section id="cta" className="relative py-24 overflow-hidden bg-white dark:bg-transparent">
         <div className="absolute inset-0 bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-600/20 dark:to-orange-600/20" />
         <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-4xl sm:text-5xl font-black mb-6">
