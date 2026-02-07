@@ -141,14 +141,33 @@ export const autoFillZone = (zone: Zone, settings: ProjectSettings, wallId: stri
     if (R >= 20) newCabinets.push({ id: uuid(), preset: PresetType.FILLER, type: CabinetType.WALL, width: R, qty: 1, isAutoFilled: true, fromLeft: x });
   });
 
-  // 6. Sequential Numbering
+  // 6. Sequential Numbering (preserve existing labels, assign new ones as needed)
   const finalCabs = [...newCabinets, ...manualCabs].sort((a, b) => a.fromLeft - b.fromLeft);
-  let bIdx = 1, wIdx = 1, tIdx = 1;
+  
+  // Get existing labels to avoid conflicts
+  const getExistingLabels = (type: CabinetType) => {
+    const existingLabels = manualCabs
+      .filter(c => c.type === type && c.label)
+      .map(c => {
+        const match = c.label?.match(/([A-Z])(\d+)/);
+        return match ? parseInt(match[2]) : 0;
+      })
+      .filter(num => num > 0);
+    
+    return Math.max(0, ...existingLabels);
+  };
+  
+  let bIdx = getExistingLabels(CabinetType.BASE) + 1;
+  let wIdx = getExistingLabels(CabinetType.WALL) + 1;
+  let tIdx = getExistingLabels(CabinetType.TALL) + 1;
+  
   const numbered = finalCabs.map(c => {
-    let label = '';
-    if (c.type === CabinetType.BASE) label = `B${String(bIdx++).padStart(2, '0')}`;
-    else if (c.type === CabinetType.WALL) label = `W${String(wIdx++).padStart(2, '0')}`;
-    else label = `T${String(tIdx++).padStart(2, '0')}`;
+    let label = c.label; // Preserve existing labels
+    if (!label) {
+      if (c.type === CabinetType.BASE) label = `B${String(bIdx++).padStart(2, '0')}`;
+      else if (c.type === CabinetType.WALL) label = `W${String(wIdx++).padStart(2, '0')}`;
+      else label = `T${String(tIdx++).padStart(2, '0')}`;
+    }
     return { ...c, label };
   });
 
@@ -211,6 +230,15 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
     parts.push({ id: uuid(), name: HW.LEG, qty: 4, width: 0, length: 0, material: 'Hardware', isHardware: true });
     parts.push({ id: uuid(), name: HW.SLIDE, qty: 2, width: 0, length: 0, material: 'Hardware', isHardware: true });
   }
+  if (unit.preset === PresetType.OPEN_BOX) {
+    // Open box with 2 shelves - no doors, no hardware
+    parts.push({ id: uuid(), name: 'Shelf', qty: 2, width: depth - 20, length: horizWidth, material: `${thickness}mm White`, label: labelPrefix });
+    if (unit.type === CabinetType.BASE) {
+      parts.push({ id: uuid(), name: HW.LEG, qty: 4, width: 0, length: 0, material: 'Hardware', isHardware: true });
+    } else if (unit.type === CabinetType.WALL) {
+      parts.push({ id: uuid(), name: HW.HANGER, qty: 1, width: 0, length: 0, material: 'Hardware', isHardware: true });
+    }
+  }
 
   return parts;
 };
@@ -226,6 +254,9 @@ export const generateProjectBOM = (project: Project): { groups: BOMGroup[], hard
     let zoneLen = 0;
 
     zone.cabinets.forEach((unit, index) => {
+      // Only skip filler panels, include other auto-filled cabinets (boxes)
+      if (unit.isAutoFilled && unit.preset === PresetType.FILLER) return;
+      
       cabinetCount++;
       if (unit.type !== CabinetType.WALL) zoneLen += unit.width;
 
@@ -306,7 +337,7 @@ export const createNewProject = (): Project => ({
   designer: 'Me',
   company: 'My Shop',
   settings: {
-    currency: '$',
+    currency: 'LKR',
     baseHeight: 720,
     wallHeight: 720,
     tallHeight: 2100,
@@ -328,7 +359,7 @@ export const createNewProject = (): Project => ({
     }
   },
   zones: [
-    { id: 'Wall A', active: true, totalLength: 3000, obstacles: [], cabinets: [] }
+    { id: 'Wall A', active: true, totalLength: 3000, wallHeight: 2400, obstacles: [], cabinets: [] }
   ]
 });
 

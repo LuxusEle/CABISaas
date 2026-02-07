@@ -22,7 +22,8 @@ export enum PresetType {
   SINK_UNIT = 'Sink Unit',
   HOOD_UNIT = 'Cooker Hood',
   COOKER_HOB = 'Cooker Hob',
-  FILLER = 'Filler Panel'
+  FILLER = 'Filler Panel',
+  OPEN_BOX = 'Open Box'
 }
 
 export interface CostSettings {
@@ -84,6 +85,7 @@ export interface Zone {
   id: string;
   active: boolean;
   totalLength: number;
+  wallHeight: number;
   obstacles: Obstacle[];
   cabinets: CabinetUnit[];
 }
