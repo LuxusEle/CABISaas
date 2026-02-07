@@ -154,7 +154,8 @@ export interface OptimizationResult {
 }
 
 export enum Screen {
-  HOME = 'home',
+  LANDING = 'landing',
+  DASHBOARD = 'dashboard',
   PROJECT_SETUP = 'project_setup',
   WALL_EDITOR = 'wall_editor',
   BOM_REPORT = 'bom_report',

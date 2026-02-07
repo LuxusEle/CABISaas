@@ -55,7 +55,7 @@ const TitleBlock = ({ project, pageTitle }: { project: Project, pageTitle: strin
 // --- MAIN APP COMPONENT ---
 
 export default function App() {
-  const [screen, setScreen] = useState<Screen>(Screen.HOME);
+  const [screen, setScreen] = useState<Screen>(Screen.LANDING);
   const [project, setProject] = useState<Project>(createNewProject());
   const [user, setUser] = useState<User | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -71,6 +71,10 @@ export default function App() {
       const { user } = await authService.getCurrentUser();
       setUser(user);
       setAuthLoading(false);
+      // If user is logged in and we're on landing page, go to dashboard
+      if (user && screen === Screen.LANDING) {
+        setScreen(Screen.DASHBOARD);
+      }
     };
     checkAuth();
 
@@ -101,7 +105,7 @@ export default function App() {
 
   useEffect(() => {
     // Skip auto-save if we're on Home screen or if project is just the initial blank one
-    if (screen === Screen.HOME || !project.id || project.id.length < 20) return;
+    if (screen === Screen.LANDING || !project.id || project.id.length < 20) return;
 
     const timer = setTimeout(() => {
       handleSaveProject(project);
@@ -144,11 +148,21 @@ export default function App() {
 
   const renderContent = () => {
     switch (screen) {
-      case Screen.HOME:
+      case Screen.LANDING:
         return (
           <LandingPage
             onGetStarted={() => openAuthModal('signup')}
             onSignIn={() => openAuthModal('login')}
+          />
+        );
+      case Screen.DASHBOARD:
+        return (
+          <ScreenHome
+            onNewProject={handleStartProject}
+            onLoadProject={(p) => {
+              setProject(p);
+              setScreen(Screen.WALL_EDITOR);
+            }}
           />
         );
       case Screen.PROJECT_SETUP: return <ScreenProjectSetup project={project} setProject={setProject} />;
@@ -172,7 +186,7 @@ export default function App() {
         <aside className="hidden md:flex w-20 flex-col items-center py-6 bg-slate-900 border-r border-slate-800 shrink-0 z-50 print:hidden">
           <div className="mb-8 text-amber-500"><LayoutDashboard size={28} /></div>
           <nav className="flex flex-col gap-6 w-full px-2">
-            <NavButton active={screen === Screen.HOME} onClick={() => setScreen(Screen.HOME)} icon={<Home size={24} />} label="Home" />
+            <NavButton active={screen === Screen.DASHBOARD} onClick={() => setScreen(Screen.DASHBOARD)} icon={<Home size={24} />} label="Home" />
             <NavButton active={screen === Screen.PROJECT_SETUP} onClick={() => requireAuth(() => setScreen(Screen.PROJECT_SETUP))} icon={<Settings size={24} />} label="Setup" />
             <NavButton active={screen === Screen.WALL_EDITOR} onClick={() => requireAuth(() => setScreen(Screen.WALL_EDITOR))} icon={<Box size={24} />} label="Walls" />
             <NavButton active={screen === Screen.BOM_REPORT} onClick={() => requireAuth(() => setScreen(Screen.BOM_REPORT))} icon={<Table2 size={24} />} label="BOM" />
@@ -207,7 +221,7 @@ export default function App() {
       </div>
 
       {/* MOBILE NAV */}
-      {screen !== Screen.HOME && (
+      {(screen !== Screen.LANDING && screen !== Screen.DASHBOARD) && (
         <div className="md:hidden h-16 bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex items-stretch justify-around z-50 shrink-0 print:hidden safe-area-bottom">
           <MobileNavButton active={screen === Screen.PROJECT_SETUP} onClick={() => setScreen(Screen.PROJECT_SETUP)} icon={<Settings size={20} />} label="Setup" />
           <MobileNavButton active={screen === Screen.WALL_EDITOR} onClick={() => setScreen(Screen.WALL_EDITOR)} icon={<Box size={20} />} label="Editor" />
@@ -239,19 +253,11 @@ export default function App() {
           user={user}
           initialMode={authModalMode}
           onClose={() => setShowAuthModal(false)}
-          onSuccess={async () => {
+          onSuccess={() => {
             setShowAuthModal(false);
-            // Auto-start project creation after successful signup from landing page
-            if (authModalMode === 'signup' && screen === Screen.HOME) {
-              // Small delay to ensure auth state is updated
-              setTimeout(async () => {
-                const newProj = createNewProject();
-                const { data } = await projectService.createProject(newProj);
-                if (data) {
-                  setProject(data);
-                  setScreen(Screen.PROJECT_SETUP);
-                }
-              }, 100);
+            // After successful login/signup from landing page, go to dashboard
+            if (screen === Screen.LANDING) {
+              setScreen(Screen.DASHBOARD);
             }
           }}
         />
