@@ -17,7 +17,8 @@ export const WallVisualizer: React.FC<Props> = ({
   onCabinetClick, onObstacleClick,
   onCabinetMove, onObstacleMove, onDragEnd
 }) => {
-  const [dragging, setDragging] = useState<{ type: 'cabinet' | 'obstacle', index: number, startX: number, originalX: number, currentX: number } | null>(null);
+  const [dragging, setDragging] = useState<{ type: 'cabinet' | 'obstacle', index: number, startX: number, originalX: number, currentX: number, startClientX: number } | null>(null);
+  const DRAG_THRESHOLD = 15; // Minimum pixels to move before considering it a drag (increased from 5)
   const [previewPositions, setPreviewPositions] = useState<{ cabinets: Map<number, number>; obstacles: Map<number, number> } | null>(null);
   const [panning, setPanning] = useState<{
     startClientX: number;
@@ -273,12 +274,23 @@ export const WallVisualizer: React.FC<Props> = ({
   const handleMouseDown = (e: React.MouseEvent | React.TouchEvent, type: 'cabinet' | 'obstacle', index: number, currentX: number) => {
     e.stopPropagation();
     const startX = getPointerX(e);
-    setDragging({ type, index, startX, originalX: currentX, currentX });
+    const { clientX } = getClientXY(e);
+    setDragging({ type, index, startX, originalX: currentX, currentX, startClientX: clientX });
     setPreviewPositions(null);
   };
 
   const handleMouseMove = (e: React.MouseEvent | React.TouchEvent) => {
     if (!dragging) return;
+
+    // Check if we've moved enough to consider this a drag
+    const { clientX } = getClientXY(e);
+    const moveDelta = Math.abs(clientX - dragging.startClientX);
+
+    // Don't apply drag logic until we've moved past the threshold
+    if (moveDelta < DRAG_THRESHOLD) {
+      return;
+    }
+
     const currentX = getPointerX(e);
     const delta = currentX - dragging.startX;
     let newX = dragging.originalX + delta;
@@ -300,30 +312,51 @@ export const WallVisualizer: React.FC<Props> = ({
     setPreviewPositions(pushed);
   };
 
-  const handleMouseUp = () => {
+  const handleMouseUp = (e?: MouseEvent | TouchEvent) => {
     if (!dragging) return;
 
-    const finalX = dragging.currentX;
-    const pushed = computePushedLayout(dragging.type, dragging.index, finalX);
-
-    if (onCabinetMove) {
-      for (const [idx, x] of pushed.cabinets) {
-        const cur = zone.cabinets[idx]?.fromLeft;
-        if (cur == null) continue;
-        if (Math.abs(cur - x) > 0.5) onCabinetMove(idx, x);
-      }
+    // Check if this was a real drag or just a click
+    let isRealDrag = false;
+    if (e) {
+      const { clientX } = getClientXY(e);
+      const moveDelta = Math.abs(clientX - dragging.startClientX);
+      isRealDrag = moveDelta >= DRAG_THRESHOLD;
     }
-    if (onObstacleMove) {
-      for (const [idx, x] of pushed.obstacles) {
-        const cur = zone.obstacles[idx]?.fromLeft;
-        if (cur == null) continue;
-        if (Math.abs(cur - x) > 0.5) onObstacleMove(idx, x);
+
+    // Only apply position changes if we actually dragged (moved past threshold)
+    if (isRealDrag) {
+      const finalX = dragging.currentX;
+      const pushed = computePushedLayout(dragging.type, dragging.index, finalX);
+
+      if (onCabinetMove) {
+        for (const [idx, x] of pushed.cabinets) {
+          const cur = zone.cabinets[idx]?.fromLeft;
+          if (cur == null) continue;
+          if (Math.abs(cur - x) > 0.5) onCabinetMove(idx, x);
+        }
+      }
+      if (onObstacleMove) {
+        for (const [idx, x] of pushed.obstacles) {
+          const cur = zone.obstacles[idx]?.fromLeft;
+          if (cur == null) continue;
+          if (Math.abs(cur - x) > 0.5) onObstacleMove(idx, x);
+        }
+      }
+    } else {
+      // Single click (not a drag) -> open edit modal
+      if (dragging.type === 'cabinet') {
+        onCabinetClick?.(dragging.index);
+      } else {
+        onObstacleClick?.(dragging.index);
       }
     }
 
     setDragging(null);
     setPreviewPositions(null);
-    onDragEnd?.();
+    // Only call onDragEnd if it was a real drag (moved past threshold)
+    if (isRealDrag) {
+      onDragEnd?.();
+    }
   };
 
   const getCabinetX = (idx: number) => {
@@ -342,15 +375,15 @@ export const WallVisualizer: React.FC<Props> = ({
   useEffect(() => {
     if (dragging) {
       window.addEventListener('mousemove', handleMouseMove as any);
-      window.addEventListener('mouseup', handleMouseUp);
+      window.addEventListener('mouseup', handleMouseUp as any);
       window.addEventListener('touchmove', handleMouseMove as any);
-      window.addEventListener('touchend', handleMouseUp);
+      window.addEventListener('touchend', handleMouseUp as any);
     }
     return () => {
       window.removeEventListener('mousemove', handleMouseMove as any);
-      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('mouseup', handleMouseUp as any);
       window.removeEventListener('touchmove', handleMouseMove as any);
-      window.removeEventListener('touchend', handleMouseUp);
+      window.removeEventListener('touchend', handleMouseUp as any);
     };
   }, [dragging]);
 
@@ -369,14 +402,13 @@ export const WallVisualizer: React.FC<Props> = ({
     };
   }, [panning]);
 
+  // Reset viewBox when wall dimensions change to ensure full wall is visible
   useEffect(() => {
-    setViewBox((prev) => {
-      const zoom = baseViewBox.width / prev.width;
-      const nextW = baseViewBox.width / Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoom));
-      const nextH = baseViewBox.height / Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoom));
-      const centerX = prev.x + prev.width / 2;
-      const centerY = prev.y + prev.height / 2;
-      return clampViewBox({ x: centerX - nextW / 2, y: centerY - nextH / 2, width: nextW, height: nextH });
+    setViewBox({
+      x: baseViewBox.x,
+      y: baseViewBox.y,
+      width: baseViewBox.width,
+      height: baseViewBox.height,
     });
   }, [zone.totalLength, height]);
 
@@ -424,7 +456,21 @@ export const WallVisualizer: React.FC<Props> = ({
         details = (
           <g>
             <rect x={x} y={y + h - 50} width={w} height={50} fill="rgba(0,0,0,0.1)" stroke={strokeColor} strokeWidth="1" strokeDasharray="2,2" />
-            <text x={x + w / 2} y={y + h - 25} textAnchor="middle" fontSize="12" fill={strokeColor} opacity="0.6">50mm NOTCH</text>
+            <text x={x + w / 2} y={y + h - 25} textAnchor="middle" fontSize="12" fill={strokeColor} opacity="0.6">200mm NOTCH</text>
+          </g>
+        );
+        break;
+      case PresetType.OPEN_BOX:
+        // Open box with 2 shelves - show shelf panels (visual representation)
+        const shelf1Y = y + h * 0.33;
+        const shelf2Y = y + h * 0.66;
+        details = (
+          <g>
+            {/* Shelf panels */}
+            <rect x={x + 2} y={shelf1Y - 8} width={w - 4} height={16} fill={strokeColor} opacity="0.3" />
+            <rect x={x + 2} y={shelf2Y - 8} width={w - 4} height={16} fill={strokeColor} opacity="0.3" />
+            {/* Box label */}
+            <text x={x + w / 2} y={y + h / 2} textAnchor="middle" fontSize="12" fill={strokeColor} opacity="0.6" fontWeight="bold">OPEN</text>
           </g>
         );
         break;
@@ -440,7 +486,35 @@ export const WallVisualizer: React.FC<Props> = ({
       >
         <rect x={x} y={y} width={w} height={h} fill={fillColor} stroke={strokeColor} strokeWidth="2" className="print:stroke-black print:stroke-2" />
         {details}
-        <text x={x + w / 2} y={y + h / 2} fill="var(--text-color)" fontSize={Math.min(80, w / 3)} textAnchor="middle" dominantBaseline="middle" fontWeight="bold" style={{ pointerEvents: 'none' }} className="print:fill-black">{w}</text>
+        {/* Cabinet Label (Box 1, 2, 3, etc.) - Larger and more visible */}
+        {unit.label && (
+          <text
+            x={x + w / 2}
+            y={y + 40}
+            fill={isAuto ? "#f59e0b" : "var(--text-color)"}
+            fontSize={Math.min(48, Math.max(24, w / 6))}
+            textAnchor="middle"
+            fontWeight="bold"
+            style={{ pointerEvents: 'none', textShadow: '0 0 4px rgba(0,0,0,0.5)' }}
+            className="print:fill-black"
+          >
+            {unit.label}
+          </text>
+        )}
+        {/* Width dimension */}
+        <text
+          x={x + w / 2}
+          y={y + h / 2 + 20}
+          fill="var(--text-color)"
+          fontSize={Math.min(80, Math.max(40, w / 3))}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fontWeight="bold"
+          style={{ pointerEvents: 'none' }}
+          className="print:fill-black"
+        >
+          {w}
+        </text>
       </g>
     );
   };

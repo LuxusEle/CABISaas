@@ -20,6 +20,7 @@ import { CustomCabinetLibrary } from './components/CustomCabinetLibrary';
 import { LandingPage } from './components/LandingPage';
 import { customCabinetService } from './services/customCabinetService';
 import { projectService } from './services/projectService';
+import { SequentialBoxInput } from './components/SequentialBoxInput';
 
 // --- PRINT TITLE BLOCK ---
 const TitleBlock = ({ project, pageTitle }: { project: Project, pageTitle: string }) => (
@@ -106,6 +107,15 @@ export default function App() {
     if (isDark) document.documentElement.classList.add('dark');
     else document.documentElement.classList.remove('dark');
   }, [isDark]);
+
+  // Auto-save project to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('cabengine-project', JSON.stringify(project));
+    } catch (e) {
+      console.warn('Failed to save project:', e);
+    }
+  }, [project]);
 
   const toggleTheme = () => setIsDark(!isDark);
 
@@ -591,6 +601,152 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
       updateZone(autoFillZone(currentZone, project.settings, currentZone.id));
     }
   };
+
+  // Smart gap fill - uses standard cabinet sizes, no tiny boxes
+  // This function fills gaps ONLY for cabinet types that already exist in the zone
+  const fillGaps = () => {
+    // Keep all existing cabinets to avoid destroying the user's plan
+    const existingCabinets = [...currentZone.cabinets];
+
+    // Determine which cabinet types already exist in this zone
+    const existingTypes = new Set(existingCabinets.map(c => c.type));
+
+    // If no cabinets exist yet, default to filling BASE cabinets only
+    if (existingTypes.size === 0) {
+      existingTypes.add(CabinetType.BASE);
+    }
+
+    // Standard cabinet widths we can use (prioritize larger)
+    const standardWidths = [900, 600, 450, 400, 300, 150];
+    const MIN_BOX_SIZE = 100; // Minimum 100mm
+
+    const newBoxes: CabinetUnit[] = [];
+
+    // Get preset type based on cabinet type and width
+    const getPresetForType = (cabinetType: CabinetType, width: number): PresetType => {
+      if (cabinetType === CabinetType.WALL) {
+        return width < 350 ? PresetType.OPEN_BOX : PresetType.WALL_STD;
+      } else if (cabinetType === CabinetType.TALL) {
+        return width < 350 ? PresetType.OPEN_BOX : PresetType.TALL_UTILITY;
+      } else {
+        return width < 350 ? PresetType.OPEN_BOX : PresetType.BASE_DOOR;
+      }
+    };
+
+    // Get obstacles that block this specific cabinet type
+    const getBlockingObstacles = (cabinetType: CabinetType) => {
+      return currentZone.obstacles.filter(obs => {
+        // Doors and columns ALWAYS block all cabinet types (full height blockers)
+        if (obs.type === 'door' || obs.type === 'column') return true;
+
+        // Windows: check sill height to determine which cabinet types are blocked
+        if (obs.type === 'window') {
+          const sillHeight = obs.sillHeight ?? 900; // default sill at 900mm
+          // TALL cabinets are blocked by any window (they span full height)
+          if (cabinetType === CabinetType.TALL) return true;
+          // WALL cabinets blocked if window is in the wall cabinet zone (typically 1400mm to 2100mm)
+          if (cabinetType === CabinetType.WALL) return sillHeight < 2100;
+          // BASE cabinets only blocked if sill is very low (below counter height ~850mm)
+          if (cabinetType === CabinetType.BASE) return sillHeight < 300;
+        }
+
+        // Pipes block all cabinet types (be safe)
+        if (obs.type === 'pipe') return true;
+
+        return false;
+      });
+    };
+
+    // Helper function to fill gaps for a specific cabinet type
+    const fillGapsForType = (cabinetType: CabinetType) => {
+      // Skip if this cabinet type doesn't exist in the zone
+      if (!existingTypes.has(cabinetType)) return;
+
+      // For this cabinet type, only consider same-type cabinets + BLOCKING obstacles
+      const sameTypeCabinets = existingCabinets.filter(c => c.type === cabinetType);
+      const blockingObstacles = getBlockingObstacles(cabinetType);
+
+      // Get occupied spaces for this cabinet type
+      const occupiedSpaces = [
+        ...sameTypeCabinets.map(c => ({ fromLeft: c.fromLeft, width: c.width })),
+        ...blockingObstacles.map(o => ({ fromLeft: o.fromLeft, width: o.width }))
+      ].sort((a, b) => a.fromLeft - b.fromLeft);
+
+      // Find gaps and fill them for this type
+      let lastEnd = 0;
+      for (const space of occupiedSpaces) {
+        const gapStart = lastEnd;
+        const gapEnd = space.fromLeft;
+        const gapWidth = gapEnd - gapStart;
+
+        if (gapWidth >= MIN_BOX_SIZE) {
+          let remainingWidth = gapWidth;
+          let currentPos = gapStart;
+
+          while (remainingWidth >= MIN_BOX_SIZE) {
+            let bestSize = standardWidths.find(sw => sw <= remainingWidth) || (remainingWidth >= MIN_BOX_SIZE ? remainingWidth : 0);
+            if (bestSize === 0) break;
+
+            newBoxes.push({
+              id: Math.random().toString(),
+              preset: getPresetForType(cabinetType, bestSize),
+              type: cabinetType,
+              width: bestSize,
+              qty: 1,
+              fromLeft: currentPos,
+              isAutoFilled: true
+            });
+            currentPos += bestSize;
+            remainingWidth -= bestSize;
+          }
+        }
+        lastEnd = Math.max(lastEnd, space.fromLeft + space.width);
+      }
+
+      // Fill end gap for this type (from last occupied to wall end)
+      const endGap = currentZone.totalLength - lastEnd;
+      if (endGap >= MIN_BOX_SIZE) {
+        let remainingWidth = endGap;
+        let currentPos = lastEnd;
+        while (remainingWidth >= MIN_BOX_SIZE) {
+          let bestSize = standardWidths.find(sw => sw <= remainingWidth) || (remainingWidth >= MIN_BOX_SIZE ? remainingWidth : 0);
+          if (bestSize === 0) break;
+          newBoxes.push({
+            id: Math.random().toString(),
+            preset: getPresetForType(cabinetType, bestSize),
+            type: cabinetType,
+            width: bestSize,
+            qty: 1,
+            fromLeft: currentPos,
+            isAutoFilled: true
+          });
+          currentPos += bestSize;
+          remainingWidth -= bestSize;
+        }
+      }
+    };
+
+    // Fill gaps ONLY for cabinet types that already exist in the zone
+    fillGapsForType(CabinetType.BASE);
+    fillGapsForType(CabinetType.WALL);
+    fillGapsForType(CabinetType.TALL);
+
+    // Combine and sort ALL cabinets
+    const allCabs = [...existingCabinets, ...newBoxes].sort((a, b) => a.fromLeft - b.fromLeft);
+
+    // Reset sequential numbering for ALL cabinets in this zone to ensure they are unique (B01, B02, etc.)
+    let bIdx = 1, wIdx = 1, tIdx = 1;
+    const numbered = allCabs.map(c => {
+      let label = '';
+      if (c.type === CabinetType.BASE) label = `B${String(bIdx++).padStart(2, '0')}`;
+      else if (c.type === CabinetType.WALL) label = `W${String(wIdx++).padStart(2, '0')}`;
+      else label = `T${String(tIdx++).padStart(2, '0')}`;
+      return { ...c, label };
+    });
+
+    updateZone({ ...currentZone, cabinets: numbered });
+  };
+
   const clearZone = () => { if (window.confirm(`Clear ${currentZone.id}?`)) updateZone({ ...currentZone, obstacles: [], cabinets: [] }); };
 
   const addZone = () => {
@@ -619,6 +775,21 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
   // Moves
   const handleCabinetMove = (idx: number, x: number) => { const cabs = [...currentZone.cabinets]; cabs[idx].fromLeft = x; updateZone({ ...currentZone, cabinets: cabs }); };
   const handleObstacleMove = (idx: number, x: number) => { const obs = [...currentZone.obstacles]; obs[idx].fromLeft = x; updateZone({ ...currentZone, obstacles: obs }); };
+
+  // Handler for sequential box input - adds cabinets and re-labels
+  const handleSequentialAdd = (newCabinets: CabinetUnit[]) => {
+    const allCabs = [...currentZone.cabinets, ...newCabinets].sort((a, b) => a.fromLeft - b.fromLeft);
+    // Re-number all cabinets
+    let bIdx = 1, wIdx = 1, tIdx = 1;
+    const numbered = allCabs.map(c => {
+      let label = '';
+      if (c.type === CabinetType.BASE) label = `B${String(bIdx++).padStart(2, '0')}`;
+      else if (c.type === CabinetType.WALL) label = `W${String(wIdx++).padStart(2, '0')}`;
+      else label = `T${String(tIdx++).padStart(2, '0')}`;
+      return { ...c, label };
+    });
+    updateZone(resolveCollisions({ ...currentZone, cabinets: numbered }));
+  };
 
   const openAdd = (type: 'cabinet' | 'obstacle') => {
     if (type === 'cabinet') {
@@ -728,12 +899,27 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
           </div>
           <div className="p-4 space-y-2 border-t border-slate-200 dark:border-slate-800">
             <Button size="md" variant="secondary" className="w-full text-sm min-h-[48px]" onClick={handleAutoFill}><Wand2 size={16} className="mr-2" /> Auto Fill</Button>
+            <Button size="md" variant="secondary" className="w-full text-sm min-h-[48px]" onClick={fillGaps}><Box size={16} className="mr-2" /> Fill Gaps</Button>
             <Button size="md" variant="secondary" className="w-full text-sm min-h-[48px]" onClick={clearZone}><Trash2 size={16} className="mr-2" /> Clear Zone</Button>
             <div className="grid grid-cols-2 gap-2 mt-2">
               <Button size="lg" onClick={() => openAdd('obstacle')} variant="outline" className="text-xs flex-col h-20 min-h-[80px]"><DoorOpen size={20} />+ Obstacle</Button>
               <Button size="lg" onClick={() => openAdd('cabinet')} variant="primary" className="text-xs flex-col h-20 min-h-[80px]"><Box size={20} />+ Cabinet</Button>
             </div>
-            <Button size="lg" variant="primary" className="w-full mt-4 font-black min-h-[48px]" onClick={() => setScreen(Screen.BOM_REPORT)}>CALCULATE BOM</Button>
+          </div>
+          {/* Sequential Box Builder */}
+          <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+            <SequentialBoxInput
+              zone={{
+                id: currentZone.id,
+                totalLength: currentZone.totalLength,
+                cabinets: currentZone.cabinets,
+                obstacles: currentZone.obstacles
+              }}
+              onAddCabinets={handleSequentialAdd}
+            />
+          </div>
+          <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+            <Button size="lg" variant="primary" className="w-full font-black min-h-[48px]" onClick={() => setScreen(Screen.BOM_REPORT)}>CALCULATE BOM</Button>
           </div>
         </div>
 
@@ -1102,10 +1288,11 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
 };
 
 const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject: React.Dispatch<React.SetStateAction<Project>> }) => {
-  const data = useMemo(() => generateProjectBOM(project), [project]);
+  // Use more specific dependencies to prevent unnecessary recalculations
+  const data = useMemo(() => generateProjectBOM(project), [project.id, project.zones, project.settings]);
   const [activeView, setActiveView] = useState<'list' | 'cutplan' | 'wallplan'>('list');
-  const cutPlan = useMemo(() => optimizeCuts(data.groups.flatMap(g => g.items), project.settings), [data, project.settings]);
-  const costs = useMemo(() => calculateProjectCost(data, cutPlan, project.settings), [data, cutPlan, project.settings]);
+  const cutPlan = useMemo(() => optimizeCuts(data.groups.flatMap(g => g.items), project.settings), [data.groups, project.settings.sheetLength, project.settings.sheetWidth, project.settings.kerf]);
+  const costs = useMemo(() => calculateProjectCost(data, cutPlan, project.settings), [data, cutPlan, project.settings.costs]);
   const currency = project.settings.currency || '$';
 
   // Calculate Sheet Summary for Table
