@@ -13,66 +13,142 @@ function toMeters(value: number, lengthUnit: string): number {
   return value * factor;
 }
 
+function getVisualElevationY(obj: any, lengthUnit: string, referenceTopM?: number): number {
+  const existingY = obj?.box?.position?.y ?? 0;
+  // If we have a meaningful Y value (e.g. > 10cm), trust it.
+  const m = toMeters(existingY, lengthUnit);
+  if (m > 0.1) return existingY;
+
+  // Otherwise, infer from kind
+  const kind = (obj.cabinetKind || '').toLowerCase();
+  const factor = UNIT_TO_METERS[lengthUnit] ?? 1;
+
+  if (kind.includes('wall') || kind.includes('hood')) {
+    if (referenceTopM !== undefined) {
+      // Align top to reference
+      const hM = toMeters(obj?.box?.size?.height ?? 0, lengthUnit);
+      const yM = referenceTopM - hM;
+      return yM / factor;
+    }
+
+    // Fallback if no reference found
+    return 1.45 / factor;
+  }
+
+  // Base/Tall usually start at 0
+  return 0;
+}
+
 function getXZ(point: any): { x: number; z: number } {
   return { x: point?.x ?? 0, z: point?.z ?? 0 };
 }
 
-function computeBounds(data: ConstructionPlanJSON): { minX: number; maxX: number; minZ: number; maxZ: number } {
-  const points: Array<{ x: number; z: number }> = [];
+function computeBounds(data: ConstructionPlanJSON, viewMode: 'plan' | 'elevation'): { minX: number; maxX: number; minY: number; maxY: number } {
+  const points: Array<{ x: number; y: number }> = [];
 
   // Initialize with a small fake bounds if empty
-  const defaultBounds = { minX: 0, maxX: 1, minZ: 0, maxZ: 1 };
+  const defaultBounds = { minX: 0, maxX: 1, minY: 0, maxY: 1 };
 
   // 1. Prioritize cabinets and walls for the "actual" drawing area
   const walls = data?.room?.walls ?? [];
-  for (const w of walls) {
-    if (w.from) points.push(getXZ(w.from));
-    if (w.to) points.push(getXZ(w.to));
+  const lengthUnit = data?.units?.lengthUnit ?? 'm';
+
+  if (viewMode === 'plan') {
+    for (const w of walls) {
+      if (w.from) points.push({ x: w.from.x ?? 0, y: w.from.z ?? 0 });
+      if (w.to) points.push({ x: w.to.x ?? 0, y: w.to.z ?? 0 });
+    }
+  } else {
+    // Elevation: X and Y (Height)
+    // For elevation, we primarily care about the wall's length (X) and height (Y)
+    // We assume the wall starts at 0,0 in local wall coordinates for this simple visualizer
+    for (const w of walls) {
+      // We'll use the wall length as max X
+      const len = Math.sqrt(Math.pow((w.to?.x ?? 0) - (w.from?.x ?? 0), 2) + Math.pow((w.to?.z ?? 0) - (w.from?.z ?? 0), 2));
+      points.push({ x: 0, y: 0 });
+      points.push({ x: len, y: (w.height ?? 2.4) });
+    }
   }
 
   const objects = data?.objects ?? [];
   let hasCabinets = false;
-  for (const obj of objects) {
-    if (obj?.category !== 'cabinet') continue;
-    const pos = obj?.box?.position;
-    const size = obj?.box?.size;
-    if (!pos || !size) continue;
 
-    // Ignore items at exact (0,0) if they are likely placeholder/uninitialized 
-    // unless they are the only things there
-    if (pos.x === 0 && pos.z === 0 && size.length === 0) continue;
+  if (viewMode === 'plan') {
+    for (const obj of objects) {
+      if (obj?.category !== 'cabinet') continue;
+      const pos = obj?.box?.position;
+      const size = obj?.box?.size;
+      if (!pos || !size) continue;
 
-    const x0 = pos.x ?? 0;
-    const z0 = pos.z ?? 0;
-    const x1 = x0 + (size.length ?? 0);
-    const z1 = z0 + (size.depth ?? 0);
-    points.push({ x: x0, z: z0 }, { x: x1, z: z1 });
-    hasCabinets = true;
+      // Ignore items at exact (0,0) if they are likely placeholder/uninitialized 
+      // unless they are the only things there
+      if (pos.x === 0 && pos.z === 0 && size.length === 0) continue;
+
+      const x0 = pos.x ?? 0;
+      const z0 = pos.z ?? 0;
+      const x1 = x0 + (size.length ?? 0);
+      const z1 = z0 + (size.depth ?? 0);
+      points.push({ x: x0, y: z0 }, { x: x1, y: z1 });
+      hasCabinets = true;
+    }
+
+    // Only include floor points if it's tight or we have nothing else (Plan Only)
+    if (!hasCabinets && points.length === 0) {
+      const floorPoints = data?.room?.floorPolygon?.points ?? [];
+      for (const p of floorPoints) points.push({ x: p.x ?? 0, y: p.z ?? 0 });
+    }
+
+  } else {
+    // Elevation Logic
+    // Compute reference top if possible to ensure bounds include raised cabinets
+    let boundsRefTop: number | undefined;
+    let maxTall = 0;
+    let hasTall = false;
+    for (const obj of objects) {
+      if (obj.category === 'cabinet' && (obj.cabinetKind || '').toLowerCase().includes('tall')) {
+        const h = toMeters(obj.box?.size?.height ?? 0, lengthUnit);
+        const y = toMeters(obj.box?.position?.y ?? 0, lengthUnit);
+        if (y + h > maxTall) maxTall = y + h;
+        hasTall = true;
+      }
+    }
+    if (hasTall) boundsRefTop = maxTall;
+
+    for (const obj of objects) {
+      if (obj?.category !== 'cabinet') continue;
+      const pos = obj?.box?.position;
+      const size = obj?.box?.size;
+      if (!pos || !size) continue;
+
+      const x0 = pos.x ?? 0;
+      // Pass lengthUnit and boundsRefTop which are now defined
+      const y0 = getVisualElevationY(obj, lengthUnit, boundsRefTop);
+      const x1 = x0 + (size.length ?? 0);
+      const y1 = y0 + (size.height ?? 0);
+
+      points.push({ x: x0, y: y0 }, { x: x1, y: y1 });
+    }
   }
 
-  // 2. Only include floor points if it's tight or we have nothing else
-  if (!hasCabinets && points.length === 0) {
-    const floorPoints = data?.room?.floorPolygon?.points ?? [];
-    for (const p of floorPoints) points.push(getXZ(p));
-  }
 
   if (points.length === 0) return defaultBounds;
 
   let minX = Infinity;
   let maxX = -Infinity;
-  let minZ = Infinity;
-  let maxZ = -Infinity;
+  let minY = Infinity;
+  let maxY = -Infinity;
 
   for (const p of points) {
     minX = Math.min(minX, p.x);
     maxX = Math.max(maxX, p.x);
-    minZ = Math.min(minZ, p.z);
-    maxZ = Math.max(maxZ, p.z);
+    minY = Math.min(minY, p.y);
+    maxY = Math.max(maxY, p.y);
   }
 
   if (!Number.isFinite(minX)) return defaultBounds;
-  return { minX, maxX, minZ, maxZ };
+  return { minX, maxX, minY, maxY };
 }
+
 
 function pickScaleBarMeters(roomWidthMeters: number): number {
   const candidates = [0.25, 0.5, 1, 2, 3, 5];
@@ -128,28 +204,151 @@ function drawFloor(ctx: CanvasRenderingContext2D, floorPointsPx: Array<{ x: numb
 function drawWalls(
   ctx: CanvasRenderingContext2D,
   walls: ConstructionPlanJSON['room']['walls'],
-  mapPoint: (pt: { x: number; z: number }) => { x: number; y: number },
+  mapPoint: (pt: { x: number; y: number }) => { x: number; y: number },
   finalScale: number,
-  lengthUnit: string
+  lengthUnit: string,
+  viewMode: 'plan' | 'elevation'
 ) {
   const dpr = window.devicePixelRatio || 1;
   ctx.save();
   ctx.strokeStyle = '#64748b'; // Slate-500 for a cleaner look
   ctx.lineCap = 'round';
 
-  for (const wall of walls ?? []) {
-    const fromM = { x: toMeters(getXZ(wall.from).x, lengthUnit), z: toMeters(getXZ(wall.from).z, lengthUnit) };
-    const toM = { x: toMeters(getXZ(wall.to).x, lengthUnit), z: toMeters(getXZ(wall.to).z, lengthUnit) };
-    const a = mapPoint(fromM);
-    const b = mapPoint(toM);
+  if (viewMode === 'plan') {
+    for (const wall of walls ?? []) {
+      const fromM = { x: toMeters(getXZ(wall.from).x, lengthUnit), y: toMeters(getXZ(wall.from).z, lengthUnit) };
+      const toM = { x: toMeters(getXZ(wall.to).x, lengthUnit), y: toMeters(getXZ(wall.to).z, lengthUnit) };
+      const a = mapPoint(fromM);
+      const b = mapPoint(toM);
 
-    // Using a thin consistent line instead of a physical-scaled thickness 
-    // to avoid massive black bars in the on-screen preview.
-    ctx.lineWidth = 2 * dpr;
-    ctx.beginPath();
-    ctx.moveTo(a.x, a.y);
-    ctx.lineTo(b.x, b.y);
-    // ctx.stroke(); // Removed wall baseline to eliminate the "middle line" artifact
+      // Using a thin consistent line instead of a physical-scaled thickness 
+      // to avoid massive black bars in the on-screen preview.
+      ctx.lineWidth = 2 * dpr;
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      // ctx.stroke(); // Removed wall baseline to eliminate the "middle line" artifact
+    }
+  } else {
+    // Elevation: Draw the wall rectangle
+    for (const wall of walls ?? []) {
+      // length in meters
+      const dx = (wall.to?.x ?? 0) - (wall.from?.x ?? 0);
+      const dz = (wall.to?.z ?? 0) - (wall.from?.z ?? 0);
+      const len = Math.sqrt(dx * dx + dz * dz);
+
+      const lenM = toMeters(len, lengthUnit);
+      const hM = toMeters(wall.height ?? 2.4, lengthUnit);
+
+      const bl = mapPoint({ x: 0, y: 0 }); // Bottom Left (0,0)
+      const tr = mapPoint({ x: lenM, y: hM }); // Top Right (len, h)
+
+      ctx.fillStyle = '#f8fafc'; // Slate-50
+      ctx.fillRect(bl.x, tr.y, tr.x - bl.x, bl.y - tr.y);
+      // ctx.strokeRect(bl.x, tr.y, tr.x - bl.x, bl.y - tr.y); // Removed wall border as requested
+    }
+  }
+  ctx.restore();
+}
+
+function drawObstacles(
+  ctx: CanvasRenderingContext2D,
+  walls: ConstructionPlanJSON['room']['walls'],
+  mapPoint: (pt: { x: number; y: number }) => { x: number; y: number },
+  lengthUnit: string,
+  viewMode: 'plan' | 'elevation'
+) {
+  const dpr = window.devicePixelRatio || 1;
+  ctx.save();
+  ctx.strokeStyle = '#334155';
+  ctx.fillStyle = '#cbd5e1';
+  ctx.lineWidth = 1.5 * dpr;
+
+  for (const wall of walls ?? []) {
+    if (!wall.openings || wall.openings.length === 0) continue;
+
+    const wx1 = toMeters(getXZ(wall.from).x, lengthUnit);
+    const wz1 = toMeters(getXZ(wall.from).z, lengthUnit);
+    const wx2 = toMeters(getXZ(wall.to).x, lengthUnit);
+    const wz2 = toMeters(getXZ(wall.to).z, lengthUnit);
+
+    const dx = wx2 - wx1;
+    const dz = wz2 - wz1;
+    const len = Math.sqrt(dx * dx + dz * dz);
+    const ux = len > 0.001 ? dx / len : 1;
+    const uz = len > 0.001 ? dz / len : 0;
+
+    for (const op of wall.openings) {
+      const distM = toMeters(op.atDistanceFromFromPoint, lengthUnit);
+      const wM = toMeters(op.width, lengthUnit);
+      const hM = toMeters(op.height, lengthUnit);
+      const sillM = toMeters(op.sillHeight, lengthUnit);
+
+      if (viewMode === 'plan') {
+        const sx = wx1 + ux * distM;
+        const sz = wz1 + uz * distM;
+        const ex = wx1 + ux * (distM + wM);
+        const ez = wz1 + uz * (distM + wM);
+
+        const pStart = mapPoint({ x: sx, y: sz });
+        const pEnd = mapPoint({ x: ex, y: ez });
+
+        ctx.beginPath();
+        ctx.moveTo(pStart.x, pStart.y);
+        ctx.lineTo(pEnd.x, pEnd.y);
+        ctx.save();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 4 * dpr;
+        ctx.stroke();
+        ctx.restore();
+
+        ctx.beginPath();
+        ctx.moveTo(pStart.x, pStart.y);
+        ctx.lineTo(pEnd.x, pEnd.y);
+
+        if (op.type === 'door') {
+          ctx.setLineDash([5 * dpr, 5 * dpr]);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        } else if (op.type === 'window') {
+          ctx.stroke();
+        } else {
+          ctx.stroke();
+        }
+      } else {
+        // Elevation View
+        const x0 = distM;
+        const y0 = sillM;
+
+        const p0 = mapPoint({ x: x0, y: y0 });
+        const p1 = mapPoint({ x: x0 + wM, y: y0 + hM });
+
+        const rx = Math.min(p0.x, p1.x);
+        const ry = Math.min(p0.y, p1.y);
+        const rw = Math.abs(p1.x - p0.x);
+        const rh = Math.abs(p1.y - p0.y);
+
+        ctx.fillStyle = '#e2e8f0';
+        if (op.type === 'door') ctx.fillStyle = '#f1f5f9';
+
+        ctx.fillRect(rx, ry, rw, rh);
+        ctx.strokeRect(rx, ry, rw, rh);
+
+        if (op.type === 'window') {
+          ctx.beginPath();
+          ctx.moveTo(rx, ry); ctx.lineTo(rx + rw, ry + rh);
+          ctx.moveTo(rx + rw, ry); ctx.lineTo(rx, ry + rh);
+          ctx.save();
+          ctx.globalAlpha = 0.2;
+          ctx.stroke();
+          ctx.restore();
+        } else if (op.type === 'door') {
+          ctx.beginPath();
+          ctx.arc(rx + rw * 0.85, ry + rh * 0.55, 3 * dpr, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      }
+    }
   }
   ctx.restore();
 }
@@ -157,8 +356,10 @@ function drawWalls(
 function drawCabinets(
   ctx: CanvasRenderingContext2D,
   objects: ConstructionPlanJSON['objects'],
-  mapPoint: (pt: { x: number; z: number }) => { x: number; y: number },
-  lengthUnit: string
+  mapPoint: (pt: { x: number; y: number }) => { x: number; y: number },
+  lengthUnit: string,
+  viewMode: 'plan' | 'elevation',
+  referenceTopM?: number
 ) {
   const dpr = window.devicePixelRatio || 1;
   ctx.save();
@@ -170,29 +371,76 @@ function drawCabinets(
     if (obj.category !== 'cabinet') continue;
     const pos = obj.box.position;
     const size = obj.box.size;
-    const xM = toMeters(pos.x, lengthUnit);
-    const zM = toMeters(pos.z, lengthUnit);
+
+    // Convert to meters
     const wM = toMeters(size.length, lengthUnit);
-    const dM = toMeters(size.depth, lengthUnit);
 
-    const p0 = mapPoint({ x: xM, z: zM });
-    const p1 = mapPoint({ x: xM + wM, z: zM + dM });
+    let xC: number, yC: number, w: number, h: number;
+    let label = String(obj.label || '').trim();
 
-    const x = Math.min(p0.x, p1.x);
-    const y = Math.min(p0.y, p1.y);
-    const w = Math.abs(p1.x - p0.x);
-    const h = Math.abs(p1.y - p0.y);
+    if (viewMode === 'plan') {
+      const xM = toMeters(pos.x, lengthUnit);
+      const zM = toMeters(pos.z, lengthUnit);
+      const dM = toMeters(size.depth, lengthUnit);
+
+      const p0 = mapPoint({ x: xM, y: zM });
+      const p1 = mapPoint({ x: xM + wM, y: zM + dM });
+
+      xC = Math.min(p0.x, p1.x);
+      yC = Math.min(p0.y, p1.y);
+      w = Math.abs(p1.x - p0.x);
+      h = Math.abs(p1.y - p0.y);
+    } else {
+      // Elevation View
+      const xM = toMeters(pos.x, lengthUnit);
+
+      // Use helper for Y to guarantee separation
+      const rawY = getVisualElevationY(obj, lengthUnit, referenceTopM);
+      const yM = toMeters(rawY, lengthUnit);
+      const hM = toMeters(size.height, lengthUnit);
+
+      // Map (x, y) -> canvas pixels
+      // Y is usually Up in world, Down in canvas. mapPoint handles this if we pass world Y as second coord
+      const p0 = mapPoint({ x: xM, y: yM }); // Bottom Left
+      const p1 = mapPoint({ x: xM + wM, y: yM + hM }); // Top Right
+
+      xC = Math.min(p0.x, p1.x);
+      yC = Math.min(p0.y, p1.y);
+      w = Math.abs(p1.x - p0.x);
+      h = Math.abs(p1.y - p0.y);
+
+      // Draw specifics for elevation (optional simple styling)
+      // Visual indicator for wall vs base
+      if (obj.cabinetKind?.includes('wall')) {
+        // Optional: Draw a "mounting rail" line or similar if needed
+      }
+    }
 
     ctx.fillStyle = cabinetFillForKind(obj.cabinetKind);
-    ctx.fillRect(x, y, w, h);
-    ctx.strokeRect(x, y, w, h);
+    ctx.fillRect(xC, yC, w, h);
+    ctx.strokeRect(xC, yC, w, h);
 
-    const label = String(obj.label || '').trim();
+    // Draw cross for Base/Wall cabinets in elevation
+    if (viewMode === 'elevation') {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(15, 23, 42, 0.1)';
+      ctx.lineWidth = 1 * dpr;
+      ctx.beginPath();
+      if (obj.cabinetKind === 'wall' || obj.cabinetKind?.includes('wall')) {
+        ctx.moveTo(xC, yC + h); ctx.lineTo(xC + w / 2, yC); ctx.lineTo(xC + w, yC + h);
+      } else {
+        // Base / Tall default
+        // ctx.moveTo(xC, yC); ctx.lineTo(xC + w/2, yC + h/2); ctx.lineTo(xC + w, yC);
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+
     if (label && w > 12 * dpr) {
       ctx.fillStyle = '#0f172a';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(label, x + w / 2, y + h / 2, w - 4 * dpr);
+      ctx.fillText(label, xC + w / 2, yC + h / 2, w - 4 * dpr);
     }
   }
   ctx.restore();
@@ -200,7 +448,7 @@ function drawCabinets(
 
 function drawScaleBar(
   ctx: CanvasRenderingContext2D,
-  boundsMeters: { minX: number; maxX: number; minZ: number; maxZ: number },
+  boundsMeters: { minX: number; maxX: number; minY: number; maxY: number },
   scale: number,
   pWidth: number,
   pHeight: number
@@ -243,6 +491,7 @@ export type KitchenPlanRenderOptions = {
   background?: string;
   forceFill?: boolean;
   dprOverride?: number;
+  viewMode?: 'plan' | 'elevation';
 };
 
 export function renderKitchenPlanToCanvas(
@@ -263,7 +512,11 @@ export function renderKitchenPlanToCanvas(
     background = '#ffffff',
     forceFill = false,
     dprOverride,
+    viewMode = 'plan',
   } = options;
+
+  console.log('[PlanRenderer] Drawing with viewMode:', viewMode);
+  console.log('[PlanRenderer] Bounds Raw:', computeBounds(data, viewMode));
 
   // 1. Physical vs Logical sizing (DPI)
   const dpr = dprOverride ?? (window.devicePixelRatio || 1);
@@ -283,22 +536,25 @@ export function renderKitchenPlanToCanvas(
   ctx.fillRect(0, 0, pWidth, pHeight);
 
   // 2. Coordinate Mapping Setup
-  const boundsRaw = computeBounds(data);
+  const boundsRaw = computeBounds(data, viewMode);
   const boundsMeters = {
     minX: toMeters(boundsRaw.minX, lengthUnit),
     maxX: toMeters(boundsRaw.maxX, lengthUnit),
-    minZ: toMeters(boundsRaw.minZ, lengthUnit),
-    maxZ: toMeters(boundsRaw.maxZ, lengthUnit),
+    minY: toMeters(boundsRaw.minY, lengthUnit),
+    maxY: toMeters(boundsRaw.maxY, lengthUnit),
   };
 
   const roomW = Math.max(0.001, boundsMeters.maxX - boundsMeters.minX);
-  const roomH = Math.max(0.001, boundsMeters.maxZ - boundsMeters.minZ);
+  const roomH = Math.max(0.001, boundsMeters.maxY - boundsMeters.minY);
 
   const availW = pWidth - pPadding * 2;
-  const availH = pHeight - pPadding * 2;
+  // Reserve extra space at the bottom for the scale legend so it doesn't overlap
+  const legendReservedHeight = 60 * dpr;
+  const availH = pHeight - pPadding * 2 - legendReservedHeight;
 
   const scaleNoRot = Math.min(availW / roomW, availH / roomH);
-  const scaleRot = Math.min(availW / roomH, availH / roomW);
+  // Only rotate if plan view AND rotation helps. Elevation usually isn't rotated 90deg.
+  const scaleRot = (viewMode === 'plan') ? Math.min(availW / roomH, availH / roomW) : 0;
   const shouldRotate = scaleRot > scaleNoRot;
 
   const bestScale = shouldRotate ? scaleRot : scaleNoRot;
@@ -308,35 +564,73 @@ export function renderKitchenPlanToCanvas(
   const effectiveRoomH = shouldRotate ? roomW : roomH;
 
   const offsetX = (pWidth - effectiveRoomW * finalScale) / 2;
-  const offsetY = (pHeight - effectiveRoomH * finalScale) / 2;
+  // Center vertically within the space ABOVE the legend (move up)
+  const offsetY = (pHeight - legendReservedHeight - effectiveRoomH * finalScale) / 2;
 
-  const mapPoint = ({ x, z }: { x: number; z: number }) => {
+  const mapPoint = ({ x, y }: { x: number; y: number }) => {
     const dx = x - boundsMeters.minX;
-    const dz = z - boundsMeters.minZ;
+    const dy = y - boundsMeters.minY;
 
     if (shouldRotate) {
-      const px = offsetX + dz * finalScale;
+      // Plan View Rotation (Z becomes X, X becomes Y)
+      // This path is usually just for Plan mode
+      const px = offsetX + dy * finalScale;
       const py = offsetY + dx * finalScale;
       return { x: px, y: py };
     } else {
+      // Standard Mapping
+      // X -> X
+      // Y -> Y (flipped)
       const px = offsetX + dx * finalScale;
-      const py = offsetY + (boundsMeters.maxZ - z) * finalScale;
+      // In Plan: Y is Z (depth), we map maxZ-z to flip
+      // In Elevation: Y is Height, we map maxY-y to flip (Canvas 0 is top)
+      const py = offsetY + (boundsMeters.maxY - y) * finalScale;
       return { x: px, y: py };
     }
   };
 
   // 3. Drawing
-  const floorPoints = (data?.room?.floorPolygon?.points ?? []).map((p) => {
-    const pt = getXZ(p);
-    return mapPoint({ x: toMeters(pt.x, lengthUnit), z: toMeters(pt.z, lengthUnit) });
-  });
-
-  if (floorPoints.length >= 3) {
-    drawFloor(ctx, floorPoints);
+  if (viewMode === 'plan') {
+    const floorPoints = (data?.room?.floorPolygon?.points ?? []).map((p) => {
+      const pt = getXZ(p);
+      return mapPoint({ x: toMeters(pt.x, lengthUnit), y: toMeters(pt.z, lengthUnit) });
+    });
+    if (floorPoints.length >= 3) {
+      drawFloor(ctx, floorPoints);
+    }
   }
 
-  drawWalls(ctx, data?.room?.walls ?? [], mapPoint, finalScale, lengthUnit);
-  drawCabinets(ctx, data?.objects ?? [], mapPoint, lengthUnit);
+  // Calculate Reference Top Alignment
+  // We look for the highest point of any "Tall" or "Wall" cabinet to establish a common top line.
+  // Usually, tall cabinets define the max height (e.g. 2.15m or 2.35m).
+  const objects = data?.objects ?? [];
+  let referenceTopM: number | undefined;
+
+  if (viewMode === 'elevation') {
+    let maxTop = 0;
+    let hasReference = false;
+    for (const obj of objects) {
+      if (obj.category !== 'cabinet') continue;
+      const kind = (obj.cabinetKind || '').toLowerCase();
+      // We trust Tall cabinets (and Hoods often) to define the top line.
+      // We also include Wall cabinets in the search if they have explicit Y, 
+      // but usually we are TRYING to find Y for them.
+      // So mostly look for Tall cabinets.
+      if (kind.includes('tall')) {
+        const h = toMeters(obj.box?.size?.height ?? 0, lengthUnit);
+        const y = toMeters(obj.box?.position?.y ?? 0, lengthUnit);
+        const top = y + h;
+        if (top > maxTop) maxTop = top;
+        hasReference = true;
+      }
+    }
+    if (hasReference) referenceTopM = maxTop;
+  }
+
+  drawWalls(ctx, data?.room?.walls ?? [], mapPoint, finalScale, lengthUnit, viewMode);
+  drawObstacles(ctx, data?.room?.walls ?? [], mapPoint, lengthUnit, viewMode);
+  drawCabinets(ctx, data?.objects ?? [], mapPoint, lengthUnit, viewMode, referenceTopM);
+  // drawCabinets(ctx, data?.objects ?? [], mapPoint, lengthUnit, viewMode); // Duplicate removed
   drawScaleBar(ctx, boundsMeters, finalScale, pWidth, pHeight);
 }
 

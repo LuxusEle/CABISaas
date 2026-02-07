@@ -15,10 +15,47 @@ type SingleProps = {
   title?: string;
 };
 
-const KitchenPlanCanvasSingle: React.FC<SingleProps> = ({ data, scalePxPerMeter, title }) => {
+const KitchenPlanViewer: React.FC<SingleProps> = ({ data, scalePxPerMeter }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [size, setSize] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
+
+  // Forces Elevation Mode always
+  const viewMode = 'elevation';
+
+  const walls = useMemo(() => data.room?.walls ?? [], [data]);
+  // Default to first wall if available
+  const [activeWallId, setActiveWallId] = useState<string>(walls[0]?.wallId || '');
+
+  // Synchronize if data changes
+  useEffect(() => {
+    if (!activeWallId && walls.length > 0) {
+      setActiveWallId(walls[0].wallId);
+    }
+  }, [walls, activeWallId]);
+
+  // Filter data based on active selection
+  const renderData = useMemo(() => {
+    if (!activeWallId) return data;
+
+    const targetWall = walls.find(w => w.wallId === activeWallId);
+    if (!targetWall) return data;
+
+    return {
+      ...data,
+      room: {
+        ...data.room,
+        // Only show the specific wall
+        walls: [targetWall]
+      },
+      objects: (data.objects ?? []).filter(o => !o.wallId || o.wallId === targetWall.wallId)
+    };
+  }, [data, activeWallId, walls]);
+
+  const activeTitle = useMemo(() => {
+    const w = walls.find(w => w.wallId === activeWallId);
+    return w ? (w.wallId || 'Selected Wall') : 'Kitchen Elevation';
+  }, [activeWallId, walls]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -39,23 +76,23 @@ const KitchenPlanCanvasSingle: React.FC<SingleProps> = ({ data, scalePxPerMeter,
     if (!canvas) return;
     if (size.width <= 0 || size.height <= 0) return;
 
-    renderKitchenPlanToCanvas(canvas, data, {
+    renderKitchenPlanToCanvas(canvas, renderData, {
       width: size.width,
       height: size.height,
-      paddingPx: 20, // Reduced padding for better fill
+      paddingPx: 20,
       scalePxPerMeter,
       background: '#ffffff',
       forceFill: true,
+      viewMode,
     });
-  }, [data, scalePxPerMeter, size.width, size.height]);
+  }, [renderData, scalePxPerMeter, size.width, size.height, viewMode]);
 
   const handleGeneratePDF = () => {
-    // High-Res landscape A2 canvas
     const offScreenCanvas = document.createElement('canvas');
     const highResWidth = 4200;
     const highResHeight = 2970;
 
-    renderKitchenPlanToCanvas(offScreenCanvas, data, {
+    renderKitchenPlanToCanvas(offScreenCanvas, renderData, {
       width: highResWidth,
       height: highResHeight,
       paddingPx: 100,
@@ -63,12 +100,13 @@ const KitchenPlanCanvasSingle: React.FC<SingleProps> = ({ data, scalePxPerMeter,
       background: '#ffffff',
       forceFill: true,
       dprOverride: 1,
+      viewMode,
     });
 
-    const baseName = title ? title.replace(/[^a-z0-9]/gi, '_').toLowerCase() : 'kitchen-plan';
+    const baseName = activeTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase();
     exportCanvasToPDF(offScreenCanvas, {
       jsPDF,
-      filename: `${baseName}.pdf`,
+      filename: `${baseName}_elevation.pdf`,
       marginMm: 10,
       format: 'a2',
       orientation: 'landscape',
@@ -77,12 +115,34 @@ const KitchenPlanCanvasSingle: React.FC<SingleProps> = ({ data, scalePxPerMeter,
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800 p-4 md:p-8 space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <div className="text-slate-900 dark:text-white font-black text-2xl tracking-tight">{title ?? 'Top-Down Kitchen Plan'}</div>
-          <div className="text-slate-500 text-xs font-bold uppercase tracking-widest opacity-60">Plan View (XZ) • Auto-Fit Optimized</div>
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div className="space-y-2">
+          <div className="text-slate-900 dark:text-white font-black text-2xl tracking-tight leading-none">{activeTitle}</div>
+          <div className="text-slate-500 text-xs font-bold uppercase tracking-widest opacity-60">
+            Elevation View (XY)
+          </div>
         </div>
-        <Button variant="primary" size="lg" onClick={handleGeneratePDF} className="shadow-lg shadow-amber-500/10">Generate PDF</Button>
+
+        <div className="flex flex-col sm:flex-row gap-4 items-end sm:items-center">
+          {/* Wall Selector - Moved Here & Styled like Toggle */}
+          {walls.length > 0 && (
+            <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-lg flex gap-1">
+              {walls.map(w => (
+                <button
+                  key={w.wallId}
+                  onClick={() => setActiveWallId(w.wallId)}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${activeWallId === w.wallId ? 'bg-white dark:bg-slate-600 shadow text-slate-900 dark:text-white' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                >
+                  {w.wallId}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <Button variant="primary" size="lg" onClick={handleGeneratePDF} className="shadow-lg shadow-amber-500/10">
+            PDF
+          </Button>
+        </div>
       </div>
 
       <div
@@ -94,8 +154,8 @@ const KitchenPlanCanvasSingle: React.FC<SingleProps> = ({ data, scalePxPerMeter,
       </div>
 
       <div className="flex items-center justify-between text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-        <div>Plan Render Mode: High-Precision XZ</div>
-        <div>Fill Factor: Maximized</div>
+        <div>Mode: Elevation XY • {activeWallId === 'all' ? 'Full Room' : 'Single Zone'}</div>
+        <div>Fill: Max</div>
       </div>
     </div>
   );
@@ -106,33 +166,9 @@ export function KitchenPlanCanvas({ data, scalePxPerMeter = 100 }: Props) {
 
   if (!safeData) return null;
 
-  const walls = safeData.room?.walls ?? [];
-  if (walls.length <= 1) {
-    return <KitchenPlanCanvasSingle data={safeData} scalePxPerMeter={scalePxPerMeter} title={walls[0]?.wallId} />;
-  }
-
   return (
     <div className="space-y-6">
-      {walls.map((wall) => {
-        const wallId = wall.wallId;
-        const wallData: ConstructionPlanJSON = {
-          ...safeData,
-          room: {
-            ...safeData.room,
-            walls: [wall],
-          },
-          objects: (safeData.objects ?? []).filter((o) => !o.wallId || o.wallId === wallId),
-        };
-
-        return (
-          <KitchenPlanCanvasSingle
-            key={wallId}
-            data={wallData}
-            scalePxPerMeter={scalePxPerMeter}
-            title={wallId}
-          />
-        );
-      })}
+      <KitchenPlanViewer data={safeData} scalePxPerMeter={scalePxPerMeter} />
     </div>
   );
 }
