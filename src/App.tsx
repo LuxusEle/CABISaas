@@ -1,8 +1,8 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Home, Layers, Calculator, Zap, ArrowLeft, Trash2, Plus, Box, DoorOpen, Wand2, Moon, Sun, Table2, FileSpreadsheet, X, Pencil, Save, List, Settings, Printer, Download, Scissors, LayoutDashboard, DollarSign, Map } from 'lucide-react';
 import { Screen, Project, ZoneId, PresetType, CabinetType, CabinetUnit, Obstacle } from './types';
-import { createNewProject, generateProjectBOM, autoFillZone, exportToExcel, resolveCollisions, calculateProjectCost, exportProjectToConstructionJSON } from './services/bomService';
+import { createNewProject, generateProjectBOM, autoFillZone, exportToExcel, resolveCollisions, calculateProjectCost, exportProjectToConstructionJSON, buildProjectConstructionData } from './services/bomService';
 import { optimizeCuts } from './services/nestingService';
 
 // Components
@@ -11,6 +11,7 @@ import { NumberInput } from './components/NumberInput';
 import { WallVisualizer } from './components/WallVisualizer';
 import { CutPlanVisualizer } from './components/CutPlanVisualizer';
 import { IsometricVisualizer } from './components/IsometricVisualizer';
+import { KitchenPlanCanvas } from './components/KitchenPlanCanvas';
 
 // --- PRINT TITLE BLOCK ---
 const TitleBlock = ({ project, pageTitle }: { project: Project, pageTitle: string }) => (
@@ -71,6 +72,7 @@ export default function App() {
       case Screen.PROJECT_SETUP: return <ScreenProjectSetup project={project} setProject={setProject} />;
       case Screen.WALL_EDITOR: return <ScreenWallEditor project={project} setProject={setProject} setScreen={setScreen} />;
       case Screen.BOM_REPORT: return <ScreenBOMReport project={project} setProject={setProject} />;
+      case Screen.TOOLS: return <ScreenPlanView project={project} />;
       default: return <ScreenHome onNewProject={handleStartProject} />;
     }
   };
@@ -92,6 +94,7 @@ export default function App() {
             <NavButton active={screen === Screen.PROJECT_SETUP} onClick={() => setScreen(Screen.PROJECT_SETUP)} icon={<Settings size={24} />} label="Setup" />
             <NavButton active={screen === Screen.WALL_EDITOR} onClick={() => setScreen(Screen.WALL_EDITOR)} icon={<Box size={24} />} label="Walls" />
             <NavButton active={screen === Screen.BOM_REPORT} onClick={() => setScreen(Screen.BOM_REPORT)} icon={<Table2 size={24} />} label="BOM" />
+            <NavButton active={screen === Screen.TOOLS} onClick={() => setScreen(Screen.TOOLS)} icon={<Map size={24} />} label="Plan" />
           </nav>
           <div className="mt-auto">
             <button onClick={toggleTheme} className="p-3 rounded-xl bg-slate-800 text-amber-500 hover:bg-slate-700 transition-colors">{isDark ? <Sun size={20} /> : <Moon size={20} />}</button>
@@ -110,6 +113,7 @@ export default function App() {
           <MobileNavButton active={screen === Screen.PROJECT_SETUP} onClick={() => setScreen(Screen.PROJECT_SETUP)} icon={<Settings size={20} />} label="Setup" />
           <MobileNavButton active={screen === Screen.WALL_EDITOR} onClick={() => setScreen(Screen.WALL_EDITOR)} icon={<Box size={20} />} label="Editor" />
           <MobileNavButton active={screen === Screen.BOM_REPORT} onClick={() => setScreen(Screen.BOM_REPORT)} icon={<Table2 size={20} />} label="BOM" />
+          <MobileNavButton active={screen === Screen.TOOLS} onClick={() => setScreen(Screen.TOOLS)} icon={<Map size={20} />} label="Plan" />
         </div>
       )}
 
@@ -157,6 +161,17 @@ const ScreenHome = ({ onNewProject }: { onNewProject: () => void }) => (
   </div>
 );
 
+const ScreenPlanView = ({ project }: { project: Project }) => (
+  <div className="flex flex-col h-full w-full overflow-hidden">
+    <div className="flex-1 overflow-y-auto p-4 md:p-8">
+      <div className="max-w-6xl mx-auto space-y-6">
+        <h2 className="text-3xl font-black text-slate-900 dark:text-white">Plan View</h2>
+        <KitchenPlanCanvas data={buildProjectConstructionData(project)} scalePxPerMeter={120} />
+      </div>
+    </div>
+  </div>
+);
+
 const ScreenProjectSetup = ({ project, setProject }: { project: Project, setProject: React.Dispatch<React.SetStateAction<Project>> }) => (
   <div className="flex flex-col h-full w-full overflow-hidden">
     <div className="flex-1 overflow-y-auto p-4 md:p-8">
@@ -192,6 +207,65 @@ const ScreenWallEditor = ({ project, setProject, setScreen }: { project: Project
   const [activeTab, setActiveTab] = useState<string>(project.zones[0]?.id || 'Wall A');
   const currentZoneIndex = project.zones.findIndex(z => z.id === activeTab);
   const currentZone = project.zones[currentZoneIndex];
+
+  // Resizable bottom table panel
+  const [tablePanelHeight, setTablePanelHeight] = useState<number>(320);
+  const mainPanelRef = useRef<HTMLDivElement | null>(null);
+  const tabsRowRef = useRef<HTMLDivElement | null>(null);
+  const resizingRef = useRef(false);
+  const dragStartRef = useRef<{ startY: number; startHeight: number } | null>(null);
+
+  useEffect(() => {
+    const onMove = (e: MouseEvent | TouchEvent) => {
+      if (!resizingRef.current) return;
+      const start = dragStartRef.current;
+      if (!start) return;
+
+      const clientY = 'touches' in e ? e.touches[0]?.clientY ?? start.startY : (e as MouseEvent).clientY;
+      const delta = clientY - start.startY;
+      // Dragging UP should increase table height (split line moves up)
+      const next = start.startHeight - delta;
+
+      const panelH = mainPanelRef.current?.clientHeight ?? window.innerHeight;
+      const tabsH = tabsRowRef.current?.clientHeight ?? 0;
+      const available = Math.max(0, panelH - tabsH);
+
+      const MIN_TABLE = 160;
+      const MIN_VISUAL = 240;
+      const maxTable = Math.max(MIN_TABLE, available - MIN_VISUAL);
+      const clamped = Math.max(MIN_TABLE, Math.min(maxTable, next));
+      setTablePanelHeight(clamped);
+    };
+
+    const onUp = () => {
+      if (!resizingRef.current) return;
+      resizingRef.current = false;
+      dragStartRef.current = null;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    window.addEventListener('mousemove', onMove as any);
+    window.addEventListener('mouseup', onUp);
+    window.addEventListener('touchmove', onMove as any, { passive: true } as any);
+    window.addEventListener('touchend', onUp);
+
+    return () => {
+      window.removeEventListener('mousemove', onMove as any);
+      window.removeEventListener('mouseup', onUp);
+      window.removeEventListener('touchmove', onMove as any);
+      window.removeEventListener('touchend', onUp);
+    };
+  }, []);
+
+  const startResize = (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    const clientY = 'touches' in e ? e.touches[0]?.clientY ?? 0 : (e as React.MouseEvent).clientY;
+    resizingRef.current = true;
+    dragStartRef.current = { startY: clientY, startHeight: tablePanelHeight };
+    document.body.style.cursor = 'row-resize';
+    document.body.style.userSelect = 'none';
+  };
 
   // Editor State
   const [modalMode, setModalMode] = useState<'none' | 'add_obstacle' | 'add_cabinet' | 'edit_obstacle' | 'edit_cabinet'>('none');
@@ -288,9 +362,9 @@ const ScreenWallEditor = ({ project, setProject, setScreen }: { project: Project
 
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 overflow-hidden relative">
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden min-h-0">
         {/* SIDEBAR */}
-        <div className="hidden md:flex flex-col w-[300px] bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 h-full overflow-y-auto">
+        <div className="hidden md:flex flex-col w-[300px] bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 h-full min-h-0 overflow-y-auto">
           <div className="p-4 border-b border-slate-200 dark:border-slate-800"><NumberInput label="Wall Length" value={currentZone.totalLength} onChange={(e) => updateZone({ ...currentZone, totalLength: e })} step={100} /></div>
           <div className="p-4 space-y-2 flex-1">
             <div className="flex justify-between items-center"><span className="text-xs font-bold text-slate-400">ZONES</span><button onClick={addZone} className="text-xs font-bold text-amber-500 hover:underline">+ ADD</button></div>
@@ -307,13 +381,17 @@ const ScreenWallEditor = ({ project, setProject, setScreen }: { project: Project
         </div>
 
         {/* VISUALIZER */}
-        <div className="flex-1 flex flex-col min-w-0 relative h-full">
-          <div className="flex px-2 pt-2 gap-1 overflow-x-auto bg-slate-100 dark:bg-slate-900 shrink-0 border-b dark:border-slate-800">
+        <div
+          ref={mainPanelRef}
+          className="flex-1 min-w-0 relative min-h-0 grid"
+          style={{ gridTemplateRows: `auto 1fr ${tablePanelHeight}px` }}
+        >
+          <div ref={tabsRowRef} className="flex px-2 pt-2 gap-1 overflow-x-auto bg-slate-100 dark:bg-slate-900 shrink-0 border-b dark:border-slate-800">
             {project.zones.map(z => (<button key={z.id} onClick={() => setActiveTab(z.id)} className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-all whitespace-nowrap ${activeTab === z.id ? 'bg-white dark:bg-slate-950 text-amber-500 shadow-sm border-t-2 border-amber-500' : 'text-slate-500 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300'}`}>{z.id}</button>))}
             <button onClick={addZone} className="px-4 py-2 text-sm font-bold rounded-t-lg bg-slate-200 dark:bg-slate-800 text-slate-500 hover:text-amber-500 transition-colors">+</button>
           </div>
 
-          <div className="h-[250px] md:h-[500px] bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shrink-0 relative z-10 transition-all">
+          <div className="min-h-[240px] bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 relative z-10 transition-all min-h-0">
             <div className="absolute top-4 right-4 z-20 flex gap-2">
               <Button size="xs" variant={visualMode === 'elevation' ? 'primary' : 'secondary'} onClick={() => setVisualMode('elevation')}>Elevation</Button>
               <Button size="xs" variant={visualMode === 'iso' ? 'primary' : 'secondary'} onClick={() => setVisualMode('iso')}>3D ISO</Button>
@@ -325,16 +403,27 @@ const ScreenWallEditor = ({ project, setProject, setScreen }: { project: Project
             )}
           </div>
 
-          <div className="flex-1 bg-white dark:bg-slate-950 overflow-y-auto pb-20 md:pb-0">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-100 dark:bg-amber-950/40 text-slate-500 dark:text-amber-500 font-bold text-xs uppercase sticky top-0 z-20 border-b dark:border-amber-500/30"><tr><th className="p-3">#</th><th className="p-3">Type</th><th className="p-3">Item</th><th className="p-3 text-right">Width</th></tr></thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-amber-900/20">
-                {[...currentZone.obstacles, ...currentZone.cabinets].map((item, i) => {
-                  const isCab = 'preset' in item;
-                  return (<tr key={item.id} onClick={() => openEdit(isCab ? 'cabinet' : 'obstacle', isCab ? i - currentZone.obstacles.length : i)} className="hover:bg-amber-50 dark:hover:bg-amber-900/20 cursor-pointer transition-colors"><td className="p-3 text-slate-400 font-mono">{isCab ? (item as CabinetUnit).label : i + 1}</td><td className="p-3 text-amber-600 font-bold">{isCab ? (item as CabinetUnit).type : 'Obstacle'}</td><td className="p-3 font-medium dark:text-amber-100">{isCab ? (item as CabinetUnit).preset : (item as Obstacle).type} <span className="text-slate-400 dark:text-amber-500/50 text-xs ml-2">@{item.fromLeft}mm</span></td><td className="p-3 text-right font-mono font-bold dark:text-white">{item.width}</td></tr>)
-                })}
-              </tbody>
-            </table>
+          <div className="min-h-0 bg-white dark:bg-slate-950 overflow-hidden flex flex-col">
+            <div
+              onMouseDown={startResize}
+              onTouchStart={startResize}
+              className="h-8 shrink-0 flex items-center justify-center border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-500 text-xs font-bold uppercase tracking-wider cursor-row-resize select-none"
+              title="Drag to resize"
+            >
+              Drag to resize
+            </div>
+
+            <div className="flex-1 min-h-0 overflow-y-auto pb-20 md:pb-0">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-slate-100 dark:bg-amber-950/40 text-slate-500 dark:text-amber-500 font-bold text-xs uppercase sticky top-0 z-20 border-b dark:border-amber-500/30"><tr><th className="p-3">#</th><th className="p-3">Type</th><th className="p-3">Item</th><th className="p-3 text-right">Width</th></tr></thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-amber-900/20">
+                  {[...currentZone.obstacles, ...currentZone.cabinets].map((item, i) => {
+                    const isCab = 'preset' in item;
+                    return (<tr key={item.id} onClick={() => openEdit(isCab ? 'cabinet' : 'obstacle', isCab ? i - currentZone.obstacles.length : i)} className="hover:bg-amber-50 dark:hover:bg-amber-900/20 cursor-pointer transition-colors"><td className="p-3 text-slate-400 font-mono">{isCab ? (item as CabinetUnit).label : i + 1}</td><td className="p-3 text-amber-600 font-bold">{isCab ? (item as CabinetUnit).type : 'Obstacle'}</td><td className="p-3 font-medium dark:text-amber-100">{isCab ? (item as CabinetUnit).preset : (item as Obstacle).type} <span className="text-slate-400 dark:text-amber-500/50 text-xs ml-2">@{item.fromLeft}mm</span></td><td className="p-3 text-right font-mono font-bold dark:text-white">{item.width}</td></tr>)
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
