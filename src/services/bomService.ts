@@ -1,5 +1,6 @@
 
 import { Project, Zone, CabinetUnit, BOMGroup, BOMItem, CabinetType, PresetType, ProjectSettings, OptimizationResult, Obstacle } from '../types';
+import type { ConstructionPlanJSON } from '../types/construction';
 
 // Helper to generate unique IDs
 const uuid = () => Math.random().toString(36).substr(2, 9);
@@ -462,10 +463,10 @@ export const exportToExcel = (groups: BOMGroup[], nestingData: OptimizationResul
  * EXPORT CONSTRUCTION JSON
  * Maps project data to the specialized construction schema (Meters, 3D structure).
  */
-export const exportProjectToConstructionJSON = (project: Project) => {
+export const buildProjectConstructionData = (project: Project): ConstructionPlanJSON => {
   const mmToM = (val: number) => Number((val / 1000).toFixed(3));
 
-  const data = {
+  const data: ConstructionPlanJSON = {
     schemaVersion: "1.0.0",
     project: {
       projectId: project.id,
@@ -522,13 +523,14 @@ export const exportProjectToConstructionJSON = (project: Project) => {
       return {
         id: unit.id,
         category: "cabinet",
+        wallId: zone.id,
         cabinetKind: kind,
         label: unit.label || unit.preset,
         box: {
           position: {
             x: mmToM(unit.fromLeft),
             y: unit.type === CabinetType.WALL ? mmToM(1400) : 0,
-            z: unit.type === CabinetType.WALL ? mmToM(300) : mmToM(600)
+            z: 0
           },
           size: {
             length: mmToM(unit.width),
@@ -549,6 +551,12 @@ export const exportProjectToConstructionJSON = (project: Project) => {
       };
     }))
   };
+
+  return data;
+};
+
+export const exportProjectToConstructionJSON = (project: Project) => {
+  const data = buildProjectConstructionData(project);
 
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
