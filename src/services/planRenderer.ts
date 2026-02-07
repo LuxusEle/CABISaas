@@ -14,15 +14,10 @@ function toMeters(value: number, lengthUnit: string): number {
 }
 
 function getVisualElevationY(obj: any, lengthUnit: string, referenceTopM?: number): number {
-  const existingY = obj?.box?.position?.y ?? 0;
-  // If we have a meaningful Y value (e.g. > 10cm), trust it.
-  const m = toMeters(existingY, lengthUnit);
-  if (m > 0.1) return existingY;
-
-  // Otherwise, infer from kind
   const kind = (obj.cabinetKind || '').toLowerCase();
   const factor = UNIT_TO_METERS[lengthUnit] ?? 1;
 
+  // 1. Force alignment for Wall Cabinets & Hoods if we have a reference top
   if (kind.includes('wall') || kind.includes('hood')) {
     if (referenceTopM !== undefined) {
       // Align top to reference
@@ -30,8 +25,15 @@ function getVisualElevationY(obj: any, lengthUnit: string, referenceTopM?: numbe
       const yM = referenceTopM - hM;
       return yM / factor;
     }
+  }
 
-    // Fallback if no reference found
+  // 2. Otherwise, trust existing positive Y values
+  const existingY = obj?.box?.position?.y ?? 0;
+  const m = toMeters(existingY, lengthUnit);
+  if (m > 0.1) return existingY;
+
+  // 3. Fallback for Wall Cabinets if no reference and no existing Y (should be rare now with default ref)
+  if (kind.includes('wall') || kind.includes('hood')) {
     return 1.45 / factor;
   }
 
@@ -624,7 +626,12 @@ export function renderKitchenPlanToCanvas(
         hasReference = true;
       }
     }
-    if (hasReference) referenceTopM = maxTop;
+    if (hasReference) {
+      referenceTopM = maxTop;
+    } else {
+      // Default to 2.35m if no tall cabinets found to ensure top alignment consistency
+      referenceTopM = 2.35;
+    }
   }
 
   drawWalls(ctx, data?.room?.walls ?? [], mapPoint, finalScale, lengthUnit, viewMode);
