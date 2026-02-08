@@ -865,15 +865,33 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
             <NumberInput label="Wall Length" value={currentZone.totalLength} onChange={(e) => updateZone({ ...currentZone, totalLength: e })} step={100} />
           </div>
           
-          {/* Clear Zone */}
-          <Button size="lg" variant="danger" className="w-full min-h-[56px] font-bold" onClick={() => { clearZone(); setMobileSidebarOpen(false); }}>
-            <Trash2 size={20} className="mr-2" /> Clear Zone
-          </Button>
+          {/* Sequential Builder */}
+          <div className="border-t border-slate-200 dark:border-slate-800 pt-4">
+            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Sequential Builder</h3>
+            <SequentialBoxInput
+              zone={{
+                id: currentZone.id,
+                totalLength: currentZone.totalLength,
+                cabinets: currentZone.cabinets,
+                obstacles: currentZone.obstacles
+              }}
+              onAddCabinets={(newCabinets) => {
+                handleSequentialAdd(newCabinets);
+                setMobileSidebarOpen(false);
+              }}
+            />
+          </div>
           
           {/* Calculate BOM */}
           <Button size="xl" variant="primary" className="w-full font-black min-h-[64px] text-xl mb-4" onClick={() => { setMobileSidebarOpen(false); setScreen(Screen.BOM_REPORT); }}>
             CALCULATE BOM
           </Button>
+
+          {/* Clear Zone */}
+          <Button size="lg" variant="danger" className="w-full min-h-[56px] font-bold" onClick={() => { clearZone(); setMobileSidebarOpen(false); }}>
+            <Trash2 size={20} className="mr-2" /> Clear Zone
+          </Button>
+          
         </div>
       </div>
 
