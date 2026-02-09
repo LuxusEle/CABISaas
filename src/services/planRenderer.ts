@@ -367,7 +367,6 @@ function drawCabinets(
   ctx.save();
   ctx.strokeStyle = '#0f172a';
   ctx.lineWidth = 1 * dpr;
-  ctx.font = `${Math.round(10 * dpr)}px system-ui, sans-serif`;
 
   for (const obj of objects ?? []) {
     if (obj.category !== 'cabinet') continue;
@@ -379,6 +378,8 @@ function drawCabinets(
 
     let xC: number, yC: number, w: number, h: number;
     let label = String(obj.label || '').trim();
+    // Get width in mm for display
+    const widthMm = Math.round(size.length);
 
     if (viewMode === 'plan') {
       const xM = toMeters(pos.x, lengthUnit);
@@ -438,11 +439,17 @@ function drawCabinets(
       ctx.restore();
     }
 
-    if (label && w > 12 * dpr) {
+    // Draw cabinet width in mm with big bold letters (inside cabinet box)
+    if (w > 20 * dpr && h > 20 * dpr) {
+      ctx.save();
       ctx.fillStyle = '#0f172a';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(label, xC + w / 2, yC + h / 2, w - 4 * dpr);
+      // Calculate font size based on cabinet size (big but fits)
+      const fontSize = Math.min(Math.round(w / 3), Math.round(h / 2), Math.round(24 * dpr));
+      ctx.font = `bold ${fontSize}px system-ui, sans-serif`;
+      ctx.fillText(`${widthMm}`, xC + w / 2, yC + h / 2, w - 8 * dpr);
+      ctx.restore();
     }
   }
   ctx.restore();

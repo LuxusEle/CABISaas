@@ -1515,7 +1515,7 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
               <div key={zone.id} className="break-inside-avoid border-4 sm:border-8 border-black p-4 sm:p-8 bg-white">
                 <h3 className="text-lg sm:text-2xl font-black uppercase mb-3 sm:mb-4 border-b-2 sm:border-b-4 border-black pb-2 tracking-widest">{zone.id}</h3>
                 <div className="h-[300px] sm:h-[400px] mb-4 sm:mb-8 border-2 border-slate-100 bg-slate-50 print:bg-white print:border-black">
-                  <WallVisualizer zone={zone} height={project.settings.tallHeight + 200} />
+                  <WallVisualizer zone={zone} height={project.settings.tallHeight + 200} hideArrows={true} />
                 </div>
                 {/* Legend Table */}
                 <table className="w-full text-[10px] text-left uppercase font-bold">

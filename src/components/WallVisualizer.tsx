@@ -11,13 +11,15 @@ interface Props {
   onObstacleMove?: (index: number, newX: number) => void;
   onDragEnd?: () => void;
   onSwapCabinets?: (index1: number, index2: number) => void;
+  hideArrows?: boolean;
 }
 
 export const WallVisualizer: React.FC<Props> = ({
   zone, height,
   onCabinetClick, onObstacleClick,
   onCabinetMove, onObstacleMove, onDragEnd,
-  onSwapCabinets
+  onSwapCabinets,
+  hideArrows = false
 }) => {
   const [panning, setPanning] = useState<{
     startClientX: number;
@@ -309,16 +311,35 @@ export const WallVisualizer: React.FC<Props> = ({
             {unit.label}
           </text>
           
-          {/* Width Label */}
-          <text x={x + w / 2} y={y + h + 20} textAnchor="middle" fontSize="10" fill="#64748b" pointerEvents="none">
-            {unit.width}mm
-          </text>
+          {/* Width Label - Outside (for editing view) */}
+          {!hideArrows && (
+            <text x={x + w / 2} y={y + h + 20} textAnchor="middle" fontSize="10" fill="#64748b" pointerEvents="none">
+              {unit.width}mm
+            </text>
+          )}
+          
+          {/* Width Label - Inside (for print view) */}
+          {hideArrows && w > 60 && (
+            <text 
+              x={x + w / 2} 
+              y={y + h / 2} 
+              textAnchor="middle" 
+              dominantBaseline="middle" 
+              fontSize={Math.min(48, Math.max(24, w / 4))} 
+              fontWeight="bold" 
+              fill={strokeColor} 
+              pointerEvents="none"
+              style={{ fontSize: `${Math.min(48, Math.max(24, w / 4))}px` }}
+            >
+              {unit.width}
+            </text>
+          )}
           
           {details}
         </g>
 
         {/* Left Arrow Button - Inside left edge of cabinet (points LEFT) */}
-        {canSwapLeft && (
+        {!hideArrows && canSwapLeft && (
           <g
             onClick={(e) => {
               e.stopPropagation();
@@ -333,7 +354,7 @@ export const WallVisualizer: React.FC<Props> = ({
         )}
 
         {/* Right Arrow Button - Inside right edge of cabinet (points RIGHT) */}
-        {canSwapRight && (
+        {!hideArrows && canSwapRight && (
           <g
             onClick={(e) => {
               e.stopPropagation();
