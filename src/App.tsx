@@ -1048,7 +1048,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
           </div>
 
           {/* Mobile: Stack layout */}
-          <div className="md:hidden flex flex-col h-full">
+          <div className="md:hidden flex flex-col h-full pb-16">
             {/* Tabs Row with Controls */}
             <div className="flex items-center justify-between px-2 pt-2 gap-1 overflow-x-auto bg-slate-100 dark:bg-slate-900 shrink-0 border-b dark:border-slate-800">
               {/* Left: Zone Tabs */}
@@ -1097,13 +1097,16 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
             </div>
 
             {/* Mobile Action Buttons - Below Canvas */}
-            <div className="shrink-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-2">
-              <div className="grid grid-cols-4 gap-2">
+            <div className="shrink-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-2 z-30">
+              <div className="grid grid-cols-5 gap-2">
                 <Button size="sm" variant="secondary" onClick={() => setMobileSidebarOpen(true)} className="min-h-[52px] text-xs flex flex-col items-center justify-center gap-0.5">
                   <Menu size={18} /><span>Menu</span>
                 </Button>
                 <Button size="sm" variant="secondary" onClick={handleAutoFill} className="min-h-[52px] text-xs flex flex-col items-center justify-center gap-0.5">
                   <Wand2 size={18} /><span>Auto</span>
+                </Button>
+                <Button size="sm" variant="secondary" onClick={fillGaps} className="min-h-[52px] text-xs flex flex-col items-center justify-center gap-0.5">
+                  <Box size={18} /><span>Fill</span>
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => openAdd('obstacle')} className="min-h-[52px] text-xs flex flex-col items-center justify-center gap-0.5">
                   <DoorOpen size={18} /><span>Obs</span>
@@ -1115,7 +1118,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
             </div>
 
             {/* Collapsible Table */}
-            <div className={`shrink-0 bg-white dark:bg-slate-950 overflow-hidden flex flex-col transition-all duration-300 ${mobileTableCollapsed ? 'h-10' : 'flex-1 min-h-0'}`}>
+            <div className={`shrink-0 bg-white dark:bg-slate-950 overflow-hidden flex flex-col z-20 ${mobileTableCollapsed ? 'h-10' : 'h-[200px]'}`}>
               <button
                 onClick={() => setMobileTableCollapsed(!mobileTableCollapsed)}
                 className="h-10 shrink-0 flex items-center justify-between px-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-500 text-xs font-bold uppercase tracking-wider"
@@ -1125,7 +1128,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
               </button>
 
               {!mobileTableCollapsed && (
-                <div className="flex-1 min-h-0 overflow-auto">
+                <div className="flex-1 overflow-auto">
                   <div className="overflow-x-auto">
                     <table className="w-full min-w-[400px] text-left text-sm">
                       <thead className="bg-slate-100 dark:bg-amber-950/40 text-slate-500 dark:text-amber-500 font-bold text-xs uppercase sticky top-0 z-20 border-b dark:border-amber-500/30">
