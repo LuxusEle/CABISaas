@@ -776,6 +776,117 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
   const handleCabinetMove = (idx: number, x: number) => { const cabs = [...currentZone.cabinets]; cabs[idx].fromLeft = x; updateZone({ ...currentZone, cabinets: cabs }); };
   const handleObstacleMove = (idx: number, x: number) => { const obs = [...currentZone.obstacles]; obs[idx].fromLeft = x; updateZone({ ...currentZone, obstacles: obs }); };
 
+  // Swap two cabinets by exchanging their positions with bounds checking and collision resolution
+  const handleSwapCabinets = (index1: number, index2: number) => {
+    const cabs = [...currentZone.cabinets];
+    const cab1 = cabs[index1];
+    const cab2 = cabs[index2];
+    
+    if (!cab1 || !cab2) return;
+    
+    // Get positions and widths
+    const x1 = cab1.fromLeft;
+    const x2 = cab2.fromLeft;
+    const w1 = cab1.width;
+    const w2 = cab2.width;
+    
+    // Check if swap would keep both cabinets within wall bounds
+    const maxPos = currentZone.totalLength;
+    
+    // Calculate new positions after swap
+    const newX1 = x2;
+    const newX2 = x1;
+    
+    // Validate: both cabinets must stay within 0 to maxPos after swap
+    if (newX1 < 0 || newX1 + w1 > maxPos || newX2 < 0 || newX2 + w2 > maxPos) {
+      console.warn('Cannot swap: would place cabinet outside wall bounds');
+      return;
+    }
+    
+    // Perform the swap
+    cab1.fromLeft = newX1;
+    cab2.fromLeft = newX2;
+    
+    // Resolve collisions for both swapped cabinets
+    // Check if cab1 (now at newX1) collides with any other cabinet (except cab2)
+    const otherCabs = cabs.filter((_, idx) => idx !== index1 && idx !== index2);
+    
+    // Resolve collisions for cab1
+    for (const other of otherCabs) {
+      const otherStart = other.fromLeft;
+      const otherEnd = otherStart + other.width;
+      const cab1Start = cab1.fromLeft;
+      const cab1End = cab1Start + w1;
+      
+      // Check for overlap
+      if (cab1Start < otherEnd && cab1End > otherStart) {
+        // Collision detected - push cab1 to the right of the other cabinet
+        cab1.fromLeft = otherEnd;
+        // Ensure we don't go out of bounds
+        if (cab1.fromLeft + w1 > maxPos) {
+          // Can't fit, revert swap
+          console.warn('Cannot swap: not enough space after collision resolution');
+          cab1.fromLeft = x1;
+          cab2.fromLeft = x2;
+          return;
+        }
+      }
+    }
+    
+    // Resolve collisions for cab2
+    for (const other of otherCabs) {
+      const otherStart = other.fromLeft;
+      const otherEnd = otherStart + other.width;
+      const cab2Start = cab2.fromLeft;
+      const cab2End = cab2Start + w2;
+      
+      // Check for overlap
+      if (cab2Start < otherEnd && cab2End > otherStart) {
+        // Collision detected - push cab2 to the right of the other cabinet
+        cab2.fromLeft = otherEnd;
+        // Ensure we don't go out of bounds
+        if (cab2.fromLeft + w2 > maxPos) {
+          // Can't fit, revert swap
+          console.warn('Cannot swap: not enough space after collision resolution');
+          cab1.fromLeft = x1;
+          cab2.fromLeft = x2;
+          return;
+        }
+      }
+    }
+    
+    // Check if cab1 and cab2 now overlap with each other after collision resolution
+    const cab1Start = cab1.fromLeft;
+    const cab1End = cab1Start + w1;
+    const cab2Start = cab2.fromLeft;
+    const cab2End = cab2Start + w2;
+    
+    if (cab1Start < cab2End && cab1End > cab2Start) {
+      // They overlap - push the rightmost one further right
+      if (cab1Start < cab2Start) {
+        // cab2 is to the right, push it
+        cab2.fromLeft = cab1End;
+        if (cab2.fromLeft + w2 > maxPos) {
+          console.warn('Cannot swap: not enough space after collision resolution');
+          cab1.fromLeft = x1;
+          cab2.fromLeft = x2;
+          return;
+        }
+      } else {
+        // cab1 is to the right, push it
+        cab1.fromLeft = cab2End;
+        if (cab1.fromLeft + w1 > maxPos) {
+          console.warn('Cannot swap: not enough space after collision resolution');
+          cab1.fromLeft = x1;
+          cab2.fromLeft = x2;
+          return;
+        }
+      }
+    }
+    
+    updateZone({ ...currentZone, cabinets: cabs });
+  };
+
   // Handler for sequential box input - adds cabinets and re-labels
   const handleSequentialAdd = (newCabinets: CabinetUnit[]) => {
     const allCabs = [...currentZone.cabinets, ...newCabinets].sort((a, b) => a.fromLeft - b.fromLeft);
@@ -993,7 +1104,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
             {/* Canvas */}
             <div className="min-h-[240px] bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 relative z-10 transition-all min-h-0">
               {visualMode === 'elevation' ? (
-                <WallVisualizer zone={currentZone} height={project.settings.tallHeight + 300} onCabinetClick={(i) => openEdit('cabinet', i)} onObstacleClick={(i) => openEdit('obstacle', i)} onCabinetMove={handleCabinetMove} onObstacleMove={handleObstacleMove} onDragEnd={handleDragEnd} />
+                <WallVisualizer zone={currentZone} height={project.settings.tallHeight + 300} onCabinetClick={(i) => openEdit('cabinet', i)} onObstacleClick={(i) => openEdit('obstacle', i)} onCabinetMove={handleCabinetMove} onObstacleMove={handleObstacleMove} onDragEnd={handleDragEnd} onSwapCabinets={handleSwapCabinets} />
               ) : (
                 <IsometricVisualizer project={project} />
               )}
@@ -1090,7 +1201,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
             {/* Canvas */}
             <div className="flex-1 min-h-0 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 relative">
               {visualMode === 'elevation' ? (
-                <WallVisualizer zone={currentZone} height={project.settings.tallHeight + 300} onCabinetClick={(i) => openEdit('cabinet', i)} onObstacleClick={(i) => openEdit('obstacle', i)} onCabinetMove={handleCabinetMove} onObstacleMove={handleObstacleMove} onDragEnd={handleDragEnd} />
+                <WallVisualizer zone={currentZone} height={project.settings.tallHeight + 300} onCabinetClick={(i) => openEdit('cabinet', i)} onObstacleClick={(i) => openEdit('obstacle', i)} onCabinetMove={handleCabinetMove} onObstacleMove={handleObstacleMove} onDragEnd={handleDragEnd} onSwapCabinets={handleSwapCabinets} />
               ) : (
                 <IsometricVisualizer project={project} />
               )}

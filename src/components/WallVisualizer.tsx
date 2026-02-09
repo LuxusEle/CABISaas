@@ -1,6 +1,6 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Zone, CabinetUnit, Obstacle, PresetType, CabinetType } from '../types';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface Props {
   zone: Zone;
@@ -9,17 +9,16 @@ interface Props {
   onObstacleClick?: (index: number) => void;
   onCabinetMove?: (index: number, newX: number) => void;
   onObstacleMove?: (index: number, newX: number) => void;
-  onDragEnd?: () => void; // New prop to trigger resolution after drop
+  onDragEnd?: () => void;
+  onSwapCabinets?: (index1: number, index2: number) => void;
 }
 
 export const WallVisualizer: React.FC<Props> = ({
   zone, height,
   onCabinetClick, onObstacleClick,
-  onCabinetMove, onObstacleMove, onDragEnd
+  onCabinetMove, onObstacleMove, onDragEnd,
+  onSwapCabinets
 }) => {
-  const [dragging, setDragging] = useState<{ type: 'cabinet' | 'obstacle', index: number, startX: number, originalX: number, currentX: number, startClientX: number } | null>(null);
-  const DRAG_THRESHOLD = 15; // Minimum pixels to move before considering it a drag (increased from 5)
-  const [previewPositions, setPreviewPositions] = useState<{ cabinets: Map<number, number>; obstacles: Map<number, number> } | null>(null);
   const [panning, setPanning] = useState<{
     startClientX: number;
     startClientY: number;
@@ -27,7 +26,6 @@ export const WallVisualizer: React.FC<Props> = ({
   } | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
-  const GRID = 50; // mm (grid cell is 50x50)
   const MIN_ZOOM = 0.4;
   const MAX_ZOOM = 6;
 
@@ -46,13 +44,7 @@ export const WallVisualizer: React.FC<Props> = ({
     height: baseViewBox.height,
   }));
 
-  const clampX = (x: number, w: number) => {
-    const max = Math.max(0, zone.totalLength - w);
-    return Math.min(Math.max(0, x), max);
-  };
-
   const clampViewBox = (vb: { x: number; y: number; width: number; height: number }) => {
-    // Clamp zoom relative to the "base" viewbox size
     const minWidth = baseViewBox.width / MAX_ZOOM;
     const maxWidth = baseViewBox.width / MIN_ZOOM;
     let width = Math.min(Math.max(vb.width, minWidth), maxWidth);
@@ -63,7 +55,6 @@ export const WallVisualizer: React.FC<Props> = ({
     const maxHeight = baseViewBox.height / MIN_ZOOM;
     height = Math.min(Math.max(height, minHeight), maxHeight);
 
-    // Keep within a generous world-bounds so users can't "lose" the drawing
     const margin = 2000;
     const minX = baseViewBox.x - margin;
     const maxX = baseViewBox.x + baseViewBox.width + margin - width;
@@ -93,132 +84,7 @@ export const WallVisualizer: React.FC<Props> = ({
     return { x: sp.x, y: sp.y };
   };
 
-  const intervalsOverlap = (aX: number, aW: number, bX: number, bW: number) => {
-    // strict overlap (touching edges is allowed)
-    return aX < bX + bW && bX < aX + aW;
-  };
-
-  const computePushedLayout = (
-    activeKind: 'cabinet' | 'obstacle',
-    activeIndex: number,
-    activeX: number
-  ) => {
-    // 1. Initialize data structures
-    const cabinets = zone.cabinets.map((c, idx) => ({
-      kind: 'cabinet' as const,
-      index: idx,
-      x: c.fromLeft,
-      w: c.width,
-      isActive: activeKind === 'cabinet' && idx === activeIndex,
-      type: c.type,
-    }));
-
-    const obstacles = zone.obstacles.map((o, idx) => ({
-      kind: 'obstacle' as const,
-      index: idx,
-      x: o.fromLeft,
-      w: o.width,
-      isActive: activeKind === 'obstacle' && idx === activeIndex,
-      type: o.type,
-      elevation: (o as any).elevation || 0,
-      height: o.height || 2100,
-    }));
-
-    const activeItem = activeKind === 'cabinet' ? cabinets[activeIndex] : obstacles[activeIndex];
-    if (!activeItem) return { cabinets: new Map(), obstacles: new Map() };
-
-    const getVerticalRange = (item: any): [number, number] => {
-      if (item.kind === 'obstacle') {
-        const e = item.elevation || 0;
-        const h = item.height || 2100;
-        return [e, e + h];
-      }
-      if (item.type === CabinetType.TALL) return [150, 2250];
-      if (item.type === CabinetType.WALL) return [1530, 2250];
-      if (item.type === CabinetType.BASE) return [150, 870];
-      return [150, 870];
-    };
-
-    const overlapsVertically = (a: any, b: any) => {
-      const [minA, maxA] = getVerticalRange(a);
-      const [minB, maxB] = getVerticalRange(b);
-      return maxA > minB && maxB > minA;
-    };
-
-    const canPush = (pusher: any, target: any) => {
-      if (target.kind === 'obstacle') return false;
-      if (!overlapsVertically(pusher, target)) return false;
-
-      if (pusher.kind === 'obstacle') return true;
-      if (pusher.type === CabinetType.TALL) return true;
-      if (pusher.type === CabinetType.WALL) return target.type === CabinetType.WALL;
-      if (pusher.type === CabinetType.BASE) return target.type === CabinetType.BASE;
-      return false;
-    };
-
-    // 2. Apply initial movement
-    activeItem.x = clampX(activeX, activeItem.w);
-
-    const allItems = [...cabinets, ...obstacles];
-
-    // 3. Resolve Collisions (Blocking and Pushing)
-    let changed = true;
-    let iterations = 0;
-    while (changed && iterations < 40) {
-      changed = false;
-      iterations++;
-
-      for (const pusher of allItems) {
-        for (const target of allItems) {
-          if (pusher === target) continue;
-          if (!overlapsVertically(pusher, target)) continue;
-          if (!intervalsOverlap(pusher.x, pusher.w, target.x, target.w)) continue;
-
-          if (canPush(pusher, target)) {
-            const oldTargetX = target.x;
-            if (pusher.x < target.x) target.x = clampX(pusher.x + pusher.w, target.w);
-            else target.x = clampX(pusher.x - target.w, target.w);
-
-            if (target.x !== oldTargetX) {
-              changed = true;
-            } else {
-              const oldPusherX = pusher.x;
-              if (pusher.x < target.x) pusher.x = Math.min(pusher.x, target.x - pusher.w);
-              else pusher.x = Math.max(pusher.x, target.x + target.w);
-              pusher.x = clampX(pusher.x, pusher.w);
-              if (pusher.x !== oldPusherX) changed = true;
-            }
-          } else {
-            const oldPusherX = pusher.x;
-            if (pusher.x < target.x) pusher.x = Math.min(pusher.x, target.x - pusher.w);
-            else pusher.x = Math.max(pusher.x, target.x + target.w);
-            pusher.x = clampX(pusher.x, pusher.w);
-            if (pusher.x !== oldPusherX) changed = true;
-          }
-        }
-      }
-    }
-
-    const resCabinets = new Map<number, number>();
-    const resObstacles = new Map<number, number>();
-    cabinets.forEach(c => resCabinets.set(c.index, c.x));
-    obstacles.forEach(o => resObstacles.set(o.index, o.x));
-
-    return { cabinets: resCabinets, obstacles: resObstacles };
-  };
-
-  const getPointerX = (e: React.MouseEvent | React.TouchEvent) => {
-    if (!svgRef.current) return 0;
-    const CTM = svgRef.current.getScreenCTM();
-    if (!CTM) return 0;
-    let clientX = 0;
-    if ('touches' in e) clientX = e.touches[0].clientX;
-    else clientX = (e as React.MouseEvent).clientX;
-    return (clientX - CTM.e) / CTM.a;
-  };
-
   const handlePanStart = (e: React.MouseEvent | React.TouchEvent) => {
-    if (dragging) return;
     if ('button' in e && (e as React.MouseEvent).button !== 0) return;
 
     const target = e.target as Element | null;
@@ -271,121 +137,49 @@ export const WallVisualizer: React.FC<Props> = ({
     });
   };
 
-  const handleMouseDown = (e: React.MouseEvent | React.TouchEvent, type: 'cabinet' | 'obstacle', index: number, currentX: number) => {
-    e.stopPropagation();
-    const startX = getPointerX(e);
-    const { clientX } = getClientXY(e);
-    setDragging({ type, index, startX, originalX: currentX, currentX, startClientX: clientX });
-    setPreviewPositions(null);
-  };
+  // Swap cabinet with adjacent cabinet
+  const handleSwapCabinet = (currentIndex: number, direction: 'left' | 'right') => {
+    const currentCabinet = zone.cabinets[currentIndex];
+    if (!currentCabinet) return;
 
-  const handleMouseMove = (e: React.MouseEvent | React.TouchEvent) => {
-    if (!dragging) return;
+    // Find adjacent cabinet of compatible type
+    const currentX = currentCabinet.fromLeft;
+    const candidates = zone.cabinets
+      .map((cab, idx) => ({ cab, idx }))
+      .filter(({ cab, idx }) => {
+        if (idx === currentIndex) return false;
+        
+        // Check if types are compatible for swapping
+        const currentType = currentCabinet.type;
+        const targetType = cab.type;
+        
+        // Tall can swap with anything
+        if (currentType === CabinetType.TALL || targetType === CabinetType.TALL) return true;
+        
+        // Same type can swap
+        if (currentType === targetType) return true;
+        
+        return false;
+      })
+      .sort((a, b) => a.cab.fromLeft - b.cab.fromLeft);
 
-    // Check if we've moved enough to consider this a drag
-    const { clientX } = getClientXY(e);
-    const moveDelta = Math.abs(clientX - dragging.startClientX);
-
-    // Don't apply drag logic until we've moved past the threshold
-    if (moveDelta < DRAG_THRESHOLD) {
-      return;
-    }
-
-    const currentX = getPointerX(e);
-    const delta = currentX - dragging.startX;
-    let newX = dragging.originalX + delta;
-
-    const maxWidth = zone.totalLength;
-    if (newX < 0) newX = 0;
-
-    let itemWidth = 0;
-    if (dragging.type === 'cabinet') itemWidth = zone.cabinets[dragging.index].width;
-    else itemWidth = zone.obstacles[dragging.index].width;
-
-    if (newX + itemWidth > maxWidth) newX = maxWidth - itemWidth;
-
-    newX = Math.round(newX / GRID) * GRID;
-    newX = clampX(newX, itemWidth);
-
-    const pushed = computePushedLayout(dragging.type, dragging.index, newX);
-    setDragging((prev) => (prev ? { ...prev, currentX: newX } : prev));
-    setPreviewPositions(pushed);
-  };
-
-  const handleMouseUp = (e?: MouseEvent | TouchEvent) => {
-    if (!dragging) return;
-
-    // Check if this was a real drag or just a click
-    let isRealDrag = false;
-    if (e) {
-      const { clientX } = getClientXY(e);
-      const moveDelta = Math.abs(clientX - dragging.startClientX);
-      isRealDrag = moveDelta >= DRAG_THRESHOLD;
-    }
-
-    // Only apply position changes if we actually dragged (moved past threshold)
-    if (isRealDrag) {
-      const finalX = dragging.currentX;
-      const pushed = computePushedLayout(dragging.type, dragging.index, finalX);
-
-      if (onCabinetMove) {
-        for (const [idx, x] of pushed.cabinets) {
-          const cur = zone.cabinets[idx]?.fromLeft;
-          if (cur == null) continue;
-          if (Math.abs(cur - x) > 0.5) onCabinetMove(idx, x);
-        }
-      }
-      if (onObstacleMove) {
-        for (const [idx, x] of pushed.obstacles) {
-          const cur = zone.obstacles[idx]?.fromLeft;
-          if (cur == null) continue;
-          if (Math.abs(cur - x) > 0.5) onObstacleMove(idx, x);
-        }
-      }
+    let targetIndex = -1;
+    
+    if (direction === 'right') {
+      // Find first cabinet to the right
+      const target = candidates.find(({ cab }) => cab.fromLeft > currentX);
+      if (target) targetIndex = target.idx;
     } else {
-      // Single click (not a drag) -> open edit modal
-      if (dragging.type === 'cabinet') {
-        onCabinetClick?.(dragging.index);
-      } else {
-        onObstacleClick?.(dragging.index);
-      }
+      // Find last cabinet to the left
+      const target = candidates.reverse().find(({ cab }) => cab.fromLeft < currentX);
+      if (target) targetIndex = target.idx;
     }
 
-    setDragging(null);
-    setPreviewPositions(null);
-    // Only call onDragEnd if it was a real drag (moved past threshold)
-    if (isRealDrag) {
+    if (targetIndex !== -1 && onSwapCabinets) {
+      onSwapCabinets(currentIndex, targetIndex);
       onDragEnd?.();
     }
   };
-
-  const getCabinetX = (idx: number) => {
-    const unit = zone.cabinets[idx];
-    if (!unit) return 0;
-    const x = previewPositions?.cabinets.get(idx) ?? unit.fromLeft;
-    return clampX(x, unit.width);
-  };
-  const getObstacleX = (idx: number) => {
-    const obs = zone.obstacles[idx];
-    if (!obs) return 0;
-    const x = previewPositions?.obstacles.get(idx) ?? obs.fromLeft;
-    return clampX(x, obs.width);
-  };
-
-  useEffect(() => {
-    if (dragging) {
-      window.addEventListener('mousemove', handleMouseMove as any);
-      window.addEventListener('mouseup', handleMouseUp as any);
-      window.addEventListener('touchmove', handleMouseMove as any);
-      window.addEventListener('touchend', handleMouseUp as any);
-    }
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove as any);
-      window.removeEventListener('mouseup', handleMouseUp as any);
-      window.removeEventListener('touchmove', handleMouseMove as any);
-      window.removeEventListener('touchend', handleMouseUp as any);
-    };
-  }, [dragging]);
 
   useEffect(() => {
     if (panning) {
@@ -402,7 +196,6 @@ export const WallVisualizer: React.FC<Props> = ({
     };
   }, [panning]);
 
-  // Reset viewBox when wall dimensions change to ensure full wall is visible
   useEffect(() => {
     setViewBox({
       x: baseViewBox.x,
@@ -421,11 +214,55 @@ export const WallVisualizer: React.FC<Props> = ({
     if (isTall) { h = 2100; y = height - 150 - 2100; }
     else if (isWall) { h = 720; y = height - 150 - 2100; }
 
-    const x = getCabinetX(index);
+    const x = unit.fromLeft;
     const w = unit.width;
     const isAuto = unit.isAutoFilled;
     const strokeColor = isAuto ? "#F59E0B" : "var(--cab-stroke)";
     const fillColor = isAuto ? "rgba(245, 158, 11, 0.15)" : "var(--cab-fill)";
+
+    // Check if can swap left/right
+    // A swap is only valid if both cabinets would remain within wall bounds after swapping
+    const canSwapLeft = zone.cabinets.some((cab, idx) => {
+      if (idx === index) return false;
+      if (cab.fromLeft >= x) return false;
+      
+      // Check type compatibility
+      if (unit.type === CabinetType.WALL && cab.type !== CabinetType.WALL && cab.type !== CabinetType.TALL) return false;
+      if (unit.type === CabinetType.BASE && cab.type !== CabinetType.BASE && cab.type !== CabinetType.TALL) return false;
+      
+      // Validate that after swap, both cabinets stay within bounds
+      const cabX = cab.fromLeft;
+      const cabWidth = cab.width;
+      const maxPos = zone.totalLength;
+      
+      // This cabinet would move to cabX, must fit within bounds
+      if (cabX < 0 || cabX + w > maxPos) return false;
+      // Target cabinet would move to x, must fit within bounds  
+      if (x < 0 || x + cabWidth > maxPos) return false;
+      
+      return true;
+    });
+
+    const canSwapRight = zone.cabinets.some((cab, idx) => {
+      if (idx === index) return false;
+      if (cab.fromLeft <= x) return false;
+      
+      // Check type compatibility
+      if (unit.type === CabinetType.WALL && cab.type !== CabinetType.WALL && cab.type !== CabinetType.TALL) return false;
+      if (unit.type === CabinetType.BASE && cab.type !== CabinetType.BASE && cab.type !== CabinetType.TALL) return false;
+      
+      // Validate that after swap, both cabinets stay within bounds
+      const cabX = cab.fromLeft;
+      const cabWidth = cab.width;
+      const maxPos = zone.totalLength;
+      
+      // This cabinet would move to cabX, must fit within bounds
+      if (cabX < 0 || cabX + w > maxPos) return false;
+      // Target cabinet would move to x, must fit within bounds
+      if (x < 0 || x + cabWidth > maxPos) return false;
+      
+      return true;
+    });
 
     let details = null;
     switch (unit.preset) {
@@ -461,15 +298,12 @@ export const WallVisualizer: React.FC<Props> = ({
         );
         break;
       case PresetType.OPEN_BOX:
-        // Open box with 2 shelves - show shelf panels (visual representation)
         const shelf1Y = y + h * 0.33;
         const shelf2Y = y + h * 0.66;
         details = (
           <g>
-            {/* Shelf panels */}
             <rect x={x + 2} y={shelf1Y - 8} width={w - 4} height={16} fill={strokeColor} opacity="0.3" />
             <rect x={x + 2} y={shelf2Y - 8} width={w - 4} height={16} fill={strokeColor} opacity="0.3" />
-            {/* Box label */}
             <text x={x + w / 2} y={y + h / 2} textAnchor="middle" fontSize="12" fill={strokeColor} opacity="0.6" fontWeight="bold">OPEN</text>
           </g>
         );
@@ -477,44 +311,58 @@ export const WallVisualizer: React.FC<Props> = ({
     }
 
     return (
-      <g
-        key={unit.id}
-        onMouseDown={(e) => handleMouseDown(e, 'cabinet', index, x)}
-        onTouchStart={(e) => handleMouseDown(e, 'cabinet', index, x)}
-        onDoubleClick={(e) => { e.stopPropagation(); onCabinetClick?.(index); }}
-        className="cursor-pointer hover:opacity-80 transition-opacity"
-      >
-        <rect x={x} y={y} width={w} height={h} fill={fillColor} stroke={strokeColor} strokeWidth="2" className="print:stroke-black print:stroke-2" />
-        {details}
-        {/* Cabinet Label (Box 1, 2, 3, etc.) - Larger and more visible */}
-        {unit.label && (
-          <text
-            x={x + w / 2}
-            y={y + 40}
-            fill={isAuto ? "#f59e0b" : "var(--text-color)"}
-            fontSize={Math.min(48, Math.max(24, w / 6))}
-            textAnchor="middle"
-            fontWeight="bold"
-            style={{ pointerEvents: 'none', textShadow: '0 0 4px rgba(0,0,0,0.5)' }}
-            className="print:fill-black"
-          >
+      <g key={unit.id}>
+        {/* Cabinet Body - Clickable for edit */}
+        <g
+          onClick={(e) => { e.stopPropagation(); onCabinetClick?.(index); }}
+          className="cursor-pointer"
+          style={{ pointerEvents: 'all' }}
+        >
+          {/* Cabinet Base */}
+          <rect x={x} y={y} width={w} height={h} rx="2" fill={fillColor} stroke={strokeColor} strokeWidth="2" />
+          
+          {/* Cabinet Label */}
+          <text x={x + w / 2} y={y + h / 2} textAnchor="middle" dominantBaseline="middle" fontSize="12" fontWeight="bold" fill={strokeColor} pointerEvents="none">
             {unit.label}
           </text>
+          
+          {/* Width Label */}
+          <text x={x + w / 2} y={y + h + 20} textAnchor="middle" fontSize="10" fill="#64748b" pointerEvents="none">
+            {unit.width}mm
+          </text>
+          
+          {details}
+        </g>
+
+        {/* Left Arrow Button - Inside left edge of cabinet (points LEFT) */}
+        {canSwapLeft && (
+          <g
+            onClick={(e) => {
+              e.stopPropagation();
+              handleSwapCabinet(index, 'left');
+            }}
+            className="cursor-pointer"
+            style={{ pointerEvents: 'all' }}
+          >
+            <rect x={x + 2} y={y + h/2 - 48} width="80" height="96" rx="8" fill="rgba(245, 158, 11, 0.9)" stroke="#f59e0b" strokeWidth="3" />
+            <path d={`M${x + 56} ${y + h/2 - 24} L${x + 56} ${y + h/2 + 24} L${x + 16} ${y + h/2} Z`} fill="white" />
+          </g>
         )}
-        {/* Width dimension */}
-        <text
-          x={x + w / 2}
-          y={y + h / 2 + 20}
-          fill="var(--text-color)"
-          fontSize={Math.min(80, Math.max(40, w / 3))}
-          textAnchor="middle"
-          dominantBaseline="middle"
-          fontWeight="bold"
-          style={{ pointerEvents: 'none' }}
-          className="print:fill-black"
-        >
-          {w}
-        </text>
+
+        {/* Right Arrow Button - Inside right edge of cabinet (points RIGHT) */}
+        {canSwapRight && (
+          <g
+            onClick={(e) => {
+              e.stopPropagation();
+              handleSwapCabinet(index, 'right');
+            }}
+            className="cursor-pointer"
+            style={{ pointerEvents: 'all' }}
+          >
+            <rect x={x + w - 82} y={y + h/2 - 48} width="80" height="96" rx="8" fill="rgba(245, 158, 11, 0.9)" stroke="#f59e0b" strokeWidth="3" />
+            <path d={`M${x + w - 56} ${y + h/2 - 24} L${x + w - 56} ${y + h/2 + 24} L${x + w - 16} ${y + h/2} Z`} fill="white" />
+          </g>
+        )}
       </g>
     );
   };
@@ -533,7 +381,7 @@ export const WallVisualizer: React.FC<Props> = ({
         }
       `}</style>
 
-      <div className="absolute top-2 left-2 text-[10px] text-slate-400 font-mono z-10 px-2 rounded opacity-50 print-hidden">ELEVATION VIEW</div>
+      <div className="absolute top-2 left-2 text-[10px] text-slate-400 font-mono z-10 px-2 rounded opacity-50 print-hidden">ELEVATION VIEW - Click arrows to swap cabinets</div>
 
       <svg
         ref={svgRef}
@@ -587,7 +435,7 @@ export const WallVisualizer: React.FC<Props> = ({
         <text x={zone.totalLength / 2} y={height + 90} textAnchor="middle" fill="var(--obs-stroke)" fontSize="40" className="print:fill-black font-mono">TOTAL {zone.totalLength}mm</text>
 
         {[...zone.cabinets]
-          .map((c, idx) => ({ c, idx, x: getCabinetX(idx) }))
+          .map((c, idx) => ({ c, idx, x: c.fromLeft }))
           .sort((a, b) => a.x - b.x)
           .map(({ c, idx, x }) => (
             <g key={'dim' + c.id}>
@@ -597,7 +445,7 @@ export const WallVisualizer: React.FC<Props> = ({
           ))}
 
         {zone.cabinets
-          .map((c, idx) => ({ c, idx, x: getCabinetX(idx) }))
+          .map((c, idx) => ({ c, idx, x: c.fromLeft }))
           .filter(({ c }) => c.type === CabinetType.BASE)
           .map(({ c, x }) => (
             <g key={'ct' + c.id}>
@@ -613,12 +461,10 @@ export const WallVisualizer: React.FC<Props> = ({
 
         <line x1="-100" y1={height} x2={zone.totalLength + 100} y2={height} stroke="var(--wall-border)" strokeWidth="4" className="print:stroke-black" />
         {zone.obstacles.map((obs, idx) => {
-          const x = getObstacleX(idx);
+          const x = obs.fromLeft;
           return (
             <g key={obs.id}
-              onMouseDown={(e) => handleMouseDown(e, 'obstacle', idx, x)}
-              onTouchStart={(e) => handleMouseDown(e, 'obstacle', idx, x)}
-              onDoubleClick={(e) => { e.stopPropagation(); onObstacleClick?.(idx); }}
+              onClick={(e) => { e.stopPropagation(); onObstacleClick?.(idx); }}
               className="cursor-pointer hover:opacity-80 transition-opacity"
             >
               <rect x={x} y={height - (obs.elevation || 0) - (obs.height || 2100)} width={obs.width} height={obs.height || 2100} fill="var(--obs-fill)" stroke="var(--obs-stroke)" strokeWidth="2" fillOpacity="0.8" className="print:stroke-black print:fill-slate-200" />
