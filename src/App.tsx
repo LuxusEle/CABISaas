@@ -218,7 +218,7 @@ export default function App() {
         </div>
       </div>
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden md:pb-0 pb-16">
         {/* DESKTOP SIDEBAR - Hidden on landing page */}
         {screen !== Screen.LANDING && (
           <aside className="hidden md:flex w-20 flex-col items-center py-6 bg-slate-900 border-r border-slate-800 shrink-0 z-50 print:hidden">
@@ -261,7 +261,7 @@ export default function App() {
 
       {/* MOBILE NAV */}
       {(screen !== Screen.LANDING && screen !== Screen.DASHBOARD) && (
-        <div className="md:hidden h-16 bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex items-stretch justify-around z-50 shrink-0 print:hidden safe-area-bottom">
+        <div className="md:hidden h-16 mobile-nav bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex items-stretch justify-around z-[100] shrink-0 print:hidden safe-area-bottom" style={{ position: 'fixed', bottom: 0, left: 0, right: 0 }}>
           <MobileNavButton active={screen === Screen.DASHBOARD} onClick={() => setScreen(Screen.DASHBOARD)} icon={<Home size={20} />} label="Home" />
           <MobileNavButton active={screen === Screen.PROJECT_SETUP} onClick={() => setScreen(Screen.PROJECT_SETUP)} icon={<Settings size={20} />} label="Setup" />
           <MobileNavButton active={screen === Screen.WALL_EDITOR} onClick={() => setScreen(Screen.WALL_EDITOR)} icon={<Box size={20} />} label="Editor" />
