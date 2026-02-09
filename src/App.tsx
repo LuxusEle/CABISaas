@@ -776,7 +776,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
   const handleCabinetMove = (idx: number, x: number) => { const cabs = [...currentZone.cabinets]; cabs[idx].fromLeft = x; updateZone({ ...currentZone, cabinets: cabs }); };
   const handleObstacleMove = (idx: number, x: number) => { const obs = [...currentZone.obstacles]; obs[idx].fromLeft = x; updateZone({ ...currentZone, obstacles: obs }); };
 
-  // Swap two cabinets by exchanging their positions with bounds checking and collision resolution
+  // Swap two cabinets by exchanging their positions with bounds checking
   const handleSwapCabinets = (index1: number, index2: number) => {
     const cabs = [...currentZone.cabinets];
     const cab1 = cabs[index1];
@@ -803,86 +803,38 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
       return;
     }
     
-    // Perform the swap
-    cab1.fromLeft = newX1;
-    cab2.fromLeft = newX2;
-    
-    // Resolve collisions for both swapped cabinets
-    // Check if cab1 (now at newX1) collides with any other cabinet (except cab2)
+    // Validate that swap won't cause collision with other cabinets
     const otherCabs = cabs.filter((_, idx) => idx !== index1 && idx !== index2);
     
-    // Resolve collisions for cab1
+    // Check if new position for cab1 collides with any other cabinet
     for (const other of otherCabs) {
       const otherStart = other.fromLeft;
       const otherEnd = otherStart + other.width;
-      const cab1Start = cab1.fromLeft;
+      const cab1Start = newX1;
       const cab1End = cab1Start + w1;
       
-      // Check for overlap
       if (cab1Start < otherEnd && cab1End > otherStart) {
-        // Collision detected - push cab1 to the right of the other cabinet
-        cab1.fromLeft = otherEnd;
-        // Ensure we don't go out of bounds
-        if (cab1.fromLeft + w1 > maxPos) {
-          // Can't fit, revert swap
-          console.warn('Cannot swap: not enough space after collision resolution');
-          cab1.fromLeft = x1;
-          cab2.fromLeft = x2;
-          return;
-        }
+        console.warn('Cannot swap: would cause collision with other cabinets');
+        return;
       }
     }
     
-    // Resolve collisions for cab2
+    // Check if new position for cab2 collides with any other cabinet
     for (const other of otherCabs) {
       const otherStart = other.fromLeft;
       const otherEnd = otherStart + other.width;
-      const cab2Start = cab2.fromLeft;
+      const cab2Start = newX2;
       const cab2End = cab2Start + w2;
       
-      // Check for overlap
       if (cab2Start < otherEnd && cab2End > otherStart) {
-        // Collision detected - push cab2 to the right of the other cabinet
-        cab2.fromLeft = otherEnd;
-        // Ensure we don't go out of bounds
-        if (cab2.fromLeft + w2 > maxPos) {
-          // Can't fit, revert swap
-          console.warn('Cannot swap: not enough space after collision resolution');
-          cab1.fromLeft = x1;
-          cab2.fromLeft = x2;
-          return;
-        }
+        console.warn('Cannot swap: would cause collision with other cabinets');
+        return;
       }
     }
     
-    // Check if cab1 and cab2 now overlap with each other after collision resolution
-    const cab1Start = cab1.fromLeft;
-    const cab1End = cab1Start + w1;
-    const cab2Start = cab2.fromLeft;
-    const cab2End = cab2Start + w2;
-    
-    if (cab1Start < cab2End && cab1End > cab2Start) {
-      // They overlap - push the rightmost one further right
-      if (cab1Start < cab2Start) {
-        // cab2 is to the right, push it
-        cab2.fromLeft = cab1End;
-        if (cab2.fromLeft + w2 > maxPos) {
-          console.warn('Cannot swap: not enough space after collision resolution');
-          cab1.fromLeft = x1;
-          cab2.fromLeft = x2;
-          return;
-        }
-      } else {
-        // cab1 is to the right, push it
-        cab1.fromLeft = cab2End;
-        if (cab1.fromLeft + w1 > maxPos) {
-          console.warn('Cannot swap: not enough space after collision resolution');
-          cab1.fromLeft = x1;
-          cab2.fromLeft = x2;
-          return;
-        }
-      }
-    }
+    // Perform the swap - simply exchange positions
+    cab1.fromLeft = newX1;
+    cab2.fromLeft = newX2;
     
     updateZone({ ...currentZone, cabinets: cabs });
   };

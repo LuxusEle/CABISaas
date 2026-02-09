@@ -220,49 +220,32 @@ export const WallVisualizer: React.FC<Props> = ({
     const strokeColor = isAuto ? "#F59E0B" : "var(--cab-stroke)";
     const fillColor = isAuto ? "rgba(245, 158, 11, 0.15)" : "var(--cab-fill)";
 
-    // Check if can swap left/right
-    // A swap is only valid if both cabinets would remain within wall bounds after swapping
-    const canSwapLeft = zone.cabinets.some((cab, idx) => {
-      if (idx === index) return false;
-      if (cab.fromLeft >= x) return false;
-      
-      // Check type compatibility
-      if (unit.type === CabinetType.WALL && cab.type !== CabinetType.WALL && cab.type !== CabinetType.TALL) return false;
-      if (unit.type === CabinetType.BASE && cab.type !== CabinetType.BASE && cab.type !== CabinetType.TALL) return false;
-      
-      // Validate that after swap, both cabinets stay within bounds
-      const cabX = cab.fromLeft;
-      const cabWidth = cab.width;
-      const maxPos = zone.totalLength;
-      
-      // This cabinet would move to cabX, must fit within bounds
-      if (cabX < 0 || cabX + w > maxPos) return false;
-      // Target cabinet would move to x, must fit within bounds  
-      if (x < 0 || x + cabWidth > maxPos) return false;
-      
-      return true;
-    });
-
-    const canSwapRight = zone.cabinets.some((cab, idx) => {
-      if (idx === index) return false;
-      if (cab.fromLeft <= x) return false;
-      
-      // Check type compatibility
-      if (unit.type === CabinetType.WALL && cab.type !== CabinetType.WALL && cab.type !== CabinetType.TALL) return false;
-      if (unit.type === CabinetType.BASE && cab.type !== CabinetType.BASE && cab.type !== CabinetType.TALL) return false;
-      
-      // Validate that after swap, both cabinets stay within bounds
-      const cabX = cab.fromLeft;
-      const cabWidth = cab.width;
-      const maxPos = zone.totalLength;
-      
-      // This cabinet would move to cabX, must fit within bounds
-      if (cabX < 0 || cabX + w > maxPos) return false;
-      // Target cabinet would move to x, must fit within bounds
-      if (x < 0 || x + cabWidth > maxPos) return false;
-      
-      return true;
-    });
+    // Check if can swap left/right - show arrows for immediate neighbors with compatible types
+    // Sort cabinets by position to find immediate neighbors
+    const sortedCabs = zone.cabinets
+      .map((cab, idx) => ({ cab, idx }))
+      .filter(({ idx }) => idx !== index)
+      .sort((a, b) => a.cab.fromLeft - b.cab.fromLeft);
+    
+    // Find immediate left neighbor
+    const leftNeighbors = sortedCabs.filter(({ cab }) => cab.fromLeft < x);
+    const immediateLeft = leftNeighbors.length > 0 ? leftNeighbors[leftNeighbors.length - 1] : null;
+    
+    // Find immediate right neighbor
+    const rightNeighbors = sortedCabs.filter(({ cab }) => cab.fromLeft > x);
+    const immediateRight = rightNeighbors.length > 0 ? rightNeighbors[0] : null;
+    
+    // Check type compatibility for left swap
+    const canSwapLeft = immediateLeft ? (
+      (unit.type === CabinetType.TALL || immediateLeft.cab.type === CabinetType.TALL) ||
+      (unit.type === immediateLeft.cab.type)
+    ) : false;
+    
+    // Check type compatibility for right swap
+    const canSwapRight = immediateRight ? (
+      (unit.type === CabinetType.TALL || immediateRight.cab.type === CabinetType.TALL) ||
+      (unit.type === immediateRight.cab.type)
+    ) : false;
 
     let details = null;
     switch (unit.preset) {
