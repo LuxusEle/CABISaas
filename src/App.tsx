@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Home, Layers, Calculator, Zap, ArrowLeft, ArrowRight, Trash2, Plus, Box, DoorOpen, Wand2, Moon, Sun, Table2, FileSpreadsheet, X, Pencil, Save, List, Settings, Printer, Download, Scissors, LayoutDashboard, DollarSign, Map, LogOut, Menu } from 'lucide-react';
+import { Home, Layers, Calculator, Zap, ArrowLeft, ArrowRight, Trash2, Plus, Box, DoorOpen, Wand2, Moon, Sun, Table2, FileSpreadsheet, X, Pencil, Save, List, Settings, Printer, Download, Scissors, LayoutDashboard, DollarSign, Map, LogOut, Menu, Wrench } from 'lucide-react';
 import { Screen, Project, ZoneId, PresetType, CabinetType, CabinetUnit, Obstacle } from './types';
 import { createNewProject, generateProjectBOM, autoFillZone, exportToExcel, resolveCollisions, calculateProjectCost, exportProjectToConstructionJSON, buildProjectConstructionData } from './services/bomService';
 import { optimizeCuts } from './services/nestingService';
@@ -1453,7 +1453,7 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
 
         {/* MATERIAL SUMMARY TABLE (Always Visible in List/Cut Plan) */}
         <div className="break-inside-avoid overflow-x-auto">
-          <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 flex items-center gap-2"><Layers size={18} /> Material Sheets</h3>
+          <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 flex items-center gap-2"><Layers size={18} /> Materials & Hardware</h3>
           <table className="w-full min-w-[400px] text-xs sm:text-sm text-left border-collapse border border-slate-200 dark:border-slate-700 print:border-black">
             <thead className="bg-slate-100 dark:bg-slate-800 print:bg-slate-200">
               <tr>
@@ -1472,6 +1472,18 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
                   <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">{m.waste}%</td>
                 </tr>
               ))}
+              <tr className="bg-slate-50 dark:bg-slate-800/50 print:bg-slate-100">
+                <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">Soft-Close Hinges</td>
+                <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">-</td>
+                <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">{data.hardwareSummary['Soft-Close Hinge'] || 0}</td>
+                <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">-</td>
+              </tr>
+              <tr className="bg-slate-50 dark:bg-slate-800/50 print:bg-slate-100">
+                <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">Installation Nails (4 per hinge)</td>
+                <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">-</td>
+                <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">{data.hardwareSummary['Installation Nail'] || 0}</td>
+                <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">-</td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -1503,8 +1515,22 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
 
         {/* CUT PLAN VIEW */}
         <div className={activeView === 'cutplan' ? 'block' : 'hidden print:block print:break-before-page'}>
-          <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 print:mt-4 flex items-center gap-2"><Scissors size={18} /> Cut Optimization</h3>
-          <div className="space-y-6 sm:space-y-8">{cutPlan.sheets.map((sheet, i) => <CutPlanVisualizer key={i} sheet={sheet} index={i} settings={project.settings} />)}</div>
+          <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 print:mt-4 flex items-center gap-2 print:hidden"><Scissors size={18} /> Cut Optimization</h3>
+          {/* Screen view - vertical stack */}
+          <div className="space-y-6 sm:space-y-8 print:hidden">{cutPlan.sheets.map((sheet, i) => <CutPlanVisualizer key={i} sheet={sheet} index={i} settings={project.settings} />)}</div>
+          {/* Print view - 2 per page in landscape */}
+          <div className="hidden print:block">
+            {Array.from({ length: Math.ceil(cutPlan.sheets.length / 2) }).map((_, pageIndex) => (
+              <div key={pageIndex} className="print:break-before-page print:break-inside-avoid">
+                <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Scissors size={18} /> Cut Optimization - Sheets {(pageIndex * 2) + 1}-{Math.min((pageIndex * 2) + 2, cutPlan.sheets.length)}</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  {cutPlan.sheets.slice(pageIndex * 2, pageIndex * 2 + 2).map((sheet, i) => (
+                    <CutPlanVisualizer key={pageIndex * 2 + i} sheet={sheet} index={pageIndex * 2 + i} settings={project.settings} />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* WALL PLAN VIEW */}

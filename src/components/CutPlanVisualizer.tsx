@@ -36,7 +36,7 @@ export const CutPlanVisualizer: React.FC<Props> = ({ sheet, settings, index }) =
       <div className="w-full flex justify-center bg-slate-100 dark:bg-slate-950 print:bg-white p-1">
         <svg 
           viewBox={`0 0 ${sheetWidth} ${sheetHeight}`} 
-          className="border border-slate-400 dark:border-slate-600 bg-white print:border-black"
+          className="border border-slate-400 dark:border-slate-600 bg-white print:border-black print:w-full print:h-auto"
           style={{ width: `${displayWidth}px`, height: `${displayHeight}px`, maxWidth: '100%' }}
         >
           {/* Sheet Background */}

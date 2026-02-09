@@ -11,8 +11,12 @@ const HW = {
   SLIDE: 'Drawer Slide (Pair)',
   LEG: 'Adjustable Leg',
   HANDLE: 'Handle/Knob',
-  HANGER: 'Wall Hanger (Pair)'
+  HANGER: 'Wall Hanger (Pair)',
+  NAIL: 'Installation Nail'
 };
+
+// Nails per hinge
+const NAILS_PER_HINGE = 4;
 
 // --- COLLISION LOGIC ---
 
@@ -315,6 +319,12 @@ export const generateProjectBOM = (project: Project): { groups: BOMGroup[], hard
 
     totalLinearFeet += (zoneLen / 304.8);
   });
+
+  // Calculate nails based on hinge count (6 nails per hinge)
+  const totalHinges = hardwareSummary[HW.HINGE] || 0;
+  if (totalHinges > 0) {
+    hardwareSummary[HW.NAIL] = totalHinges * NAILS_PER_HINGE;
+  }
 
   return {
     groups,
