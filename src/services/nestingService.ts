@@ -1,104 +1,142 @@
 
 import { BOMItem, OptimizationResult, SheetLayout, PlacedPart, ProjectSettings } from '../types';
 
-// Simple Node for Guillotine Packing
-interface Node {
+// Maximal rectangle bin packing for efficient space utilization
+interface FreeRect {
   x: number;
   y: number;
-  w: number;
-  h: number;
-  used: boolean;
-  right?: Node;
-  down?: Node;
+  width: number;
+  height: number;
 }
-
-const createNode = (x: number, y: number, w: number, h: number): Node => ({ x, y, w, h, used: false });
-
-// Find a node that fits the part
-const findNode = (root: Node, w: number, h: number): Node | null => {
-  if (root.used) {
-    return findNode(root.right!, w, h) || findNode(root.down!, w, h);
-  } else if (w <= root.w && h <= root.h) {
-    return root;
-  }
-  return null;
-};
-
-// Split the node after placing a part (Guillotine split)
-const splitNode = (node: Node, w: number, h: number, kerf: number): Node => {
-  node.used = true;
-  // Create 'down' node (remaining vertical space)
-  node.down = createNode(node.x, node.y + h + kerf, node.w, node.h - h - kerf);
-  // Create 'right' node (remaining horizontal space NEXT to the placed part)
-  node.right = createNode(node.x + w + kerf, node.y, node.w - w - kerf, h);
-  return node;
-};
 
 export const optimizeCuts = (items: BOMItem[], settings: ProjectSettings): OptimizationResult => {
   const sheets: SheetLayout[] = [];
   
-  // 1. Group items by material (we only nest panels, not hardware)
+  // 1. Group items by material
   const woodItems = items.filter(i => !i.isHardware);
   const materialGroups: Record<string, BOMItem[]> = {};
   
   woodItems.forEach(item => {
     if (!materialGroups[item.material]) materialGroups[item.material] = [];
-    // Expand quantity into individual items for packing
     for (let i = 0; i < item.qty; i++) {
-      materialGroups[item.material].push({ ...item }); // clone
+      materialGroups[item.material].push({ ...item });
     }
   });
 
   // 2. Process each material
   Object.keys(materialGroups).forEach(material => {
-    // Sort parts by Area DESC (First Fit Decreasing heuristic)
-    const parts = materialGroups[material].sort((a, b) => (b.width * b.length) - (a.width * a.length));
+    // Sort by height DESC, then by width DESC for shelf-like packing
+    const parts = materialGroups[material].sort((a, b) => {
+      if (b.length !== a.length) return b.length - a.length;
+      return b.width - a.width;
+    });
     
-    // Create first sheet
-    let currentSheetRoot: Node = createNode(0, 0, settings.sheetWidth, settings.sheetLength);
-    let placedPartsInSheet: PlacedPart[] = [];
+    let remainingParts = [...parts];
     
-    // We need to track which parts are placed
-    const remainingParts = [...parts];
-    
-    // Infinite loop protection
-    let loopCount = 0;
-    
-    // Packing loop
-    while (remainingParts.length > 0 && loopCount < 1000) {
-      loopCount++;
+    while (remainingParts.length > 0) {
       const currentSheetParts: PlacedPart[] = [];
-      const partsToRetry: BOMItem[] = [];
-
-      for (const part of remainingParts) {
-        // Try fit normal
-        let node = findNode(currentSheetRoot, part.width, part.length);
-        let rotated = false;
+      
+      // Start with one free rectangle (the whole sheet)
+      let freeRects: FreeRect[] = [{
+        x: 0,
+        y: 0,
+        width: settings.sheetWidth,
+        height: settings.sheetLength
+      }];
+      
+      // Keep trying to place parts until no more can fit
+      let madeProgress = true;
+      while (madeProgress && remainingParts.length > 0) {
+        madeProgress = false;
+        const unplacedParts: BOMItem[] = [];
         
-        // Try fit rotated (if not found)
-        if (!node) {
-          node = findNode(currentSheetRoot, part.length, part.width);
-          if (node) rotated = true;
-        }
-
-        if (node) {
-          const w = rotated ? part.length : part.width;
-          const h = rotated ? part.width : part.length;
+        for (const part of remainingParts) {
+          let placed = false;
+          let bestRectIndex = -1;
+          let bestScore = Infinity;
+          let rotated = false;
           
-          splitNode(node, w, h, settings.kerf);
+          // Find the best rectangle to place this part
+          for (let i = 0; i < freeRects.length; i++) {
+            const rect = freeRects[i];
+            
+            // Try normal orientation
+            if (part.width <= rect.width && part.length <= rect.height) {
+              // Score: prefer lower y (top), then lower x (left), minimize waste
+              const score = rect.y * 10000 + rect.x + (rect.width - part.width) + (rect.height - part.length);
+              if (score < bestScore) {
+                bestScore = score;
+                bestRectIndex = i;
+                rotated = false;
+              }
+            }
+            
+            // Try rotated orientation
+            if (part.length <= rect.width && part.width <= rect.height) {
+              const score = rect.y * 10000 + rect.x + (rect.width - part.length) + (rect.height - part.width);
+              if (score < bestScore) {
+                bestScore = score;
+                bestRectIndex = i;
+                rotated = true;
+              }
+            }
+          }
           
-          currentSheetParts.push({
-            x: node.x,
-            y: node.y,
-            width: w,
-            length: h,
-            rotated,
-            partId: part.id,
-            label: `${part.name} (${part.label || ''})`
-          });
-        } else {
-          partsToRetry.push(part);
+          if (bestRectIndex >= 0) {
+            const rect = freeRects[bestRectIndex];
+            const w = rotated ? part.length : part.width;
+            const h = rotated ? part.width : part.length;
+            
+            // Place the part
+            currentSheetParts.push({
+              x: rect.x,
+              y: rect.y,
+              width: w,
+              length: h,
+              rotated,
+              partId: part.id,
+              label: `${part.name} (${part.label || ''})`
+            });
+            
+            // Remove the used rectangle
+            freeRects.splice(bestRectIndex, 1);
+            
+            // Split the remaining space into new free rectangles
+            // Right rectangle (next to the placed part)
+            if (rect.width - w - settings.kerf > 0) {
+              freeRects.push({
+                x: rect.x + w + settings.kerf,
+                y: rect.y,
+                width: rect.width - w - settings.kerf,
+                height: h  // Same height for clean horizontal cut
+              });
+            }
+            
+            // Bottom rectangle (below the placed part)
+            if (rect.height - h - settings.kerf > 0) {
+              freeRects.push({
+                x: rect.x,
+                y: rect.y + h + settings.kerf,
+                width: rect.width,
+                height: rect.height - h - settings.kerf
+              });
+            }
+            
+            // Sort free rectangles: top-to-bottom, left-to-right
+            freeRects.sort((a, b) => {
+              if (a.y !== b.y) return a.y - b.y;
+              return a.x - b.x;
+            });
+            
+            placed = true;
+            madeProgress = true;
+          } else {
+            // Couldn't place this part now, save for retry
+            unplacedParts.push(part);
+          }
         }
+        
+        remainingParts = unplacedParts;
       }
 
       // Finish current sheet
@@ -108,16 +146,8 @@ export const optimizeCuts = (items: BOMItem[], settings: ProjectSettings): Optim
         width: settings.sheetWidth,
         length: settings.sheetLength,
         parts: currentSheetParts,
-        waste: 0 // Calculate later
+        waste: 0
       });
-
-      // Prepare for next sheet
-      remainingParts.length = 0;
-      remainingParts.push(...partsToRetry);
-      
-      if (remainingParts.length > 0) {
-        currentSheetRoot = createNode(0, 0, settings.sheetWidth, settings.sheetLength);
-      }
     }
   });
 
