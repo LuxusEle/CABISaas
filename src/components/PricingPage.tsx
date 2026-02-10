@@ -223,6 +223,12 @@ export const PricingPage: React.FC = () => {
                         <div className="flex items-start gap-3">
                           <X size={18} className="text-red-500 mt-0.5 flex-shrink-0" />
                           <span className="text-slate-500 dark:text-slate-500 text-sm">
+                            No BOM export
+                          </span>
+                        </div>
+                        <div className="flex items-start gap-3">
+                          <X size={18} className="text-red-500 mt-0.5 flex-shrink-0" />
+                          <span className="text-slate-500 dark:text-slate-500 text-sm">
                             No custom cabinet library
                           </span>
                         </div>

@@ -17,7 +17,6 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     features: [
       'Up to 3 projects',
       'Basic cabinet presets',
-      'Standard BOM export',
       'Community support'
     ],
     maxProjects: 3,
