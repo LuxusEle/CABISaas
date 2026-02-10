@@ -80,6 +80,12 @@ export interface CustomCabinetConfig {
   handles?: number;
 }
 
+export interface CabinetMaterials {
+  carcassMaterial?: string;  // e.g., "White Melamine 16mm"
+  backPanelMaterial?: string; // e.g., "MDF 6mm"
+  drawerMaterial?: string;    // e.g., "White Melamine 16mm"
+}
+
 export interface CabinetUnit {
   id: string;
   preset: PresetType;
@@ -92,6 +98,8 @@ export interface CabinetUnit {
   // Custom cabinet support
   customPresetId?: string; // ID of custom preset from database
   customConfig?: CustomCabinetConfig; // Custom configuration
+  // Material selection
+  materials?: CabinetMaterials;
 }
 
 export interface Zone {

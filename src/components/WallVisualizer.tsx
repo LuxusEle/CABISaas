@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Zone, CabinetUnit, Obstacle, PresetType, CabinetType } from '../types';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { getActiveColor, isOpenCabinet } from '../services/cabinetColors';
 
 interface Props {
   zone: Zone;
@@ -219,8 +220,9 @@ export const WallVisualizer: React.FC<Props> = ({
     const x = unit.fromLeft;
     const w = unit.width;
     const isAuto = unit.isAutoFilled;
-    const strokeColor = isAuto ? "#F59E0B" : "var(--cab-stroke)";
-    const fillColor = isAuto ? "rgba(245, 158, 11, 0.15)" : "var(--cab-fill)";
+    const activeColor = getActiveColor(unit.preset);
+    const strokeColor = activeColor.stroke;
+    const fillColor = activeColor.fill;
 
     // Check if can swap left/right - show arrows for immediate neighbors with compatible types
     // Sort cabinets by position to find immediate neighbors

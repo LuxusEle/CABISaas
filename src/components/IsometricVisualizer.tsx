@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Project, CabinetType, CabinetUnit, PresetType, Zone } from '../types';
+import { getActiveColor } from '../services/cabinetColors';
 
 interface Props {
     project: Project;
@@ -43,8 +44,9 @@ export const IsometricVisualizer: React.FC<Props> = ({ project }) => {
             { indices: [3, 0, 4, 7], name: 'left', brightness: 0.5 },    // Left
         ];
 
-        const getFaceColor = (brightness: number, isAuto: boolean) => {
-            const baseColor = isAuto ? [245, 158, 11] : [251, 191, 36]; // Amber colors
+        const activeColor = getActiveColor(unit.preset);
+        const getFaceColor = (brightness: number) => {
+            const baseColor = activeColor.rgb;
             const r = Math.round(baseColor[0] * brightness);
             const g = Math.round(baseColor[1] * brightness);
             const b = Math.round(baseColor[2] * brightness);
@@ -61,7 +63,7 @@ export const IsometricVisualizer: React.FC<Props> = ({ project }) => {
                     <polygon
                         key={fi}
                         points={face.indices.map(i => `${projected[i].x},${projected[i].y}`).join(' ')}
-                        fill={getFaceColor(face.brightness, unit.isAutoFilled || false)}
+                        fill={getFaceColor(face.brightness)}
                         stroke="#92400e"
                         strokeWidth="1.5"
                     />

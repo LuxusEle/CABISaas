@@ -22,6 +22,8 @@ import { LandingPage } from './components/LandingPage';
 import { customCabinetService } from './services/customCabinetService';
 import { projectService } from './services/projectService';
 import { SequentialBoxInput } from './components/SequentialBoxInput';
+import { SheetTypeManager } from './components/SheetTypeManager';
+import { MaterialSelector } from './components/MaterialSelector';
 
 // --- PRINT TITLE BLOCK ---
 const TitleBlock = ({ project, pageTitle }: { project: Project, pageTitle: string }) => (
@@ -454,6 +456,9 @@ const ScreenProjectSetup = ({ project, setProject }: { project: Project, setProj
             <NumberInput label="Sheet Width" value={project.settings.sheetWidth} onChange={(v) => setProject({ ...project, settings: { ...project.settings, sheetWidth: v } })} step={100} />
           </div>
         </section>
+
+        {/* Sheet Types Manager */}
+        <SheetTypeManager />
       </div>
     </div>
   </div>
@@ -1322,6 +1327,15 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
                     <Wand2 size={18} />
                     <span className="text-sm sm:text-base">Customize This Cabinet</span>
                   </button>
+
+                  {/* Material Selection */}
+                  <div className="border-t border-slate-200 dark:border-slate-700 pt-4 mt-2">
+                    <label className="text-xs sm:text-sm font-bold text-slate-400 mb-2 block">Materials</label>
+                    <MaterialSelector 
+                      materials={tempCabinet.materials}
+                      onChange={(materials) => setTempCabinet({ ...tempCabinet, materials })}
+                    />
+                  </div>
 
                   <NumberInput label="Width" value={tempCabinet.width} onChange={v => setTempCabinet({ ...tempCabinet, width: v })} step={50} />
                   <NumberInput label="Position (Left)" value={tempCabinet.fromLeft} onChange={v => setTempCabinet({ ...tempCabinet, fromLeft: v })} step={50} />
