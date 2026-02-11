@@ -1,8 +1,8 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Home, Layers, Calculator, Zap, ArrowLeft, ArrowRight, Trash2, Plus, Box, DoorOpen, Wand2, Moon, Sun, Table2, FileSpreadsheet, X, Pencil, Save, List, Settings, Printer, Download, Scissors, LayoutDashboard, DollarSign, Map, LogOut, Menu, Wrench, CreditCard } from 'lucide-react';
-import { Screen, Project, ZoneId, PresetType, CabinetType, CabinetUnit, Obstacle } from './types';
-import { createNewProject, generateProjectBOM, autoFillZone, exportToExcel, resolveCollisions, calculateProjectCost, exportProjectToConstructionJSON, buildProjectConstructionData } from './services/bomService';
+import { Screen, Project, ZoneId, PresetType, CabinetType, CabinetUnit, Obstacle, AutoFillOptions } from './types';
+import { createNewProject, generateProjectBOM, autoFillZone, exportToExcel, resolveCollisions, calculateProjectCost, exportProjectToConstructionJSON, buildProjectConstructionData, getIntersectingCabinets } from './services/bomService';
 import { optimizeCuts } from './services/nestingService';
 import { authService } from './services/authService';
 import { expenseTemplateService, ExpenseTemplate } from './services/expenseTemplateService';
@@ -417,16 +417,63 @@ const ScreenHome = ({ onNewProject, onLoadProject }: { onNewProject: () => void,
   );
 };
 
-const ScreenPlanView = ({ project }: { project: Project }) => (
-  <div className="flex flex-col h-full w-full overflow-hidden">
-    <div className="flex-1 overflow-y-auto p-4 md:p-8">
-      <div className="max-w-6xl mx-auto space-y-6">
-        <h2 className="text-3xl font-black text-slate-900 dark:text-white">Plan View</h2>
-        <KitchenPlanCanvas data={buildProjectConstructionData(project)} scalePxPerMeter={120} />
+const ScreenPlanView = ({ project }: { project: Project }) => {
+  const bomData = useMemo(() => generateProjectBOM(project), [project.id, project.zones, project.settings]);
+  const handlePrint = () => setTimeout(() => window.print(), 100);
+
+  return (
+    <div className="flex flex-col h-full w-full overflow-hidden">
+      <TitleBlock project={project} pageTitle="Shop Filing Document - Plan View" />
+
+      <div className="p-4 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center shrink-0 print:hidden">
+        <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Technical Plan View</h2>
+        <Button variant="primary" size="sm" onClick={handlePrint} leftIcon={<Printer size={16} />}>Print Shop Filing Doc (A4)</Button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-50 dark:bg-slate-950 print:bg-white print:p-0">
+        <div className="max-w-6xl mx-auto space-y-8 print:space-y-4">
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border dark:border-slate-800 print:border-none print:shadow-none print:p-0">
+            <KitchenPlanCanvas data={buildProjectConstructionData(project)} scalePxPerMeter={120} />
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border dark:border-slate-800 print:border-4 print:border-black print:p-4 print:rounded-none print:break-before-page">
+            <h3 className="text-xl font-black mb-6 uppercase tracking-widest border-b-2 pb-2 print:border-b-4 print:border-black">Project BOM (Bill of Materials)</h3>
+            <div className="grid md:grid-cols-2 gap-6 print:grid-cols-2 print:gap-4">
+              {bomData.groups.map((group, i) => (
+                <div key={i} className="border-2 border-slate-100 dark:border-slate-800 p-4 rounded-xl print:border-2 print:border-black print:rounded-none print:break-inside-avoid">
+                  <div className="font-bold text-amber-600 mb-2 text-sm uppercase">{group.cabinetName}</div>
+                  <table className="w-full text-xs italic">
+                    <tbody>
+                      {group.items.map((item, j) => (
+                        <tr key={j} className="border-b dark:border-slate-800 print:border-black/10">
+                          <td className="py-1">{item.name}</td>
+                          <td className="py-1 text-right font-mono opacity-60">{item.length}x{item.width}</td>
+                          <td className="py-1 text-right font-bold">x{item.qty}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-8 pt-8 border-t-2 border-slate-100 dark:border-slate-800 print:border-t-4 print:border-black">
+              <h4 className="font-black uppercase mb-4 text-slate-400 print:text-black">Hardware Summary</h4>
+              <div className="flex flex-wrap gap-4">
+                {Object.entries(bomData.hardwareSummary).map(([name, qty]) => (
+                  <div key={name} className="bg-slate-50 dark:bg-slate-800 px-4 py-2 rounded-lg print:border print:border-black">
+                    <span className="text-xs font-bold mr-2 uppercase opacity-60">{name}</span>
+                    <span className="font-black text-amber-600 print:text-black">{qty}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 const ScreenProjectSetup = ({ project, setProject }: { project: Project, setProject: React.Dispatch<React.SetStateAction<Project>> }) => (
   <div className="flex flex-col h-full w-full overflow-hidden">
@@ -598,175 +645,69 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
   };
 
   // Editor State
-  const [modalMode, setModalMode] = useState<'none' | 'add_obstacle' | 'add_cabinet' | 'edit_obstacle' | 'edit_cabinet'>('none');
+  const [modalMode, setModalMode] = useState<'none' | 'add_obstacle' | 'add_cabinet' | 'edit_obstacle' | 'edit_cabinet' | 'autofill_options'>('none');
   const [editIndex, setEditIndex] = useState<number>(-1);
   const [tempCabinet, setTempCabinet] = useState<CabinetUnit>({ id: '', preset: PresetType.BASE_DOOR, type: CabinetType.BASE, width: 600, qty: 1, fromLeft: 0 });
   const [tempObstacle, setTempObstacle] = useState<Obstacle>({ id: '', type: 'door', fromLeft: 0, width: 900, height: 2100, elevation: 0, depth: 150 });
   const [presetFilter, setPresetFilter] = useState<'Base' | 'Wall' | 'Tall'>('Base');
   const [visualMode, setVisualMode] = useState<'elevation' | 'iso'>('elevation');
 
-  const updateZone = (newZone: typeof currentZone, skipHistory = false) => {
+  const updateZone = (newZoneOrTransform: Zone | ((z: Zone) => Zone), skipHistory = false) => {
     if (!skipHistory) {
       saveToHistory();
     }
-    const newZones = [...project.zones];
-    newZones[currentZoneIndex] = newZone;
-    setProject({ ...project, zones: newZones });
+    setProject(prev => {
+      const newZones = [...prev.zones];
+      const idx = newZones.findIndex(z => z.id === activeTab);
+      if (idx !== -1) {
+        const currentZone = newZones[idx];
+        const newZone = typeof newZoneOrTransform === 'function'
+          ? newZoneOrTransform(currentZone)
+          : newZoneOrTransform;
+        newZones[idx] = newZone;
+      }
+      return { ...prev, zones: newZones };
+    });
   };
 
-  const handleDragEnd = () => updateZone(resolveCollisions(currentZone)); // Shove on drop
+  const handleDragEnd = () => updateZone(z => resolveCollisions(z)); // Shove on drop
 
   // AUTO FILL & CLEAR
+  const [autoFillOpts, setAutoFillOpts] = useState<AutoFillOptions>({
+    includeSink: true,
+    includeCooker: true,
+    includeTall: false,
+    includeWallCabinets: true,
+    preferDrawers: false
+  });
+
   const handleAutoFill = () => {
-    const msg = "APPLY INTELLIGENT HAFALE LAYOUT?\n\n- Sinks will be centered under windows\n- Sequential numbering (B01, W01) will be reset\n- Storage -> Wash -> Prep -> Cook flow will be applied\n\nContinue?";
-    if (window.confirm(msg)) {
-      updateZone(autoFillZone(currentZone, project.settings, currentZone.id));
-    }
+    setModalMode('autofill_options');
   };
 
-  // Smart gap fill - uses standard cabinet sizes, no tiny boxes
-  // This function fills gaps ONLY for cabinet types that already exist in the zone
-  const fillGaps = () => {
-    // Keep all existing cabinets to avoid destroying the user's plan
-    const existingCabinets = [...currentZone.cabinets];
+  const executeAutoFill = () => {
+    const requiredWidth =
+      (autoFillOpts.includeSink ? 900 : 0) +
+      (autoFillOpts.includeCooker ? 900 : 0) +
+      (autoFillOpts.includeTall ? 600 : 0);
 
-    // Determine which cabinet types already exist in this zone
-    const existingTypes = new Set(existingCabinets.map(c => c.type));
-
-    // If no cabinets exist yet, default to filling BASE cabinets only
-    if (existingTypes.size === 0) {
-      existingTypes.add(CabinetType.BASE);
+    if (requiredWidth > currentZone.totalLength) {
+      if (!window.confirm(`Required space (${requiredWidth}mm) exceeds wall length (${currentZone.totalLength}mm). Continue anyway?`)) return;
     }
 
-    // Standard cabinet widths we can use (prioritize larger)
-    const standardWidths = [900, 600, 450, 400, 300, 150];
-    const MIN_BOX_SIZE = 100; // Minimum 100mm
+    updateZone(z => autoFillZone(z, project.settings, z.id, autoFillOpts));
+    setModalMode('none');
+  };
 
-    const newBoxes: CabinetUnit[] = [];
-
-    // Get preset type based on cabinet type and width
-    const getPresetForType = (cabinetType: CabinetType, width: number): PresetType => {
-      if (cabinetType === CabinetType.WALL) {
-        return width < 350 ? PresetType.OPEN_BOX : PresetType.WALL_STD;
-      } else if (cabinetType === CabinetType.TALL) {
-        return width < 350 ? PresetType.OPEN_BOX : PresetType.TALL_UTILITY;
-      } else {
-        return width < 350 ? PresetType.OPEN_BOX : PresetType.BASE_DOOR;
-      }
-    };
-
-    // Get obstacles that block this specific cabinet type
-    const getBlockingObstacles = (cabinetType: CabinetType) => {
-      return currentZone.obstacles.filter(obs => {
-        // Doors and columns ALWAYS block all cabinet types (full height blockers)
-        if (obs.type === 'door' || obs.type === 'column') return true;
-
-        // Windows: check sill height to determine which cabinet types are blocked
-        if (obs.type === 'window') {
-          const sillHeight = obs.sillHeight ?? 900; // default sill at 900mm
-          // TALL cabinets are blocked by any window (they span full height)
-          if (cabinetType === CabinetType.TALL) return true;
-          // WALL cabinets blocked if window is in the wall cabinet zone (typically 1400mm to 2100mm)
-          if (cabinetType === CabinetType.WALL) return sillHeight < 2100;
-          // BASE cabinets only blocked if sill is very low (below counter height ~850mm)
-          if (cabinetType === CabinetType.BASE) return sillHeight < 300;
-        }
-
-        // Pipes block all cabinet types (be safe)
-        if (obs.type === 'pipe') return true;
-
-        return false;
-      });
-    };
-
-    // Helper function to fill gaps for a specific cabinet type
-    const fillGapsForType = (cabinetType: CabinetType) => {
-      // Skip if this cabinet type doesn't exist in the zone
-      if (!existingTypes.has(cabinetType)) return;
-
-      // For this cabinet type, only consider same-type cabinets + BLOCKING obstacles
-      const sameTypeCabinets = existingCabinets.filter(c => c.type === cabinetType);
-      const blockingObstacles = getBlockingObstacles(cabinetType);
-
-      // Get occupied spaces for this cabinet type
-      const occupiedSpaces = [
-        ...sameTypeCabinets.map(c => ({ fromLeft: c.fromLeft, width: c.width })),
-        ...blockingObstacles.map(o => ({ fromLeft: o.fromLeft, width: o.width }))
-      ].sort((a, b) => a.fromLeft - b.fromLeft);
-
-      // Find gaps and fill them for this type
-      let lastEnd = 0;
-      for (const space of occupiedSpaces) {
-        const gapStart = lastEnd;
-        const gapEnd = space.fromLeft;
-        const gapWidth = gapEnd - gapStart;
-
-        if (gapWidth >= MIN_BOX_SIZE) {
-          let remainingWidth = gapWidth;
-          let currentPos = gapStart;
-
-          while (remainingWidth >= MIN_BOX_SIZE) {
-            let bestSize = standardWidths.find(sw => sw <= remainingWidth) || (remainingWidth >= MIN_BOX_SIZE ? remainingWidth : 0);
-            if (bestSize === 0) break;
-
-            newBoxes.push({
-              id: Math.random().toString(),
-              preset: getPresetForType(cabinetType, bestSize),
-              type: cabinetType,
-              width: bestSize,
-              qty: 1,
-              fromLeft: currentPos,
-              isAutoFilled: true
-            });
-            currentPos += bestSize;
-            remainingWidth -= bestSize;
-          }
-        }
-        lastEnd = Math.max(lastEnd, space.fromLeft + space.width);
-      }
-
-      // Fill end gap for this type (from last occupied to wall end)
-      const endGap = currentZone.totalLength - lastEnd;
-      if (endGap >= MIN_BOX_SIZE) {
-        let remainingWidth = endGap;
-        let currentPos = lastEnd;
-        while (remainingWidth >= MIN_BOX_SIZE) {
-          let bestSize = standardWidths.find(sw => sw <= remainingWidth) || (remainingWidth >= MIN_BOX_SIZE ? remainingWidth : 0);
-          if (bestSize === 0) break;
-          newBoxes.push({
-            id: Math.random().toString(),
-            preset: getPresetForType(cabinetType, bestSize),
-            type: cabinetType,
-            width: bestSize,
-            qty: 1,
-            fromLeft: currentPos,
-            isAutoFilled: true
-          });
-          currentPos += bestSize;
-          remainingWidth -= bestSize;
-        }
-      }
-    };
-
-    // Fill gaps ONLY for cabinet types that already exist in the zone
-    fillGapsForType(CabinetType.BASE);
-    fillGapsForType(CabinetType.WALL);
-    fillGapsForType(CabinetType.TALL);
-
-    // Combine and sort ALL cabinets
-    const allCabs = [...existingCabinets, ...newBoxes].sort((a, b) => a.fromLeft - b.fromLeft);
-
-    // Reset sequential numbering for ALL cabinets in this zone to ensure they are unique (B01, B02, etc.)
-    let bIdx = 1, wIdx = 1, tIdx = 1;
-    const numbered = allCabs.map(c => {
-      let label = '';
-      if (c.type === CabinetType.BASE) label = `B${String(bIdx++).padStart(2, '0')}`;
-      else if (c.type === CabinetType.WALL) label = `W${String(wIdx++).padStart(2, '0')}`;
-      else label = `T${String(tIdx++).padStart(2, '0')}`;
-      return { ...c, label };
-    });
-
-    updateZone({ ...currentZone, cabinets: numbered });
+  // Smart gap fill - uses standard cabinet sizes
+  const handleFillGaps = () => {
+    updateZone(z => autoFillZone(z, project.settings, z.id, {
+      includeSink: false,
+      includeCooker: false,
+      includeTall: z.cabinets.some(c => c.type === CabinetType.TALL),
+      includeWallCabinets: z.cabinets.some(c => c.type === CabinetType.WALL),
+      preferDrawers: false
+    }));
   };
 
   const clearZone = () => { if (window.confirm(`Clear ${currentZone.id}?`)) updateZone({ ...currentZone, obstacles: [], cabinets: [] }); };
@@ -795,85 +736,56 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
   };
 
   // Moves
-  const handleCabinetMove = (idx: number, x: number) => { const cabs = [...currentZone.cabinets]; cabs[idx].fromLeft = x; updateZone({ ...currentZone, cabinets: cabs }); };
-  const handleObstacleMove = (idx: number, x: number) => { const obs = [...currentZone.obstacles]; obs[idx].fromLeft = x; updateZone({ ...currentZone, obstacles: obs }); };
+  const handleCabinetMove = (idx: number, x: number) => {
+    updateZone(z => {
+      const cabs = [...z.cabinets];
+      cabs[idx] = { ...cabs[idx], fromLeft: x };
+      return { ...z, cabinets: cabs };
+    });
+  };
+  const handleObstacleMove = (idx: number, x: number) => {
+    updateZone(z => {
+      const obs = [...z.obstacles];
+      obs[idx] = { ...obs[idx], fromLeft: x };
+      return { ...z, obstacles: obs };
+    });
+  };
 
-  // Swap two cabinets by exchanging their positions with bounds checking
+  // Swap two cabinets by exchanging their positions
   const handleSwapCabinets = (index1: number, index2: number) => {
-    const cabs = [...currentZone.cabinets];
-    const cab1 = cabs[index1];
-    const cab2 = cabs[index2];
-    
-    if (!cab1 || !cab2) return;
-    
-    // Get positions and widths
-    const x1 = cab1.fromLeft;
-    const x2 = cab2.fromLeft;
-    const w1 = cab1.width;
-    const w2 = cab2.width;
-    
-    // Check if swap would keep both cabinets within wall bounds
-    const maxPos = currentZone.totalLength;
-    
-    // Calculate new positions after swap
-    const newX1 = x2;
-    const newX2 = x1;
-    
-    // Validate: both cabinets must stay within 0 to maxPos after swap
-    if (newX1 < 0 || newX1 + w1 > maxPos || newX2 < 0 || newX2 + w2 > maxPos) {
-      console.warn('Cannot swap: would place cabinet outside wall bounds');
-      return;
-    }
-    
-    // Validate that swap won't cause collision with other cabinets
-    const otherCabs = cabs.filter((_, idx) => idx !== index1 && idx !== index2);
-    
-    // Check if new position for cab1 collides with any other cabinet
-    for (const other of otherCabs) {
-      const otherStart = other.fromLeft;
-      const otherEnd = otherStart + other.width;
-      const cab1Start = newX1;
-      const cab1End = cab1Start + w1;
+    updateZone(z => {
+      const cabs = z.cabinets.map(c => ({ ...c }));
+      const cab1 = cabs[index1];
+      const cab2 = cabs[index2];
       
-      if (cab1Start < otherEnd && cab1End > otherStart) {
-        console.warn('Cannot swap: would cause collision with other cabinets');
-        return;
-      }
-    }
-    
-    // Check if new position for cab2 collides with any other cabinet
-    for (const other of otherCabs) {
-      const otherStart = other.fromLeft;
-      const otherEnd = otherStart + other.width;
-      const cab2Start = newX2;
-      const cab2End = cab2Start + w2;
-      
-      if (cab2Start < otherEnd && cab2End > otherStart) {
-        console.warn('Cannot swap: would cause collision with other cabinets');
-        return;
-      }
-    }
-    
-    // Perform the swap - simply exchange positions
-    cab1.fromLeft = newX1;
-    cab2.fromLeft = newX2;
-    
-    updateZone({ ...currentZone, cabinets: cabs });
+      if (!cab1 || !cab2) return z;
+
+      const x1 = cab1.fromLeft;
+      const x2 = cab2.fromLeft;
+
+      // Simply exchange positions and let resolveCollisions handle the shoving
+      cab1.fromLeft = x2;
+      cab2.fromLeft = x1;
+
+      return { ...z, cabinets: cabs };
+    });
   };
 
   // Handler for sequential box input - adds cabinets and re-labels
   const handleSequentialAdd = (newCabinets: CabinetUnit[]) => {
-    const allCabs = [...currentZone.cabinets, ...newCabinets].sort((a, b) => a.fromLeft - b.fromLeft);
-    // Re-number all cabinets
-    let bIdx = 1, wIdx = 1, tIdx = 1;
-    const numbered = allCabs.map(c => {
-      let label = '';
-      if (c.type === CabinetType.BASE) label = `B${String(bIdx++).padStart(2, '0')}`;
-      else if (c.type === CabinetType.WALL) label = `W${String(wIdx++).padStart(2, '0')}`;
-      else label = `T${String(tIdx++).padStart(2, '0')}`;
-      return { ...c, label };
+    updateZone(z => {
+      const allCabs = [...z.cabinets, ...newCabinets].sort((a, b) => a.fromLeft - b.fromLeft);
+      // Re-number all cabinets
+      let bIdx = 1, wIdx = 1, tIdx = 1;
+      const numbered = allCabs.map(c => {
+        let label = '';
+        if (c.type === CabinetType.BASE) label = `B${String(bIdx++).padStart(2, '0')}`;
+        else if (c.type === CabinetType.WALL) label = `W${String(wIdx++).padStart(2, '0')}`;
+        else label = `T${String(tIdx++).padStart(2, '0')}`;
+        return { ...c, label };
+      });
+      return resolveCollisions({ ...z, cabinets: numbered });
     });
-    updateZone(resolveCollisions({ ...currentZone, cabinets: numbered }));
   };
 
   const openAdd = (type: 'cabinet' | 'obstacle') => {
@@ -899,19 +811,59 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
 
   const saveItem = () => {
     if (modalMode.includes('cabinet')) {
-      const items = [...currentZone.cabinets];
-      modalMode === 'add_cabinet' ? items.push({ ...tempCabinet, id: Math.random().toString() }) : items[editIndex] = tempCabinet;
-      updateZone(resolveCollisions({ ...currentZone, cabinets: items }));
+      const intersecting = getIntersectingCabinets(currentZone, tempCabinet);
+      const shouldDelete = intersecting.length > 0 && window.confirm(`Overlap detected with ${intersecting.length} item(s). Delete them and fill remaining gaps?`);
+
+      updateZone(z => {
+        let items = [...z.cabinets];
+        if (shouldDelete) {
+          items = items.filter(c => !intersecting.some(i => i.id === c.id));
+        }
+
+        if (modalMode === 'add_cabinet') {
+          items.push({ ...tempCabinet, id: Math.random().toString(), isAutoFilled: false });
+        } else {
+          const idx = items.findIndex(c => c.id === tempCabinet.id);
+          if (idx !== -1) items[idx] = { ...tempCabinet, isAutoFilled: false };
+          else items.push({ ...tempCabinet, id: Math.random().toString(), isAutoFilled: false });
+        }
+
+        if (shouldDelete) {
+          const zoneWithNew = { ...z, cabinets: items };
+          return autoFillZone(zoneWithNew, project.settings, z.id, {
+            includeSink: false,
+            includeCooker: false,
+            includeTall: z.cabinets.some(c => c.type === CabinetType.TALL),
+            includeWallCabinets: z.cabinets.some(c => c.type === CabinetType.WALL),
+            preferDrawers: false
+          });
+        } else {
+          return resolveCollisions({ ...z, cabinets: items });
+        }
+      });
     } else {
-      const items = [...currentZone.obstacles];
-      modalMode === 'add_obstacle' ? items.push({ ...tempObstacle, id: Math.random().toString() }) : items[editIndex] = tempObstacle;
-      updateZone({ ...currentZone, obstacles: items });
+      updateZone(z => {
+        const items = [...z.obstacles];
+        modalMode === 'add_obstacle' ? items.push({ ...tempObstacle, id: Math.random().toString() }) : items[editIndex] = tempObstacle;
+        return { ...z, obstacles: items };
+      });
     }
     setModalMode('none');
   };
   const deleteItem = () => {
-    if (modalMode.includes('cabinet')) { const items = [...currentZone.cabinets]; items.splice(editIndex, 1); updateZone({ ...currentZone, cabinets: items }); }
-    else { const items = [...currentZone.obstacles]; items.splice(editIndex, 1); updateZone({ ...currentZone, obstacles: items }); }
+    if (modalMode.includes('cabinet')) {
+      updateZone(z => {
+        const items = [...z.cabinets];
+        items.splice(editIndex, 1);
+        return { ...z, cabinets: items };
+      });
+    } else {
+      updateZone(z => {
+        const items = [...z.obstacles];
+        items.splice(editIndex, 1);
+        return { ...z, obstacles: items };
+      });
+    }
     setModalMode('none');
   };
 
@@ -947,7 +899,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
         <div className="p-4 space-y-4 overflow-y-auto" style={{ maxHeight: 'calc(70vh - 140px)' }}>
           {/* Wall Length */}
           <div>
-            <NumberInput label="Wall Length" value={currentZone.totalLength} onChange={(e) => updateZone({ ...currentZone, totalLength: e })} step={100} />
+            <NumberInput label="Wall Length" value={currentZone.totalLength} onChange={(e) => updateZone(z => ({ ...z, totalLength: e }))} step={100} />
           </div>
           
           {/* Sequential Builder */}
@@ -984,7 +936,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
         {/* Desktop SIDEBAR */}
         <div className="hidden md:flex flex-col w-[280px] lg:w-[300px] bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 h-full min-h-0 overflow-y-auto">
           <div className="p-4 border-b border-slate-200 dark:border-slate-800">
-            <NumberInput label="Wall Length" value={currentZone.totalLength} onChange={(e) => updateZone({ ...currentZone, totalLength: e })} step={100} />
+            <NumberInput label="Wall Length" value={currentZone.totalLength} onChange={(e) => updateZone(z => ({ ...z, totalLength: e }))} step={100} />
           </div>
           <div className="p-4 space-y-2 flex-1">
             <div className="flex justify-between items-center">
@@ -1002,7 +954,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
           </div>
           <div className="p-4 space-y-2 border-t border-slate-200 dark:border-slate-800">
             <Button size="md" variant="secondary" className="w-full text-sm min-h-[48px]" onClick={handleAutoFill}><Wand2 size={16} className="mr-2" /> Auto Fill</Button>
-            <Button size="md" variant="secondary" className="w-full text-sm min-h-[48px]" onClick={fillGaps}><Box size={16} className="mr-2" /> Fill Gaps</Button>
+            <Button size="md" variant="secondary" className="w-full text-sm min-h-[48px]" onClick={handleFillGaps}><Box size={16} className="mr-2" /> Fill Gaps</Button>
             <Button size="md" variant="secondary" className="w-full text-sm min-h-[48px]" onClick={clearZone}><Trash2 size={16} className="mr-2" /> Clear Zone</Button>
             <div className="grid grid-cols-2 gap-2 mt-2">
               <Button size="lg" onClick={() => openAdd('obstacle')} variant="outline" className="text-xs flex-col h-20 min-h-[80px]"><DoorOpen size={20} />+ Obstacle</Button>
@@ -1190,7 +1142,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
                 <Button size="sm" variant="secondary" onClick={handleAutoFill} className="min-h-[52px] text-xs flex flex-col items-center justify-center gap-0.5">
                   <Wand2 size={18} /><span>Auto</span>
                 </Button>
-                <Button size="sm" variant="secondary" onClick={fillGaps} className="min-h-[52px] text-xs flex flex-col items-center justify-center gap-0.5">
+                <Button size="sm" variant="secondary" onClick={handleFillGaps} className="min-h-[52px] text-xs flex flex-col items-center justify-center gap-0.5">
                   <Box size={18} /><span>Fill</span>
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => openAdd('obstacle')} className="min-h-[52px] text-xs flex flex-col items-center justify-center gap-0.5">
@@ -1263,7 +1215,72 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
               </button>
             </div>
             <div className="space-y-4 overflow-y-auto flex-1 pr-1">
-              {modalMode.includes('cabinet') ? (
+              {modalMode === 'autofill_options' ? (
+                <div className="space-y-6 py-2">
+                  <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-xl border border-amber-200 dark:border-amber-800">
+                    <div className="flex justify-between text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 mb-1">
+                      <span>Available Space</span>
+                      <span>{currentZone.totalLength}mm</span>
+                    </div>
+                    <div className="h-2 bg-amber-200 dark:bg-amber-950 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-amber-500 transition-all duration-500"
+                        style={{ width: `${Math.min(100, ((autoFillOpts.includeSink ? 900 : 0) + (autoFillOpts.includeCooker ? 900 : 0) + (autoFillOpts.includeTall ? 600 : 0)) / currentZone.totalLength * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <p className="text-sm text-slate-500 italic">Configure intelligent layout options. This will preserve your manual cabinets but replace auto-filled ones.</p>
+
+                  <div className="space-y-4">
+                    <label className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors">
+                      <input type="checkbox" checked={autoFillOpts.includeSink} onChange={e => setAutoFillOpts({...autoFillOpts, includeSink: e.target.checked})} className="w-5 h-5 accent-amber-500" />
+                      <div>
+                        <div className="font-bold text-sm">Include Sink</div>
+                        <div className="text-xs text-slate-400">Placed under a window if available</div>
+                      </div>
+                    </label>
+
+                    <label className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors">
+                      <input type="checkbox" checked={autoFillOpts.includeCooker} onChange={e => setAutoFillOpts({...autoFillOpts, includeCooker: e.target.checked})} className="w-5 h-5 accent-amber-500" />
+                      <div>
+                        <div className="font-bold text-sm">Include Cooker & Hood</div>
+                        <div className="text-xs text-slate-400">3-Drawer unit with aligned wall hood</div>
+                      </div>
+                    </label>
+
+                    <label className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors">
+                      <input type="checkbox" checked={autoFillOpts.includeTall} onChange={e => setAutoFillOpts({...autoFillOpts, includeTall: e.target.checked})} className="w-5 h-5 accent-amber-500" />
+                      <div>
+                        <div className="font-bold text-sm">Include Tall Units</div>
+                        <div className="text-xs text-slate-400">Utility / Pantry storage</div>
+                      </div>
+                    </label>
+
+                    <label className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors">
+                      <input type="checkbox" checked={autoFillOpts.includeWallCabinets} onChange={e => setAutoFillOpts({...autoFillOpts, includeWallCabinets: e.target.checked})} className="w-5 h-5 accent-amber-500" />
+                      <div>
+                        <div className="font-bold text-sm">Include Wall Cabinets</div>
+                        <div className="text-xs text-slate-400">Upper storage units</div>
+                      </div>
+                    </label>
+
+                    <label className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors">
+                      <input type="checkbox" checked={autoFillOpts.preferDrawers} onChange={e => setAutoFillOpts({...autoFillOpts, preferDrawers: e.target.checked})} className="w-5 h-5 accent-amber-500" />
+                      <div>
+                        <div className="font-bold text-sm">Prefer Drawers</div>
+                        <div className="text-xs text-slate-400">Use drawer banks instead of door units</div>
+                      </div>
+                    </label>
+                  </div>
+
+                  <div className="pt-4">
+                    <Button variant="primary" size="xl" className="w-full font-black text-lg min-h-[64px]" onClick={executeAutoFill}>
+                      GENERATE LAYOUT
+                    </Button>
+                  </div>
+                </div>
+              ) : modalMode.includes('cabinet') ? (
                 <>
                   {/* PRESET FILTER TABS */}
                   <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
@@ -1684,22 +1701,39 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
         {/* WALL PLAN VIEW */}
         <div className={activeView === 'wallplan' ? 'block' : 'hidden print:block print:break-before-page'}>
           <h2 className="text-2xl sm:text-4xl font-black uppercase mb-4 sm:mb-8 tracking-tighter">III. Wall Elevations</h2>
-          <div className="space-y-8 sm:space-y-12">
+          <div className="space-y-12">
             {project.zones.filter(z => z.active).map((zone) => (
-              <div key={zone.id} className="break-inside-avoid border-4 sm:border-8 border-black p-4 sm:p-8 bg-white">
+              <div key={zone.id} className="print:break-after-page border-4 sm:border-8 border-black p-4 sm:p-8 bg-white min-h-[800px] flex flex-col">
                 <h3 className="text-lg sm:text-2xl font-black uppercase mb-3 sm:mb-4 border-b-2 sm:border-b-4 border-black pb-2 tracking-widest">{zone.id}</h3>
-                <div className="h-[300px] sm:h-[400px] mb-4 sm:mb-8 border-2 border-slate-100 bg-slate-50 print:bg-white print:border-black">
+                <div className="h-[300px] sm:h-[450px] mb-8 border-2 border-slate-100 bg-slate-50 print:bg-white print:border-black shrink-0">
                   <WallVisualizer zone={zone} height={project.settings.tallHeight + 200} hideArrows={true} />
                 </div>
                 {/* Legend Table */}
-                <table className="w-full text-[10px] text-left uppercase font-bold">
-                  <thead><tr className="border-b-2 border-black"><th className="pb-1 text-slate-400">POS</th><th className="pb-1">Description</th><th className="pb-1 text-right">Width</th><th className="pb-1 text-right">Qty</th></tr></thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {zone.cabinets.map((cab, idx) => (
-                      <tr key={idx}><td className="py-2 text-slate-400 font-black italic">{cab.label}</td><td className="py-2 font-black tracking-tight">{cab.preset}</td><td className="py-2 text-right font-black">{cab.width}mm</td><td className="py-2 text-right">1</td></tr>
-                    ))}
-                  </tbody>
-                </table>
+                <div className="flex-1">
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Unit Schedule</h4>
+                  <table className="w-full text-[10px] text-left uppercase font-bold border-collapse">
+                    <thead>
+                      <tr className="border-b-4 border-black text-slate-500">
+                        <th className="pb-2">POS</th>
+                        <th className="pb-2">Description</th>
+                        <th className="pb-2 text-right">Width</th>
+                        <th className="pb-2 text-right">Type</th>
+                        <th className="pb-2 text-right">Qty</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y-2 divide-black/10">
+                      {zone.cabinets.sort((a,b) => (a.label || '').localeCompare(b.label || '')).map((cab, idx) => (
+                        <tr key={idx}>
+                          <td className="py-3 text-amber-600 font-black italic text-sm">{cab.label}</td>
+                          <td className="py-3 font-black tracking-tight">{cab.preset}</td>
+                          <td className="py-3 text-right font-mono">{cab.width}mm</td>
+                          <td className="py-3 text-right text-[8px] opacity-60">{cab.type}</td>
+                          <td className="py-3 text-right">1</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             ))}
           </div>

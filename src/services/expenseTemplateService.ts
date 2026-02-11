@@ -100,5 +100,36 @@ export const expenseTemplateService = {
     }
 
     return true;
+  },
+
+  async updatePriceByName(name: string, price: number): Promise<boolean> {
+    const { error } = await supabase
+      .from('expense_templates')
+      .update({ default_amount: price })
+      .eq('name', name);
+
+    if (error) {
+      console.error('Error updating expense price by name:', error);
+      return false;
+    }
+    return true;
+  },
+
+  async ensureHardwareItemsExist(): Promise<void> {
+    const hardwareItems = [
+      { name: 'Soft-Close Hinge', amount: 5.00 },
+      { name: 'Drawer Slide (Pair)', amount: 15.00 },
+      { name: 'Adjustable Leg', amount: 2.00 },
+      { name: 'Handle/Knob', amount: 4.00 },
+      { name: 'Wall Hanger (Pair)', amount: 6.00 },
+      { name: 'Installation Nail', amount: 0.10 }
+    ];
+
+    const existing = await this.getTemplates();
+    for (const item of hardwareItems) {
+      if (!existing.find(e => e.name === item.name)) {
+        await this.saveTemplate(item.name, item.amount);
+      }
+    }
   }
 };

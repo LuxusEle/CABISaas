@@ -1,9 +1,0 @@
-M  src/App.tsx
-M  src/components/CutPlanVisualizer.tsx
-M  src/components/IsometricVisualizer.tsx
-AM src/components/SequentialBoxInput.tsx
-MM src/components/WallVisualizer.tsx
-M  src/services/bomService.ts
-M  src/types.ts
-A  stitch-ui-redesign-prompt.md
-?? git_status.txt

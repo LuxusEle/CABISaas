@@ -63,6 +63,29 @@ export const MaterialSelector: React.FC<MaterialSelectorProps> = ({ materials = 
               Select Materials
             </h4>
 
+            {/* Door Material */}
+            <div className="mb-4">
+              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                Door Material
+              </label>
+              <select
+                value={(materials as CabinetMaterials).doorMaterial || ''}
+                onChange={(e) => handleMaterialChange('doorMaterial', e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-sm"
+              >
+                <option value="">Auto (same as carcass)</option>
+                {Object.entries(groupedTypes).map(([thickness, types]) => (
+                  <optgroup key={thickness} label={`${thickness}mm`}>
+                    {(types as SheetType[]).map((type) => (
+                      <option key={type.id} value={type.name}>
+                        {type.name} - ${type.price_per_sheet.toFixed(2)}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </div>
+
             {/* Carcass Material */}
             <div className="mb-4">
               <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
