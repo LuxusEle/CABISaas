@@ -11,8 +11,12 @@ const HW = {
   SLIDE: 'Drawer Slide (Pair)',
   LEG: 'Adjustable Leg',
   HANDLE: 'Handle/Knob',
-  HANGER: 'Wall Hanger (Pair)'
+  HANGER: 'Wall Hanger (Pair)',
+  NAIL: 'Installation Nail'
 };
+
+// Nails per hinge
+const NAILS_PER_HINGE = 4;
 
 // --- COLLISION LOGIC ---
 
@@ -180,6 +184,12 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
   const parts: BOMItem[] = [];
   const { thickness } = settings;
   const labelPrefix = unit.label ? `${unit.label} ${unit.preset}` : `#${cabIndex + 1} ${unit.preset}`;
+  
+  // Get materials from cabinet or use defaults
+  const materials = unit.materials || {};
+  const carcassMaterial = materials.carcassMaterial || `${thickness}mm White`;
+  const backPanelMaterial = materials.backPanelMaterial || '6mm MDF';
+  const drawerMaterial = materials.drawerMaterial || '16mm White';
 
   let height = settings.baseHeight;
   let depth = settings.depthBase;
@@ -188,22 +198,22 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
   else if (unit.type === CabinetType.TALL) { height = settings.tallHeight; depth = settings.depthTall; }
 
   if (unit.preset === PresetType.FILLER) {
-    parts.push({ id: uuid(), name: 'Filler Panel', qty: 1, width: unit.width, length: height, material: `${thickness}mm White`, label: labelPrefix });
+    parts.push({ id: uuid(), name: 'Filler Panel', qty: 1, width: unit.width, length: height, material: carcassMaterial, label: labelPrefix });
     return parts;
   }
 
   // Carcass
-  parts.push({ id: uuid(), name: 'Side Panel', qty: 2, width: depth, length: height, material: `${thickness}mm White`, label: labelPrefix });
+  parts.push({ id: uuid(), name: 'Side Panel', qty: 2, width: depth, length: height, material: carcassMaterial, label: labelPrefix });
   const horizWidth = unit.width - (2 * thickness);
-  parts.push({ id: uuid(), name: 'Bottom Panel', qty: 1, width: depth, length: horizWidth, material: `${thickness}mm White`, label: labelPrefix });
+  parts.push({ id: uuid(), name: 'Bottom Panel', qty: 1, width: depth, length: horizWidth, material: carcassMaterial, label: labelPrefix });
 
   if (unit.type === CabinetType.BASE) {
-    parts.push({ id: uuid(), name: 'Top Rail', qty: 2, width: 100, length: horizWidth, material: `${thickness}mm White`, label: labelPrefix });
+    parts.push({ id: uuid(), name: 'Top Rail', qty: 2, width: 100, length: horizWidth, material: carcassMaterial, label: labelPrefix });
   } else {
-    parts.push({ id: uuid(), name: 'Top Panel', qty: 1, width: depth, length: horizWidth, material: `${thickness}mm White`, label: labelPrefix });
+    parts.push({ id: uuid(), name: 'Top Panel', qty: 1, width: depth, length: horizWidth, material: carcassMaterial, label: labelPrefix });
   }
 
-  parts.push({ id: uuid(), name: 'Back Panel', qty: 1, width: unit.width - 2, length: height - 2, material: '6mm MDF', label: labelPrefix });
+  parts.push({ id: uuid(), name: 'Back Panel', qty: 1, width: unit.width - 2, length: height - 2, material: backPanelMaterial, label: labelPrefix });
 
   // Check for custom configuration
   if (unit.customConfig) {
@@ -211,13 +221,13 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
 
     // Add custom shelves
     if (config.num_shelves > 0) {
-      parts.push({ id: uuid(), name: 'Shelf', qty: config.num_shelves, width: depth - 20, length: horizWidth, material: `${thickness}mm White`, label: labelPrefix });
+      parts.push({ id: uuid(), name: 'Shelf', qty: config.num_shelves, width: depth - 20, length: horizWidth, material: carcassMaterial, label: labelPrefix });
     }
 
     // Add custom drawers
     if (config.num_drawers > 0) {
-      parts.push({ id: uuid(), name: 'Drawer Bottom', qty: config.num_drawers, width: depth - 50, length: horizWidth - 26, material: '16mm White', label: labelPrefix });
-      parts.push({ id: uuid(), name: 'Drawer Side', qty: config.num_drawers * 2, width: depth - 10, length: 150, material: '16mm White', label: labelPrefix });
+      parts.push({ id: uuid(), name: 'Drawer Bottom', qty: config.num_drawers, width: depth - 50, length: horizWidth - 26, material: drawerMaterial, label: labelPrefix });
+      parts.push({ id: uuid(), name: 'Drawer Side', qty: config.num_drawers * 2, width: depth - 10, length: 150, material: drawerMaterial, label: labelPrefix });
     }
 
     // Add custom hardware
@@ -241,32 +251,32 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
 
   // Preset Hardware
   if (unit.preset === PresetType.BASE_DOOR) {
-    parts.push({ id: uuid(), name: 'Shelf', qty: 1, width: depth - 20, length: horizWidth, material: `${thickness}mm White`, label: labelPrefix });
+    parts.push({ id: uuid(), name: 'Shelf', qty: 1, width: depth - 20, length: horizWidth, material: carcassMaterial, label: labelPrefix });
     parts.push({ id: uuid(), name: HW.HINGE, qty: unit.width > 400 ? 4 : 2, width: 0, length: 0, material: 'Hardware', isHardware: true });
     parts.push({ id: uuid(), name: HW.HANDLE, qty: unit.width > 400 ? 2 : 1, width: 0, length: 0, material: 'Hardware', isHardware: true });
     parts.push({ id: uuid(), name: HW.LEG, qty: 4, width: 0, length: 0, material: 'Hardware', isHardware: true });
   }
   if (unit.preset === PresetType.BASE_DRAWER_3) {
-    parts.push({ id: uuid(), name: 'Drawer Bottom', qty: 3, width: depth - 50, length: horizWidth - 26, material: '16mm White', label: labelPrefix });
-    parts.push({ id: uuid(), name: 'Drawer Side', qty: 6, width: depth - 10, length: 150, material: '16mm White', label: labelPrefix });
+    parts.push({ id: uuid(), name: 'Drawer Bottom', qty: 3, width: depth - 50, length: horizWidth - 26, material: drawerMaterial, label: labelPrefix });
+    parts.push({ id: uuid(), name: 'Drawer Side', qty: 6, width: depth - 10, length: 150, material: drawerMaterial, label: labelPrefix });
     parts.push({ id: uuid(), name: HW.SLIDE, qty: 3, width: 0, length: 0, material: 'Hardware', isHardware: true });
     parts.push({ id: uuid(), name: HW.HANDLE, qty: 3, width: 0, length: 0, material: 'Hardware', isHardware: true });
     parts.push({ id: uuid(), name: HW.LEG, qty: 4, width: 0, length: 0, material: 'Hardware', isHardware: true });
   }
   if (unit.preset === PresetType.WALL_STD) {
-    parts.push({ id: uuid(), name: 'Shelf', qty: 2, width: depth - 20, length: horizWidth, material: `${thickness}mm White`, label: labelPrefix });
+    parts.push({ id: uuid(), name: 'Shelf', qty: 2, width: depth - 20, length: horizWidth, material: carcassMaterial, label: labelPrefix });
     parts.push({ id: uuid(), name: HW.HINGE, qty: unit.width > 400 ? 4 : 2, width: 0, length: 0, material: 'Hardware', isHardware: true });
     parts.push({ id: uuid(), name: HW.HANDLE, qty: unit.width > 400 ? 2 : 1, width: 0, length: 0, material: 'Hardware', isHardware: true });
     parts.push({ id: uuid(), name: HW.HANGER, qty: 1, width: 0, length: 0, material: 'Hardware', isHardware: true });
   }
   if (unit.preset === PresetType.TALL_OVEN) {
-    parts.push({ id: uuid(), name: 'Fixed Shelf (Oven)', qty: 2, width: depth, length: horizWidth, material: `${thickness}mm White`, label: labelPrefix });
+    parts.push({ id: uuid(), name: 'Fixed Shelf (Oven)', qty: 2, width: depth, length: horizWidth, material: carcassMaterial, label: labelPrefix });
     parts.push({ id: uuid(), name: HW.LEG, qty: 4, width: 0, length: 0, material: 'Hardware', isHardware: true });
     parts.push({ id: uuid(), name: HW.SLIDE, qty: 2, width: 0, length: 0, material: 'Hardware', isHardware: true });
   }
   if (unit.preset === PresetType.OPEN_BOX) {
     // Open box with 2 shelves - no doors, no hardware
-    parts.push({ id: uuid(), name: 'Shelf', qty: 2, width: depth - 20, length: horizWidth, material: `${thickness}mm White`, label: labelPrefix });
+    parts.push({ id: uuid(), name: 'Shelf', qty: 2, width: depth - 20, length: horizWidth, material: carcassMaterial, label: labelPrefix });
     if (unit.type === CabinetType.BASE) {
       parts.push({ id: uuid(), name: HW.LEG, qty: 4, width: 0, length: 0, material: 'Hardware', isHardware: true });
     } else if (unit.type === CabinetType.WALL) {
@@ -315,6 +325,12 @@ export const generateProjectBOM = (project: Project): { groups: BOMGroup[], hard
 
     totalLinearFeet += (zoneLen / 304.8);
   });
+
+  // Calculate nails based on hinge count (6 nails per hinge)
+  const totalHinges = hardwareSummary[HW.HINGE] || 0;
+  if (totalHinges > 0) {
+    hardwareSummary[HW.NAIL] = totalHinges * NAILS_PER_HINGE;
+  }
 
   return {
     groups,

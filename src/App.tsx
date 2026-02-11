@@ -1,10 +1,11 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Home, Layers, Calculator, Zap, ArrowLeft, ArrowRight, Trash2, Plus, Box, DoorOpen, Wand2, Moon, Sun, Table2, FileSpreadsheet, X, Pencil, Save, List, Settings, Printer, Download, Scissors, LayoutDashboard, DollarSign, Map, LogOut, Menu } from 'lucide-react';
+import { Home, Layers, Calculator, Zap, ArrowLeft, ArrowRight, Trash2, Plus, Box, DoorOpen, Wand2, Moon, Sun, Table2, FileSpreadsheet, X, Pencil, Save, List, Settings, Printer, Download, Scissors, LayoutDashboard, DollarSign, Map, LogOut, Menu, Wrench, CreditCard } from 'lucide-react';
 import { Screen, Project, ZoneId, PresetType, CabinetType, CabinetUnit, Obstacle } from './types';
 import { createNewProject, generateProjectBOM, autoFillZone, exportToExcel, resolveCollisions, calculateProjectCost, exportProjectToConstructionJSON, buildProjectConstructionData } from './services/bomService';
 import { optimizeCuts } from './services/nestingService';
 import { authService } from './services/authService';
+import { expenseTemplateService, ExpenseTemplate } from './services/expenseTemplateService';
 import type { User } from '@supabase/supabase-js';
 
 // Components
@@ -21,6 +22,10 @@ import { LandingPage } from './components/LandingPage';
 import { customCabinetService } from './services/customCabinetService';
 import { projectService } from './services/projectService';
 import { SequentialBoxInput } from './components/SequentialBoxInput';
+import { SheetTypeManager } from './components/SheetTypeManager';
+import { MaterialSelector } from './components/MaterialSelector';
+import { PricingPage } from './components/PricingPage';
+import { subscriptionService } from './services/subscriptionService';
 
 // --- PRINT TITLE BLOCK ---
 const TitleBlock = ({ project, pageTitle }: { project: Project, pageTitle: string }) => (
@@ -197,6 +202,7 @@ export default function App() {
       case Screen.WALL_EDITOR: return <ScreenWallEditor project={project} setProject={setProject} setScreen={setScreen} onSave={() => handleSaveProject(project)} />;
       case Screen.BOM_REPORT: return <ScreenBOMReport project={project} setProject={setProject} />;
       case Screen.TOOLS: return <ScreenPlanView project={project} />;
+      case Screen.PRICING: return <PricingPage />;
       default: return <LandingPage onGetStarted={() => openAuthModal('signup')} onSignIn={() => openAuthModal('login')} />;
     }
   };
@@ -218,7 +224,7 @@ export default function App() {
         </div>
       </div>
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden md:pb-0 pb-16">
         {/* DESKTOP SIDEBAR - Hidden on landing page */}
         {screen !== Screen.LANDING && (
           <aside className="hidden md:flex w-20 flex-col items-center py-6 bg-slate-900 border-r border-slate-800 shrink-0 z-50 print:hidden">
@@ -229,6 +235,7 @@ export default function App() {
             <NavButton active={screen === Screen.WALL_EDITOR} onClick={() => requireAuth(() => setScreen(Screen.WALL_EDITOR))} icon={<Box size={24} />} label="Walls" />
             <NavButton active={screen === Screen.BOM_REPORT} onClick={() => requireAuth(() => setScreen(Screen.BOM_REPORT))} icon={<Table2 size={24} />} label="BOM" />
             <NavButton active={screen === Screen.TOOLS} onClick={() => requireAuth(() => setScreen(Screen.TOOLS))} icon={<Map size={24} />} label="Plan" />
+            <NavButton active={screen === Screen.PRICING} onClick={() => requireAuth(() => setScreen(Screen.PRICING))} icon={<CreditCard size={24} />} label="Pricing" />
           </nav>
           <div className="mt-auto flex flex-col gap-2">
             {user ? (
@@ -261,12 +268,13 @@ export default function App() {
 
       {/* MOBILE NAV */}
       {(screen !== Screen.LANDING && screen !== Screen.DASHBOARD) && (
-        <div className="md:hidden h-16 bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex items-stretch justify-around z-50 shrink-0 print:hidden safe-area-bottom">
+        <div className="md:hidden h-16 mobile-nav bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex items-stretch justify-around z-[100] shrink-0 print:hidden safe-area-bottom" style={{ position: 'fixed', bottom: 0, left: 0, right: 0 }}>
           <MobileNavButton active={screen === Screen.DASHBOARD} onClick={() => setScreen(Screen.DASHBOARD)} icon={<Home size={20} />} label="Home" />
           <MobileNavButton active={screen === Screen.PROJECT_SETUP} onClick={() => setScreen(Screen.PROJECT_SETUP)} icon={<Settings size={20} />} label="Setup" />
           <MobileNavButton active={screen === Screen.WALL_EDITOR} onClick={() => setScreen(Screen.WALL_EDITOR)} icon={<Box size={20} />} label="Editor" />
           <MobileNavButton active={screen === Screen.BOM_REPORT} onClick={() => setScreen(Screen.BOM_REPORT)} icon={<Table2 size={20} />} label="BOM" />
           <MobileNavButton active={screen === Screen.TOOLS} onClick={() => setScreen(Screen.TOOLS)} icon={<Map size={20} />} label="Plan" />
+          <MobileNavButton active={screen === Screen.PRICING} onClick={() => setScreen(Screen.PRICING)} icon={<CreditCard size={20} />} label="Pricing" />
         </div>
       )}
 
@@ -453,6 +461,9 @@ const ScreenProjectSetup = ({ project, setProject }: { project: Project, setProj
             <NumberInput label="Sheet Width" value={project.settings.sheetWidth} onChange={(v) => setProject({ ...project, settings: { ...project.settings, sheetWidth: v } })} step={100} />
           </div>
         </section>
+
+        {/* Sheet Types Manager */}
+        <SheetTypeManager />
       </div>
     </div>
   </div>
@@ -776,6 +787,69 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
   const handleCabinetMove = (idx: number, x: number) => { const cabs = [...currentZone.cabinets]; cabs[idx].fromLeft = x; updateZone({ ...currentZone, cabinets: cabs }); };
   const handleObstacleMove = (idx: number, x: number) => { const obs = [...currentZone.obstacles]; obs[idx].fromLeft = x; updateZone({ ...currentZone, obstacles: obs }); };
 
+  // Swap two cabinets by exchanging their positions with bounds checking
+  const handleSwapCabinets = (index1: number, index2: number) => {
+    const cabs = [...currentZone.cabinets];
+    const cab1 = cabs[index1];
+    const cab2 = cabs[index2];
+    
+    if (!cab1 || !cab2) return;
+    
+    // Get positions and widths
+    const x1 = cab1.fromLeft;
+    const x2 = cab2.fromLeft;
+    const w1 = cab1.width;
+    const w2 = cab2.width;
+    
+    // Check if swap would keep both cabinets within wall bounds
+    const maxPos = currentZone.totalLength;
+    
+    // Calculate new positions after swap
+    const newX1 = x2;
+    const newX2 = x1;
+    
+    // Validate: both cabinets must stay within 0 to maxPos after swap
+    if (newX1 < 0 || newX1 + w1 > maxPos || newX2 < 0 || newX2 + w2 > maxPos) {
+      console.warn('Cannot swap: would place cabinet outside wall bounds');
+      return;
+    }
+    
+    // Validate that swap won't cause collision with other cabinets
+    const otherCabs = cabs.filter((_, idx) => idx !== index1 && idx !== index2);
+    
+    // Check if new position for cab1 collides with any other cabinet
+    for (const other of otherCabs) {
+      const otherStart = other.fromLeft;
+      const otherEnd = otherStart + other.width;
+      const cab1Start = newX1;
+      const cab1End = cab1Start + w1;
+      
+      if (cab1Start < otherEnd && cab1End > otherStart) {
+        console.warn('Cannot swap: would cause collision with other cabinets');
+        return;
+      }
+    }
+    
+    // Check if new position for cab2 collides with any other cabinet
+    for (const other of otherCabs) {
+      const otherStart = other.fromLeft;
+      const otherEnd = otherStart + other.width;
+      const cab2Start = newX2;
+      const cab2End = cab2Start + w2;
+      
+      if (cab2Start < otherEnd && cab2End > otherStart) {
+        console.warn('Cannot swap: would cause collision with other cabinets');
+        return;
+      }
+    }
+    
+    // Perform the swap - simply exchange positions
+    cab1.fromLeft = newX1;
+    cab2.fromLeft = newX2;
+    
+    updateZone({ ...currentZone, cabinets: cabs });
+  };
+
   // Handler for sequential box input - adds cabinets and re-labels
   const handleSequentialAdd = (newCabinets: CabinetUnit[]) => {
     const allCabs = [...currentZone.cabinets, ...newCabinets].sort((a, b) => a.fromLeft - b.fromLeft);
@@ -865,15 +939,33 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
             <NumberInput label="Wall Length" value={currentZone.totalLength} onChange={(e) => updateZone({ ...currentZone, totalLength: e })} step={100} />
           </div>
           
-          {/* Clear Zone */}
-          <Button size="lg" variant="danger" className="w-full min-h-[56px] font-bold" onClick={() => { clearZone(); setMobileSidebarOpen(false); }}>
-            <Trash2 size={20} className="mr-2" /> Clear Zone
-          </Button>
+          {/* Sequential Builder */}
+          <div className="border-t border-slate-200 dark:border-slate-800 pt-4">
+            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Sequential Builder</h3>
+            <SequentialBoxInput
+              zone={{
+                id: currentZone.id,
+                totalLength: currentZone.totalLength,
+                cabinets: currentZone.cabinets,
+                obstacles: currentZone.obstacles
+              }}
+              onAddCabinets={(newCabinets) => {
+                handleSequentialAdd(newCabinets);
+                setMobileSidebarOpen(false);
+              }}
+            />
+          </div>
           
           {/* Calculate BOM */}
           <Button size="xl" variant="primary" className="w-full font-black min-h-[64px] text-xl mb-4" onClick={() => { setMobileSidebarOpen(false); setScreen(Screen.BOM_REPORT); }}>
             CALCULATE BOM
           </Button>
+
+          {/* Clear Zone */}
+          <Button size="lg" variant="danger" className="w-full min-h-[56px] font-bold" onClick={() => { clearZone(); setMobileSidebarOpen(false); }}>
+            <Trash2 size={20} className="mr-2" /> Clear Zone
+          </Button>
+          
         </div>
       </div>
 
@@ -975,7 +1067,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
             {/* Canvas */}
             <div className="min-h-[240px] bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 relative z-10 transition-all min-h-0">
               {visualMode === 'elevation' ? (
-                <WallVisualizer zone={currentZone} height={project.settings.tallHeight + 300} onCabinetClick={(i) => openEdit('cabinet', i)} onObstacleClick={(i) => openEdit('obstacle', i)} onCabinetMove={handleCabinetMove} onObstacleMove={handleObstacleMove} onDragEnd={handleDragEnd} />
+                <WallVisualizer zone={currentZone} height={project.settings.tallHeight + 300} onCabinetClick={(i) => openEdit('cabinet', i)} onObstacleClick={(i) => openEdit('obstacle', i)} onCabinetMove={handleCabinetMove} onObstacleMove={handleObstacleMove} onDragEnd={handleDragEnd} onSwapCabinets={handleSwapCabinets} />
               ) : (
                 <IsometricVisualizer project={project} />
               )}
@@ -1030,7 +1122,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
           </div>
 
           {/* Mobile: Stack layout */}
-          <div className="md:hidden flex flex-col h-full">
+          <div className="md:hidden flex flex-col h-full pb-16">
             {/* Tabs Row with Controls */}
             <div className="flex items-center justify-between px-2 pt-2 gap-1 overflow-x-auto bg-slate-100 dark:bg-slate-900 shrink-0 border-b dark:border-slate-800">
               {/* Left: Zone Tabs */}
@@ -1072,20 +1164,23 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
             {/* Canvas */}
             <div className="flex-1 min-h-0 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 relative">
               {visualMode === 'elevation' ? (
-                <WallVisualizer zone={currentZone} height={project.settings.tallHeight + 300} onCabinetClick={(i) => openEdit('cabinet', i)} onObstacleClick={(i) => openEdit('obstacle', i)} onCabinetMove={handleCabinetMove} onObstacleMove={handleObstacleMove} onDragEnd={handleDragEnd} />
+                <WallVisualizer zone={currentZone} height={project.settings.tallHeight + 300} onCabinetClick={(i) => openEdit('cabinet', i)} onObstacleClick={(i) => openEdit('obstacle', i)} onCabinetMove={handleCabinetMove} onObstacleMove={handleObstacleMove} onDragEnd={handleDragEnd} onSwapCabinets={handleSwapCabinets} />
               ) : (
                 <IsometricVisualizer project={project} />
               )}
             </div>
 
             {/* Mobile Action Buttons - Below Canvas */}
-            <div className="shrink-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-2">
-              <div className="grid grid-cols-4 gap-2">
+            <div className="shrink-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-2 z-30">
+              <div className="grid grid-cols-5 gap-2">
                 <Button size="sm" variant="secondary" onClick={() => setMobileSidebarOpen(true)} className="min-h-[52px] text-xs flex flex-col items-center justify-center gap-0.5">
                   <Menu size={18} /><span>Menu</span>
                 </Button>
                 <Button size="sm" variant="secondary" onClick={handleAutoFill} className="min-h-[52px] text-xs flex flex-col items-center justify-center gap-0.5">
                   <Wand2 size={18} /><span>Auto</span>
+                </Button>
+                <Button size="sm" variant="secondary" onClick={fillGaps} className="min-h-[52px] text-xs flex flex-col items-center justify-center gap-0.5">
+                  <Box size={18} /><span>Fill</span>
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => openAdd('obstacle')} className="min-h-[52px] text-xs flex flex-col items-center justify-center gap-0.5">
                   <DoorOpen size={18} /><span>Obs</span>
@@ -1097,7 +1192,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
             </div>
 
             {/* Collapsible Table */}
-            <div className={`shrink-0 bg-white dark:bg-slate-950 overflow-hidden flex flex-col transition-all duration-300 ${mobileTableCollapsed ? 'h-10' : 'flex-1 min-h-0'}`}>
+            <div className={`shrink-0 bg-white dark:bg-slate-950 overflow-hidden flex flex-col z-20 ${mobileTableCollapsed ? 'h-10' : 'h-[200px]'}`}>
               <button
                 onClick={() => setMobileTableCollapsed(!mobileTableCollapsed)}
                 className="h-10 shrink-0 flex items-center justify-between px-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-500 text-xs font-bold uppercase tracking-wider"
@@ -1107,7 +1202,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
               </button>
 
               {!mobileTableCollapsed && (
-                <div className="flex-1 min-h-0 overflow-auto">
+                <div className="flex-1 overflow-auto">
                   <div className="overflow-x-auto">
                     <table className="w-full min-w-[400px] text-left text-sm">
                       <thead className="bg-slate-100 dark:bg-amber-950/40 text-slate-500 dark:text-amber-500 font-bold text-xs uppercase sticky top-0 z-20 border-b dark:border-amber-500/30">
@@ -1238,6 +1333,15 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
                     <span className="text-sm sm:text-base">Customize This Cabinet</span>
                   </button>
 
+                  {/* Material Selection */}
+                  <div className="border-t border-slate-200 dark:border-slate-700 pt-4 mt-2">
+                    <label className="text-xs sm:text-sm font-bold text-slate-400 mb-2 block">Materials</label>
+                    <MaterialSelector 
+                      materials={tempCabinet.materials}
+                      onChange={(materials) => setTempCabinet({ ...tempCabinet, materials })}
+                    />
+                  </div>
+
                   <NumberInput label="Width" value={tempCabinet.width} onChange={v => setTempCabinet({ ...tempCabinet, width: v })} step={50} />
                   <NumberInput label="Position (Left)" value={tempCabinet.fromLeft} onChange={v => setTempCabinet({ ...tempCabinet, fromLeft: v })} step={50} />
                 </>
@@ -1292,8 +1396,76 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
   const data = useMemo(() => generateProjectBOM(project), [project.id, project.zones, project.settings]);
   const [activeView, setActiveView] = useState<'list' | 'cutplan' | 'wallplan'>('list');
   const cutPlan = useMemo(() => optimizeCuts(data.groups.flatMap(g => g.items), project.settings), [data.groups, project.settings.sheetLength, project.settings.sheetWidth, project.settings.kerf]);
-  const costs = useMemo(() => calculateProjectCost(data, cutPlan, project.settings), [data, cutPlan, project.settings.costs]);
+  const baseCosts = useMemo(() => calculateProjectCost(data, cutPlan, project.settings), [data, cutPlan, project.settings.costs]);
   const currency = project.settings.currency || '$';
+
+  // State for additional expenses
+  const [additionalExpenses, setAdditionalExpenses] = useState<{ id: string; name: string; amount: number; templateId?: string }[]>([]);
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
+
+  // Calculate total including additional expenses
+  const totalAdditional = additionalExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+  const costs = useMemo(() => ({
+    ...baseCosts,
+    totalPrice: baseCosts.totalPrice + totalAdditional
+  }), [baseCosts, totalAdditional]);
+
+  // Load expense templates from database on mount
+  useEffect(() => {
+    const loadTemplates = async () => {
+      setIsLoadingTemplates(true);
+      const templates = await expenseTemplateService.getTemplates();
+      if (templates.length > 0) {
+        // Convert templates to expense format with default amounts
+        setAdditionalExpenses(templates.map(t => ({
+          id: t.id, // Use template ID as expense ID initially
+          name: t.name,
+          amount: t.default_amount,
+          templateId: t.id
+        })));
+      }
+      setIsLoadingTemplates(false);
+    };
+
+    loadTemplates();
+  }, []);
+
+  // Add expense and save as template
+  const handleAddExpense = async () => {
+    const template = await expenseTemplateService.saveTemplate('New Expense', 0);
+    if (template) {
+      setAdditionalExpenses(prev => [...prev, {
+        id: template.id,
+        name: template.name,
+        amount: template.default_amount,
+        templateId: template.id
+      }]);
+    }
+  };
+
+  // Remove expense and delete template
+  const handleRemoveExpense = async (id: string, templateId?: string) => {
+    if (templateId) {
+      await expenseTemplateService.deleteTemplate(templateId);
+    }
+    setAdditionalExpenses(prev => prev.filter(e => e.id !== id));
+  };
+
+  // Update template when name changes
+  const handleUpdateExpenseName = async (id: string, name: string, templateId?: string) => {
+    setAdditionalExpenses(prev => prev.map(e => e.id === id ? { ...e, name } : e));
+    if (templateId) {
+      await expenseTemplateService.updateTemplate(templateId, { name });
+    }
+  };
+
+  // Update template default amount when amount changes
+  const handleUpdateExpenseAmount = async (id: string, amount: number, templateId?: string) => {
+    setAdditionalExpenses(prev => prev.map(e => e.id === id ? { ...e, amount } : e));
+    if (templateId) {
+      await expenseTemplateService.updateTemplate(templateId, { default_amount: amount });
+    }
+  };
 
   // Calculate Sheet Summary for Table
   const materialSummary = useMemo(() => {
@@ -1355,10 +1527,16 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
         <div className="bg-slate-900 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl print:bg-white print:text-black print:border-2 print:border-black print:break-inside-avoid shadow-xl print:shadow-none">
           <h3 className="text-amber-500 font-bold mb-3 sm:mb-4 flex items-center gap-2 print:text-black text-base sm:text-lg"><DollarSign size={18} /> Cost Estimate</h3>
           <div className="grid grid-cols-2 gap-3 sm:gap-6">
-            <div><div className="text-slate-400 text-xs uppercase print:text-black">Material</div><div className="text-lg sm:text-xl font-bold">{currency}{costs.materialCost.toFixed(2)}</div></div>
-            <div><div className="text-slate-400 text-xs uppercase print:text-black">Hardware</div><div className="text-lg sm:text-xl font-bold">{currency}{costs.hardwareCost.toFixed(2)}</div></div>
-            <div><div className="text-slate-400 text-xs uppercase print:text-black">Labor</div><div className="text-lg sm:text-xl font-bold">{currency}{costs.laborCost.toFixed(2)}</div></div>
-            <div><div className="text-amber-500 text-xs uppercase print:text-black">Total</div><div className="text-2xl sm:text-3xl font-black">{currency}{costs.totalPrice.toFixed(2)}</div></div>
+            <div><div className="text-slate-400 text-xs uppercase print:text-black">Material</div><div className="text-lg sm:text-xl font-bold">{currency}{baseCosts.materialCost.toFixed(2)}</div></div>
+            <div><div className="text-slate-400 text-xs uppercase print:text-black">Hardware</div><div className="text-lg sm:text-xl font-bold">{currency}{baseCosts.hardwareCost.toFixed(2)}</div></div>
+            <div><div className="text-slate-400 text-xs uppercase print:text-black">Labor</div><div className="text-lg sm:text-xl font-bold">{currency}{baseCosts.laborCost.toFixed(2)}</div></div>
+            {totalAdditional > 0 && (
+              <div><div className="text-slate-400 text-xs uppercase print:text-black">Additional</div><div className="text-lg sm:text-xl font-bold">{currency}{totalAdditional.toFixed(2)}</div></div>
+            )}
+            <div className="col-span-2 border-t border-slate-700 print:border-black pt-3 mt-2">
+              <div className="text-amber-500 text-xs uppercase print:text-black">Total</div>
+              <div className="text-2xl sm:text-3xl font-black">{currency}{costs.totalPrice.toFixed(2)}</div>
+            </div>
           </div>
           {/* Edit Cost Settings (Simple) */}
           <div className="mt-4 pt-4 border-t border-slate-700 flex flex-wrap gap-3 sm:gap-4 print:hidden">
@@ -1369,14 +1547,15 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
 
         {/* MATERIAL SUMMARY TABLE (Always Visible in List/Cut Plan) */}
         <div className="break-inside-avoid overflow-x-auto">
-          <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 flex items-center gap-2"><Layers size={18} /> Material Sheets</h3>
+          <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 flex items-center gap-2"><Layers size={18} /> Materials & Hardware</h3>
           <table className="w-full min-w-[400px] text-xs sm:text-sm text-left border-collapse border border-slate-200 dark:border-slate-700 print:border-black">
             <thead className="bg-slate-100 dark:bg-slate-800 print:bg-slate-200">
               <tr>
                 <th className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">Material</th>
                 <th className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">Size</th>
                 <th className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">Qty</th>
-                <th className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">Waste</th>
+                <th className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">Cost</th>
+                <th className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -1385,11 +1564,64 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
                   <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">{m.material}</td>
                   <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">{m.dims}</td>
                   <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">{m.sheets}</td>
-                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">{m.waste}%</td>
+                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">{currency}{(m.sheets * project.settings.costs.pricePerSheet).toFixed(2)}</td>
+                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
+                </tr>
+              ))}
+              <tr className="bg-slate-50 dark:bg-slate-800/50 print:bg-slate-100">
+                <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">Soft-Close Hinges</td>
+                <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">-</td>
+                <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">{data.hardwareSummary['Soft-Close Hinge'] || 0}</td>
+                <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">{currency}{((data.hardwareSummary['Soft-Close Hinge'] || 0) * project.settings.costs.pricePerHardwareUnit).toFixed(2)}</td>
+                <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
+              </tr>
+              <tr className="bg-slate-50 dark:bg-slate-800/50 print:bg-slate-100">
+                <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">Installation Nails (4 per hinge)</td>
+                <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">-</td>
+                <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">{data.hardwareSummary['Installation Nail'] || 0}</td>
+                <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">-</td>
+                <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
+              </tr>
+              {additionalExpenses.map((expense) => (
+                <tr key={expense.id} className="bg-amber-50 dark:bg-amber-900/20 print:bg-amber-50">
+                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">
+                    <input 
+                      type="text" 
+                      value={expense.name}
+                      onChange={(ev) => handleUpdateExpenseName(expense.id, ev.target.value, expense.templateId)}
+                      className="w-full bg-transparent border-b border-dashed border-slate-400 focus:border-amber-500 outline-none print:border-none"
+                      placeholder="Expense name"
+                    />
+                  </td>
+                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">-</td>
+                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">-</td>
+                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">
+                    <input 
+                      type="number" 
+                      value={expense.amount}
+                      onChange={(ev) => handleUpdateExpenseAmount(expense.id, Number(ev.target.value), expense.templateId)}
+                      className="w-20 bg-transparent border-b border-dashed border-slate-400 focus:border-amber-500 outline-none print:border-none font-bold"
+                    />
+                  </td>
+                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">
+                    <button 
+                      onClick={() => handleRemoveExpense(expense.id, expense.templateId)}
+                      className="text-red-500 hover:text-red-700 text-xs font-bold"
+                    >
+                      Remove
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          <button 
+            onClick={handleAddExpense}
+            disabled={isLoadingTemplates}
+            className="mt-3 px-4 py-2 bg-amber-500 text-white text-sm font-bold rounded-lg hover:bg-amber-600 print:hidden flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Plus size={16} /> {isLoadingTemplates ? 'Loading...' : 'Add Expense'}
+          </button>
         </div>
 
         {/* LIST VIEW */}
@@ -1419,8 +1651,22 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
 
         {/* CUT PLAN VIEW */}
         <div className={activeView === 'cutplan' ? 'block' : 'hidden print:block print:break-before-page'}>
-          <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 print:mt-4 flex items-center gap-2"><Scissors size={18} /> Cut Optimization</h3>
-          <div className="space-y-6 sm:space-y-8">{cutPlan.sheets.map((sheet, i) => <CutPlanVisualizer key={i} sheet={sheet} index={i} settings={project.settings} />)}</div>
+          <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 print:mt-4 flex items-center gap-2 print:hidden"><Scissors size={18} /> Cut Optimization</h3>
+          {/* Screen view - vertical stack */}
+          <div className="space-y-6 sm:space-y-8 print:hidden">{cutPlan.sheets.map((sheet, i) => <CutPlanVisualizer key={i} sheet={sheet} index={i} settings={project.settings} />)}</div>
+          {/* Print view - 2 per page in landscape */}
+          <div className="hidden print:block">
+            {Array.from({ length: Math.ceil(cutPlan.sheets.length / 2) }).map((_, pageIndex) => (
+              <div key={pageIndex} className="print:break-before-page print:break-inside-avoid">
+                <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Scissors size={18} /> Cut Optimization - Sheets {(pageIndex * 2) + 1}-{Math.min((pageIndex * 2) + 2, cutPlan.sheets.length)}</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  {cutPlan.sheets.slice(pageIndex * 2, pageIndex * 2 + 2).map((sheet, i) => (
+                    <CutPlanVisualizer key={pageIndex * 2 + i} sheet={sheet} index={pageIndex * 2 + i} settings={project.settings} />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* WALL PLAN VIEW */}
@@ -1431,7 +1677,7 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
               <div key={zone.id} className="break-inside-avoid border-4 sm:border-8 border-black p-4 sm:p-8 bg-white">
                 <h3 className="text-lg sm:text-2xl font-black uppercase mb-3 sm:mb-4 border-b-2 sm:border-b-4 border-black pb-2 tracking-widest">{zone.id}</h3>
                 <div className="h-[300px] sm:h-[400px] mb-4 sm:mb-8 border-2 border-slate-100 bg-slate-50 print:bg-white print:border-black">
-                  <WallVisualizer zone={zone} height={project.settings.tallHeight + 200} />
+                  <WallVisualizer zone={zone} height={project.settings.tallHeight + 200} hideArrows={true} />
                 </div>
                 {/* Legend Table */}
                 <table className="w-full text-[10px] text-left uppercase font-bold">

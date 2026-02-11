@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowRight, Sparkles, Box, Ruler, Calculator, ChevronDown, Sun, Moon, Menu, X } from 'lucide-react';
+import { ArrowRight, Sparkles, Box, Ruler, Calculator, ChevronDown, Sun, Moon, Menu, X, User, Check } from 'lucide-react';
 import { Button } from './Button';
 
 interface LandingPageProps {
@@ -269,10 +269,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
                 Features
               </button>
               <button 
-                onClick={() => scrollToSection('cta')}
+                onClick={() => scrollToSection('about')}
                 className="text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 transition-colors text-sm font-medium"
               >
                 About
+              </button>
+              <button 
+                onClick={() => scrollToSection('pricing')}
+                className="text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 transition-colors text-sm font-medium"
+              >
+                Pricing
               </button>
               <button
                 onClick={() => setIsDark(!isDark)}
@@ -314,10 +320,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
                 Features
               </button>
               <button 
-                onClick={() => scrollToSection('cta')}
+                onClick={() => scrollToSection('about')}
                 className="w-full text-left px-4 py-3 text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors text-base font-medium min-h-[48px]"
               >
                 About
+              </button>
+              <button 
+                onClick={() => scrollToSection('pricing')}
+                className="w-full text-left px-4 py-3 text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors text-base font-medium min-h-[48px]"
+              >
+                Pricing
               </button>
               <div className="border-t border-slate-200 dark:border-slate-700 my-2 pt-2 space-y-2">
                 <button 
@@ -472,8 +484,128 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
         </div>
       </section>
 
+      {/* Pricing Section */}
+      <section id="pricing" className="relative py-16 sm:py-24 bg-slate-50 dark:bg-slate-900">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-10 sm:mb-16">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-black mb-3 sm:mb-4">
+              <span className="text-slate-900 dark:text-white">Simple </span>
+              <span className="text-gradient">Pricing</span>
+            </h2>
+            <p className="text-slate-600 dark:text-slate-400 text-base sm:text-lg">Start free, upgrade when you need more</p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6 sm:gap-8 max-w-3xl mx-auto">
+            {/* Free Plan */}
+            <div className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-lg border-2 border-slate-200 dark:border-slate-700 overflow-hidden">
+              <div className="p-6 sm:p-8">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-3 rounded-lg bg-slate-100 dark:bg-slate-700">
+                    <User className="w-6 h-6 text-slate-600 dark:text-slate-400" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Free</h3>
+                </div>
+                
+                <div className="mb-4">
+                  <span className="text-4xl font-black text-slate-900 dark:text-white">$0</span>
+                  <span className="text-slate-500 dark:text-slate-400">/month</span>
+                </div>
+
+                <p className="text-slate-600 dark:text-slate-400 mb-6">Perfect for hobbyists and small projects</p>
+
+                <Button 
+                  size="lg" 
+                  onClick={onGetStarted}
+                  variant="secondary"
+                  className="w-full mb-6"
+                >
+                  Get Started Free
+                </Button>
+
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <Check size={18} className="text-green-500 mt-0.5 flex-shrink-0" />
+                    <span className="text-slate-600 dark:text-slate-400 text-sm">Up to 3 projects</span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Check size={18} className="text-green-500 mt-0.5 flex-shrink-0" />
+                    <span className="text-slate-600 dark:text-slate-400 text-sm">Basic cabinet presets</span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Check size={18} className="text-green-500 mt-0.5 flex-shrink-0" />
+                    <span className="text-slate-600 dark:text-slate-400 text-sm">3D visualization</span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <X size={18} className="text-red-500 mt-0.5 flex-shrink-0" />
+                    <span className="text-slate-500 dark:text-slate-500 text-sm">No BOM export</span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <X size={18} className="text-red-500 mt-0.5 flex-shrink-0" />
+                    <span className="text-slate-500 dark:text-slate-500 text-sm">No custom cabinets</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Pro Plan */}
+            <div className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-lg border-2 border-amber-500 overflow-hidden">
+              <div className="absolute top-0 right-0 bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">
+                POPULAR
+              </div>
+              
+              <div className="p-6 sm:p-8">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-3 rounded-lg bg-amber-100 dark:bg-amber-900/30">
+                    <Sparkles className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Pro</h3>
+                </div>
+                
+                <div className="mb-4">
+                  <span className="text-4xl font-black text-slate-900 dark:text-white">$29</span>
+                  <span className="text-slate-500 dark:text-slate-400">/month</span>
+                </div>
+
+                <p className="text-slate-600 dark:text-slate-400 mb-6">For professionals and growing shops</p>
+
+                <Button 
+                  size="lg" 
+                  onClick={onGetStarted}
+                  className="w-full mb-6 bg-amber-500 hover:bg-amber-600"
+                >
+                  Start Pro Trial
+                </Button>
+
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <Check size={18} className="text-green-500 mt-0.5 flex-shrink-0" />
+                    <span className="text-slate-600 dark:text-slate-400 text-sm"><strong>Unlimited</strong> projects</span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Check size={18} className="text-green-500 mt-0.5 flex-shrink-0" />
+                    <span className="text-slate-600 dark:text-slate-400 text-sm">Custom cabinet library</span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Check size={18} className="text-green-500 mt-0.5 flex-shrink-0" />
+                    <span className="text-slate-600 dark:text-slate-400 text-sm">BOM & PDF export</span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Check size={18} className="text-green-500 mt-0.5 flex-shrink-0" />
+                    <span className="text-slate-600 dark:text-slate-400 text-sm">Advanced cut optimization</span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Check size={18} className="text-green-500 mt-0.5 flex-shrink-0" />
+                    <span className="text-slate-600 dark:text-slate-400 text-sm">Email support</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
-      <section id="cta" className="relative py-16 sm:py-24 overflow-hidden bg-white dark:bg-transparent">
+      <section id="about" className="relative py-16 sm:py-24 overflow-hidden bg-white dark:bg-transparent">
         <div className="absolute inset-0 bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-600/20 dark:to-orange-600/20" />
         <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-2xl sm:text-4xl md:text-5xl font-black mb-4 sm:mb-6">

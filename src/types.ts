@@ -80,6 +80,12 @@ export interface CustomCabinetConfig {
   handles?: number;
 }
 
+export interface CabinetMaterials {
+  carcassMaterial?: string;  // e.g., "White Melamine 16mm"
+  backPanelMaterial?: string; // e.g., "MDF 6mm"
+  drawerMaterial?: string;    // e.g., "White Melamine 16mm"
+}
+
 export interface CabinetUnit {
   id: string;
   preset: PresetType;
@@ -92,6 +98,8 @@ export interface CabinetUnit {
   // Custom cabinet support
   customPresetId?: string; // ID of custom preset from database
   customConfig?: CustomCabinetConfig; // Custom configuration
+  // Material selection
+  materials?: CabinetMaterials;
 }
 
 export interface Zone {
@@ -161,5 +169,32 @@ export enum Screen {
   PROJECT_SETUP = 'project_setup',
   WALL_EDITOR = 'wall_editor',
   BOM_REPORT = 'bom_report',
-  TOOLS = 'tools'
+  TOOLS = 'tools',
+  PRICING = 'pricing'
+}
+
+// Subscription Types
+export interface SubscriptionPlan {
+  id: string;
+  name: string;
+  price: number;
+  interval: 'month' | 'year';
+  description: string;
+  features: string[];
+  maxProjects: number;
+  maxUsers?: number;
+  twocheckoutProductId: string | null;
+}
+
+export interface UserSubscription {
+  id?: string;
+  user_id: string;
+  plan_id: string;
+  status: 'active' | 'cancelled' | 'past_due' | 'unpaid';
+  current_period_start: string;
+  current_period_end: string;
+  cancel_at_period_end: boolean;
+  twocheckout_subscription_id?: string;
+  created_at?: string;
+  updated_at?: string;
 }
