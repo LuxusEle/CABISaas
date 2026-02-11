@@ -12,6 +12,7 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({ currency = '
   const [accessories, setAccessories] = useState<ExpenseTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editFormData, setEditFormData] = useState<{ name: string; thickness: number; price_per_sheet: number; default_amount?: number }>({ name: '', thickness: 16, price_per_sheet: 0 });
   const [newSheetType, setNewSheetType] = useState({ name: '', thickness: 16, price_per_sheet: 0 });
   const [newAccessory, setNewAccessory] = useState({ name: '', price: 0 });
   const [showAddForm, setShowAddForm] = useState<'sheet' | 'accessory' | null>(null);
@@ -57,50 +58,200 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({ currency = '
 
   const handleAddSheet = async () => {
     if (!newSheetType.name.trim()) return;
+    
+    // Optimistic update - add to local state immediately
+    const tempId = 'temp-' + Date.now();
+    const optimisticSheet: SheetType = {
+      id: tempId,
+      user_id: '',
+      name: newSheetType.name,
+      thickness: newSheetType.thickness,
+      price_per_sheet: newSheetType.price_per_sheet,
+      is_default: false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    setSheetTypes(prev => [...prev, optimisticSheet]);
+    setNewSheetType({ name: '', thickness: 16, price_per_sheet: 0 });
+    setShowAddForm(null);
+    
+    // Save to database in background
     const result = await sheetTypeService.saveSheetType(newSheetType.name, newSheetType.thickness, newSheetType.price_per_sheet);
     if (result) {
-      setNewSheetType({ name: '', thickness: 16, price_per_sheet: 0 });
-      setShowAddForm(null);
-      loadData();
+      setSheetTypes(prev => prev.map(s => s.id === tempId ? result : s));
+    } else {
+      setSheetTypes(prev => prev.filter(s => s.id !== tempId));
+      alert('Failed to save sheet type');
     }
   };
 
   const handleAddAccessory = async () => {
     if (!newAccessory.name.trim()) return;
+    
+    // Optimistic update - add to local state immediately
+    const tempId = 'temp-' + Date.now();
+    const optimisticAcc: ExpenseTemplate = {
+      id: tempId,
+      user_id: '',
+      name: newAccessory.name,
+      default_amount: newAccessory.price,
+      sort_order: accessories.length,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    setAccessories(prev => [...prev, optimisticAcc]);
+    setNewAccessory({ name: '', price: 0 });
+    setShowAddForm(null);
+    
+    // Save to database in background
     const result = await expenseTemplateService.saveTemplate(newAccessory.name, newAccessory.price);
     if (result) {
-      setNewAccessory({ name: '', price: 0 });
-      setShowAddForm(null);
-      loadData();
+      setAccessories(prev => prev.map(a => a.id === tempId ? result : a));
+    } else {
+      setAccessories(prev => prev.filter(a => a.id !== tempId));
+      alert('Failed to save accessory');
     }
   };
 
-  const handleUpdateSheet = async (id: string, updates: Partial<SheetType>) => {
-    const success = await sheetTypeService.updateSheetType(id, updates);
-    if (success) { setEditingId(null); loadData(); }
+  const startEditingSheet = (sheet: SheetType) => {
+    setEditingId(sheet.id);
+    setEditFormData({
+      name: sheet.name,
+      thickness: sheet.thickness,
+      price_per_sheet: sheet.price_per_sheet
+    });
   };
 
-  const handleUpdateAccessory = async (id: string, updates: Partial<ExpenseTemplate>) => {
-    const success = await expenseTemplateService.updateTemplate(id, { name: updates.name, default_amount: updates.default_amount });
-    if (success) { setEditingId(null); loadData(); }
+  const startEditingAccessory = (acc: ExpenseTemplate) => {
+    setEditingId(acc.id);
+    setEditFormData({
+      name: acc.name,
+      thickness: 0,
+      price_per_sheet: 0,
+      default_amount: acc.default_amount
+    });
+  };
+
+  const handleUpdateSheet = async (id: string) => {
+    const originalSheet = sheetTypes.find(s => s.id === id);
+    
+    // Optimistic update - update local state immediately
+    setSheetTypes(prev => prev.map(s => 
+      s.id === id 
+        ? { ...s, name: editFormData.name, thickness: editFormData.thickness, price_per_sheet: editFormData.price_per_sheet }
+        : s
+    ));
+    setEditingId(null);
+    
+    // Save to database in background
+    const success = await sheetTypeService.updateSheetType(id, {
+      name: editFormData.name,
+      thickness: editFormData.thickness,
+      price_per_sheet: editFormData.price_per_sheet
+    });
+    
+    if (!success && originalSheet) {
+      // Revert on failure
+      setSheetTypes(prev => prev.map(s => s.id === id ? originalSheet : s));
+      alert('Failed to update sheet type');
+    }
+  };
+
+  const handleUpdateAccessory = async (id: string) => {
+    const originalAcc = accessories.find(a => a.id === id);
+    
+    // Optimistic update - update local state immediately
+    setAccessories(prev => prev.map(a => 
+      a.id === id 
+        ? { ...a, name: editFormData.name, default_amount: editFormData.default_amount || 0 }
+        : a
+    ));
+    setEditingId(null);
+    
+    // Save to database in background
+    const success = await expenseTemplateService.updateTemplate(id, {
+      name: editFormData.name,
+      default_amount: editFormData.default_amount || 0
+    });
+    
+    if (!success && originalAcc) {
+      // Revert on failure
+      setAccessories(prev => prev.map(a => a.id === id ? originalAcc : a));
+      alert('Failed to update accessory');
+    }
+  };
+
+  const cancelEditing = () => {
+    setEditingId(null);
+    setEditFormData({ name: '', thickness: 16, price_per_sheet: 0 });
   };
 
   const handleDeleteSheet = async (id: string) => {
-    if (confirm('Are you sure you want to delete this sheet type?')) {
-      const success = await sheetTypeService.deleteSheetType(id);
-      if (success) loadData();
+    if (!confirm('Are you sure you want to delete this sheet type?')) return;
+    
+    const sheetToDelete = sheetTypes.find(s => s.id === id);
+    
+    // Optimistic update - remove from local state immediately
+    setSheetTypes(prev => prev.filter(s => s.id !== id));
+    
+    // Delete from database in background
+    const success = await sheetTypeService.deleteSheetType(id);
+    
+    if (!success && sheetToDelete) {
+      // Restore on failure
+      setSheetTypes(prev => [...prev, sheetToDelete].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()));
+      alert('Failed to delete sheet type');
     }
   };
 
   const handleDeleteAccessory = async (id: string) => {
-    if (confirm('Are you sure you want to delete this accessory?')) {
-      const success = await expenseTemplateService.deleteTemplate(id);
-      if (success) loadData();
+    if (!confirm('Are you sure you want to delete this accessory?')) return;
+    
+    const accToDelete = accessories.find(a => a.id === id);
+    
+    // Optimistic update - remove from local state immediately
+    setAccessories(prev => prev.filter(a => a.id !== id));
+    
+    // Delete from database in background
+    const success = await expenseTemplateService.deleteTemplate(id);
+    
+    if (!success && accToDelete) {
+      // Restore on failure
+      setAccessories(prev => [...prev, accToDelete].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()));
+      alert('Failed to delete accessory');
     }
   };
 
   if (isLoading) {
-    return <div className="p-4 text-slate-500">Loading sheet types...</div>;
+    return (
+      <div className="space-y-6">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2 uppercase tracking-tight">
+              <Settings2 className="text-amber-500" /> Sheet Types & Materials
+            </h3>
+          </div>
+          <div className="p-8 text-center">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div>
+            <p className="mt-2 text-slate-500 text-sm">Loading sheet types...</p>
+          </div>
+        </div>
+        
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2 uppercase tracking-tight">
+              <Package className="text-blue-500" /> Hardware & Accessories
+            </h3>
+          </div>
+          <div className="p-8 text-center">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+            <p className="mt-2 text-slate-500 text-sm">Loading accessories...</p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -156,13 +307,18 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({ currency = '
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
               {sheetTypes.map((sheetType) => (
-                <tr key={sheetType.id} className="group hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                <tr key={sheetType.id} className={`group hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${sheetType.id.startsWith('temp-') ? 'opacity-50' : ''}`}>
                   {editingId === sheetType.id ? (
                     <>
-                      <td className="px-3 py-3"><input type="text" defaultValue={sheetType.name} onBlur={(e) => handleUpdateSheet(sheetType.id, { name: e.target.value })} className="w-full px-2 py-1 border dark:border-slate-600 rounded text-sm font-bold" autoFocus /></td>
-                      <td className="px-3 py-3"><input type="number" defaultValue={sheetType.thickness} onBlur={(e) => handleUpdateSheet(sheetType.id, { thickness: Number(e.target.value) })} className="w-20 px-2 py-1 border dark:border-slate-600 rounded text-sm" /></td>
-                      <td className="px-3 py-3"><input type="number" defaultValue={sheetType.price_per_sheet} onBlur={(e) => handleUpdateSheet(sheetType.id, { price_per_sheet: Number(e.target.value) })} className="w-24 px-2 py-1 border dark:border-slate-600 rounded text-sm" /></td>
-                      <td className="px-3 py-3 text-right"><button onClick={() => setEditingId(null)} className="p-2 text-slate-400 hover:text-slate-600"><X size={18} /></button></td>
+                      <td className="px-3 py-3"><input type="text" value={editFormData.name} onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })} className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm font-bold bg-white dark:bg-slate-700 text-slate-900 dark:text-white" autoFocus /></td>
+                      <td className="px-3 py-3"><input type="number" value={editFormData.thickness} onChange={(e) => setEditFormData({ ...editFormData, thickness: Number(e.target.value) })} className="w-20 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white" /></td>
+                      <td className="px-3 py-3"><input type="number" value={editFormData.price_per_sheet} onChange={(e) => setEditFormData({ ...editFormData, price_per_sheet: Number(e.target.value) })} className="w-24 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white" /></td>
+                      <td className="px-3 py-3 text-right">
+                        <div className="flex justify-end gap-1">
+                          <button onClick={() => handleUpdateSheet(sheetType.id)} className="p-2 text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg" title="Save"><Save size={16} /></button>
+                          <button onClick={cancelEditing} className="p-2 text-slate-400 hover:text-slate-600" title="Cancel"><X size={18} /></button>
+                        </div>
+                      </td>
                     </>
                   ) : (
                     <>
@@ -171,8 +327,8 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({ currency = '
                       <td className="px-3 py-4 text-slate-900 dark:text-amber-400 font-black">{currency}{sheetType.price_per_sheet.toFixed(2)}</td>
                       <td className="px-3 py-4 text-right">
                         <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => setEditingId(sheetType.id)} className="p-2 text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg"><Edit2 size={16} /></button>
-                          {!sheetType.is_default && <button onClick={() => handleDeleteSheet(sheetType.id)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"><Trash2 size={16} /></button>}
+                          <button onClick={() => startEditingSheet(sheetType)} className="p-2 text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg" title="Edit"><Edit2 size={16} /></button>
+                          {!sheetType.is_default && <button onClick={() => handleDeleteSheet(sheetType.id)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg" title="Delete"><Trash2 size={16} /></button>}
                         </div>
                       </td>
                     </>
@@ -230,12 +386,17 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({ currency = '
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
               {accessories.map((acc) => (
-                <tr key={acc.id} className="group hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                <tr key={acc.id} className={`group hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${acc.id.startsWith('temp-') ? 'opacity-50' : ''}`}>
                   {editingId === acc.id ? (
                     <>
-                      <td className="px-3 py-3"><input type="text" defaultValue={acc.name} onBlur={(e) => handleUpdateAccessory(acc.id, { name: e.target.value })} className="w-full px-2 py-1 border dark:border-slate-600 rounded text-sm font-bold" autoFocus /></td>
-                      <td className="px-3 py-3"><input type="number" defaultValue={acc.default_amount} onBlur={(e) => handleUpdateAccessory(acc.id, { default_amount: Number(e.target.value) })} className="w-24 px-2 py-1 border dark:border-slate-600 rounded text-sm" /></td>
-                      <td className="px-3 py-3 text-right"><button onClick={() => setEditingId(null)} className="p-2 text-slate-400 hover:text-slate-600"><X size={18} /></button></td>
+                      <td className="px-3 py-3"><input type="text" value={editFormData.name} onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })} className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm font-bold bg-white dark:bg-slate-700 text-slate-900 dark:text-white" autoFocus /></td>
+                      <td className="px-3 py-3"><input type="number" value={editFormData.default_amount} onChange={(e) => setEditFormData({ ...editFormData, default_amount: Number(e.target.value) })} className="w-24 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white" /></td>
+                      <td className="px-3 py-3 text-right">
+                        <div className="flex justify-end gap-1">
+                          <button onClick={() => handleUpdateAccessory(acc.id)} className="p-2 text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg" title="Save"><Save size={16} /></button>
+                          <button onClick={cancelEditing} className="p-2 text-slate-400 hover:text-slate-600" title="Cancel"><X size={18} /></button>
+                        </div>
+                      </td>
                     </>
                   ) : (
                     <>
@@ -243,8 +404,8 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({ currency = '
                       <td className="px-3 py-4 text-slate-900 dark:text-blue-400 font-black">{currency}{acc.default_amount.toFixed(2)}</td>
                       <td className="px-3 py-4 text-right">
                         <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => setEditingId(acc.id)} className="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg"><Edit2 size={16} /></button>
-                          <button onClick={() => handleDeleteAccessory(acc.id)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"><Trash2 size={16} /></button>
+                          <button onClick={() => startEditingAccessory(acc)} className="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg" title="Edit"><Edit2 size={16} /></button>
+                          <button onClick={() => handleDeleteAccessory(acc.id)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg" title="Delete"><Trash2 size={16} /></button>
                         </div>
                       </td>
                     </>

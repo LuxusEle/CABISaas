@@ -54,10 +54,14 @@ export const sheetTypeService = {
   },
 
   async updateSheetType(id: string, updates: Partial<SheetType>): Promise<boolean> {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) return false;
+
     const { error } = await supabase
       .from('sheet_types')
       .update(updates)
-      .eq('id', id);
+      .eq('id', id)
+      .eq('user_id', userData.user.id);
 
     if (error) {
       console.error('Error updating sheet type:', error);

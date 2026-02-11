@@ -116,6 +116,8 @@ export const expenseTemplateService = {
   },
 
   async ensureHardwareItemsExist(): Promise<void> {
+    // Default hardware items - only created if they don't already exist in database
+    // Users can edit or delete these after they're created
     const hardwareItems = [
       { name: 'Soft-Close Hinge', amount: 5.00 },
       { name: 'Drawer Slide (Pair)', amount: 15.00 },

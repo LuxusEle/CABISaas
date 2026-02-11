@@ -1428,73 +1428,8 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
   const baseCosts = useMemo(() => calculateProjectCost(data, cutPlan, project.settings), [data, cutPlan, project.settings.costs]);
   const currency = project.settings.currency || '$';
 
-  // State for additional expenses
-  const [additionalExpenses, setAdditionalExpenses] = useState<{ id: string; name: string; amount: number; templateId?: string }[]>([]);
-  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
-
-  // Calculate total including additional expenses
-  const totalAdditional = additionalExpenses.reduce((sum, exp) => sum + exp.amount, 0);
-  const costs = useMemo(() => ({
-    ...baseCosts,
-    totalPrice: baseCosts.totalPrice + totalAdditional
-  }), [baseCosts, totalAdditional]);
-
-  // Load expense templates from database on mount
-  useEffect(() => {
-    const loadTemplates = async () => {
-      setIsLoadingTemplates(true);
-      const templates = await expenseTemplateService.getTemplates();
-      if (templates.length > 0) {
-        // Convert templates to expense format with default amounts
-        setAdditionalExpenses(templates.map(t => ({
-          id: t.id, // Use template ID as expense ID initially
-          name: t.name,
-          amount: t.default_amount,
-          templateId: t.id
-        })));
-      }
-      setIsLoadingTemplates(false);
-    };
-
-    loadTemplates();
-  }, []);
-
-  // Add expense and save as template
-  const handleAddExpense = async () => {
-    const template = await expenseTemplateService.saveTemplate('New Expense', 0);
-    if (template) {
-      setAdditionalExpenses(prev => [...prev, {
-        id: template.id,
-        name: template.name,
-        amount: template.default_amount,
-        templateId: template.id
-      }]);
-    }
-  };
-
-  // Remove expense and delete template
-  const handleRemoveExpense = async (id: string, templateId?: string) => {
-    if (templateId) {
-      await expenseTemplateService.deleteTemplate(templateId);
-    }
-    setAdditionalExpenses(prev => prev.filter(e => e.id !== id));
-  };
-
-  // Update template when name changes
-  const handleUpdateExpenseName = async (id: string, name: string, templateId?: string) => {
-    setAdditionalExpenses(prev => prev.map(e => e.id === id ? { ...e, name } : e));
-    if (templateId) {
-      await expenseTemplateService.updateTemplate(templateId, { name });
-    }
-  };
-
-  // Update template default amount when amount changes
-  const handleUpdateExpenseAmount = async (id: string, amount: number, templateId?: string) => {
-    setAdditionalExpenses(prev => prev.map(e => e.id === id ? { ...e, amount } : e));
-    if (templateId) {
-      await expenseTemplateService.updateTemplate(templateId, { default_amount: amount });
-    }
-  };
+  // Use base costs directly (no additional expenses)
+  const costs = baseCosts;
 
   // Calculate Sheet Summary for Table
   const materialSummary = useMemo(() => {
@@ -1559,9 +1494,6 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
             <div><div className="text-slate-400 text-xs uppercase print:text-black">Material</div><div className="text-lg sm:text-xl font-bold">{currency}{baseCosts.materialCost.toFixed(2)}</div></div>
             <div><div className="text-slate-400 text-xs uppercase print:text-black">Hardware</div><div className="text-lg sm:text-xl font-bold">{currency}{baseCosts.hardwareCost.toFixed(2)}</div></div>
             <div><div className="text-slate-400 text-xs uppercase print:text-black">Labor</div><div className="text-lg sm:text-xl font-bold">{currency}{baseCosts.laborCost.toFixed(2)}</div></div>
-            {totalAdditional > 0 && (
-              <div><div className="text-slate-400 text-xs uppercase print:text-black">Additional</div><div className="text-lg sm:text-xl font-bold">{currency}{totalAdditional.toFixed(2)}</div></div>
-            )}
             <div className="col-span-2 border-t border-slate-700 print:border-black pt-3 mt-2">
               <div className="text-amber-500 text-xs uppercase print:text-black">Total</div>
               <div className="text-2xl sm:text-3xl font-black">{currency}{costs.totalPrice.toFixed(2)}</div>
@@ -1611,46 +1543,8 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
                 <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">-</td>
                 <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
               </tr>
-              {additionalExpenses.map((expense) => (
-                <tr key={expense.id} className="bg-amber-50 dark:bg-amber-900/20 print:bg-amber-50">
-                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">
-                    <input 
-                      type="text" 
-                      value={expense.name}
-                      onChange={(ev) => handleUpdateExpenseName(expense.id, ev.target.value, expense.templateId)}
-                      className="w-full bg-transparent border-b border-dashed border-slate-400 focus:border-amber-500 outline-none print:border-none"
-                      placeholder="Expense name"
-                    />
-                  </td>
-                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">-</td>
-                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">-</td>
-                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">
-                    <input 
-                      type="number" 
-                      value={expense.amount}
-                      onChange={(ev) => handleUpdateExpenseAmount(expense.id, Number(ev.target.value), expense.templateId)}
-                      className="w-20 bg-transparent border-b border-dashed border-slate-400 focus:border-amber-500 outline-none print:border-none font-bold"
-                    />
-                  </td>
-                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">
-                    <button 
-                      onClick={() => handleRemoveExpense(expense.id, expense.templateId)}
-                      className="text-red-500 hover:text-red-700 text-xs font-bold"
-                    >
-                      Remove
-                    </button>
-                  </td>
-                </tr>
-              ))}
             </tbody>
           </table>
-          <button 
-            onClick={handleAddExpense}
-            disabled={isLoadingTemplates}
-            className="mt-3 px-4 py-2 bg-amber-500 text-white text-sm font-bold rounded-lg hover:bg-amber-600 print:hidden flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Plus size={16} /> {isLoadingTemplates ? 'Loading...' : 'Add Expense'}
-          </button>
         </div>
 
         {/* LIST VIEW */}
