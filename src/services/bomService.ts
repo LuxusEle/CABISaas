@@ -21,17 +21,32 @@ const NAILS_PER_HINGE = 4;
 // --- COLLISION LOGIC ---
 
 export const resolveCollisions = (zone: Zone): Zone => {
-  const sortedCabs = [...zone.cabinets].sort((a, b) => a.fromLeft - b.fromLeft);
+  // Sort and create fresh copies to avoid mutating original state
+  const sortedCabs = [...zone.cabinets]
+    .sort((a, b) => a.fromLeft - b.fromLeft)
+    .map(c => ({ ...c }));
 
-  for (let i = 0; i < sortedCabs.length - 1; i++) {
-    const current = sortedCabs[i];
-    const next = sortedCabs[i + 1];
+  for (let i = 1; i < sortedCabs.length; i++) {
+    const next = sortedCabs[i];
+    let maxRight = next.fromLeft;
 
-    const currentRight = current.fromLeft + current.width;
+    for (let j = 0; j < i; j++) {
+      const current = sortedCabs[j];
 
-    if (currentRight > next.fromLeft) {
-      next.fromLeft = currentRight;
+      // Check if they collide vertically (same type or one is Tall)
+      const collideVertically =
+        current.type === next.type ||
+        current.type === CabinetType.TALL ||
+        next.type === CabinetType.TALL;
+
+      if (collideVertically) {
+        const currentRight = current.fromLeft + current.width;
+        if (currentRight > maxRight) {
+          maxRight = currentRight;
+        }
+      }
     }
+    next.fromLeft = maxRight;
   }
 
   return {

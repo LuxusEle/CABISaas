@@ -594,22 +594,31 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
   const [presetFilter, setPresetFilter] = useState<'Base' | 'Wall' | 'Tall'>('Base');
   const [visualMode, setVisualMode] = useState<'elevation' | 'iso'>('elevation');
 
-  const updateZone = (newZone: typeof currentZone, skipHistory = false) => {
+  const updateZone = (newZoneOrTransform: Zone | ((z: Zone) => Zone), skipHistory = false) => {
     if (!skipHistory) {
       saveToHistory();
     }
-    const newZones = [...project.zones];
-    newZones[currentZoneIndex] = newZone;
-    setProject({ ...project, zones: newZones });
+    setProject(prev => {
+      const newZones = [...prev.zones];
+      const idx = newZones.findIndex(z => z.id === activeTab);
+      if (idx !== -1) {
+        const currentZone = newZones[idx];
+        const newZone = typeof newZoneOrTransform === 'function'
+          ? newZoneOrTransform(currentZone)
+          : newZoneOrTransform;
+        newZones[idx] = newZone;
+      }
+      return { ...prev, zones: newZones };
+    });
   };
 
-  const handleDragEnd = () => updateZone(resolveCollisions(currentZone)); // Shove on drop
+  const handleDragEnd = () => updateZone(z => resolveCollisions(z)); // Shove on drop
 
   // AUTO FILL & CLEAR
   const handleAutoFill = () => {
     const msg = "APPLY INTELLIGENT HAFALE LAYOUT?\n\n- Sinks will be centered under windows\n- Sequential numbering (B01, W01) will be reset\n- Storage -> Wash -> Prep -> Cook flow will be applied\n\nContinue?";
     if (window.confirm(msg)) {
-      updateZone(autoFillZone(currentZone, project.settings, currentZone.id));
+      updateZone(z => autoFillZone(z, project.settings, z.id));
     }
   };
 
@@ -784,85 +793,115 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
   };
 
   // Moves
-  const handleCabinetMove = (idx: number, x: number) => { const cabs = [...currentZone.cabinets]; cabs[idx].fromLeft = x; updateZone({ ...currentZone, cabinets: cabs }); };
-  const handleObstacleMove = (idx: number, x: number) => { const obs = [...currentZone.obstacles]; obs[idx].fromLeft = x; updateZone({ ...currentZone, obstacles: obs }); };
+  const handleCabinetMove = (idx: number, x: number) => {
+    updateZone(z => {
+      const cabs = [...z.cabinets];
+      cabs[idx] = { ...cabs[idx], fromLeft: x };
+      return { ...z, cabinets: cabs };
+    });
+  };
+  const handleObstacleMove = (idx: number, x: number) => {
+    updateZone(z => {
+      const obs = [...z.obstacles];
+      obs[idx] = { ...obs[idx], fromLeft: x };
+      return { ...z, obstacles: obs };
+    });
+  };
 
   // Swap two cabinets by exchanging their positions with bounds checking
   const handleSwapCabinets = (index1: number, index2: number) => {
-    const cabs = [...currentZone.cabinets];
-    const cab1 = cabs[index1];
-    const cab2 = cabs[index2];
-    
-    if (!cab1 || !cab2) return;
-    
-    // Get positions and widths
-    const x1 = cab1.fromLeft;
-    const x2 = cab2.fromLeft;
-    const w1 = cab1.width;
-    const w2 = cab2.width;
-    
-    // Check if swap would keep both cabinets within wall bounds
-    const maxPos = currentZone.totalLength;
-    
-    // Calculate new positions after swap
-    const newX1 = x2;
-    const newX2 = x1;
-    
-    // Validate: both cabinets must stay within 0 to maxPos after swap
-    if (newX1 < 0 || newX1 + w1 > maxPos || newX2 < 0 || newX2 + w2 > maxPos) {
-      console.warn('Cannot swap: would place cabinet outside wall bounds');
-      return;
-    }
-    
-    // Validate that swap won't cause collision with other cabinets
-    const otherCabs = cabs.filter((_, idx) => idx !== index1 && idx !== index2);
-    
-    // Check if new position for cab1 collides with any other cabinet
-    for (const other of otherCabs) {
-      const otherStart = other.fromLeft;
-      const otherEnd = otherStart + other.width;
-      const cab1Start = newX1;
-      const cab1End = cab1Start + w1;
+    updateZone(z => {
+      const cabs = z.cabinets.map(c => ({ ...c }));
+      const cab1 = cabs[index1];
+      const cab2 = cabs[index2];
       
-      if (cab1Start < otherEnd && cab1End > otherStart) {
-        console.warn('Cannot swap: would cause collision with other cabinets');
-        return;
+      if (!cab1 || !cab2) return z;
+
+      // Get positions and widths
+      const x1 = cab1.fromLeft;
+      const x2 = cab2.fromLeft;
+      const w1 = cab1.width;
+      const w2 = cab2.width;
+
+      // Check if swap would keep both cabinets within wall bounds
+      const maxPos = z.totalLength;
+
+      // Calculate new positions after swap
+      const newX1 = x2;
+      const newX2 = x1;
+
+      // Validate: both cabinets must stay within 0 to maxPos after swap
+      if (newX1 < 0 || newX1 + w1 > maxPos || newX2 < 0 || newX2 + w2 > maxPos) {
+        console.warn('Cannot swap: would place cabinet outside wall bounds');
+        return z;
       }
-    }
-    
-    // Check if new position for cab2 collides with any other cabinet
-    for (const other of otherCabs) {
-      const otherStart = other.fromLeft;
-      const otherEnd = otherStart + other.width;
-      const cab2Start = newX2;
-      const cab2End = cab2Start + w2;
       
-      if (cab2Start < otherEnd && cab2End > otherStart) {
-        console.warn('Cannot swap: would cause collision with other cabinets');
-        return;
+      // Validate that swap won't cause collision with other cabinets
+      const otherCabs = cabs.filter((_, idx) => idx !== index1 && idx !== index2);
+
+      // Check if new position for cab1 collides with any other cabinet of compatible type
+      for (const other of otherCabs) {
+        const collideVertically =
+          cab1.type === other.type ||
+          cab1.type === CabinetType.TALL ||
+          other.type === CabinetType.TALL;
+
+        if (!collideVertically) continue;
+
+        const otherStart = other.fromLeft;
+        const otherEnd = otherStart + other.width;
+        const cab1Start = newX1;
+        const cab1End = cab1Start + w1;
+
+        if (cab1Start < otherEnd && cab1End > otherStart) {
+          console.warn('Cannot swap: would cause collision with other cabinets');
+          return z;
+        }
       }
-    }
-    
-    // Perform the swap - simply exchange positions
-    cab1.fromLeft = newX1;
-    cab2.fromLeft = newX2;
-    
-    updateZone({ ...currentZone, cabinets: cabs });
+
+      // Check if new position for cab2 collides with any other cabinet of compatible type
+      for (const other of otherCabs) {
+        const collideVertically =
+          cab2.type === other.type ||
+          cab2.type === CabinetType.TALL ||
+          other.type === CabinetType.TALL;
+
+        if (!collideVertically) continue;
+
+        const otherStart = other.fromLeft;
+        const otherEnd = otherStart + other.width;
+        const cab2Start = newX2;
+        const cab2End = cab2Start + w2;
+
+        if (cab2Start < otherEnd && cab2End > otherStart) {
+          console.warn('Cannot swap: would cause collision with other cabinets');
+          return z;
+        }
+      }
+
+      // Perform the swap - simply exchange positions
+      cab1.fromLeft = newX1;
+      cab2.fromLeft = newX2;
+
+      return { ...z, cabinets: cabs };
+    });
   };
 
   // Handler for sequential box input - adds cabinets and re-labels
   const handleSequentialAdd = (newCabinets: CabinetUnit[]) => {
-    const allCabs = [...currentZone.cabinets, ...newCabinets].sort((a, b) => a.fromLeft - b.fromLeft);
-    // Re-number all cabinets
-    let bIdx = 1, wIdx = 1, tIdx = 1;
-    const numbered = allCabs.map(c => {
-      let label = '';
-      if (c.type === CabinetType.BASE) label = `B${String(bIdx++).padStart(2, '0')}`;
-      else if (c.type === CabinetType.WALL) label = `W${String(wIdx++).padStart(2, '0')}`;
-      else label = `T${String(tIdx++).padStart(2, '0')}`;
-      return { ...c, label };
+    updateZone(z => {
+      const allCabs = [...z.cabinets, ...newCabinets].sort((a, b) => a.fromLeft - b.fromLeft);
+      // Re-number all cabinets
+      let bIdx = 1, wIdx = 1, tIdx = 1;
+      const numbered = allCabs.map(c => {
+        let label = '';
+        if (c.type === CabinetType.BASE) label = `B${String(bIdx++).padStart(2, '0')}`;
+        else if (c.type === CabinetType.WALL) label = `W${String(wIdx++).padStart(2, '0')}`;
+        else label = `T${String(tIdx++).padStart(2, '0')}`;
+        return { ...c, label };
+      });
+      return resolveCollisions({ ...z, cabinets: numbered });
     });
-    updateZone(resolveCollisions({ ...currentZone, cabinets: numbered }));
   };
 
   const openAdd = (type: 'cabinet' | 'obstacle') => {
@@ -888,19 +927,34 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
 
   const saveItem = () => {
     if (modalMode.includes('cabinet')) {
-      const items = [...currentZone.cabinets];
-      modalMode === 'add_cabinet' ? items.push({ ...tempCabinet, id: Math.random().toString() }) : items[editIndex] = tempCabinet;
-      updateZone(resolveCollisions({ ...currentZone, cabinets: items }));
+      updateZone(z => {
+        const items = [...z.cabinets];
+        modalMode === 'add_cabinet' ? items.push({ ...tempCabinet, id: Math.random().toString() }) : items[editIndex] = tempCabinet;
+        return resolveCollisions({ ...z, cabinets: items });
+      });
     } else {
-      const items = [...currentZone.obstacles];
-      modalMode === 'add_obstacle' ? items.push({ ...tempObstacle, id: Math.random().toString() }) : items[editIndex] = tempObstacle;
-      updateZone({ ...currentZone, obstacles: items });
+      updateZone(z => {
+        const items = [...z.obstacles];
+        modalMode === 'add_obstacle' ? items.push({ ...tempObstacle, id: Math.random().toString() }) : items[editIndex] = tempObstacle;
+        return { ...z, obstacles: items };
+      });
     }
     setModalMode('none');
   };
   const deleteItem = () => {
-    if (modalMode.includes('cabinet')) { const items = [...currentZone.cabinets]; items.splice(editIndex, 1); updateZone({ ...currentZone, cabinets: items }); }
-    else { const items = [...currentZone.obstacles]; items.splice(editIndex, 1); updateZone({ ...currentZone, obstacles: items }); }
+    if (modalMode.includes('cabinet')) {
+      updateZone(z => {
+        const items = [...z.cabinets];
+        items.splice(editIndex, 1);
+        return { ...z, cabinets: items };
+      });
+    } else {
+      updateZone(z => {
+        const items = [...z.obstacles];
+        items.splice(editIndex, 1);
+        return { ...z, obstacles: items };
+      });
+    }
     setModalMode('none');
   };
 
@@ -936,7 +990,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
         <div className="p-4 space-y-4 overflow-y-auto" style={{ maxHeight: 'calc(70vh - 140px)' }}>
           {/* Wall Length */}
           <div>
-            <NumberInput label="Wall Length" value={currentZone.totalLength} onChange={(e) => updateZone({ ...currentZone, totalLength: e })} step={100} />
+            <NumberInput label="Wall Length" value={currentZone.totalLength} onChange={(e) => updateZone(z => ({ ...z, totalLength: e }))} step={100} />
           </div>
           
           {/* Sequential Builder */}
@@ -973,7 +1027,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
         {/* Desktop SIDEBAR */}
         <div className="hidden md:flex flex-col w-[280px] lg:w-[300px] bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 h-full min-h-0 overflow-y-auto">
           <div className="p-4 border-b border-slate-200 dark:border-slate-800">
-            <NumberInput label="Wall Length" value={currentZone.totalLength} onChange={(e) => updateZone({ ...currentZone, totalLength: e })} step={100} />
+            <NumberInput label="Wall Length" value={currentZone.totalLength} onChange={(e) => updateZone(z => ({ ...z, totalLength: e }))} step={100} />
           </div>
           <div className="p-4 space-y-2 flex-1">
             <div className="flex justify-between items-center">
