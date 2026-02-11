@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { HelpCircle, X, Send, MessageSquare, Bug, Lightbulb, AlertCircle, HelpCircleIcon } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { HelpCircle, X, Send, MessageSquare, Bug, Lightbulb, AlertCircle, HelpCircleIcon, Camera, Trash2, Undo, Check } from 'lucide-react';
 import { feedbackService } from '../services/feedbackService';
+import html2canvas from 'html2canvas';
 
 const FEEDBACK_TYPES = [
   { id: 'suggestion', label: 'Suggestion', icon: Lightbulb, color: 'text-amber-500' },
@@ -10,6 +11,15 @@ const FEEDBACK_TYPES = [
   { id: 'other', label: 'Other', icon: HelpCircleIcon, color: 'text-slate-500' },
 ];
 
+interface Annotation {
+  x: number;
+  y: number;
+  type: 'circle' | 'rectangle' | 'arrow' | 'text';
+  text?: string;
+  endX?: number;
+  endY?: number;
+}
+
 export const HelpButton: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedType, setSelectedType] = useState('suggestion');
@@ -18,64 +28,360 @@ export const HelpButton: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
+  // Screenshot state
+  const [screenshot, setScreenshot] = useState<string | null>(null);
+  const [finalScreenshot, setFinalScreenshot] = useState<string | null>(null);
+  const [isCapturing, setIsCapturing] = useState(false);
+  const [isAnnotating, setIsAnnotating] = useState(false);
+  const [currentTool, setCurrentTool] = useState<'circle' | 'rectangle' | 'arrow' | 'text'>('rectangle');
+  const [annotations, setAnnotations] = useState<Annotation[]>([]);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [startPos, setStartPos] = useState<{ x: number; y: number } | null>(null);
+  const [annotationText, setAnnotationText] = useState('');
+  const [showTextInput, setShowTextInput] = useState(false);
+  const [textPosition, setTextPosition] = useState<{ x: number; y: number } | null>(null);
+
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
+
+  const captureScreenshot = async () => {
+    setIsCapturing(true);
+    try {
+      // Hide the help buttons during capture
+      const helpButtons = document.querySelectorAll('.help-button-container');
+      helpButtons.forEach(el => (el as HTMLElement).style.display = 'none');
+
+      const canvas = await html2canvas(document.body, {
+        ignoreElements: (element) => {
+          return element.classList.contains('help-button-container') ||
+            element.classList.contains('feedback-modal');
+        },
+        useCORS: true,
+        allowTaint: true,
+        logging: false
+      });
+
+      const dataUrl = canvas.toDataURL('image/png');
+      setScreenshot(dataUrl);
+      setIsAnnotating(true);
+      setIsOpen(true);
+
+      // Restore help buttons
+      helpButtons.forEach(el => (el as HTMLElement).style.display = '');
+    } catch (error) {
+      console.error('Error capturing screenshot:', error);
+      alert('Failed to capture screenshot. Please try again.');
+    } finally {
+      setIsCapturing(false);
+    }
+  };
+
+  const getCanvasCoordinates = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!canvasRef.current) return { x: 0, y: 0 };
+
+    const rect = canvasRef.current.getBoundingClientRect();
+    const scaleX = canvasRef.current.width / rect.width;
+    const scaleY = canvasRef.current.height / rect.height;
+
+    return {
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY
+    };
+  };
+
+  const handleCanvasMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!canvasRef.current) return;
+
+    const { x, y } = getCanvasCoordinates(e);
+
+    if (currentTool === 'text') {
+      setTextPosition({ x, y });
+      setShowTextInput(true);
+      return;
+    }
+
+    setIsDrawing(true);
+    setStartPos({ x, y });
+  };
+
+  const handleCanvasMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isDrawing || !startPos || !canvasRef.current) return;
+
+    const { x, y } = getCanvasCoordinates(e);
+
+    drawAnnotations();
+
+    // Draw preview in RED
+    const ctx = canvasRef.current.getContext('2d');
+    if (!ctx) return;
+
+    ctx.strokeStyle = '#ef4444';
+    ctx.lineWidth = 4;
+
+    if (currentTool === 'circle') {
+      const radius = Math.sqrt(Math.pow(x - startPos.x, 2) + Math.pow(y - startPos.y, 2));
+      ctx.beginPath();
+      ctx.arc(startPos.x, startPos.y, radius, 0, 2 * Math.PI);
+      ctx.stroke();
+    } else if (currentTool === 'rectangle') {
+      const width = x - startPos.x;
+      const height = y - startPos.y;
+      ctx.beginPath();
+      ctx.rect(startPos.x, startPos.y, width, height);
+      ctx.stroke();
+    } else if (currentTool === 'arrow') {
+      drawArrow(ctx, startPos.x, startPos.y, x, y);
+    }
+  };
+
+  const handleCanvasMouseUp = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isDrawing || !startPos || !canvasRef.current) return;
+
+    const { x, y } = getCanvasCoordinates(e);
+
+    const newAnnotation: Annotation = {
+      x: startPos.x,
+      y: startPos.y,
+      type: currentTool,
+    };
+
+    if (currentTool === 'circle') {
+      newAnnotation.x = x;
+      newAnnotation.y = y;
+    } else if (currentTool === 'rectangle') {
+      newAnnotation.endX = x;
+      newAnnotation.endY = y;
+    }
+
+    setAnnotations([...annotations, newAnnotation]);
+    setIsDrawing(false);
+    setStartPos(null);
+    drawAnnotations();
+  };
+
+  const drawArrow = (ctx: CanvasRenderingContext2D, fromX: number, fromY: number, toX: number, toY: number) => {
+    const headlen = 15;
+    const angle = Math.atan2(toY - fromY, toX - fromX);
+
+    ctx.beginPath();
+    ctx.moveTo(fromX, fromY);
+    ctx.lineTo(toX, toY);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(toX, toY);
+    ctx.lineTo(toX - headlen * Math.cos(angle - Math.PI / 6), toY - headlen * Math.sin(angle - Math.PI / 6));
+    ctx.lineTo(toX - headlen * Math.cos(angle + Math.PI / 6), toY - headlen * Math.sin(angle + Math.PI / 6));
+    ctx.closePath();
+    ctx.fillStyle = '#ef4444';
+    ctx.fill();
+  };
+
+  const drawAnnotations = () => {
+    if (!canvasRef.current || !imageRef.current) return;
+
+    const ctx = canvasRef.current.getContext('2d');
+    if (!ctx) return;
+
+    // Clear and redraw image
+    ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+    ctx.drawImage(imageRef.current, 0, 0);
+
+    // Draw all annotations in RED
+    ctx.strokeStyle = '#ef4444';
+    ctx.fillStyle = '#ef4444';
+    ctx.lineWidth = 4;
+
+    annotations.forEach((ann) => {
+      if (ann.type === 'circle') {
+        ctx.beginPath();
+        ctx.arc(ann.x, ann.y, 40, 0, 2 * Math.PI);
+        ctx.stroke();
+      } else if (ann.type === 'rectangle' && ann.endX !== undefined && ann.endY !== undefined) {
+        const width = ann.endX - ann.x;
+        const height = ann.endY - ann.y;
+        ctx.beginPath();
+        ctx.rect(ann.x, ann.y, width, height);
+        ctx.stroke();
+      } else if (ann.type === 'arrow' && ann.x && ann.y) {
+        // For stored arrows, we'd need end coordinates. 
+        // Simplified: draw circle for now
+        ctx.beginPath();
+        ctx.arc(ann.x, ann.y, 5, 0, 2 * Math.PI);
+        ctx.fill();
+      } else if (ann.type === 'text' && ann.text) {
+        ctx.font = 'bold 28px sans-serif';
+        ctx.fillStyle = '#ef4444';
+        ctx.fillText(ann.text, ann.x, ann.y);
+      }
+    });
+  };
+
+  const addTextAnnotation = () => {
+    if (!textPosition || !annotationText.trim()) return;
+
+    const newAnnotation: Annotation = {
+      x: textPosition.x,
+      y: textPosition.y,
+      type: 'text',
+      text: annotationText.trim(),
+    };
+
+    setAnnotations([...annotations, newAnnotation]);
+    setAnnotationText('');
+    setShowTextInput(false);
+    setTextPosition(null);
+    drawAnnotations();
+  };
+
+  const clearAnnotations = () => {
+    setAnnotations([]);
+    drawAnnotations();
+  };
+
+  const undoLastAnnotation = () => {
+    setAnnotations(annotations.slice(0, -1));
+    drawAnnotations();
+  };
+
+  // Finalize the screenshot from the canvas before it unmounts
+  const finalizeScreenshot = () => {
+    if (canvasRef.current) {
+      const dataUrl = canvasRef.current.toDataURL('image/png');
+      setFinalScreenshot(dataUrl);
+      console.log('Screenshot finalized from canvas, data URL length:', dataUrl.length);
+    } else {
+      // Fallback to the original screenshot if canvas is gone
+      setFinalScreenshot(screenshot);
+      console.log('Canvas not available, using original screenshot');
+    }
+    setIsAnnotating(false);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!message.trim()) return;
-    
+
+    if (!message.trim() && !screenshot) return;
+
     setIsSubmitting(true);
-    
-    const success = await feedbackService.submitFeedback({
-      type: selectedType as any,
-      message: message.trim(),
-      email: email.trim() || undefined
-    });
-    
+
+    // Convert the finalized screenshot to a blob for upload
+    let screenshotBlob: Blob | undefined;
+    const screenshotDataUrl = finalScreenshot || screenshot;
+    if (screenshotDataUrl) {
+      try {
+        console.log('Converting screenshot data URL to blob, length:', screenshotDataUrl.length);
+        const response = await fetch(screenshotDataUrl);
+        screenshotBlob = await response.blob();
+        console.log('Blob created, size:', screenshotBlob.size, 'type:', screenshotBlob.type);
+      } catch (err) {
+        console.error('Error converting screenshot to blob:', err);
+        alert('Failed to process screenshot. Please try again.');
+        setIsSubmitting(false);
+        return;
+      }
+    }
+
+    const result = await feedbackService.submitFeedback(
+      {
+        type: selectedType as any,
+        message: message.trim() || 'Screenshot attached',
+        email: email.trim() || undefined,
+      },
+      screenshotBlob
+    );
+
     setIsSubmitting(false);
-    
-    if (success) {
+
+    if (result.success) {
       setIsSuccess(true);
       setMessage('');
       setEmail('');
+      setScreenshot(null);
+      setFinalScreenshot(null);
+      setAnnotations([]);
+      setIsAnnotating(false);
       setTimeout(() => {
         setIsSuccess(false);
         setIsOpen(false);
       }, 2000);
     } else {
-      alert('Failed to submit feedback. Please try again.');
+      alert(`Failed to submit feedback: ${result.error}`);
     }
   };
 
+  useEffect(() => {
+    if (isAnnotating && screenshot && canvasRef.current && imageRef.current) {
+      imageRef.current.onload = () => {
+        if (canvasRef.current && imageRef.current) {
+          canvasRef.current.width = imageRef.current.width;
+          canvasRef.current.height = imageRef.current.height;
+          drawAnnotations();
+        }
+      };
+      imageRef.current.src = screenshot;
+    }
+  }, [isAnnotating, screenshot]);
+
+  useEffect(() => {
+    drawAnnotations();
+  }, [annotations]);
+
   return (
     <>
-      {/* Floating Help Button */}
-      <button
-        onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-amber-500 hover:bg-amber-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center group print:hidden"
-        aria-label="Help & Feedback"
-      >
-        <HelpCircle className="w-7 h-7 group-hover:scale-110 transition-transform" />
-      </button>
+      {/* Camera Button */}
+      <div className="help-button-container">
+        <button
+          onClick={captureScreenshot}
+          disabled={isCapturing}
+          className="fixed bottom-24 right-6 z-50 w-12 h-12 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-500 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center group print:hidden"
+          aria-label="Take Screenshot"
+          title="Report an issue with screenshot"
+        >
+          {isCapturing ? (
+            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          ) : (
+            <Camera className="w-5 h-5 group-hover:scale-110 transition-transform" />
+          )}
+        </button>
+      </div>
+
+      {/* Help Button */}
+      <div className="help-button-container">
+        <button
+          onClick={() => {
+            setIsAnnotating(false);
+            setScreenshot(null);
+            setFinalScreenshot(null);
+            setAnnotations([]);
+            setIsOpen(true);
+          }}
+          className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-amber-500 hover:bg-amber-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center group print:hidden"
+          aria-label="Help & Feedback"
+        >
+          <HelpCircle className="w-7 h-7 group-hover:scale-110 transition-transform" />
+        </button>
+      </div>
 
       {/* Feedback Modal */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 print:hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 print:hidden feedback-modal">
           {/* Backdrop */}
-          <div 
+          <div
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             onClick={() => setIsOpen(false)}
           />
-          
+
           {/* Modal Content */}
-          <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto animate-slide-up">
+          <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto animate-slide-up">
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-800">
               <div>
                 <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-                  Help & Feedback
+                  {isAnnotating ? 'Annotate Screenshot' : 'Help & Feedback'}
                 </h2>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                  We'd love to hear from you!
+                  {isAnnotating ? 'Draw on the screenshot to highlight issues' : "We'd love to hear from you!"}
                 </p>
               </div>
               <button
@@ -99,6 +405,119 @@ export const HelpButton: React.FC = () => {
                   Your feedback has been submitted successfully.
                 </p>
               </div>
+            ) : isAnnotating && screenshot ? (
+              <div className="p-6 space-y-4">
+                {/* Annotation Toolbar */}
+                <div className="flex items-center gap-2 p-3 bg-slate-100 dark:bg-slate-800 rounded-lg">
+                  <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 mr-2">
+                    Tools:
+                  </span>
+                  <button
+                    onClick={() => setCurrentTool('rectangle')}
+                    className={`p-2 rounded-lg transition-colors ${currentTool === 'rectangle'
+                      ? 'bg-amber-500 text-white'
+                      : 'hover:bg-slate-200 dark:hover:bg-slate-700'
+                      }`}
+                    title="Rectangle"
+                  >
+                    <div className="w-4 h-4 border-2 border-current" />
+                  </button>
+                  <button
+                    onClick={() => setCurrentTool('text')}
+                    className={`p-2 rounded-lg transition-colors ${currentTool === 'text'
+                      ? 'bg-amber-500 text-white'
+                      : 'hover:bg-slate-200 dark:hover:bg-slate-700'
+                      }`}
+                    title="Add Text"
+                  >
+                    <span className="text-sm font-bold">T</span>
+                  </button>
+                  <div className="w-px h-6 bg-slate-300 dark:bg-slate-600 mx-2" />
+                  <button
+                    onClick={undoLastAnnotation}
+                    disabled={annotations.length === 0}
+                    className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 rounded-lg transition-colors"
+                    title="Undo"
+                  >
+                    <Undo className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={clearAnnotations}
+                    disabled={annotations.length === 0}
+                    className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 rounded-lg transition-colors text-red-500"
+                    title="Clear All"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                  <div className="flex-1" />
+                  <button
+                    onClick={() => {
+                      finalizeScreenshot();
+                      setAnnotations([]);
+                    }}
+                    className="px-3 py-1.5 text-sm text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+                  >
+                    Skip Annotation
+                  </button>
+                </div>
+
+                {/* Canvas with Screenshot */}
+                <div className="relative overflow-auto max-h-[60vh] border border-slate-200 dark:border-slate-700 rounded-lg">
+                  <canvas
+                    ref={canvasRef}
+                    onMouseDown={handleCanvasMouseDown}
+                    onMouseMove={handleCanvasMouseMove}
+                    onMouseUp={handleCanvasMouseUp}
+                    onMouseLeave={handleCanvasMouseUp}
+                    className="cursor-crosshair max-w-full"
+                  />
+                  <img
+                    ref={imageRef}
+                    src={screenshot}
+                    alt="Screenshot"
+                    className="hidden"
+                    crossOrigin="anonymous"
+                  />
+                </div>
+
+                {/* Text Input for Annotations */}
+                {showTextInput && textPosition && (
+                  <div className="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
+                    <input
+                      type="text"
+                      value={annotationText}
+                      onChange={(e) => setAnnotationText(e.target.value)}
+                      placeholder="Enter annotation text..."
+                      className="flex-1 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') addTextAnnotation();
+                        if (e.key === 'Escape') {
+                          setShowTextInput(false);
+                          setTextPosition(null);
+                        }
+                      }}
+                    />
+                    <button
+                      onClick={addTextAnnotation}
+                      className="p-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg"
+                    >
+                      <Check className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+
+                {/* Continue to Feedback Form */}
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => finalizeScreenshot()}
+                    className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg flex items-center gap-2"
+                  >
+                    Continue to Feedback
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
             ) : (
               <form onSubmit={handleSubmit} className="p-6 space-y-6">
                 {/* Feedback Type Selection */}
@@ -114,11 +533,10 @@ export const HelpButton: React.FC = () => {
                           key={type.id}
                           type="button"
                           onClick={() => setSelectedType(type.id)}
-                          className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all ${
-                            selectedType === type.id
-                              ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20'
-                              : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
-                          }`}
+                          className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all ${selectedType === type.id
+                            ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20'
+                            : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+                            }`}
                         >
                           <Icon className={`w-5 h-5 ${type.color}`} />
                           <span className="text-xs font-medium text-slate-700 dark:text-slate-300 text-center">
@@ -130,16 +548,39 @@ export const HelpButton: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Screenshot Preview */}
+                {screenshot && (
+                  <div className="p-3 bg-slate-100 dark:bg-slate-800 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                        Screenshot Attached
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setIsAnnotating(true)}
+                        className="text-sm text-amber-600 hover:text-amber-700 font-medium"
+                      >
+                        Edit Annotation
+                      </button>
+                    </div>
+                    <img
+                      src={screenshot}
+                      alt="Attached screenshot"
+                      className="w-full h-32 object-cover rounded-lg border border-slate-200 dark:border-slate-700"
+                    />
+                  </div>
+                )}
+
                 {/* Message Input */}
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                    Your Message
+                    Your Message <span className="text-slate-400 font-normal">{screenshot ? '(optional)' : '(required)'}</span>
                   </label>
                   <textarea
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     placeholder="Tell us what's on your mind..."
-                    required
+                    required={!screenshot}
                     rows={4}
                     className="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 outline-none resize-none"
                   />
@@ -165,7 +606,7 @@ export const HelpButton: React.FC = () => {
                 {/* Submit Button */}
                 <button
                   type="submit"
-                  disabled={isSubmitting || !message.trim()}
+                  disabled={isSubmitting || (!message.trim() && !screenshot)}
                   className="w-full py-3 px-4 bg-amber-500 hover:bg-amber-600 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2"
                 >
                   {isSubmitting ? (
@@ -188,3 +629,6 @@ export const HelpButton: React.FC = () => {
     </>
   );
 };
+
+// Need to import ArrowRight
+import { ArrowRight } from 'lucide-react';
