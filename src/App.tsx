@@ -467,7 +467,7 @@ const ScreenProjectSetup = ({ project, setProject }: { project: Project, setProj
         </section>
 
         {/* Sheet Types Manager */}
-        <SheetTypeManager />
+        <SheetTypeManager currency={project.settings.currency || '$'} />
       </div>
     </div>
   </div>
@@ -1343,6 +1343,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
                     <MaterialSelector 
                       materials={tempCabinet.materials}
                       onChange={(materials) => setTempCabinet({ ...tempCabinet, materials })}
+                      currency={project.settings.currency || '$'}
                     />
                   </div>
 

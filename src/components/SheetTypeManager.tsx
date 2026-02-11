@@ -2,7 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { SheetType, sheetTypeService } from '../services/sheetTypeService';
 import { Plus, Trash2, Edit2, Save, X } from 'lucide-react';
 
-export const SheetTypeManager: React.FC = () => {
+interface SheetTypeManagerProps {
+  currency?: string;
+}
+
+export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({ currency = '$' }) => {
   const [sheetTypes, setSheetTypes] = useState<SheetType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -197,7 +201,7 @@ export const SheetTypeManager: React.FC = () => {
                   <>
                     <td className="px-3 py-2 text-slate-900 dark:text-slate-100">{sheetType.name}</td>
                     <td className="px-3 py-2 text-slate-600 dark:text-slate-400">{sheetType.thickness}mm</td>
-                    <td className="px-3 py-2 text-slate-600 dark:text-slate-400">${sheetType.price_per_sheet.toFixed(2)}</td>
+                    <td className="px-3 py-2 text-slate-600 dark:text-slate-400">{currency}{sheetType.price_per_sheet.toFixed(2)}</td>
                     <td className="px-3 py-2">
                       <div className="flex gap-2">
                         <button
