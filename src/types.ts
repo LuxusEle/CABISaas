@@ -173,6 +173,14 @@ export enum Screen {
   PRICING = 'pricing'
 }
 
+export interface AutoFillOptions {
+  includeSink: boolean;
+  includeCooker: boolean;
+  includeTall: boolean;
+  includeWallCabinets: boolean;
+  preferDrawers: boolean;
+}
+
 // Subscription Types
 export interface SubscriptionPlan {
   id: string;
