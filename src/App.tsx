@@ -24,6 +24,7 @@ import { projectService } from './services/projectService';
 import { SequentialBoxInput } from './components/SequentialBoxInput';
 import { SheetTypeManager } from './components/SheetTypeManager';
 import { MaterialSelector } from './components/MaterialSelector';
+import { MaterialAllocationPanel } from './components/MaterialAllocationPanel';
 import { PricingPage } from './components/PricingPage';
 import { subscriptionService } from './services/subscriptionService';
 import { HelpButton } from './components/HelpButton';
@@ -468,6 +469,12 @@ const ScreenProjectSetup = ({ project, setProject }: { project: Project, setProj
 
         {/* Sheet Types Manager */}
         <SheetTypeManager currency={project.settings.currency || '$'} />
+
+        {/* Material Allocation */}
+        <MaterialAllocationPanel
+          settings={project.settings}
+          onUpdate={(settings) => setProject({ ...project, settings: { ...project.settings, ...settings } })}
+        />
       </div>
     </div>
   </div>

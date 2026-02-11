@@ -58,6 +58,9 @@ export interface ProjectSettings {
 
   // Costing
   costs: CostSettings;
+  
+  // Material allocation settings
+  materialSettings?: ProjectMaterialSettings;
 }
 
 export interface Obstacle {
@@ -81,9 +84,28 @@ export interface CustomCabinetConfig {
 }
 
 export interface CabinetMaterials {
-  carcassMaterial?: string;  // e.g., "White Melamine 16mm"
-  backPanelMaterial?: string; // e.g., "MDF 6mm"
-  drawerMaterial?: string;    // e.g., "White Melamine 16mm"
+  carcassMaterial?: string;   // Main cabinet box material (sides, top, bottom)
+  doorMaterial?: string;      // Front doors material
+  drawerMaterial?: string;    // Drawer box material
+  backPanelMaterial?: string; // Back panel material
+  shelfMaterial?: string;     // Shelf material
+}
+
+export interface ProjectMaterialSettings {
+  // Default materials for each part type
+  carcassMaterial: string;
+  doorMaterial: string;
+  drawerMaterial: string;
+  backMaterial: string;
+  shelfMaterial: string;
+  
+  // Sheet specifications per material
+  sheetSpecs: Record<string, {
+    width: number;
+    length: number;
+    thickness: number;
+    pricePerSheet: number;
+  }>;
 }
 
 export interface CabinetUnit {
@@ -120,6 +142,8 @@ export interface Project {
   zones: Zone[];
 }
 
+export type PartCategory = 'carcass' | 'door' | 'drawer' | 'shelf' | 'back' | 'bottom' | 'top' | 'side' | 'hardware' | 'other';
+
 export interface BOMItem {
   id: string;
   name: string;
@@ -127,8 +151,31 @@ export interface BOMItem {
   width: number;
   length: number;
   material: string;
+  materialId?: string;
+  category: PartCategory;
   label?: string;
   isHardware?: boolean;
+  cabinetId?: string;
+  cabinetLabel?: string;
+}
+
+export interface MaterialRequirement {
+  materialId: string;
+  materialName: string;
+  thickness: number;
+  parts: BOMItem[];
+  totalArea: number;
+  sheetsNeeded: number;
+  sheetSize: { width: number; length: number };
+  cost: number;
+}
+
+export interface MaterialAllocation {
+  carcassMaterial: string;
+  doorMaterial: string;
+  drawerMaterial: string;
+  backMaterial: string;
+  shelfMaterial: string;
 }
 
 export interface BOMGroup {
