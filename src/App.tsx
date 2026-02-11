@@ -26,6 +26,7 @@ import { SheetTypeManager } from './components/SheetTypeManager';
 import { MaterialSelector } from './components/MaterialSelector';
 import { PricingPage } from './components/PricingPage';
 import { subscriptionService } from './services/subscriptionService';
+import { HelpButton } from './components/HelpButton';
 
 // --- PRINT TITLE BLOCK ---
 const TitleBlock = ({ project, pageTitle }: { project: Project, pageTitle: string }) => (
@@ -324,6 +325,9 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Help Button - Available on all screens */}
+      <HelpButton />
     </div>
   );
 }
