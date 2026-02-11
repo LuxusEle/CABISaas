@@ -79,5 +79,18 @@ export const sheetTypeService = {
     }
 
     return true;
+  },
+
+  async updatePriceByName(name: string, price: number): Promise<boolean> {
+    const { error } = await supabase
+      .from('sheet_types')
+      .update({ price_per_sheet: price })
+      .eq('name', name);
+
+    if (error) {
+      console.error('Error updating price by name:', error);
+      return false;
+    }
+    return true;
   }
 };

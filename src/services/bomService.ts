@@ -1,5 +1,5 @@
 
-import { Project, Zone, CabinetUnit, BOMGroup, BOMItem, CabinetType, PresetType, ProjectSettings, OptimizationResult, Obstacle } from '../types';
+import { Project, Zone, CabinetUnit, BOMGroup, BOMItem, CabinetType, PresetType, ProjectSettings, OptimizationResult, Obstacle, AutoFillOptions } from '../types';
 import type { ConstructionPlanJSON } from '../types/construction';
 
 // Helper to generate unique IDs
@@ -89,7 +89,7 @@ export const autoFillZone = (
   zone: Zone,
   settings: ProjectSettings,
   wallId: string,
-  options: any = { includeSink: true, includeCooker: true, includeTall: false, includeWallCabinets: true, preferDrawers: false }
+  options: AutoFillOptions = { includeSink: true, includeCooker: true, includeTall: false, includeWallCabinets: true, preferDrawers: false }
 ): Zone => {
   const manualCabs = zone.cabinets.filter(c => !c.isAutoFilled);
   const obstacles = zone.obstacles;
@@ -259,6 +259,7 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
   const carcassMaterial = materials.carcassMaterial || `${thickness}mm White`;
   const backPanelMaterial = materials.backPanelMaterial || '6mm MDF';
   const drawerMaterial = materials.drawerMaterial || '16mm White';
+  const doorMaterial = materials.doorMaterial || carcassMaterial;
 
   let height = settings.baseHeight;
   let depth = settings.depthBase;
@@ -320,12 +321,14 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
 
   // Preset Hardware
   if (unit.preset === PresetType.BASE_DOOR) {
+    parts.push({ id: uuid(), name: 'Door', qty: unit.width > 400 ? 2 : 1, width: unit.width > 400 ? (unit.width / 2) - 2 : unit.width - 4, length: height - 4, material: doorMaterial, label: labelPrefix });
     parts.push({ id: uuid(), name: 'Shelf', qty: 1, width: depth - 20, length: horizWidth, material: carcassMaterial, label: labelPrefix });
     parts.push({ id: uuid(), name: HW.HINGE, qty: unit.width > 400 ? 4 : 2, width: 0, length: 0, material: 'Hardware', isHardware: true });
     parts.push({ id: uuid(), name: HW.HANDLE, qty: unit.width > 400 ? 2 : 1, width: 0, length: 0, material: 'Hardware', isHardware: true });
     parts.push({ id: uuid(), name: HW.LEG, qty: 4, width: 0, length: 0, material: 'Hardware', isHardware: true });
   }
   if (unit.preset === PresetType.BASE_DRAWER_3) {
+    parts.push({ id: uuid(), name: 'Drawer Front', qty: 3, width: unit.width - 4, length: Math.round(height / 3) - 4, material: doorMaterial, label: labelPrefix });
     parts.push({ id: uuid(), name: 'Drawer Bottom', qty: 3, width: depth - 50, length: horizWidth - 26, material: drawerMaterial, label: labelPrefix });
     parts.push({ id: uuid(), name: 'Drawer Side', qty: 6, width: depth - 10, length: 150, material: drawerMaterial, label: labelPrefix });
     parts.push({ id: uuid(), name: HW.SLIDE, qty: 3, width: 0, length: 0, material: 'Hardware', isHardware: true });
@@ -333,6 +336,7 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
     parts.push({ id: uuid(), name: HW.LEG, qty: 4, width: 0, length: 0, material: 'Hardware', isHardware: true });
   }
   if (unit.preset === PresetType.WALL_STD) {
+    parts.push({ id: uuid(), name: 'Door', qty: unit.width > 400 ? 2 : 1, width: unit.width > 400 ? (unit.width / 2) - 2 : unit.width - 4, length: height - 4, material: doorMaterial, label: labelPrefix });
     parts.push({ id: uuid(), name: 'Shelf', qty: 2, width: depth - 20, length: horizWidth, material: carcassMaterial, label: labelPrefix });
     parts.push({ id: uuid(), name: HW.HINGE, qty: unit.width > 400 ? 4 : 2, width: 0, length: 0, material: 'Hardware', isHardware: true });
     parts.push({ id: uuid(), name: HW.HANDLE, qty: unit.width > 400 ? 2 : 1, width: 0, length: 0, material: 'Hardware', isHardware: true });

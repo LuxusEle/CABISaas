@@ -84,6 +84,7 @@ export interface CabinetMaterials {
   carcassMaterial?: string;  // e.g., "White Melamine 16mm"
   backPanelMaterial?: string; // e.g., "MDF 6mm"
   drawerMaterial?: string;    // e.g., "White Melamine 16mm"
+  doorMaterial?: string;      // e.g., "High Gloss White"
 }
 
 export interface CabinetUnit {
