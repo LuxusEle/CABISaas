@@ -5,6 +5,7 @@ import { Screen, Project, Zone, ZoneId, PresetType, CabinetType, CabinetUnit, Ob
 import { createNewProject, generateProjectBOM, autoFillZone, exportToExcel, resolveCollisions, calculateProjectCost, exportProjectToConstructionJSON, buildProjectConstructionData, getIntersectingCabinets } from './services/bomService';
 import { optimizeCuts } from './services/nestingService';
 import { authService } from './services/authService';
+import { expenseTemplateService, ExpenseTemplate } from './services/expenseTemplateService';
 import type { User } from '@supabase/supabase-js';
 
 // Components
@@ -28,31 +29,28 @@ import { HelpButton } from './components/HelpButton';
 
 // --- PRINT TITLE BLOCK ---
 const TitleBlock = ({ project, pageTitle }: { project: Project, pageTitle: string }) => (
-  <div className="hidden print:flex fixed bottom-0 left-0 right-0 border-t-4 border-black bg-white h-32 text-xs font-sans items-stretch z-50">
-    <div className="w-1/4 border-r-2 border-black p-4 flex flex-col justify-between">
-      <div className="font-black text-3xl tracking-tighter leading-none italic uppercase">LUXUS<span className="text-slate-400">DESIGN</span></div>
+  <div className="hidden print:flex fixed bottom-0 left-0 right-0 border-t-4 border-black bg-white h-16 text-xs font-sans items-stretch z-50">
+    <div className="w-1/4 border-r-2 border-black p-2 flex flex-col justify-between">
+      <div className="font-black text-xl tracking-tighter leading-none italic uppercase">LUXUS<span className="text-slate-400">DESIGN</span></div>
       <div className="text-[8px] leading-tight text-slate-500 uppercase tracking-widest font-bold">Construction Document / Automated BOM</div>
     </div>
     <div className="flex-1 grid grid-cols-4 border-r-2 border-black">
       <div className="border-r border-black p-2 flex flex-col justify-between">
         <label className="text-[6px] uppercase font-bold text-slate-400">Client / Project</label>
-        <div className="font-bold text-lg uppercase truncate">{project.company}</div>
+        <div className="font-bold text-sm uppercase truncate">{project.company}</div>
       </div>
       <div className="border-r border-black p-2 flex flex-col justify-between">
         <label className="text-[6px] uppercase font-bold text-slate-400">Drawing Name</label>
-        <div className="font-bold text-lg uppercase truncate">{pageTitle}</div>
+        <div className="font-bold text-sm uppercase truncate">{pageTitle}</div>
       </div>
       <div className="border-r border-black p-2 flex flex-col justify-between">
         <label className="text-[6px] uppercase font-bold text-slate-400">Date</label>
-        <div className="font-bold text-lg">{new Date().toLocaleDateString()}</div>
+        <div className="font-bold text-sm">{new Date().toLocaleDateString()}</div>
       </div>
       <div className="p-2 flex flex-col justify-between">
         <label className="text-[6px] uppercase font-bold text-slate-400">Scale</label>
-        <div className="font-bold text-lg">AS NOTED</div>
+        <div className="font-bold text-sm">AS NOTED</div>
       </div>
-    </div>
-    <div className="w-24 bg-black text-white p-4 flex items-center justify-center">
-      <div className="text-5xl font-black">6</div>
     </div>
   </div>
 );
@@ -1470,6 +1468,16 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
   // Use base costs directly (no additional expenses)
   const costs = baseCosts;
 
+  // Load accessories from database
+  const [accessories, setAccessories] = useState<ExpenseTemplate[]>([]);
+  useEffect(() => {
+    const loadAccessories = async () => {
+      const templates = await expenseTemplateService.getTemplates();
+      setAccessories(templates);
+    };
+    loadAccessories();
+  }, []);
+
   // Calculate Sheet Summary for Table
   const materialSummary = useMemo(() => {
     const summary: Record<string, { sheets: number, waste: number, area: number }> = {};
@@ -1517,7 +1525,7 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-8 space-y-6 sm:space-y-8 bg-white dark:bg-slate-950 print:p-0 print:overflow-visible h-full">
+      <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-8 space-y-6 sm:space-y-8 bg-white dark:bg-slate-950 print:p-4 print:pb-24 print:overflow-visible h-full">
         <div className="border-b border-slate-200 dark:border-slate-800 pb-4 sm:pb-6 print:block flex flex-col sm:flex-row justify-between items-start gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">{project.company || "Cabinet Project"}</h1>
@@ -1582,6 +1590,15 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
                 <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">-</td>
                 <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
               </tr>
+              {accessories.map((acc) => (
+                <tr key={acc.id} className="bg-blue-50 dark:bg-blue-900/20 print:bg-blue-50">
+                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">{acc.name}</td>
+                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">-</td>
+                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">1</td>
+                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">{currency}{acc.default_amount.toFixed(2)}</td>
+                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
@@ -1633,39 +1650,82 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
 
         {/* WALL PLAN VIEW */}
         <div className={activeView === 'wallplan' ? 'block' : 'hidden print:block print:break-before-page'}>
-          <h2 className="text-2xl sm:text-4xl font-black uppercase mb-4 sm:mb-8 tracking-tighter">III. Wall Elevations</h2>
-          <div className="space-y-12">
-            {project.zones.filter(z => z.active).map((zone) => (
-              <div key={zone.id} className="print:break-after-page border-4 sm:border-8 border-black p-4 sm:p-8 bg-white min-h-[800px] flex flex-col">
-                <h3 className="text-lg sm:text-2xl font-black uppercase mb-3 sm:mb-4 border-b-2 sm:border-b-4 border-black pb-2 tracking-widest">{zone.id}</h3>
-                <div className="h-[300px] sm:h-[450px] mb-8 border-2 border-slate-100 bg-slate-50 print:bg-white print:border-black shrink-0">
-                  <WallVisualizer zone={zone} height={project.settings.tallHeight + 200} hideArrows={true} />
+          <h2 className="text-2xl sm:text-4xl font-black uppercase mb-4 sm:mb-8 tracking-tighter print:hidden">III. Wall Elevations</h2>
+          <div className="space-y-12 print:space-y-0">
+            {project.zones.filter(z => z.active).map((zone, zoneIndex) => (
+              <div key={zone.id} className={`${zoneIndex > 0 ? 'print:break-before-page' : ''}`}>
+                {/* PRINT VIEW: Table first, then visualization */}
+                <div className="hidden print:block">
+                  {/* Page 1: Unit Schedule Table */}
+                  <div className="border-4 border-black p-4 bg-white min-h-[calc(100vh-80px)]">
+                    <h3 className="text-xl font-black uppercase mb-4 border-b-2 border-black pb-2 tracking-widest">{zone.id} - Unit Schedule</h3>
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Unit Schedule</h4>
+                      <table className="w-full text-sm text-left uppercase font-bold border-collapse">
+                        <thead>
+                          <tr className="border-b-2 border-black text-slate-500">
+                            <th className="pb-2">POS</th>
+                            <th className="pb-2">Description</th>
+                            <th className="pb-2 text-right">Width</th>
+                            <th className="pb-2 text-right">Type</th>
+                            <th className="pb-2 text-right">Qty</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-black/10">
+                          {zone.cabinets.sort((a, b) => (a.label || '').localeCompare(b.label || '')).map((cab, idx) => (
+                            <tr key={idx}>
+                              <td className="py-3 text-amber-600 font-black italic">{cab.label}</td>
+                              <td className="py-3 font-black tracking-tight">{cab.preset}</td>
+                              <td className="py-3 text-right font-mono">{cab.width}mm</td>
+                              <td className="py-3 text-right text-xs opacity-60">{cab.type}</td>
+                              <td className="py-3 text-right">1</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                  
+                  {/* Page 2: Wall Visualization - full page, no title */}
+                  <div className="bg-white w-full h-[calc(100vh-80px)] flex flex-col items-center justify-start">
+                    <div className="w-full flex items-center justify-center pt-16" style={{ transform: 'scale(0.9)', transformOrigin: 'top center', maxHeight: '100%' }}>
+                      <WallVisualizer zone={zone} height={project.settings.tallHeight + 200} hideArrows={true} />
+                    </div>
+                  </div>
                 </div>
-                {/* Legend Table */}
-                <div className="flex-1">
-                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Unit Schedule</h4>
-                  <table className="w-full text-[10px] text-left uppercase font-bold border-collapse">
-                    <thead>
-                      <tr className="border-b-4 border-black text-slate-500">
-                        <th className="pb-2">POS</th>
-                        <th className="pb-2">Description</th>
-                        <th className="pb-2 text-right">Width</th>
-                        <th className="pb-2 text-right">Type</th>
-                        <th className="pb-2 text-right">Qty</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y-2 divide-black/10">
-                      {zone.cabinets.sort((a, b) => (a.label || '').localeCompare(b.label || '')).map((cab, idx) => (
-                        <tr key={idx}>
-                          <td className="py-3 text-amber-600 font-black italic text-sm">{cab.label}</td>
-                          <td className="py-3 font-black tracking-tight">{cab.preset}</td>
-                          <td className="py-3 text-right font-mono">{cab.width}mm</td>
-                          <td className="py-3 text-right text-[8px] opacity-60">{cab.type}</td>
-                          <td className="py-3 text-right">1</td>
+                
+                {/* SCREEN VIEW: Original layout */}
+                <div className="border-4 sm:border-8 border-black p-3 sm:p-4 bg-white flex flex-col print:hidden">
+                  <h3 className="text-base sm:text-xl font-black uppercase mb-2 sm:mb-3 border-b-2 border-black pb-1 tracking-widest">{zone.id}</h3>
+                  <div className="h-[260px] sm:h-[380px] mb-4 border-2 border-slate-100 bg-slate-50 print:bg-white print:border-black shrink-0 overflow-hidden">
+                    <WallVisualizer zone={zone} height={project.settings.tallHeight + 100} hideArrows={true} />
+                  </div>
+                  {/* Legend Table */}
+                  <div className="flex-1 overflow-hidden">
+                    <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Unit Schedule</h4>
+                    <table className="w-full text-[9px] text-left uppercase font-bold border-collapse">
+                      <thead>
+                        <tr className="border-b-2 border-black text-slate-500">
+                          <th className="pb-1">POS</th>
+                          <th className="pb-1">Description</th>
+                          <th className="pb-1 text-right">Width</th>
+                          <th className="pb-1 text-right">Type</th>
+                          <th className="pb-1 text-right">Qty</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-black/10">
+                        {zone.cabinets.sort((a, b) => (a.label || '').localeCompare(b.label || '')).map((cab, idx) => (
+                          <tr key={idx}>
+                            <td className="py-2 text-amber-600 font-black italic text-xs">{cab.label}</td>
+                            <td className="py-2 font-black tracking-tight">{cab.preset}</td>
+                            <td className="py-2 text-right font-mono">{cab.width}mm</td>
+                            <td className="py-2 text-right text-[7px] opacity-60">{cab.type}</td>
+                            <td className="py-2 text-right">1</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
             ))}
