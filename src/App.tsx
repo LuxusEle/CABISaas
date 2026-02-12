@@ -1,11 +1,10 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Home, Layers, Calculator, Zap, ArrowLeft, ArrowRight, Trash2, Plus, Box, DoorOpen, Wand2, Moon, Sun, Table2, FileSpreadsheet, X, Pencil, Save, List, Settings, Printer, Download, Scissors, LayoutDashboard, DollarSign, Map, LogOut, Menu, Wrench, CreditCard } from 'lucide-react';
-import { Screen, Project, ZoneId, PresetType, CabinetType, CabinetUnit, Obstacle, AutoFillOptions } from './types';
+import { Home, Layers, Calculator, Zap, ArrowLeft, ArrowRight, Trash2, Plus, Box, DoorOpen, Wand2, Moon, Sun, Table2, FileSpreadsheet, X, Pencil, Save, List, Settings, Printer, Download, Scissors, LayoutDashboard, DollarSign, Map, LogOut, Menu, Wrench, CreditCard, ChevronDown, ChevronUp, FileText, Ruler } from 'lucide-react';
+import { Screen, Project, Zone, ZoneId, PresetType, CabinetType, CabinetUnit, Obstacle, AutoFillOptions } from './types';
 import { createNewProject, generateProjectBOM, autoFillZone, exportToExcel, resolveCollisions, calculateProjectCost, exportProjectToConstructionJSON, buildProjectConstructionData, getIntersectingCabinets } from './services/bomService';
 import { optimizeCuts } from './services/nestingService';
 import { authService } from './services/authService';
-import { expenseTemplateService, ExpenseTemplate } from './services/expenseTemplateService';
 import type { User } from '@supabase/supabase-js';
 
 // Components
@@ -17,7 +16,6 @@ import { IsometricVisualizer } from './components/IsometricVisualizer';
 import { KitchenPlanCanvas } from './components/KitchenPlanCanvas.tsx';
 import { AuthModal } from './components/AuthModal';
 import { CustomCabinetEditor } from './components/CustomCabinetEditor';
-import { CustomCabinetLibrary } from './components/CustomCabinetLibrary';
 import { LandingPage } from './components/LandingPage';
 import { customCabinetService } from './services/customCabinetService';
 import { projectService } from './services/projectService';
@@ -26,7 +24,6 @@ import { SheetTypeManager } from './components/SheetTypeManager';
 import { MaterialSelector } from './components/MaterialSelector';
 import { MaterialAllocationPanel } from './components/MaterialAllocationPanel';
 import { PricingPage } from './components/PricingPage';
-import { subscriptionService } from './services/subscriptionService';
 import { HelpButton } from './components/HelpButton';
 
 // --- PRINT TITLE BLOCK ---
@@ -215,8 +212,8 @@ export default function App() {
       <div className="md:hidden h-14 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 shrink-0 z-40 print:hidden">
         <div className="font-black text-lg">CAB<span className="text-amber-500">ENGINE</span></div>
         <div className="flex items-center gap-2">
-          <button 
-            onClick={() => setShowAuthModal(true)} 
+          <button
+            onClick={() => setShowAuthModal(true)}
             className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
             title={user?.email || "Login"}
           >
@@ -230,36 +227,36 @@ export default function App() {
         {/* DESKTOP SIDEBAR - Hidden on landing page */}
         {screen !== Screen.LANDING && (
           <aside className="hidden md:flex w-20 flex-col items-center py-6 bg-slate-900 border-r border-slate-800 shrink-0 z-50 print:hidden">
-          <div className="mb-8 text-amber-500"><LayoutDashboard size={28} /></div>
-          <nav className="flex flex-col gap-6 w-full px-2">
-            <NavButton active={screen === Screen.DASHBOARD} onClick={() => setScreen(Screen.DASHBOARD)} icon={<Home size={24} />} label="Home" />
-            <NavButton active={screen === Screen.PROJECT_SETUP} onClick={() => requireAuth(() => setScreen(Screen.PROJECT_SETUP))} icon={<Settings size={24} />} label="Setup" />
-            <NavButton active={screen === Screen.WALL_EDITOR} onClick={() => requireAuth(() => setScreen(Screen.WALL_EDITOR))} icon={<Box size={24} />} label="Walls" />
-            <NavButton active={screen === Screen.BOM_REPORT} onClick={() => requireAuth(() => setScreen(Screen.BOM_REPORT))} icon={<Table2 size={24} />} label="BOM" />
-            <NavButton active={screen === Screen.TOOLS} onClick={() => requireAuth(() => setScreen(Screen.TOOLS))} icon={<Map size={24} />} label="Plan" />
-            <NavButton active={screen === Screen.PRICING} onClick={() => requireAuth(() => setScreen(Screen.PRICING))} icon={<CreditCard size={24} />} label="Pricing" />
-          </nav>
-          <div className="mt-auto flex flex-col gap-2">
-            {user ? (
-              <button
-                onClick={() => setShowAuthModal(true)}
-                className="p-3 rounded-xl bg-slate-800 text-amber-500 hover:bg-slate-700 transition-colors"
-                title={user.email}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
-              </button>
-            ) : (
-              <button
-                onClick={() => setShowAuthModal(true)}
-                className="p-3 rounded-xl bg-slate-800 text-slate-400 hover:bg-slate-700 transition-colors"
-                title="Login"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
-              </button>
-            )}
-            <button onClick={toggleTheme} className="p-3 rounded-xl bg-slate-800 text-amber-500 hover:bg-slate-700 transition-colors">{isDark ? <Sun size={20} /> : <Moon size={20} />}</button>
-          </div>
-        </aside>
+            <div className="mb-8 text-amber-500"><LayoutDashboard size={28} /></div>
+            <nav className="flex flex-col gap-6 w-full px-2">
+              <NavButton active={screen === Screen.DASHBOARD} onClick={() => setScreen(Screen.DASHBOARD)} icon={<Home size={24} />} label="Home" />
+              <NavButton active={screen === Screen.PROJECT_SETUP} onClick={() => requireAuth(() => setScreen(Screen.PROJECT_SETUP))} icon={<Settings size={24} />} label="Setup" />
+              <NavButton active={screen === Screen.WALL_EDITOR} onClick={() => requireAuth(() => setScreen(Screen.WALL_EDITOR))} icon={<Box size={24} />} label="Walls" />
+              <NavButton active={screen === Screen.BOM_REPORT} onClick={() => requireAuth(() => setScreen(Screen.BOM_REPORT))} icon={<Table2 size={24} />} label="BOM" />
+              <NavButton active={screen === Screen.TOOLS} onClick={() => requireAuth(() => setScreen(Screen.TOOLS))} icon={<Map size={24} />} label="Plan" />
+              <NavButton active={screen === Screen.PRICING} onClick={() => requireAuth(() => setScreen(Screen.PRICING))} icon={<CreditCard size={24} />} label="Pricing" />
+            </nav>
+            <div className="mt-auto flex flex-col gap-2">
+              {user ? (
+                <button
+                  onClick={() => setShowAuthModal(true)}
+                  className="p-3 rounded-xl bg-slate-800 text-amber-500 hover:bg-slate-700 transition-colors"
+                  title={user.email}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+                </button>
+              ) : (
+                <button
+                  onClick={() => setShowAuthModal(true)}
+                  className="p-3 rounded-xl bg-slate-800 text-slate-400 hover:bg-slate-700 transition-colors"
+                  title="Login"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+                </button>
+              )}
+              <button onClick={toggleTheme} className="p-3 rounded-xl bg-slate-800 text-amber-500 hover:bg-slate-700 transition-colors">{isDark ? <Sun size={20} /> : <Moon size={20} />}</button>
+            </div>
+          </aside>
         )}
 
         {/* MAIN */}
@@ -477,9 +474,9 @@ const ScreenPlanView = ({ project }: { project: Project }) => {
 
 const ScreenProjectSetup = ({ project, setProject }: { project: Project, setProject: React.Dispatch<React.SetStateAction<Project>> }) => {
   // State to track which section is expanded - only one at a time
-  const [expandedSection, setExpandedSection] = useState<'sheetTypes' | 'accessories' | 'allocation' | null>('sheetTypes');
+  const [expandedSection, setExpandedSection] = useState<'projectInfo' | 'sheetTypes' | 'accessories' | 'allocation' | null>('projectInfo');
 
-  const toggleSection = (section: 'sheetTypes' | 'accessories' | 'allocation') => {
+  const toggleSection = (section: 'projectInfo' | 'sheetTypes' | 'accessories' | 'allocation') => {
     setExpandedSection(prev => prev === section ? null : section);
   };
 
@@ -489,42 +486,67 @@ const ScreenProjectSetup = ({ project, setProject }: { project: Project, setProj
         <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8">
           <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mb-2 sm:mb-4">Project Setup</h2>
 
-          <section className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-4">
-            <h3 className="text-slate-500 font-bold uppercase text-xs tracking-wider mb-2">Project Info</h3>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-400">Project Name</label>
-                <input className="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border dark:border-slate-700 dark:text-white text-sm sm:text-base min-h-[48px]" value={project.name} onChange={e => setProject({ ...project, name: e.target.value })} />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-400">Company Name</label>
-                <input className="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border dark:border-slate-700 dark:text-white text-sm sm:text-base min-h-[48px]" value={project.company} onChange={e => setProject({ ...project, company: e.target.value })} />
-              </div>
+          {/* Project Info & Dimensions - Combined Collapsible Menu */}
+          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+            {/* Header - Always visible */}
+            <div
+              className="flex justify-between items-center p-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+              onClick={() => toggleSection('projectInfo')}
+            >
+              <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2 uppercase tracking-tight">
+                <FileText className="text-teal-500" /> Project Info & Dimensions
+              </h3>
+              <button className={`p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-transform duration-300 ${expandedSection === 'projectInfo' ? 'rotate-180' : ''}`}>
+                <ChevronDown size={20} />
+              </button>
             </div>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-400">Currency Symbol</label>
-                <input className="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border dark:border-slate-700 dark:text-white text-sm sm:text-base min-h-[48px]" value={project.settings.currency} onChange={e => setProject({ ...project, settings: { ...project.settings, currency: e.target.value } })} placeholder="$" />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-400">Logo URL (Optional)</label>
-                <input className="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border dark:border-slate-700 dark:text-white text-sm sm:text-base min-h-[48px]" value={project.settings.logoUrl || ''} onChange={e => setProject({ ...project, settings: { ...project.settings, logoUrl: e.target.value } })} placeholder="https://..." />
-              </div>
-            </div>
-          </section>
 
-          <section className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-4 sm:space-y-6">
-            <h3 className="text-slate-500 font-bold uppercase text-xs tracking-wider mb-2 sm:mb-4">Dimensions & Nesting</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
-              <NumberInput label="Base Height" value={project.settings.baseHeight} onChange={(v) => setProject({ ...project, settings: { ...project.settings, baseHeight: v } })} step={10} />
-              <NumberInput label="Sheet Length" value={project.settings.sheetLength} onChange={(v) => setProject({ ...project, settings: { ...project.settings, sheetLength: v } })} step={100} />
-              <NumberInput label="Sheet Width" value={project.settings.sheetWidth} onChange={(v) => setProject({ ...project, settings: { ...project.settings, sheetWidth: v } })} step={100} />
+            {/* Content - Collapsible with animation */}
+            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${expandedSection === 'projectInfo' ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
+              <div className="p-4 pt-0 space-y-6">
+                {/* Project Info Section */}
+                <div className="space-y-4">
+                  <h4 className="text-slate-500 font-bold uppercase text-xs tracking-wider">Project Info</h4>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-400">Project Name</label>
+                      <input className="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border dark:border-slate-700 dark:text-white text-sm sm:text-base min-h-[48px]" value={project.name} onChange={e => setProject({ ...project, name: e.target.value })} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-400">Company Name</label>
+                      <input className="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border dark:border-slate-700 dark:text-white text-sm sm:text-base min-h-[48px]" value={project.company} onChange={e => setProject({ ...project, company: e.target.value })} />
+                    </div>
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-400">Currency Symbol</label>
+                      <input className="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border dark:border-slate-700 dark:text-white text-sm sm:text-base min-h-[48px]" value={project.settings.currency} onChange={e => setProject({ ...project, settings: { ...project.settings, currency: e.target.value } })} placeholder="$" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-400">Logo URL (Optional)</label>
+                      <input className="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border dark:border-slate-700 dark:text-white text-sm sm:text-base min-h-[48px]" value={project.settings.logoUrl || ''} onChange={e => setProject({ ...project, settings: { ...project.settings, logoUrl: e.target.value } })} placeholder="https://..." />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Dimensions & Nesting Section */}
+                <div className="space-y-4">
+                  <h4 className="text-slate-500 font-bold uppercase text-xs tracking-wider flex items-center gap-2">
+                    <Ruler size={14} /> Dimensions & Nesting
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    <NumberInput label="Base Height" value={project.settings.baseHeight} onChange={(v) => setProject({ ...project, settings: { ...project.settings, baseHeight: v } })} step={10} />
+                    <NumberInput label="Sheet Length" value={project.settings.sheetLength} onChange={(v) => setProject({ ...project, settings: { ...project.settings, sheetLength: v } })} step={100} />
+                    <NumberInput label="Sheet Width" value={project.settings.sheetWidth} onChange={(v) => setProject({ ...project, settings: { ...project.settings, sheetWidth: v } })} step={100} />
+                  </div>
+                </div>
+              </div>
             </div>
-          </section>
+          </div>
 
           {/* Sheet Types Manager */}
-          <SheetTypeManager 
-            currency={project.settings.currency || '$'} 
+          <SheetTypeManager
+            currency={project.settings.currency || '$'}
             sheetTypesExpanded={expandedSection === 'sheetTypes'}
             accessoriesExpanded={expandedSection === 'accessories'}
             onToggleSheetTypes={() => toggleSection('sheetTypes')}
@@ -559,7 +581,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
   const [customCabinets, setCustomCabinets] = useState<any[]>([]);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [mobileTableCollapsed, setMobileTableCollapsed] = useState(true);
-  
+
   // Undo/Redo history
   const [history, setHistory] = useState<{ zones: typeof project.zones; timestamp: number }[]>([]);
   const [redoStack, setRedoStack] = useState<{ zones: typeof project.zones; timestamp: number }[]>([]);
@@ -774,7 +796,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
       const cabs = z.cabinets.map(c => ({ ...c }));
       const cab1 = cabs[index1];
       const cab2 = cabs[index2];
-      
+
       if (!cab1 || !cab2) return z;
 
       const x1 = cab1.fromLeft;
@@ -894,11 +916,11 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
           <div className="absolute inset-0 bg-black/60" />
         </div>
       )}
-      
+
       {/* Mobile Bottom Sheet - Menu Only */}
-      <div 
+      <div
         className={`fixed md:hidden left-0 right-0 bg-white dark:bg-slate-900 rounded-t-3xl z-50 transform transition-transform duration-300 ease-out shadow-2xl ${mobileSidebarOpen ? 'translate-y-0' : 'translate-y-full'}`}
-        style={{ 
+        style={{
           bottom: 'calc(env(safe-area-inset-bottom) + 80px)',
           maxHeight: 'calc(70vh - env(safe-area-inset-bottom))'
         }}
@@ -918,7 +940,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
           <div>
             <NumberInput label="Wall Length" value={currentZone.totalLength} onChange={(e) => updateZone(z => ({ ...z, totalLength: e }))} step={100} />
           </div>
-          
+
           {/* Sequential Builder */}
           <div className="border-t border-slate-200 dark:border-slate-800 pt-4">
             <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Sequential Builder</h3>
@@ -935,7 +957,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
               }}
             />
           </div>
-          
+
           {/* Calculate BOM */}
           <Button size="xl" variant="primary" className="w-full font-black min-h-[64px] text-xl mb-4" onClick={() => { setMobileSidebarOpen(false); setScreen(Screen.BOM_REPORT); }}>
             CALCULATE BOM
@@ -945,7 +967,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
           <Button size="lg" variant="danger" className="w-full min-h-[56px] font-bold" onClick={() => { clearZone(); setMobileSidebarOpen(false); }}>
             <Trash2 size={20} className="mr-2" /> Clear Zone
           </Button>
-          
+
         </div>
       </div>
 
@@ -1007,22 +1029,22 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
               {/* Left: Zone Tabs */}
               <div className="flex items-center gap-1">
                 {project.zones.map(z => (
-                  <button 
-                    key={z.id} 
-                    onClick={() => setActiveTab(z.id)} 
+                  <button
+                    key={z.id}
+                    onClick={() => setActiveTab(z.id)}
                     className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-all whitespace-nowrap min-h-[44px] ${activeTab === z.id ? 'bg-white dark:bg-slate-950 text-amber-500 shadow-sm border-t-2 border-amber-500' : 'text-slate-500 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300'}`}
                   >
                     {z.id}
                   </button>
                 ))}
-                <button 
-                  onClick={addZone} 
+                <button
+                  onClick={addZone}
                   className="px-4 py-2 text-sm font-bold rounded-t-lg bg-slate-200 dark:bg-slate-800 text-slate-500 hover:text-amber-500 transition-colors min-h-[44px]"
                 >
                   +
                 </button>
               </div>
-              
+
               {/* Center: View Controls */}
               <div className="flex items-center gap-2">
                 <Button size="xs" variant="secondary" onClick={onSave} className="bg-white hover:bg-amber-50 text-slate-700 border border-slate-300 shadow-sm hover:shadow hover:border-amber-300 dark:bg-slate-800 dark:text-amber-400 dark:border-slate-700 dark:hover:bg-slate-700 dark:hover:border-amber-600 transition-all min-h-[36px]">
@@ -1032,7 +1054,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
                 <Button size="xs" variant={visualMode === 'elevation' ? 'primary' : 'secondary'} onClick={() => setVisualMode('elevation')} className={`${visualMode === 'elevation' ? 'shadow-md' : 'shadow-sm hover:shadow'} border transition-all min-h-[36px]`}>Elevation</Button>
                 <Button size="xs" variant={visualMode === 'iso' ? 'primary' : 'secondary'} onClick={() => setVisualMode('iso')} className={`${visualMode === 'iso' ? 'shadow-md' : 'shadow-sm hover:shadow'} border transition-all min-h-[36px]`}>3D ISO</Button>
               </div>
-              
+
               {/* Right: Undo/Redo */}
               <div className="flex items-center gap-2">
                 <Button size="xs" variant="secondary" onClick={handleUndo} disabled={!canUndo} className={`bg-white hover:bg-amber-50 text-slate-700 border border-slate-300 shadow-sm hover:shadow hover:border-amber-300 dark:bg-slate-800 dark:text-amber-400 dark:border-slate-700 dark:hover:bg-slate-700 dark:hover:border-amber-600 transition-all min-h-[36px] ${!canUndo ? 'opacity-50' : ''}`}>
@@ -1079,9 +1101,9 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
                       {[...currentZone.obstacles, ...currentZone.cabinets].map((item, i) => {
                         const isCab = 'preset' in item;
                         return (
-                          <tr 
-                            key={item.id} 
-                            onClick={() => openEdit(isCab ? 'cabinet' : 'obstacle', isCab ? i - currentZone.obstacles.length : i)} 
+                          <tr
+                            key={item.id}
+                            onClick={() => openEdit(isCab ? 'cabinet' : 'obstacle', isCab ? i - currentZone.obstacles.length : i)}
                             className="hover:bg-amber-50 dark:hover:bg-amber-900/20 cursor-pointer transition-colors"
                           >
                             <td className="p-3 text-slate-400 font-mono whitespace-nowrap">{isCab ? (item as CabinetUnit).label : i + 1}</td>
@@ -1108,22 +1130,22 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
               {/* Left: Zone Tabs */}
               <div className="flex items-center gap-1">
                 {project.zones.map(z => (
-                  <button 
-                    key={z.id} 
-                    onClick={() => setActiveTab(z.id)} 
+                  <button
+                    key={z.id}
+                    onClick={() => setActiveTab(z.id)}
                     className={`px-3 py-2 text-sm font-bold rounded-t-lg transition-all whitespace-nowrap min-h-[44px] ${activeTab === z.id ? 'bg-white dark:bg-slate-950 text-amber-500 shadow-sm border-t-2 border-amber-500' : 'text-slate-500 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300'}`}
                   >
                     {z.id}
                   </button>
                 ))}
-                <button 
-                  onClick={addZone} 
+                <button
+                  onClick={addZone}
                   className="px-3 py-2 text-sm font-bold rounded-t-lg bg-slate-200 dark:bg-slate-800 text-slate-500 hover:text-amber-500 transition-colors min-h-[44px]"
                 >
                   +
                 </button>
               </div>
-              
+
               {/* Right: View Controls and Undo/Redo */}
               <div className="flex items-center gap-1">
                 <Button size="xs" variant="secondary" onClick={onSave} className="bg-white hover:bg-amber-50 text-slate-700 border border-slate-300 shadow-sm hover:shadow hover:border-amber-300 dark:bg-slate-800 dark:text-amber-400 dark:border-slate-700 dark:hover:bg-slate-700 dark:hover:border-amber-600 transition-all min-h-[36px] px-2">
@@ -1197,9 +1219,9 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
                         {[...currentZone.obstacles, ...currentZone.cabinets].map((item, i) => {
                           const isCab = 'preset' in item;
                           return (
-                            <tr 
-                              key={item.id} 
-                              onClick={() => openEdit(isCab ? 'cabinet' : 'obstacle', isCab ? i - currentZone.obstacles.length : i)} 
+                            <tr
+                              key={item.id}
+                              onClick={() => openEdit(isCab ? 'cabinet' : 'obstacle', isCab ? i - currentZone.obstacles.length : i)}
                               className="hover:bg-amber-50 dark:hover:bg-amber-900/20 cursor-pointer transition-colors"
                             >
                               <td className="p-2 text-slate-400 font-mono whitespace-nowrap">{isCab ? (item as CabinetUnit).label : i + 1}</td>
@@ -1251,7 +1273,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
 
                   <div className="space-y-4">
                     <label className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors">
-                      <input type="checkbox" checked={autoFillOpts.includeSink} onChange={e => setAutoFillOpts({...autoFillOpts, includeSink: e.target.checked})} className="w-5 h-5 accent-amber-500" />
+                      <input type="checkbox" checked={autoFillOpts.includeSink} onChange={e => setAutoFillOpts({ ...autoFillOpts, includeSink: e.target.checked })} className="w-5 h-5 accent-amber-500" />
                       <div>
                         <div className="font-bold text-sm">Include Sink</div>
                         <div className="text-xs text-slate-400">Placed under a window if available</div>
@@ -1259,7 +1281,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
                     </label>
 
                     <label className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors">
-                      <input type="checkbox" checked={autoFillOpts.includeCooker} onChange={e => setAutoFillOpts({...autoFillOpts, includeCooker: e.target.checked})} className="w-5 h-5 accent-amber-500" />
+                      <input type="checkbox" checked={autoFillOpts.includeCooker} onChange={e => setAutoFillOpts({ ...autoFillOpts, includeCooker: e.target.checked })} className="w-5 h-5 accent-amber-500" />
                       <div>
                         <div className="font-bold text-sm">Include Cooker & Hood</div>
                         <div className="text-xs text-slate-400">3-Drawer unit with aligned wall hood</div>
@@ -1267,7 +1289,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
                     </label>
 
                     <label className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors">
-                      <input type="checkbox" checked={autoFillOpts.includeTall} onChange={e => setAutoFillOpts({...autoFillOpts, includeTall: e.target.checked})} className="w-5 h-5 accent-amber-500" />
+                      <input type="checkbox" checked={autoFillOpts.includeTall} onChange={e => setAutoFillOpts({ ...autoFillOpts, includeTall: e.target.checked })} className="w-5 h-5 accent-amber-500" />
                       <div>
                         <div className="font-bold text-sm">Include Tall Units</div>
                         <div className="text-xs text-slate-400">Utility / Pantry storage</div>
@@ -1275,7 +1297,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
                     </label>
 
                     <label className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors">
-                      <input type="checkbox" checked={autoFillOpts.includeWallCabinets} onChange={e => setAutoFillOpts({...autoFillOpts, includeWallCabinets: e.target.checked})} className="w-5 h-5 accent-amber-500" />
+                      <input type="checkbox" checked={autoFillOpts.includeWallCabinets} onChange={e => setAutoFillOpts({ ...autoFillOpts, includeWallCabinets: e.target.checked })} className="w-5 h-5 accent-amber-500" />
                       <div>
                         <div className="font-bold text-sm">Include Wall Cabinets</div>
                         <div className="text-xs text-slate-400">Upper storage units</div>
@@ -1283,7 +1305,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
                     </label>
 
                     <label className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors">
-                      <input type="checkbox" checked={autoFillOpts.preferDrawers} onChange={e => setAutoFillOpts({...autoFillOpts, preferDrawers: e.target.checked})} className="w-5 h-5 accent-amber-500" />
+                      <input type="checkbox" checked={autoFillOpts.preferDrawers} onChange={e => setAutoFillOpts({ ...autoFillOpts, preferDrawers: e.target.checked })} className="w-5 h-5 accent-amber-500" />
                       <div>
                         <div className="font-bold text-sm">Prefer Drawers</div>
                         <div className="text-xs text-slate-400">Use drawer banks instead of door units</div>
@@ -1302,9 +1324,9 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
                   {/* PRESET FILTER TABS */}
                   <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
                     {['Base', 'Wall', 'Tall'].map(f => (
-                      <button 
-                        key={f} 
-                        onClick={() => setPresetFilter(f as any)} 
+                      <button
+                        key={f}
+                        onClick={() => setPresetFilter(f as any)}
                         className={`flex-1 py-2 sm:py-1.5 text-sm sm:text-xs font-bold rounded-md transition-all min-h-[44px] sm:min-h-[36px] ${presetFilter === f ? 'bg-white dark:bg-slate-600 shadow text-amber-600 dark:text-amber-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
                       >
                         {f}
@@ -1358,8 +1380,8 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
                           return p.includes('Tall');
                         })
                         .map(t => (
-                          <button 
-                            key={t} 
+                          <button
+                            key={t}
                             onClick={() => setTempCabinet({ ...tempCabinet, preset: t, type: presetFilter === 'Wall' ? CabinetType.WALL : presetFilter === 'Tall' ? CabinetType.TALL : CabinetType.BASE, customPresetId: undefined, customConfig: undefined })}
                             className={`p-3 sm:p-2 text-xs sm:text-[10px] font-bold rounded-lg border text-left transition-all min-h-[48px] sm:min-h-[40px] flex items-center ${tempCabinet.preset === t && !tempCabinet.customPresetId ? 'border-amber-500 bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 ring-1 ring-amber-500' : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 dark:text-slate-300'}`}
                           >
@@ -1381,7 +1403,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
                   {/* Material Selection */}
                   <div className="border-t border-slate-200 dark:border-slate-700 pt-4 mt-2">
                     <label className="text-xs sm:text-sm font-bold text-slate-400 mb-2 block">Materials</label>
-                    <MaterialSelector 
+                    <MaterialSelector
                       materials={tempCabinet.materials}
                       onChange={(materials) => setTempCabinet({ ...tempCabinet, materials })}
                       currency={project.settings.currency || '$'}
@@ -1395,9 +1417,9 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
                 <>
                   <div>
                     <label className="text-xs sm:text-sm font-bold text-slate-400 mb-1.5 block">Type</label>
-                    <select 
-                      className="w-full p-3 bg-slate-100 dark:bg-slate-800 rounded-lg dark:text-white min-h-[48px]" 
-                      value={tempObstacle.type} 
+                    <select
+                      className="w-full p-3 bg-slate-100 dark:bg-slate-800 rounded-lg dark:text-white min-h-[48px]"
+                      value={tempObstacle.type}
                       onChange={e => setTempObstacle({ ...tempObstacle, type: e.target.value as any })}
                     >
                       {['door', 'window', 'column', 'pipe'].map(t => <option key={t} value={t}>{t}</option>)}
@@ -1473,9 +1495,9 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
       <div className="p-3 sm:p-4 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex flex-col gap-3 shrink-0 print:hidden">
         <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg self-start overflow-x-auto w-full">
           {['list', 'cutplan', 'wallplan'].map((v) => (
-            <button 
-              key={v} 
-              onClick={() => setActiveView(v as any)} 
+            <button
+              key={v}
+              onClick={() => setActiveView(v as any)}
               className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 text-xs sm:text-sm font-bold rounded-md capitalize whitespace-nowrap min-h-[40px] ${activeView === v ? 'bg-white dark:bg-slate-700 shadow text-slate-900 dark:text-white' : 'text-slate-500'}`}
             >
               {v === 'list' ? 'Material List' : v === 'cutplan' ? 'Cut Plan' : 'Wall Plans'}
@@ -1633,7 +1655,7 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
                       </tr>
                     </thead>
                     <tbody className="divide-y-2 divide-black/10">
-                      {zone.cabinets.sort((a,b) => (a.label || '').localeCompare(b.label || '')).map((cab, idx) => (
+                      {zone.cabinets.sort((a, b) => (a.label || '').localeCompare(b.label || '')).map((cab, idx) => (
                         <tr key={idx}>
                           <td className="py-3 text-amber-600 font-black italic text-sm">{cab.label}</td>
                           <td className="py-3 font-black tracking-tight">{cab.preset}</td>
