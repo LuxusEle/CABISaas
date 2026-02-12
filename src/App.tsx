@@ -475,57 +475,74 @@ const ScreenPlanView = ({ project }: { project: Project }) => {
   );
 };
 
-const ScreenProjectSetup = ({ project, setProject }: { project: Project, setProject: React.Dispatch<React.SetStateAction<Project>> }) => (
-  <div className="flex flex-col h-full w-full overflow-hidden">
-    <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-      <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8">
-        <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mb-2 sm:mb-4">Project Setup</h2>
+const ScreenProjectSetup = ({ project, setProject }: { project: Project, setProject: React.Dispatch<React.SetStateAction<Project>> }) => {
+  // State to track which section is expanded - only one at a time
+  const [expandedSection, setExpandedSection] = useState<'sheetTypes' | 'accessories' | 'allocation' | null>('sheetTypes');
 
-        <section className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-4">
-          <h3 className="text-slate-500 font-bold uppercase text-xs tracking-wider mb-2">Project Info</h3>
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-400">Project Name</label>
-              <input className="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border dark:border-slate-700 dark:text-white text-sm sm:text-base min-h-[48px]" value={project.name} onChange={e => setProject({ ...project, name: e.target.value })} />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-400">Company Name</label>
-              <input className="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border dark:border-slate-700 dark:text-white text-sm sm:text-base min-h-[48px]" value={project.company} onChange={e => setProject({ ...project, company: e.target.value })} />
-            </div>
-          </div>
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-400">Currency Symbol</label>
-              <input className="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border dark:border-slate-700 dark:text-white text-sm sm:text-base min-h-[48px]" value={project.settings.currency} onChange={e => setProject({ ...project, settings: { ...project.settings, currency: e.target.value } })} placeholder="$" />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-400">Logo URL (Optional)</label>
-              <input className="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border dark:border-slate-700 dark:text-white text-sm sm:text-base min-h-[48px]" value={project.settings.logoUrl || ''} onChange={e => setProject({ ...project, settings: { ...project.settings, logoUrl: e.target.value } })} placeholder="https://..." />
-            </div>
-          </div>
-        </section>
+  const toggleSection = (section: 'sheetTypes' | 'accessories' | 'allocation') => {
+    setExpandedSection(prev => prev === section ? null : section);
+  };
 
-        <section className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-4 sm:space-y-6">
-          <h3 className="text-slate-500 font-bold uppercase text-xs tracking-wider mb-2 sm:mb-4">Dimensions & Nesting</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
-            <NumberInput label="Base Height" value={project.settings.baseHeight} onChange={(v) => setProject({ ...project, settings: { ...project.settings, baseHeight: v } })} step={10} />
-            <NumberInput label="Sheet Length" value={project.settings.sheetLength} onChange={(v) => setProject({ ...project, settings: { ...project.settings, sheetLength: v } })} step={100} />
-            <NumberInput label="Sheet Width" value={project.settings.sheetWidth} onChange={(v) => setProject({ ...project, settings: { ...project.settings, sheetWidth: v } })} step={100} />
-          </div>
-        </section>
+  return (
+    <div className="flex flex-col h-full w-full overflow-hidden">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+        <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8">
+          <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mb-2 sm:mb-4">Project Setup</h2>
 
-        {/* Sheet Types Manager */}
-        <SheetTypeManager currency={project.settings.currency || '$'} />
+          <section className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-4">
+            <h3 className="text-slate-500 font-bold uppercase text-xs tracking-wider mb-2">Project Info</h3>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-400">Project Name</label>
+                <input className="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border dark:border-slate-700 dark:text-white text-sm sm:text-base min-h-[48px]" value={project.name} onChange={e => setProject({ ...project, name: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-400">Company Name</label>
+                <input className="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border dark:border-slate-700 dark:text-white text-sm sm:text-base min-h-[48px]" value={project.company} onChange={e => setProject({ ...project, company: e.target.value })} />
+              </div>
+            </div>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-400">Currency Symbol</label>
+                <input className="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border dark:border-slate-700 dark:text-white text-sm sm:text-base min-h-[48px]" value={project.settings.currency} onChange={e => setProject({ ...project, settings: { ...project.settings, currency: e.target.value } })} placeholder="$" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-400">Logo URL (Optional)</label>
+                <input className="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border dark:border-slate-700 dark:text-white text-sm sm:text-base min-h-[48px]" value={project.settings.logoUrl || ''} onChange={e => setProject({ ...project, settings: { ...project.settings, logoUrl: e.target.value } })} placeholder="https://..." />
+              </div>
+            </div>
+          </section>
 
-        {/* Material Allocation */}
-        <MaterialAllocationPanel
-          settings={project.settings}
-          onUpdate={(settings) => setProject({ ...project, settings: { ...project.settings, ...settings } })}
-        />
+          <section className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-4 sm:space-y-6">
+            <h3 className="text-slate-500 font-bold uppercase text-xs tracking-wider mb-2 sm:mb-4">Dimensions & Nesting</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
+              <NumberInput label="Base Height" value={project.settings.baseHeight} onChange={(v) => setProject({ ...project, settings: { ...project.settings, baseHeight: v } })} step={10} />
+              <NumberInput label="Sheet Length" value={project.settings.sheetLength} onChange={(v) => setProject({ ...project, settings: { ...project.settings, sheetLength: v } })} step={100} />
+              <NumberInput label="Sheet Width" value={project.settings.sheetWidth} onChange={(v) => setProject({ ...project, settings: { ...project.settings, sheetWidth: v } })} step={100} />
+            </div>
+          </section>
+
+          {/* Sheet Types Manager */}
+          <SheetTypeManager 
+            currency={project.settings.currency || '$'} 
+            sheetTypesExpanded={expandedSection === 'sheetTypes'}
+            accessoriesExpanded={expandedSection === 'accessories'}
+            onToggleSheetTypes={() => toggleSection('sheetTypes')}
+            onToggleAccessories={() => toggleSection('accessories')}
+          />
+
+          {/* Material Allocation */}
+          <MaterialAllocationPanel
+            settings={project.settings}
+            onUpdate={(settings) => setProject({ ...project, settings: { ...project.settings, ...settings } })}
+            isExpanded={expandedSection === 'allocation'}
+            onToggle={() => toggleSection('allocation')}
+          />
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project: Project, setProject: React.Dispatch<React.SetStateAction<Project>>, setScreen: (s: Screen) => void, onSave: () => void }) => {
   const [activeTab, setActiveTab] = useState<string>(project.zones[0]?.id || 'Wall A');
