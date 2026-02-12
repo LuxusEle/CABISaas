@@ -1478,6 +1478,71 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
     loadAccessories();
   }, []);
 
+  // Calculate total doors for hinge calculation
+  const totalDoors = useMemo(() => {
+    let doors = 0;
+    project.zones.forEach(zone => {
+      zone.cabinets.forEach(cab => {
+        // Count doors: base door cabinets have 1 or 2 doors depending on width
+        if (cab.preset === PresetType.BASE_DOOR) {
+          doors += cab.width > 400 ? 2 : 1;
+        }
+        // Wall cabinets also have doors
+        if (cab.type === CabinetType.WALL && cab.preset !== PresetType.OPEN_BOX) {
+          doors += cab.width > 400 ? 2 : 1;
+        }
+        // Tall cabinets
+        if (cab.type === CabinetType.TALL) {
+          doors += 1;
+        }
+      });
+    });
+    return doors;
+  }, [project.zones]);
+
+  // Calculate hinge quantity (2 per door)
+  const hingeQuantity = totalDoors * 2;
+  
+  // Get hinge cost from accessories
+  const hingeAccessory = accessories.find(acc => 
+    acc.name.toLowerCase().includes('hinge') || 
+    acc.name.toLowerCase().includes('soft-close')
+  );
+  const hingeUnitCost = hingeAccessory?.default_amount || 5.00;
+  const hingeTotalCost = hingeQuantity * hingeUnitCost;
+
+  // Calculate total drawers (from drawer cabinets)
+  const totalDrawers = useMemo(() => {
+    let drawers = 0;
+    project.zones.forEach(zone => {
+      zone.cabinets.forEach(cab => {
+        // Base drawer cabinets have 3 drawers
+        if (cab.preset === PresetType.BASE_DRAWER_3) {
+          drawers += 3;
+        }
+      });
+    });
+    return drawers;
+  }, [project.zones]);
+
+  // Calculate Handle/Knob quantity (doors + drawers)
+  const handleQuantity = totalDoors + totalDrawers;
+  const handleAccessory = accessories.find(acc => 
+    acc.name.toLowerCase().includes('handle') || 
+    acc.name.toLowerCase().includes('knob')
+  );
+  const handleUnitCost = handleAccessory?.default_amount || 8.00;
+  const handleTotalCost = handleQuantity * handleUnitCost;
+
+  // Calculate Drawer Slide quantity (pairs) = number of drawers
+  const drawerSlideQuantity = totalDrawers;
+  const drawerSlideAccessory = accessories.find(acc => 
+    acc.name.toLowerCase().includes('drawer slide') || 
+    acc.name.toLowerCase().includes('slide')
+  );
+  const drawerSlideUnitCost = drawerSlideAccessory?.default_amount || 15.00;
+  const drawerSlideTotalCost = drawerSlideQuantity * drawerSlideUnitCost;
+
   // Calculate Sheet Summary for Table
   const materialSummary = useMemo(() => {
     const summary: Record<string, { sheets: number, waste: number, area: number }> = {};
@@ -1554,7 +1619,7 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
         </div>
 
         {/* MATERIAL SUMMARY TABLE (Always Visible in List/Cut Plan) */}
-        <div className="break-inside-avoid overflow-x-auto">
+        <div className="break-inside-avoid overflow-x-auto print:break-after-page">
           <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 flex items-center gap-2"><Layers size={18} /> Materials & Hardware</h3>
           <table className="w-full min-w-[400px] text-xs sm:text-sm text-left border-collapse border border-slate-200 dark:border-slate-700 print:border-black">
             <thead className="bg-slate-100 dark:bg-slate-800 print:bg-slate-200">
@@ -1576,22 +1641,46 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
                   <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
                 </tr>
               ))}
-              <tr className="bg-slate-50 dark:bg-slate-800/50 print:bg-slate-100">
-                <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">Soft-Close Hinges</td>
-                <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">-</td>
-                <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">{data.hardwareSummary['Soft-Close Hinge'] || 0}</td>
-                <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">{currency}{((data.hardwareSummary['Soft-Close Hinge'] || 0) * project.settings.costs.pricePerHardwareUnit).toFixed(2)}</td>
-                <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
-              </tr>
-              <tr className="bg-slate-50 dark:bg-slate-800/50 print:bg-slate-100">
-                <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">Installation Nails (4 per hinge)</td>
-                <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">-</td>
-                <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">{data.hardwareSummary['Installation Nail'] || 0}</td>
-                <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">-</td>
-                <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
-              </tr>
-              {accessories.map((acc) => (
-                <tr key={acc.id} className="bg-blue-50 dark:bg-blue-900/20 print:bg-blue-50">
+              {/* Soft-Close Hinges - calculated: 2 per door */}
+              {hingeQuantity > 0 && (
+                <tr>
+                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">Soft-Close Hinges (2 per door)</td>
+                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">-</td>
+                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">{hingeQuantity}</td>
+                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">{currency}{hingeTotalCost.toFixed(2)}</td>
+                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
+                </tr>
+              )}
+              {/* Handle/Knob - calculated: doors + drawers */}
+              {handleQuantity > 0 && (
+                <tr>
+                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">Handle/Knob ({totalDoors} doors + {totalDrawers} drawers)</td>
+                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">-</td>
+                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">{handleQuantity}</td>
+                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">{currency}{handleTotalCost.toFixed(2)}</td>
+                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
+                </tr>
+              )}
+              {/* Drawer Slide (Pair) - calculated: number of drawers */}
+              {drawerSlideQuantity > 0 && (
+                <tr>
+                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">Drawer Slide (Pair) ({totalDrawers} drawers)</td>
+                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">-</td>
+                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">{drawerSlideQuantity}</td>
+                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">{currency}{drawerSlideTotalCost.toFixed(2)}</td>
+                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
+                </tr>
+              )}
+              {accessories
+                .filter(acc => 
+                  !acc.name.toLowerCase().includes('hinge') &&
+                  !acc.name.toLowerCase().includes('handle') &&
+                  !acc.name.toLowerCase().includes('knob') &&
+                  !acc.name.toLowerCase().includes('drawer slide') &&
+                  !acc.name.toLowerCase().includes('slide')
+                )
+                .map((acc) => (
+                <tr key={acc.id}>
                   <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">{acc.name}</td>
                   <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">-</td>
                   <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">1</td>
