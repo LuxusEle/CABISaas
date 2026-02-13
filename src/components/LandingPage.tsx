@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowRight, Sparkles, Box, Ruler, Calculator, ChevronDown, Sun, Moon, Menu, X, User, Check } from 'lucide-react';
+import { ArrowRight, Sparkles, Box, Ruler, Calculator, ChevronDown, Sun, Moon, Menu, X, User, Check, FileText } from 'lucide-react';
 import { Button } from './Button';
+import { LandingDocsModal } from './LandingDocsModal';
 
 interface LandingPageProps {
   onGetStarted: () => void;
@@ -183,6 +184,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
     try { return localStorage.getItem('app-theme') !== 'false'; } catch { return true; }
   });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [docsModalOpen, setDocsModalOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
@@ -274,11 +276,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
               >
                 About
               </button>
-              <button 
+              <button
                 onClick={() => scrollToSection('pricing')}
                 className="text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 transition-colors text-sm font-medium"
               >
                 Pricing
+              </button>
+              <button
+                onClick={() => setDocsModalOpen(true)}
+                className="text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 transition-colors text-sm font-medium flex items-center gap-1"
+              >
+                <FileText size={16} />
+                Docs
               </button>
               <button
                 onClick={() => setIsDark(!isDark)}
@@ -325,11 +334,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
               >
                 About
               </button>
-              <button 
+              <button
                 onClick={() => scrollToSection('pricing')}
                 className="w-full text-left px-4 py-3 text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors text-base font-medium min-h-[48px]"
               >
                 Pricing
+              </button>
+              <button
+                onClick={() => { setDocsModalOpen(true); setMobileMenuOpen(false); }}
+                className="w-full text-left px-4 py-3 text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors text-base font-medium min-h-[48px] flex items-center gap-2"
+              >
+                <FileText size={18} />
+                Docs
               </button>
               <div className="border-t border-slate-200 dark:border-slate-700 my-2 pt-2 space-y-2">
                 <button 
@@ -641,6 +657,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
           </div>
         </div>
       </footer>
+
+      {/* Docs Modal */}
+      <LandingDocsModal isOpen={docsModalOpen} onClose={() => setDocsModalOpen(false)} />
     </div>
   );
 };
