@@ -1611,11 +1611,7 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
   const data = useMemo(() => generateProjectBOM(project), [project.id, project.zones, project.settings]);
   const [activeView, setActiveView] = useState<'list' | 'cutplan' | 'wallplan'>('list');
   const cutPlan = useMemo(() => optimizeCuts(data.groups.flatMap(g => g.items), project.settings), [data.groups, project.settings.sheetLength, project.settings.sheetWidth, project.settings.kerf]);
-  const baseCosts = useMemo(() => calculateProjectCost(data, cutPlan, project.settings), [data, cutPlan, project.settings.costs]);
   const currency = project.settings.currency || '$';
-
-  // Use base costs directly (no additional expenses)
-  const costs = baseCosts;
 
   // Load accessories from database
   const [accessories, setAccessories] = useState<ExpenseTemplate[]>([]);
@@ -1691,6 +1687,25 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
   );
   const drawerSlideUnitCost = drawerSlideAccessory?.default_amount || 15.00;
   const drawerSlideTotalCost = drawerSlideQuantity * drawerSlideUnitCost;
+
+  // Calculate total hardware cost from all individual items
+  const otherAccessoriesCost = accessories
+    .filter(acc => 
+      !acc.name.toLowerCase().includes('hinge') &&
+      !acc.name.toLowerCase().includes('handle') &&
+      !acc.name.toLowerCase().includes('knob') &&
+      !acc.name.toLowerCase().includes('drawer slide') &&
+      !acc.name.toLowerCase().includes('slide')
+    )
+    .reduce((sum, acc) => sum + acc.default_amount, 0);
+  
+  const totalHardwareCost = hingeTotalCost + handleTotalCost + drawerSlideTotalCost + otherAccessoriesCost;
+
+  // Calculate base costs with proper hardware total
+  const baseCosts = useMemo(() => calculateProjectCost(data, cutPlan, project.settings, totalHardwareCost), [data, cutPlan, project.settings.costs, totalHardwareCost]);
+
+  // Use base costs directly (no additional expenses)
+  const costs = baseCosts;
 
   // Calculate Sheet Summary for Table
   const materialSummary = useMemo(() => {

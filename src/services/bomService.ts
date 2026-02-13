@@ -581,16 +581,22 @@ export interface CostBreakdown {
 export const calculateProjectCost = (
   bomData: ReturnType<typeof generateProjectBOM>,
   nestingData: OptimizationResult,
-  settings: ProjectSettings
+  settings: ProjectSettings,
+  calculatedHardwareCost?: number
 ): CostBreakdown => {
   const { costs } = settings;
 
   // 1. Material (Sheets) - Uses nested result for accuracy
   const materialCost = nestingData.totalSheets * costs.pricePerSheet;
 
-  // 2. Hardware
-  const totalHardwareItems = Object.values(bomData.hardwareSummary).reduce((a, b) => a + b, 0);
-  const hardwareCost = totalHardwareItems * costs.pricePerHardwareUnit;
+  // 2. Hardware - Use calculated total if provided, otherwise fall back to flat rate
+  let hardwareCost: number;
+  if (calculatedHardwareCost !== undefined) {
+    hardwareCost = calculatedHardwareCost;
+  } else {
+    const totalHardwareItems = Object.values(bomData.hardwareSummary).reduce((a, b) => a + b, 0);
+    hardwareCost = totalHardwareItems * costs.pricePerHardwareUnit;
+  }
 
   // 3. Labor
   const totalHours = bomData.cabinetCount * costs.laborHoursPerCabinet;
