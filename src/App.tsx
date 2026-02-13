@@ -1782,6 +1782,7 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
           <div className="mt-4 pt-4 border-t border-slate-700 flex flex-wrap gap-3 sm:gap-4 print:hidden">
             <div className="flex items-center gap-2"><span className="text-xs text-slate-400">Sheet:</span><input type="number" className="bg-slate-800 w-16 sm:w-20 rounded px-2 py-1 text-sm text-white" value={project.settings.costs.pricePerSheet} onChange={e => setProject({ ...project, settings: { ...project.settings, costs: { ...project.settings.costs, pricePerSheet: Number(e.target.value) } } })} /></div>
             <div className="flex items-center gap-2"><span className="text-xs text-slate-400">Labor:</span><input type="number" className="bg-slate-800 w-16 sm:w-20 rounded px-2 py-1 text-sm text-white" value={project.settings.costs.laborRatePerHour} onChange={e => setProject({ ...project, settings: { ...project.settings, costs: { ...project.settings.costs, laborRatePerHour: Number(e.target.value) } } })} /></div>
+            <div className="flex items-center gap-2"><span className="text-xs text-slate-400">Margin (%):</span><input type="number" className="bg-slate-800 w-16 sm:w-20 rounded px-2 py-1 text-sm text-white" value={project.settings.costs.marginPercent} onChange={e => setProject({ ...project, settings: { ...project.settings, costs: { ...project.settings.costs, marginPercent: Number(e.target.value) } } })} /></div>
           </div>
         </div>
 

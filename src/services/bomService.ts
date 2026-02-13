@@ -640,7 +640,7 @@ export const createNewProject = (logoUrl?: string): Project => ({
       pricePerHardwareUnit: 5.00,
       laborRatePerHour: 60.00,
       laborHoursPerCabinet: 1.5,
-      marginPercent: 30
+      marginPercent: 50
     },
     materialSettings: {
       carcassMaterial: '',

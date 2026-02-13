@@ -167,7 +167,7 @@ describe('types', () => {
             pricePerHardwareUnit: 5,
             laborRatePerHour: 60,
             laborHoursPerCabinet: 1.5,
-            marginPercent: 30
+            marginPercent: 50
           }
         },
         zones: []
@@ -175,7 +175,7 @@ describe('types', () => {
 
       expect(project.id).toBe('proj1');
       expect(project.settings.currency).toBe('USD');
-      expect(project.settings.costs.marginPercent).toBe(30);
+      expect(project.settings.costs.marginPercent).toBe(50);
     });
   });
 });

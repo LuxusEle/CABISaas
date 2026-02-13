@@ -82,7 +82,7 @@ export const exportToInvoicePDF = (project: Project, data: BOMData, currency: st
   totalAmount += laborCost;
   
   // Add margin
-  const marginPercent = costs?.marginPercent || 30;
+  const marginPercent = costs?.marginPercent || 50;
   const subtotalAmount = totalAmount;
   totalAmount = totalAmount * (1 + marginPercent / 100);
   
