@@ -1751,7 +1751,7 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
           <Button variant="primary" size="sm" onClick={() => exportToExcel(data.groups, cutPlan, project)} className="flex-1 sm:flex-none min-h-[40px] text-xs sm:text-sm">
             <FileSpreadsheet size={16} className="mr-1 sm:mr-2" /> Excel
           </Button>
-          <Button variant="secondary" size="sm" onClick={() => exportToInvoicePDF(project, data, project.settings.currency)} className="flex-1 sm:flex-none min-h-[40px] text-xs sm:text-sm">
+          <Button variant="secondary" size="sm" onClick={() => exportToInvoicePDF(project, data, project.settings.currency, costs.totalPrice)} className="flex-1 sm:flex-none min-h-[40px] text-xs sm:text-sm">
             <CreditCard size={16} className="mr-1 sm:mr-2" /> Invoice
           </Button>
         </div>
@@ -1769,12 +1769,18 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
         {/* COSTING CARD (Print Safe) */}
         <div className="bg-slate-900 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl print:bg-white print:text-black print:border-2 print:border-black print:break-inside-avoid shadow-xl print:shadow-none">
           <h3 className="text-amber-500 font-bold mb-3 sm:mb-4 flex items-center gap-2 print:text-black text-base sm:text-lg"><DollarSign size={18} /> Cost Estimate</h3>
-          <div className="grid grid-cols-2 gap-3 sm:gap-6">
+          <div className="grid grid-cols-3 gap-3 sm:gap-6">
             <div><div className="text-slate-400 text-xs uppercase print:text-black">Material</div><div className="text-lg sm:text-xl font-bold">{currency}{baseCosts.materialCost.toFixed(2)}</div></div>
             <div><div className="text-slate-400 text-xs uppercase print:text-black">Hardware</div><div className="text-lg sm:text-xl font-bold">{currency}{baseCosts.hardwareCost.toFixed(2)}</div></div>
             <div><div className="text-slate-400 text-xs uppercase print:text-black">Labor</div><div className="text-lg sm:text-xl font-bold">{currency}{baseCosts.laborCost.toFixed(2)}</div></div>
-            <div className="col-span-2 border-t border-slate-700 print:border-black pt-3 mt-2">
-              <div className="text-amber-500 text-xs uppercase print:text-black">Total</div>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:gap-6 mt-4 pt-4 border-t border-slate-700 print:border-black">
+            <div>
+              <div className="text-slate-400 text-xs uppercase print:text-black">Total</div>
+              <div className="text-xl sm:text-2xl font-bold">{currency}{baseCosts.subtotal.toFixed(2)}</div>
+            </div>
+            <div className="text-right">
+              <div className="text-amber-500 text-xs uppercase print:text-black">Sub Total ({project.settings.costs.marginPercent}% margin)</div>
               <div className="text-2xl sm:text-3xl font-black">{currency}{costs.totalPrice.toFixed(2)}</div>
             </div>
           </div>

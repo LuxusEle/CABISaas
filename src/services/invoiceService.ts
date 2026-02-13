@@ -9,7 +9,7 @@ interface BOMData {
   cabinetCount: number;
 }
 
-export const exportToInvoicePDF = (project: Project, data: BOMData, currency: string = 'LKR') => {
+export const exportToInvoicePDF = (project: Project, data: BOMData, currency: string = 'LKR', totalWithMargin?: number) => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.width;
   const pageHeight = doc.internal.pageSize.height;
@@ -44,9 +44,10 @@ export const exportToInvoicePDF = (project: Project, data: BOMData, currency: st
   doc.text(project.company || 'Company Name', pageWidth - 20, 15, { align: 'right' });
   doc.text('Cabinet Manufacturing Services', pageWidth - 20, 21, { align: 'right' });
   
-  // Calculate total
+  // Calculate costs for display (without margin)
   const costs = project.settings.costs;
-  let totalAmount = 0;
+  let materialTotal = 0;
+  let hardwareTotal = 0;
   
   // Calculate material costs
   const materialSummary: Record<string, { qty: number, cost: number }> = {};
@@ -62,29 +63,28 @@ export const exportToInvoicePDF = (project: Project, data: BOMData, currency: st
     });
   });
   
-  // Calculate costs
+  // Calculate material costs
   Object.entries(materialSummary).forEach(([material, value]) => {
     const cost = value.qty * (costs?.pricePerSheet || 85);
     materialSummary[material].cost = cost;
-    totalAmount += cost;
+    materialTotal += cost;
   });
   
-  // Add hardware costs
+  // Calculate hardware costs
   data.hardwareSummary && Object.entries(data.hardwareSummary).forEach(([name, qty]) => {
     if (qty > 0) {
-      totalAmount += qty * (costs?.pricePerHardwareUnit || 5);
+      hardwareTotal += qty * (costs?.pricePerHardwareUnit || 5);
     }
   });
   
-  // Add labor costs
+  // Calculate labor costs
   const laborHours = data.cabinetCount * (costs?.laborHoursPerCabinet || 1.5);
   const laborCost = laborHours * (costs?.laborRatePerHour || 60);
-  totalAmount += laborCost;
   
-  // Add margin
+  // Use provided total with margin, or calculate if not provided
+  const subtotalAmount = materialTotal + hardwareTotal + laborCost;
   const marginPercent = costs?.marginPercent || 50;
-  const subtotalAmount = totalAmount;
-  totalAmount = totalAmount * (1 + marginPercent / 100);
+  const totalAmount = totalWithMargin !== undefined ? totalWithMargin : subtotalAmount * (1 + marginPercent / 100);
   
   // Total Banner
   doc.setFillColor(240, 240, 240);
