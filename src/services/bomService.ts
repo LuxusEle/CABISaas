@@ -609,13 +609,14 @@ export const calculateProjectCost = (
   };
 };
 
-export const createNewProject = (): Project => ({
+export const createNewProject = (logoUrl?: string): Project => ({
   id: uuid(),
   name: 'New Kitchen',
   designer: 'Me',
   company: 'My Shop',
   settings: {
     currency: 'LKR',
+    logoUrl: logoUrl,
     baseHeight: 720,
     wallHeight: 720,
     tallHeight: 2100,

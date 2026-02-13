@@ -1,11 +1,12 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Home, Layers, Calculator, Zap, ArrowLeft, ArrowRight, Trash2, Plus, Box, DoorOpen, Wand2, Moon, Sun, Table2, FileSpreadsheet, X, Pencil, Save, List, Settings, Printer, Download, Scissors, LayoutDashboard, DollarSign, Map, LogOut, Menu, Wrench, CreditCard, ChevronDown, ChevronUp, FileText, Ruler, Book } from 'lucide-react';
+import { Home, Layers, Calculator, Zap, ArrowLeft, ArrowRight, Trash2, Plus, Box, DoorOpen, Wand2, Moon, Sun, Table2, FileSpreadsheet, X, Pencil, Save, List, Settings, Printer, Download, Scissors, LayoutDashboard, DollarSign, Map, LogOut, Menu, Wrench, CreditCard, ChevronDown, ChevronUp, FileText, Ruler, Book, Upload, Image as ImageIcon } from 'lucide-react';
 import { Screen, Project, Zone, ZoneId, PresetType, CabinetType, CabinetUnit, Obstacle, AutoFillOptions } from './types';
 import { createNewProject, generateProjectBOM, autoFillZone, exportToExcel, resolveCollisions, calculateProjectCost, exportProjectToConstructionJSON, buildProjectConstructionData, getIntersectingCabinets } from './services/bomService';
 import { optimizeCuts } from './services/nestingService';
 import { authService } from './services/authService';
 import { expenseTemplateService, ExpenseTemplate } from './services/expenseTemplateService';
+import { supabase } from './services/supabaseClient';
 import type { User } from '@supabase/supabase-js';
 
 // Components
@@ -27,6 +28,7 @@ import { MaterialAllocationPanel } from './components/MaterialAllocationPanel';
 import { PricingPage } from './components/PricingPage';
 import { HelpButton } from './components/HelpButton';
 import { DocsPage } from './components/DocsPage';
+import { logoService } from './services/logoService';
 
 // --- PRINT TITLE BLOCK ---
 const TitleBlock = ({ project, pageTitle }: { project: Project, pageTitle: string }) => (
@@ -69,11 +71,23 @@ export default function App() {
     try { return localStorage.getItem('app-theme') !== 'false'; } catch { return true; }
   });
 
-  // Check authentication on mount
+  // Check authentication on mount and load saved logo
   useEffect(() => {
     const checkAuth = async () => {
       const { user } = await authService.getCurrentUser();
       setUser(user);
+      
+      // If user is logged in, load their saved logo
+      if (user) {
+        const savedLogo = await logoService.getUserLogo(user.id);
+        if (savedLogo) {
+          setProject(prev => ({
+            ...prev,
+            settings: { ...prev.settings, logoUrl: savedLogo }
+          }));
+        }
+      }
+      
       setAuthLoading(false);
       // If user is logged in and we're on landing page, go to dashboard
       if (user && screen === Screen.LANDING) {
@@ -151,7 +165,12 @@ export default function App() {
 
   const handleStartProject = () => {
     requireAuth(async () => {
-      const newProj = createNewProject();
+      // Fetch user's saved logo to use for the new project
+      let logoUrl: string | undefined;
+      if (user) {
+        logoUrl = await logoService.getUserLogo(user.id) || undefined;
+      }
+      const newProj = createNewProject(logoUrl);
       const savedProj = await handleSaveProject(newProj);
       if (savedProj) {
         setProject(savedProj);
@@ -194,6 +213,7 @@ export default function App() {
               setProject(p);
               setScreen(Screen.WALL_EDITOR);
             }}
+            logoUrl={project.settings.logoUrl}
           />
         );
       case Screen.PROJECT_SETUP: return <ScreenProjectSetup project={project} setProject={setProject} />;
@@ -340,7 +360,7 @@ const MobileNavButton = ({ active, onClick, icon, label }: any) => (
 
 // --- SCREENS ---
 
-const ScreenHome = ({ onNewProject, onLoadProject }: { onNewProject: () => void, onLoadProject: (p: Project) => void }) => {
+const ScreenHome = ({ onNewProject, onLoadProject, logoUrl }: { onNewProject: () => void, onLoadProject: (p: Project) => void, logoUrl?: string }) => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -355,9 +375,18 @@ const ScreenHome = ({ onNewProject, onLoadProject }: { onNewProject: () => void,
 
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 items-center justify-start max-w-6xl mx-auto w-full overflow-y-auto p-4 sm:p-6">
-      <div className="text-center space-y-2 mb-6 sm:mb-8">
-        <h1 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight text-slate-900 dark:text-white">CAB<span className="text-amber-600 dark:text-amber-500">ENGINE</span></h1>
-        <p className="text-slate-500 dark:text-slate-400 font-medium italic text-sm sm:text-base">Professional Cabinet Engineering Suite</p>
+      <div className="w-full flex justify-between items-start mb-6 sm:mb-8">
+        <div className="text-center space-y-2 flex-1">
+          <h1 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight text-slate-900 dark:text-white">CAB<span className="text-amber-600 dark:text-amber-500">ENGINE</span></h1>
+          <p className="text-slate-500 dark:text-slate-400 font-medium italic text-sm sm:text-base">Professional Cabinet Engineering Suite</p>
+        </div>
+        {logoUrl && (
+          <img 
+            src={logoUrl} 
+            alt="Company Logo" 
+            className="h-10 sm:h-12 w-auto object-contain ml-4"
+          />
+        )}
       </div>
 
       <div className="grid md:grid-cols-3 gap-4 sm:gap-8 w-full items-start">
@@ -476,6 +505,85 @@ const ScreenPlanView = ({ project }: { project: Project }) => {
 const ScreenProjectSetup = ({ project, setProject }: { project: Project, setProject: React.Dispatch<React.SetStateAction<Project>> }) => {
   // State to track which section is expanded - only one at a time
   const [expandedSection, setExpandedSection] = useState<'projectInfo' | 'sheetTypes' | 'accessories' | 'allocation' | null>('projectInfo');
+  
+  // Logo upload state
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [logoPreview, setLogoPreview] = useState<string | null>(project.settings.logoUrl || null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Load user's previous logo on mount
+  useEffect(() => {
+    const loadUserLogo = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user && !project.settings.logoUrl) {
+        const savedLogo = await logoService.getUserLogo(user.id);
+        if (savedLogo) {
+          setLogoPreview(savedLogo);
+          setProject(prev => ({ 
+            ...prev, 
+            settings: { ...prev.settings, logoUrl: savedLogo } 
+          }));
+        }
+      }
+    };
+    loadUserLogo();
+  }, []);
+  
+  // Handle logo file upload
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file (PNG, JPG, GIF)');
+      return;
+    }
+    
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size must be less than 5MB');
+      return;
+    }
+    
+    setIsUploadingLogo(true);
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        alert('Please log in to upload a logo');
+        return;
+      }
+      
+      const result = await logoService.uploadLogo(file, user.id);
+      if (result) {
+        setLogoPreview(result.url);
+        setProject(prev => ({ 
+          ...prev, 
+          settings: { ...prev.settings, logoUrl: result.url } 
+        }));
+      } else {
+        alert('Failed to upload logo. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error uploading logo:', error);
+      alert('Error uploading logo. Please try again.');
+    } finally {
+      setIsUploadingLogo(false);
+    }
+  };
+  
+  // Handle logo removal
+  const handleRemoveLogo = () => {
+    setLogoPreview(null);
+    setProject(prev => ({ 
+      ...prev, 
+      settings: { ...prev.settings, logoUrl: undefined } 
+    }));
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   const toggleSection = (section: 'projectInfo' | 'sheetTypes' | 'accessories' | 'allocation') => {
     setExpandedSection(prev => prev === section ? null : section);
@@ -485,7 +593,16 @@ const ScreenProjectSetup = ({ project, setProject }: { project: Project, setProj
     <div className="flex flex-col h-full w-full overflow-hidden">
       <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
         <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8">
-          <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mb-2 sm:mb-4">Project Setup</h2>
+          <div className="flex justify-between items-center mb-2 sm:mb-4">
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">Project Setup</h2>
+            {logoPreview && (
+              <img 
+                src={logoPreview} 
+                alt="Company Logo" 
+                className="h-10 sm:h-12 w-auto object-contain"
+              />
+            )}
+          </div>
 
           {/* Project Info & Dimensions - Combined Collapsible Menu */}
           <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
@@ -518,16 +635,44 @@ const ScreenProjectSetup = ({ project, setProject }: { project: Project, setProj
                       <input className="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border dark:border-slate-700 dark:text-white text-sm sm:text-base min-h-[48px]" value={project.company} onChange={e => setProject({ ...project, company: e.target.value })} />
                     </div>
                   </div>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-400">Currency Symbol</label>
-                      <input className="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border dark:border-slate-700 dark:text-white text-sm sm:text-base min-h-[48px]" value={project.settings.currency} onChange={e => setProject({ ...project, settings: { ...project.settings, currency: e.target.value } })} placeholder="$" />
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-400">Currency Symbol</label>
+                        <input className="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border dark:border-slate-700 dark:text-white text-sm sm:text-base min-h-[48px]" value={project.settings.currency} onChange={e => setProject({ ...project, settings: { ...project.settings, currency: e.target.value } })} placeholder="$" />
+                      </div>
+                       <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-400">Company Logo</label>
+                        <div className="flex items-center gap-3">
+                          <div className="flex-1">
+                            <input
+                              ref={fileInputRef}
+                              type="file"
+                              accept="image/*"
+                              onChange={handleLogoUpload}
+                              className="hidden"
+                              id="logo-upload"
+                            />
+                            <label
+                              htmlFor="logo-upload"
+                              className={`flex items-center gap-2 px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-sm font-bold rounded-lg cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors ${isUploadingLogo ? 'opacity-50 pointer-events-none' : ''}`}
+                            >
+                               {isUploadingLogo ? (
+                                  <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-slate-700 dark:border-slate-200" />
+                                    Uploading...
+                                  </>
+                                ) : (
+                                 <>
+                                   <Upload size={16} />
+                                   {logoPreview ? 'Change Logo' : 'Upload Logo'}
+                                 </>
+                               )}
+                            </label>
+                            <p className="text-xs text-slate-500 mt-1">PNG, JPG, GIF (max 5MB)</p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-400">Logo URL (Optional)</label>
-                      <input className="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border dark:border-slate-700 dark:text-white text-sm sm:text-base min-h-[48px]" value={project.settings.logoUrl || ''} onChange={e => setProject({ ...project, settings: { ...project.settings, logoUrl: e.target.value } })} placeholder="https://..." />
-                    </div>
-                  </div>
                 </div>
 
                 {/* Dimensions & Nesting Section */}
