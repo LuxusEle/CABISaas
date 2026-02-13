@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Home, Layers, Calculator, Zap, ArrowLeft, ArrowRight, Trash2, Plus, Box, DoorOpen, Wand2, Moon, Sun, Table2, FileSpreadsheet, X, Pencil, Save, List, Settings, Printer, Download, Scissors, LayoutDashboard, DollarSign, Map, LogOut, Menu, Wrench, CreditCard, ChevronDown, ChevronUp, FileText, Ruler } from 'lucide-react';
+import { Home, Layers, Calculator, Zap, ArrowLeft, ArrowRight, Trash2, Plus, Box, DoorOpen, Wand2, Moon, Sun, Table2, FileSpreadsheet, X, Pencil, Save, List, Settings, Printer, Download, Scissors, LayoutDashboard, DollarSign, Map, LogOut, Menu, Wrench, CreditCard, ChevronDown, ChevronUp, FileText, Ruler, Book } from 'lucide-react';
 import { Screen, Project, Zone, ZoneId, PresetType, CabinetType, CabinetUnit, Obstacle, AutoFillOptions } from './types';
 import { createNewProject, generateProjectBOM, autoFillZone, exportToExcel, resolveCollisions, calculateProjectCost, exportProjectToConstructionJSON, buildProjectConstructionData, getIntersectingCabinets } from './services/bomService';
 import { optimizeCuts } from './services/nestingService';
@@ -26,6 +26,7 @@ import { MaterialSelector } from './components/MaterialSelector';
 import { MaterialAllocationPanel } from './components/MaterialAllocationPanel';
 import { PricingPage } from './components/PricingPage';
 import { HelpButton } from './components/HelpButton';
+import { DocsPage } from './components/DocsPage';
 
 // --- PRINT TITLE BLOCK ---
 const TitleBlock = ({ project, pageTitle }: { project: Project, pageTitle: string }) => (
@@ -200,6 +201,7 @@ export default function App() {
       case Screen.BOM_REPORT: return <ScreenBOMReport project={project} setProject={setProject} />;
       case Screen.TOOLS: return <ScreenPlanView project={project} />;
       case Screen.PRICING: return <PricingPage />;
+      case Screen.DOCS: return <DocsPage />;
       default: return <LandingPage onGetStarted={() => openAuthModal('signup')} onSignIn={() => openAuthModal('login')} />;
     }
   };
@@ -233,6 +235,7 @@ export default function App() {
               <NavButton active={screen === Screen.BOM_REPORT} onClick={() => requireAuth(() => setScreen(Screen.BOM_REPORT))} icon={<Table2 size={24} />} label="BOM" />
               <NavButton active={screen === Screen.TOOLS} onClick={() => requireAuth(() => setScreen(Screen.TOOLS))} icon={<Map size={24} />} label="Plan" />
               <NavButton active={screen === Screen.PRICING} onClick={() => requireAuth(() => setScreen(Screen.PRICING))} icon={<CreditCard size={24} />} label="Pricing" />
+              <NavButton active={screen === Screen.DOCS} onClick={() => setScreen(Screen.DOCS)} icon={<Book size={24} />} label="Docs" />
             </nav>
             <div className="mt-auto flex flex-col gap-2">
               {user ? (
@@ -271,7 +274,7 @@ export default function App() {
           <MobileNavButton active={screen === Screen.WALL_EDITOR} onClick={() => setScreen(Screen.WALL_EDITOR)} icon={<Box size={20} />} label="Editor" />
           <MobileNavButton active={screen === Screen.BOM_REPORT} onClick={() => setScreen(Screen.BOM_REPORT)} icon={<Table2 size={20} />} label="BOM" />
           <MobileNavButton active={screen === Screen.TOOLS} onClick={() => setScreen(Screen.TOOLS)} icon={<Map size={20} />} label="Plan" />
-          <MobileNavButton active={screen === Screen.PRICING} onClick={() => setScreen(Screen.PRICING)} icon={<CreditCard size={20} />} label="Pricing" />
+          <MobileNavButton active={screen === Screen.DOCS} onClick={() => setScreen(Screen.DOCS)} icon={<Book size={20} />} label="Docs" />
         </div>
       )}
 

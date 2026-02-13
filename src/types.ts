@@ -217,7 +217,8 @@ export enum Screen {
   WALL_EDITOR = 'wall_editor',
   BOM_REPORT = 'bom_report',
   TOOLS = 'tools',
-  PRICING = 'pricing'
+  PRICING = 'pricing',
+  DOCS = 'docs'
 }
 
 export interface AutoFillOptions {
