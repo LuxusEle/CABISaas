@@ -1,265 +1,293 @@
 import React from 'react';
-import { X, ExternalLink, FileText, DollarSign, Shield, Users, CreditCard, CheckCircle, Layers, Calculator, Zap, Box, Table2, Map } from 'lucide-react';
+import { X, FileText, Smartphone, Zap, Shield, TrendingUp, ArrowRight, Gift, Users, Rocket } from 'lucide-react';
 
 interface DocsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onGetStarted: () => void;
 }
 
-export const LandingDocsModal: React.FC<DocsModalProps> = ({ isOpen, onClose }) => {
+export const LandingDocsModal: React.FC<DocsModalProps> = ({ isOpen, onClose, onGetStarted }) => {
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-[200] overflow-y-auto">
+      <style>{`
+        @keyframes gradient-x {
+          0%, 100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+        }
+        .animate-gradient-x {
+          background-size: 200% 200%;
+          animation: gradient-x 3s ease infinite;
+        }
+      `}</style>
       <div className="flex min-h-screen items-center justify-center p-4">
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
         
-        <div className="relative w-full max-w-4xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 max-h-[90vh] overflow-y-auto">
-          {/* Header */}
-          <div className="sticky top-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-6 flex items-center justify-between z-10">
-            <div className="flex items-center gap-3">
-              <FileText className="w-6 h-6 text-amber-500" />
-              <h2 className="text-2xl font-black text-slate-900 dark:text-white">CabEngine Pro Documentation</h2>
+        <div className="relative w-full max-w-5xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 max-h-[90vh] overflow-y-auto">
+          {/* Gradient Header */}
+          <div className="relative bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 p-8">
+            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-transparent" />
+            <div className="relative flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-amber-500 rounded-2xl shadow-lg shadow-amber-500/20">
+                  <FileText className="w-7 h-7 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-3xl font-black text-white tracking-tight">
+                    CabEngine <span className="text-amber-500">Pro</span>
+                  </h2>
+                  <p className="text-slate-400 text-sm mt-1">Profit-Protection Engine</p>
+                </div>
+              </div>
+              <button
+                onClick={onClose}
+                className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition-all duration-200"
+              >
+                <X size={24} />
+              </button>
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-            >
-              <X size={20} />
-            </button>
           </div>
 
           {/* Content */}
-          <div className="p-6 space-y-8">
-            {/* Overview Section */}
-            <section>
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                <Box className="w-5 h-5 text-amber-500" />
-                Application Overview
+          <div className="p-8 space-y-8">
+            {/* Hero Statement */}
+            <div className="text-center space-y-4">
+              <h3 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white leading-tight">
+                The profit-protection engine for modern{' '}
+                <span className="text-amber-500">cabinet manufacturers</span>
               </h3>
-              <div className="prose dark:prose-invert max-w-none">
-                <p className="text-slate-600 dark:text-slate-300">
-                  CabEngine Pro is a professional cabinet design and manufacturing application that streamlines the entire 
-                  process from design to production. The app enables users to create detailed cabinet layouts, generate 
-                  accurate bills of materials (BOM), optimize material cutting patterns, and produce professional documentation.
+              <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed">
+                A precision-first measurement, BOM, and quoting engine built to eliminate cost overruns 
+                and protect your profit margins.
+              </p>
+            </div>
+
+            {/* Core Principle Card */}
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 p-1">
+              <div className="bg-white dark:bg-slate-800 rounded-xl p-6 md:p-8">
+                <div className="flex flex-col md:flex-row items-center gap-4 text-center md:text-left">
+                  <div className="p-4 bg-amber-100 dark:bg-amber-900/30 rounded-full">
+                    <Shield className="w-8 h-8 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                      Built on One Simple Principle
+                    </p>
+                    <p className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white">
+                      Accurate Measurements ={' '}
+                      <span className="text-amber-500">Safe Profits</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Features Grid */}
+            <div>
+              <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
+                <Zap className="w-5 h-5 text-amber-500" />
+                Why CabEngine Pro?
+              </h4>
+              <div className="grid md:grid-cols-3 gap-4">
+                {[
+                  {
+                    icon: <FileText className="w-6 h-6" />,
+                    title: 'Professional Quotes',
+                    desc: 'Create polished quotes and invoices instantly',
+                    color: 'blue'
+                  },
+                  {
+                    icon: <Smartphone className="w-6 h-6" />,
+                    title: 'Mobile Ready',
+                    desc: 'Works seamlessly on any mobile device',
+                    color: 'green'
+                  },
+                  {
+                    icon: <TrendingUp className="w-6 h-6" />,
+                    title: 'Instant Delivery',
+                    desc: 'Convert and send documents in seconds',
+                    color: 'amber'
+                  }
+                ].map((feature, idx) => (
+                  <div 
+                    key={idx}
+                    className="group p-6 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 hover:border-amber-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-amber-500/10"
+                  >
+                    <div className={`w-12 h-12 rounded-xl bg-${feature.color}-100 dark:bg-${feature.color}-900/30 flex items-center justify-center text-${feature.color}-600 dark:text-${feature.color}-400 mb-4 group-hover:scale-110 transition-transform duration-300`}>
+                      {feature.icon}
+                    </div>
+                    <h5 className="font-bold text-slate-900 dark:text-white mb-2">
+                      {feature.title}
+                    </h5>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                      {feature.desc}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Workflow Timeline */}
+            <div>
+              <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-amber-500" />
+                Your Workflow
+              </h4>
+              <div className="relative">
+                {/* Connection Line */}
+                <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-gradient-to-r from-amber-500/20 via-amber-500 to-amber-500/20 -translate-y-1/2 hidden md:block" />
+                
+                <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+                  {[
+                    { step: '01', label: 'Measure', active: true },
+                    { step: '02', label: 'Calculate', active: true },
+                    { step: '03', label: 'Validate', active: true },
+                    { step: '04', label: 'Quote', active: true },
+                    { step: '05', label: 'Invoice', active: true },
+                    { step: '06', label: 'Close', active: false, highlight: true }
+                  ].map((item, idx) => (
+                    <div key={idx} className="relative flex flex-col items-center text-center">
+                      <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm mb-2 z-10 transition-all duration-300 ${
+                        item.highlight 
+                          ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/30 scale-110' 
+                          : item.active 
+                            ? 'bg-slate-900 dark:bg-slate-700 text-white' 
+                            : 'bg-slate-200 dark:bg-slate-700 text-slate-500'
+                      }`}>
+                        {item.step}
+                      </div>
+                      <span className={`text-sm font-medium ${
+                        item.highlight 
+                          ? 'text-amber-500' 
+                          : 'text-slate-700 dark:text-slate-300'
+                      }`}>
+                        {item.label}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Pricing / Beta Invitation Section */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-2">
+                <Gift className="w-5 h-5 text-amber-500" />
+                <h4 className="text-lg font-bold text-slate-900 dark:text-white">
+                  Join Our Beta Program
+                </h4>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-6">
+                {/* Free Beta Card */}
+                <div className="group relative rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 p-[3px] animate-gradient-x hover:shadow-2xl hover:shadow-amber-500/30 transition-all duration-500 hover:-translate-y-2">
+                  {/* Inner content */}
+                  <div className="relative rounded-2xl bg-white dark:bg-slate-800 p-8 text-center h-full overflow-hidden">
+                    {/* Shimmer overlay */}
+                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-amber-500/0 via-amber-500/5 to-amber-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    <div className="relative z-10">
+                      <div className="w-16 h-16 mx-auto mb-4 bg-amber-100 dark:bg-amber-900/30 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:bg-amber-200 dark:group-hover:bg-amber-800/50 transition-all duration-500">
+                        <Rocket className="w-8 h-8 text-amber-600 dark:text-amber-400" />
+                      </div>
+                    <h5 className="text-2xl font-black text-slate-900 dark:text-white mb-2">Free Beta Access</h5>
+                    <p className="text-slate-600 dark:text-slate-400 mb-6">
+                      Join us for free and help us build the future of cabinet manufacturing
+                    </p>
+                    <div className="space-y-2 text-left bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4 mb-6">
+                      <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
+                        <span className="text-amber-500 font-bold">✓</span>
+                        <span>All Pro features included</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
+                        <span className="text-amber-500 font-bold">✓</span>
+                        <span>Unlimited projects</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
+                        <span className="text-amber-500 font-bold">✓</span>
+                        <span>Priority support</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
+                        <span className="text-amber-500 font-bold">✓</span>
+                        <span>Direct feedback channel</span>
+                      </div>
+                    </div>
+                     <button 
+                       onClick={() => { onClose(); onGetStarted(); }}
+                       className="flex items-center justify-center gap-2 text-amber-600 dark:text-amber-400 font-bold text-lg hover:gap-4 transition-all duration-200"
+                     >
+                       <span>Join Free Beta</span>
+                       <ArrowRight className="w-5 h-5" />
+                     </button>
+                   </div>
+                 </div>
+               </div>
+
+                {/* Community Card */}
+                <div className="flex flex-col justify-center p-8 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-3 bg-amber-100 dark:bg-amber-900/30 rounded-xl">
+                      <Users className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                    </div>
+                    <h5 className="font-bold text-slate-900 dark:text-white text-lg">Build Together</h5>
+                  </div>
+                  <p className="text-slate-600 dark:text-slate-400 mb-4 leading-relaxed">
+                    We're not just building software—we're building a community. Your feedback shapes the future of CabEngine Pro.
+                  </p>
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3">
+                      <div className="w-2 h-2 rounded-full bg-amber-500 mt-2 flex-shrink-0" />
+                      <p className="text-sm text-slate-600 dark:text-slate-400">
+                        <span className="font-semibold text-slate-900 dark:text-white">Shape the Product:</span>{' '}
+                        Your suggestions directly influence our roadmap
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="w-2 h-2 rounded-full bg-amber-500 mt-2 flex-shrink-0" />
+                      <p className="text-sm text-slate-600 dark:text-slate-400">
+                        <span className="font-semibold text-slate-900 dark:text-white">Early Access:</span>{' '}
+                        Be the first to try new features
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="w-2 h-2 rounded-full bg-amber-500 mt-2 flex-shrink-0" />
+                      <p className="text-sm text-slate-600 dark:text-slate-400">
+                        <span className="font-semibold text-slate-900 dark:text-white">Locked-in Pricing:</span>{' '}
+                        Beta users get special rates when we launch
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-center p-6 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                <p className="text-slate-700 dark:text-slate-300 font-medium">
+                  <span className="text-amber-600 dark:text-amber-400 font-bold">Limited spots available.</span>{' '}
+                  Join now and let's build the ultimate cabinet management tool together!
                 </p>
               </div>
-            </section>
+            </div>
 
-            {/* Core Features */}
-            <section>
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                <Layers className="w-5 h-5 text-amber-500" />
-                Core Features
-              </h3>
-              <div className="grid md:grid-cols-2 gap-4">
-                {[
-                  { icon: <Box />, title: '3D Cabinet Design', desc: 'Design cabinets across multiple wall zones with base, wall, and tall cabinet types' },
-                  { icon: <Table2 />, title: 'Bill of Materials (BOM)', desc: 'Automatic generation of detailed BOM with material specifications and hardware calculations' },
-                  { icon: <Calculator />, title: 'Cost Estimation', desc: 'Real-time cost calculation based on materials, hardware, and labor rates' },
-                  { icon: <Zap />, title: 'Cut Optimization', desc: 'Material cutting pattern optimization to minimize waste and costs' },
-                  { icon: <Map />, title: 'Elevation Plans', desc: 'Generate professional elevation drawings with dimensions and cabinet positions' },
-                  { icon: <FileText />, title: 'Export Capabilities', desc: 'Export to PDF, Excel, and JSON formats for production and integration' },
-                ].map((feature, idx) => (
-                  <div key={idx} className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-amber-500">{feature.icon}</span>
-                      <h4 className="font-bold text-slate-900 dark:text-white">{feature.title}</h4>
-                    </div>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">{feature.desc}</p>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            {/* Technical Specifications */}
-            <section>
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                <CheckCircle className="w-5 h-5 text-amber-500" />
-                Technical Specifications
-              </h3>
-              <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-6">
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div>
-                    <h4 className="font-bold text-slate-900 dark:text-white mb-2">Cabinet Types</h4>
-                    <ul className="list-disc list-inside text-sm text-slate-600 dark:text-slate-300 space-y-1">
-                      <li>Base Cabinets (720mm height)</li>
-                      <li>Wall Cabinets (720mm height)</li>
-                      <li>Tall Cabinets (2100mm height)</li>
-                      <li>Custom cabinet configurations</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-slate-900 dark:text-white mb-2">Material Support</h4>
-                    <ul className="list-disc list-inside text-sm text-slate-600 dark:text-slate-300 space-y-1">
-                      <li>Custom sheet sizes (default: 2440x1220mm)</li>
-                      <li>Multiple thickness options (16mm, 18mm, 19mm)</li>
-                      <li>Material-specific pricing</li>
-                      <li>Waste optimization algorithms</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-slate-900 dark:text-white mb-2">Hardware Management</h4>
-                    <ul className="list-disc list-inside text-sm text-slate-600 dark:text-slate-300 space-y-1">
-                      <li>Soft-close hinges (2 per door)</li>
-                      <li>Drawer slides (per drawer)</li>
-                      <li>Handles/Knobs (per door + drawer)</li>
-                      <li>Custom hardware accessories</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-slate-900 dark:text-white mb-2">Export Formats</h4>
-                    <ul className="list-disc list-inside text-sm text-slate-600 dark:text-slate-300 space-y-1">
-                      <li>PDF Reports with professional layouts</li>
-                      <li>Excel Spreadsheets (.xlsx)</li>
-                      <li>JSON Data for integration</li>
-                      <li>Print-optimized wall plans</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* Architecture */}
-            <section>
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                <Shield className="w-5 h-5 text-amber-500" />
-                Architecture & Infrastructure
-              </h3>
-              <div className="space-y-4">
-                <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
-                  <h4 className="font-bold text-slate-900 dark:text-white mb-2">Frontend</h4>
-                  <p className="text-sm text-slate-600 dark:text-slate-300">
-                    React 18+ with TypeScript, Tailwind CSS for styling, Lucide React for icons. 
-                    Responsive design supporting desktop and mobile devices.
-                  </p>
-                </div>
-                <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
-                  <h4 className="font-bold text-slate-900 dark:text-white mb-2">Backend & Database</h4>
-                  <p className="text-sm text-slate-600 dark:text-slate-300">
-                    Supabase (PostgreSQL) for data persistence, Row Level Security (RLS) for data protection,
-                    Storage bucket for logo and file uploads.
-                  </p>
-                </div>
-                <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
-                  <h4 className="font-bold text-slate-900 dark:text-white mb-2">Authentication</h4>
-                  <p className="text-sm text-slate-600 dark:text-slate-300">
-                    JWT-based authentication via Supabase Auth. Users can sign up with email/password.
-                    All projects are user-specific and secured via RLS policies.
-                  </p>
-                </div>
-              </div>
-            </section>
-
-            {/* 2Checkout Integration */}
-            <section>
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                <CreditCard className="w-5 h-5 text-amber-500" />
-                Payment Integration
-              </h3>
-              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-6">
-                <h4 className="font-bold text-amber-800 dark:text-amber-400 mb-2">Subscription Model</h4>
-                <div className="space-y-4">
-                  <div>
-                    <h5 className="font-semibold text-slate-900 dark:text-white">Free Plan</h5>
-                    <ul className="list-disc list-inside text-sm text-slate-600 dark:text-slate-300 mt-1">
-                      <li>Up to 3 projects</li>
-                      <li>Basic cabinet presets</li>
-                      <li>PDF export</li>
-                      <li>Limited material types</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <h5 className="font-semibold text-slate-900 dark:text-white">Pro Plan</h5>
-                    <ul className="list-disc list-inside text-sm text-slate-600 dark:text-slate-300 mt-1">
-                      <li>Unlimited projects</li>
-                      <li>All cabinet presets including custom</li>
-                      <li>Full BOM export (Excel, PDF, JSON)</li>
-                      <li>Unlimited material types</li>
-                      <li>Cloud backup</li>
-                      <li>Priority support</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* User Workflow */}
-            <section>
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                <Users className="w-5 h-5 text-amber-500" />
-                User Workflow
-              </h3>
-              <div className="space-y-3">
-                {[
-                  { step: '1', title: 'Account Creation', desc: 'User signs up with email/password' },
-                  { step: '2', title: 'Project Setup', desc: 'Configure company info, materials, dimensions' },
-                  { step: '3', title: 'Material Configuration', desc: 'Add sheet types, hardware items, pricing' },
-                  { step: '4', title: 'Cabinet Design', desc: 'Design cabinets across multiple wall zones' },
-                  { step: '5', title: 'BOM Generation', desc: 'Automatic calculation of materials and costs' },
-                  { step: '6', title: 'Export & Production', desc: 'Export reports for manufacturing' },
-                ].map((item, idx) => (
-                  <div key={idx} className="flex items-start gap-4">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-400 font-bold text-sm">
-                      {item.step}
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-slate-900 dark:text-white">{item.title}</h4>
-                      <p className="text-sm text-slate-600 dark:text-slate-300">{item.desc}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            {/* Security & Compliance */}
-            <section>
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                <Shield className="w-5 h-5 text-amber-500" />
-                Security & Data Protection
-              </h3>
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
-                  <h4 className="font-bold text-slate-900 dark:text-white mb-2">Data Security</h4>
-                  <ul className="list-disc list-inside text-sm text-slate-600 dark:text-slate-300 space-y-1">
-                    <li>All data encrypted in transit (HTTPS/TLS)</li>
-                    <li>Row Level Security (RLS) enforced</li>
-                    <li>JWT-based authentication</li>
-                    <li>Secure password hashing</li>
-                    <li>No sensitive payment data stored</li>
-                  </ul>
-                </div>
-                <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
-                  <h4 className="font-bold text-slate-900 dark:text-white mb-2">Compliance</h4>
-                  <ul className="list-disc list-inside text-sm text-slate-600 dark:text-slate-300 space-y-1">
-                    <li>PCI DSS compliant payment processing</li>
-                    <li>GDPR compliant data handling</li>
-                    <li>User data export available</li>
-                    <li>Account deletion support</li>
-                    <li>Privacy-focused architecture</li>
-                  </ul>
-                </div>
-              </div>
-            </section>
-
-            {/* Contact */}
-            <section className="border-t border-slate-200 dark:border-slate-800 pt-6">
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div>
-                  <h3 className="font-bold text-slate-900 dark:text-white">Questions or Support?</h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-300">
-                    For technical inquiries
-                  </p>
-                </div>
-                <a
-                  href="mailto:asanke1@gmail.com"
-                  className="flex items-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-lg font-bold hover:bg-amber-600 transition-colors"
+            {/* CTA Section */}
+            <div className="relative overflow-hidden rounded-2xl bg-slate-900 dark:bg-slate-800 p-8 text-center">
+              <div className="absolute inset-0 bg-gradient-to-br from-amber-500/20 to-transparent" />
+              <div className="relative">
+                <p className="text-xl font-bold text-white mb-2">
+                  Ready to protect your profits?
+                </p>
+                <p className="text-slate-400 mb-6">
+                  Join our free beta and start creating professional quotes today
+                </p>
+                <button 
+                  onClick={() => { onClose(); onGetStarted(); }}
+                  className="flex items-center justify-center gap-2 text-amber-500 font-semibold hover:gap-4 transition-all duration-200"
                 >
-                  Contact Support
-                  <ExternalLink size={16} />
-                </a>
+                  <span>Get Started Free</span>
+                  <ArrowRight className="w-5 h-5" />
+                </button>
               </div>
-            </section>
+            </div>
           </div>
         </div>
       </div>

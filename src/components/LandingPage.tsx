@@ -286,7 +286,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
                 onClick={() => setDocsModalOpen(true)}
                 className="text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 transition-colors text-sm font-medium flex items-center gap-1"
               >
-                <FileText size={16} />
                 Docs
               </button>
               <button
@@ -659,7 +658,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
       </footer>
 
       {/* Docs Modal */}
-      <LandingDocsModal isOpen={docsModalOpen} onClose={() => setDocsModalOpen(false)} />
+      <LandingDocsModal isOpen={docsModalOpen} onClose={() => setDocsModalOpen(false)} onGetStarted={onGetStarted} />
     </div>
   );
 };
