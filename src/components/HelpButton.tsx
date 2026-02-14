@@ -1,7 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { HelpCircle, X, Send, MessageSquare, Bug, Lightbulb, AlertCircle, HelpCircleIcon, Camera, Trash2, Undo, Check } from 'lucide-react';
+import { HelpCircle, X, Send, MessageSquare, Bug, Lightbulb, AlertCircle, HelpCircleIcon, Camera, Trash2, Undo, Check, ArrowRight } from 'lucide-react';
 import { feedbackService } from '../services/feedbackService';
 import html2canvas from 'html2canvas';
+
+const ROTATING_PHRASES = [
+  "Need a new feature?",
+  "Give us your suggestions",
+  "Have an idea?",
+  "Report an issue",
+  "We're listening",
+  "Help us improve"
+];
 
 const FEEDBACK_TYPES = [
   { id: 'suggestion', label: 'Suggestion', icon: Lightbulb, color: 'text-amber-500' },
@@ -27,6 +36,36 @@ export const HelpButton: React.FC = () => {
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+
+  // Rotating phrases state
+  const [currentPhraseIndex, setCurrentPhraseIndex] = useState(0);
+  const [showPhrase, setShowPhrase] = useState(false);
+
+  // Rotate phrases every 6 seconds
+  useEffect(() => {
+    const showTimer = setInterval(() => {
+      setShowPhrase(true);
+      // Hide after 5 seconds
+      setTimeout(() => {
+        setShowPhrase(false);
+        // Move to next phrase after hiding (1 second transition)
+        setTimeout(() => {
+          setCurrentPhraseIndex((prev) => (prev + 1) % ROTATING_PHRASES.length);
+        }, 1000);
+      }, 3000);
+    }, 4000);
+
+    // Show first phrase after 3 seconds
+    const initialTimer = setTimeout(() => {
+      setShowPhrase(true);
+      setTimeout(() => setShowPhrase(false), 5000);
+    }, 3000);
+
+    return () => {
+      clearInterval(showTimer);
+      clearTimeout(initialTimer);
+    };
+  }, []);
 
   // Screenshot state
   const [screenshot, setScreenshot] = useState<string | null>(null);
@@ -346,21 +385,37 @@ export const HelpButton: React.FC = () => {
         </button>
       </div>
 
-      {/* Help Button */}
+      {/* Help Button with Rotating Phrase */}
       <div className="help-button-container">
-        <button
-          onClick={() => {
-            setIsAnnotating(false);
-            setScreenshot(null);
-            setFinalScreenshot(null);
-            setAnnotations([]);
-            setIsOpen(true);
-          }}
-          className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-amber-500 hover:bg-amber-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center group print:hidden"
-          aria-label="Help & Feedback"
-        >
-          <HelpCircle className="w-7 h-7 group-hover:scale-110 transition-transform" />
-        </button>
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 print:hidden">
+          {/* Rotating Phrase - Expands from right to left */}
+          <div
+            className={`overflow-hidden transition-all duration-1000 ease-out ${
+              showPhrase ? 'max-w-[320px] opacity-100 translate-x-0' : 'max-w-0 opacity-0 translate-x-4'
+            }`}
+          >
+            <div className="bg-white dark:bg-slate-800 pl-3 pr-4 py-2.5 rounded-full shadow-xl border-l-4 border-amber-500 whitespace-nowrap flex items-center gap-2">
+              <span className="w-2 h-2 bg-amber-500 rounded-full animate-pulse flex-shrink-0"></span>
+              <span className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                {ROTATING_PHRASES[currentPhraseIndex]}
+              </span>
+              <span className="text-xs text-amber-600 dark:text-amber-400 font-medium ml-1">→</span>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              setIsAnnotating(false);
+              setScreenshot(null);
+              setFinalScreenshot(null);
+              setAnnotations([]);
+              setIsOpen(true);
+            }}
+            className="w-14 h-14 bg-amber-500 hover:bg-amber-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center group"
+            aria-label="Help & Feedback"
+          >
+            <HelpCircle className="w-7 h-7 group-hover:scale-110 transition-transform" />
+          </button>
+        </div>
       </div>
 
       {/* Feedback Modal */}
@@ -630,5 +685,4 @@ export const HelpButton: React.FC = () => {
   );
 };
 
-// Need to import ArrowRight
-import { ArrowRight } from 'lucide-react';
+
