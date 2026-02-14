@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { HelpCircle, X, Send, MessageSquare, Bug, Lightbulb, AlertCircle, HelpCircleIcon, Camera, Trash2, Undo, Check, ArrowRight } from 'lucide-react';
+import { HelpCircle, X, Send, MessageSquare, Bug, Lightbulb, AlertCircle, HelpCircleIcon, Camera, Trash2, Undo, Check, ArrowRight, Paperclip, FileText, Image, XCircle } from 'lucide-react';
 import { feedbackService } from '../services/feedbackService';
 import html2canvas from 'html2canvas';
 
@@ -36,6 +36,10 @@ export const HelpButton: React.FC = () => {
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+
+  // File attachment state
+  const [attachedFile, setAttachedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Rotating phrases state
   const [currentPhraseIndex, setCurrentPhraseIndex] = useState(0);
@@ -327,7 +331,8 @@ export const HelpButton: React.FC = () => {
         message: message.trim() || 'Screenshot attached',
         email: email.trim() || undefined,
       },
-      screenshotBlob
+      screenshotBlob,
+      attachedFile || undefined
     );
 
     setIsSubmitting(false);
@@ -340,6 +345,7 @@ export const HelpButton: React.FC = () => {
       setFinalScreenshot(null);
       setAnnotations([]);
       setIsAnnotating(false);
+      setAttachedFile(null);
       setTimeout(() => {
         setIsSuccess(false);
         setIsOpen(false);
@@ -626,16 +632,79 @@ export const HelpButton: React.FC = () => {
                   </div>
                 )}
 
+                {/* File Attachment */}
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                    Attach File <span className="text-slate-400 font-normal">(optional)</span>
+                  </label>
+                  
+                  {attachedFile ? (
+                    <div className="flex items-center gap-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
+                      <div className="p-2 bg-amber-100 dark:bg-amber-800/50 rounded-lg">
+                        {attachedFile.type.startsWith('image/') ? (
+                          <Image className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                        ) : (
+                          <FileText className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-900 dark:text-white truncate">
+                          {attachedFile.name}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          {(attachedFile.size / 1024).toFixed(1)} KB
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setAttachedFile(null)}
+                        className="p-1.5 hover:bg-red-100 dark:hover:bg-red-900/30 text-slate-400 hover:text-red-500 rounded-lg transition-colors"
+                      >
+                        <XCircle className="w-5 h-5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl hover:border-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-all duration-200"
+                    >
+                      <Paperclip className="w-5 h-5 text-slate-400" />
+                      <span className="text-sm text-slate-600 dark:text-slate-400">
+                        Click to attach file
+                      </span>
+                    </button>
+                  )}
+                  
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file && file.size <= 5 * 1024 * 1024) { // 5MB limit
+                        setAttachedFile(file);
+                      } else if (file) {
+                        alert('File size must be less than 5MB');
+                      }
+                    }}
+                    accept="image/*,.pdf,.doc,.docx,.txt"
+                    className="hidden"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">
+                    Max file size: 5MB (Images, PDF, Word, Text)
+                  </p>
+                </div>
+
                 {/* Message Input */}
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                    Your Message <span className="text-slate-400 font-normal">{screenshot ? '(optional)' : '(required)'}</span>
+                    Your Message <span className="text-slate-400 font-normal">{(screenshot || attachedFile) ? '(optional)' : '(required)'}</span>
                   </label>
                   <textarea
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     placeholder="Tell us what's on your mind..."
-                    required={!screenshot}
+                    required={!screenshot && !attachedFile}
                     rows={4}
                     className="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 outline-none resize-none"
                   />
@@ -661,7 +730,7 @@ export const HelpButton: React.FC = () => {
                 {/* Submit Button */}
                 <button
                   type="submit"
-                  disabled={isSubmitting || (!message.trim() && !screenshot)}
+                  disabled={isSubmitting || (!message.trim() && !screenshot && !attachedFile)}
                   className="w-full py-3 px-4 bg-amber-500 hover:bg-amber-600 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2"
                 >
                   {isSubmitting ? (
