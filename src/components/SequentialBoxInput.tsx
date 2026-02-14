@@ -144,19 +144,19 @@ export const SequentialBoxInput: React.FC<SequentialBoxInputProps> = ({ zone, on
     };
 
     return (
-        <div className="bg-slate-900 rounded-xl p-4 space-y-4 border border-amber-500/30">
+        <div className="bg-white dark:bg-slate-900 rounded-xl p-4 space-y-4 border border-amber-500/30">
             <div className="flex items-center justify-between">
-                <h3 className="text-amber-500 font-bold text-sm flex items-center gap-2">
+                <h3 className="text-amber-600 dark:text-amber-500 font-bold text-sm flex items-center gap-2">
                     <Zap size={16} /> Sequential Builder
                 </h3>
-                <span className="text-slate-500 text-xs">Left → Right</span>
+                <span className="text-slate-500 dark:text-slate-500 text-xs">Left → Right</span>
             </div>
 
             {/* WALL ROW */}
             <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-slate-400 uppercase">Top (Wall)</span>
-                    <span className="text-xs text-amber-500 font-mono">{wallInfo.remaining}mm left</span>
+                    <span className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase">Top (Wall)</span>
+                    <span className="text-xs text-amber-600 dark:text-amber-500 font-mono">{wallInfo.remaining}mm left</span>
                 </div>
                 <div className="flex gap-1 flex-wrap">
                     {WALL_PRESETS.map((p, i) => (
@@ -165,14 +165,14 @@ export const SequentialBoxInput: React.FC<SequentialBoxInputProps> = ({ zone, on
                             onClick={() => handleAddBox(CabinetType.WALL, p)}
                             disabled={p.width > wallInfo.remaining}
                             className={`px-2 py-1.5 text-[10px] font-bold rounded border transition-all ${p.width > wallInfo.remaining
-                                ? 'border-slate-700 text-slate-600 cursor-not-allowed'
+                                ? 'border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-600 cursor-not-allowed'
                                 : p.pairedPreset
-                                    ? 'border-purple-500 text-purple-400 hover:bg-purple-900/30'
-                                    : 'border-slate-600 text-slate-300 hover:bg-slate-800 hover:border-amber-500'
+                                    ? 'border-purple-500 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/30'
+                                    : 'border-slate-400 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-amber-500'
                                 }`}
                         >
                             {p.label}
-                            {p.pairedPreset && <span className="ml-1 text-purple-300">⚡</span>}
+                            {p.pairedPreset && <span className="ml-1 text-purple-500 dark:text-purple-300">⚡</span>}
                         </button>
                     ))}
                     <button
@@ -186,10 +186,10 @@ export const SequentialBoxInput: React.FC<SequentialBoxInputProps> = ({ zone, on
             </div>
 
             {/* BASE ROW */}
-            <div className="space-y-2 border-t border-slate-800 pt-3">
+            <div className="space-y-2 border-t border-slate-200 dark:border-slate-800 pt-3">
                 <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-slate-400 uppercase">Bottom (Base)</span>
-                    <span className="text-xs text-amber-500 font-mono">{baseInfo.remaining}mm left</span>
+                    <span className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase">Bottom (Base)</span>
+                    <span className="text-xs text-amber-600 dark:text-amber-500 font-mono">{baseInfo.remaining}mm left</span>
                 </div>
                 <div className="flex gap-1 flex-wrap">
                     {BASE_PRESETS.map((p, i) => (
@@ -198,14 +198,14 @@ export const SequentialBoxInput: React.FC<SequentialBoxInputProps> = ({ zone, on
                             onClick={() => handleAddBox(CabinetType.BASE, p)}
                             disabled={p.width > baseInfo.remaining}
                             className={`px-2 py-1.5 text-[10px] font-bold rounded border transition-all ${p.width > baseInfo.remaining
-                                ? 'border-slate-700 text-slate-600 cursor-not-allowed'
+                                ? 'border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-600 cursor-not-allowed'
                                 : p.pairedPreset
-                                    ? 'border-purple-500 text-purple-400 hover:bg-purple-900/30'
-                                    : 'border-slate-600 text-slate-300 hover:bg-slate-800 hover:border-amber-500'
+                                    ? 'border-purple-500 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/30'
+                                    : 'border-slate-400 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-amber-500'
                                 }`}
                         >
                             {p.label}
-                            {p.pairedPreset && <span className="ml-1 text-purple-300">⚡</span>}
+                            {p.pairedPreset && <span className="ml-1 text-purple-500 dark:text-purple-300">⚡</span>}
                         </button>
                     ))}
                     <button
@@ -218,8 +218,8 @@ export const SequentialBoxInput: React.FC<SequentialBoxInputProps> = ({ zone, on
                 </div>
             </div>
 
-            <div className="text-[9px] text-slate-500 pt-2 border-t border-slate-800">
-                <span className="text-purple-400">⚡</span> = Auto-pairs Hood ↔ Hob
+            <div className="text-[9px] text-slate-500 dark:text-slate-500 pt-2 border-t border-slate-200 dark:border-slate-800">
+                <span className="text-purple-600 dark:text-purple-400">⚡</span> = Auto-pairs Hood ↔ Hob
             </div>
         </div>
     );
