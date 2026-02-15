@@ -84,6 +84,7 @@ export interface CabinetMaterials {
   carcassMaterial?: string;  // e.g., "White Melamine 16mm"
   backPanelMaterial?: string; // e.g., "MDF 6mm"
   drawerMaterial?: string;    // e.g., "White Melamine 16mm"
+  doorMaterial?: string;      // e.g., "High Gloss White"
 }
 
 export interface CabinetUnit {
@@ -171,6 +172,14 @@ export enum Screen {
   BOM_REPORT = 'bom_report',
   TOOLS = 'tools',
   PRICING = 'pricing'
+}
+
+export interface AutoFillOptions {
+  includeSink: boolean;
+  includeCooker: boolean;
+  includeTall: boolean;
+  includeWallCabinets: boolean;
+  preferDrawers: boolean;
 }
 
 // Subscription Types

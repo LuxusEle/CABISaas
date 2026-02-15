@@ -1,5 +1,5 @@
 
-import { Project, Zone, CabinetUnit, BOMGroup, BOMItem, CabinetType, PresetType, ProjectSettings, OptimizationResult, Obstacle } from '../types';
+import { Project, Zone, CabinetUnit, BOMGroup, BOMItem, CabinetType, PresetType, ProjectSettings, OptimizationResult, Obstacle, AutoFillOptions } from '../types';
 import type { ConstructionPlanJSON } from '../types/construction';
 
 // Helper to generate unique IDs
@@ -21,17 +21,32 @@ const NAILS_PER_HINGE = 4;
 // --- COLLISION LOGIC ---
 
 export const resolveCollisions = (zone: Zone): Zone => {
-  const sortedCabs = [...zone.cabinets].sort((a, b) => a.fromLeft - b.fromLeft);
+  // Sort and create fresh copies to avoid mutating original state
+  const sortedCabs = [...zone.cabinets]
+    .sort((a, b) => a.fromLeft - b.fromLeft)
+    .map(c => ({ ...c }));
 
-  for (let i = 0; i < sortedCabs.length - 1; i++) {
-    const current = sortedCabs[i];
-    const next = sortedCabs[i + 1];
+  for (let i = 1; i < sortedCabs.length; i++) {
+    const next = sortedCabs[i];
+    let maxRight = next.fromLeft;
 
-    const currentRight = current.fromLeft + current.width;
+    for (let j = 0; j < i; j++) {
+      const current = sortedCabs[j];
 
-    if (currentRight > next.fromLeft) {
-      next.fromLeft = currentRight;
+      // Check if they collide vertically (same type or one is Tall)
+      const collideVertically =
+        current.type === next.type ||
+        current.type === CabinetType.TALL ||
+        next.type === CabinetType.TALL;
+
+      if (collideVertically) {
+        const currentRight = current.fromLeft + current.width;
+        if (currentRight > maxRight) {
+          maxRight = currentRight;
+        }
+      }
     }
+    next.fromLeft = maxRight;
   }
 
   return {
@@ -42,108 +57,162 @@ export const resolveCollisions = (zone: Zone): Zone => {
 
 // --- AUTO FILL ---
 
-const STD_WIDTHS = [900, 800, 600, 500, 450, 400, 300];
+const STD_WIDTHS = [900, 800, 600, 500, 450, 400, 300, 150];
+
+export const getIntersectingCabinets = (zone: Zone, cabinet: CabinetUnit): CabinetUnit[] => {
+  return zone.cabinets.filter(c => {
+    if (c.id === cabinet.id) return false;
+
+    // Check vertical group compatibility
+    const collideVertically =
+      cabinet.type === c.type ||
+      cabinet.type === CabinetType.TALL ||
+      c.type === CabinetType.TALL;
+
+    if (!collideVertically) return false;
+
+    const cabinetStart = cabinet.fromLeft;
+    const cabinetEnd = cabinetStart + cabinet.width;
+    const cStart = c.fromLeft;
+    const cEnd = cStart + c.width;
+
+    return cabinetStart < cEnd && cabinetEnd > cStart;
+  });
+};
 
 /**
  * Intelligent Layout Logic (Hafale Principles)
  * 1. Sinks under Windows.
  * 2. Storage -> Wash -> Prep -> Cook flow.
  */
-export const autoFillZone = (zone: Zone, settings: ProjectSettings, wallId: string, confirmMoveCustom: boolean = false): Zone => {
+export const autoFillZone = (
+  zone: Zone,
+  settings: ProjectSettings,
+  wallId: string,
+  options: AutoFillOptions = { includeSink: true, includeCooker: true, includeTall: false, includeWallCabinets: true, preferDrawers: false }
+): Zone => {
   const manualCabs = zone.cabinets.filter(c => !c.isAutoFilled);
   const obstacles = zone.obstacles;
   const totalLength = zone.totalLength;
 
   // 1. Identify "Hard" Blocks (Cannot have cabinets)
-  // Doors and tall columns take up base and wall space.
   const hardBlocks = obstacles.filter(o => o.type === 'door' || o.type === 'column' || (o.type === 'window' && (o.sillHeight || 0) < 300));
 
   const newCabinets: CabinetUnit[] = [];
 
-  // 2. Intelligent Placement: Sink under Window
-  obstacles.filter(o => o.type === 'window' && (o.sillHeight || 0) >= 300).forEach(win => {
-    const sinkWidth = 900;
-    const sinkLeft = Math.round((win.fromLeft + (win.width - sinkWidth) / 2) / 25) * 25;
-
-    // Ensure it doesn't overlap a hard block or manual cabinet
-    const overlaps = hardBlocks.some(b => sinkLeft < b.fromLeft + b.width && sinkLeft + sinkWidth > b.fromLeft) ||
-      manualCabs.some(c => sinkLeft < c.fromLeft + c.width && sinkLeft + sinkWidth > c.fromLeft);
-
-    if (!overlaps && sinkLeft >= 0 && sinkLeft + sinkWidth <= totalLength) {
-      newCabinets.push({
-        id: uuid(), preset: PresetType.SINK_UNIT, type: CabinetType.BASE,
-        width: sinkWidth, qty: 1, isAutoFilled: true, fromLeft: sinkLeft
+  // Helper to check if a spot is occupied by manual cabs or hard blocks
+  const isOccupied = (x: number, w: number, type: CabinetType) => {
+    const overlaps = hardBlocks.some(b => x < b.fromLeft + b.width && x + w > b.fromLeft) ||
+      manualCabs.some(c => {
+        const verticallyCompatible = type === CabinetType.TALL || c.type === CabinetType.TALL || type === c.type;
+        return verticallyCompatible && x < c.fromLeft + c.width && x + w > c.fromLeft;
+      }) ||
+      newCabinets.some(c => {
+        const verticallyCompatible = type === CabinetType.TALL || c.type === CabinetType.TALL || type === c.type;
+        return verticallyCompatible && x < c.fromLeft + c.width && x + w > c.fromLeft;
       });
-    }
-  });
-
-  // 3. Identify Free Spans for Base and Wall units separately
-  const getFreeSpans = (isWall: boolean) => {
-    const occupied = [...newCabinets, ...manualCabs].filter(c => isWall ? c.type === CabinetType.WALL : c.type === CabinetType.BASE)
-      .map(c => ({ start: c.fromLeft, end: c.fromLeft + c.width }));
-
-    // Add Hard Blocks
-    hardBlocks.forEach(b => occupied.push({ start: b.fromLeft, end: b.fromLeft + b.width }));
-
-    // Add Windows for Wall units if sill is too low
-    if (isWall) {
-      obstacles.filter(o => o.type === 'window' && (o.sillHeight || 0) < 2100)
-        .forEach(o => occupied.push({ start: o.fromLeft, end: o.fromLeft + o.width }));
-    }
-
-    occupied.sort((a, b) => a.start - b.start);
-    const merged: { start: number, end: number }[] = [];
-    if (occupied.length > 0) {
-      let cur = { ...occupied[0] };
-      for (let i = 1; i < occupied.length; i++) {
-        if (occupied[i].start < cur.end) cur.end = Math.max(cur.end, occupied[i].end);
-        else { merged.push(cur); cur = { ...occupied[i] }; }
-      }
-      merged.push(cur);
-    }
-
-    const free: { start: number, end: number }[] = [];
-    let curX = 0;
-    merged.forEach(m => {
-      if (m.start > curX) free.push({ start: curX, end: m.start });
-      curX = Math.max(curX, m.end);
-    });
-    if (curX < totalLength) free.push({ start: curX, end: totalLength });
-    return free;
+    return overlaps;
   };
 
-  const baseSpans = getFreeSpans(false);
-  const wallSpans = getFreeSpans(true);
-
-  // 4. Fill Base Spans
-  baseSpans.forEach(span => {
-    let R = span.end - span.start;
-    let x = span.start;
-    while (R >= 300) {
-      const w = STD_WIDTHS.find(sw => sw <= R) || 300;
-      // Hafale Rule: If we have a drawer unit (900/800), treat it as a potential Cooker spot
-      const preset = w >= 800 ? PresetType.BASE_DRAWER_3 : PresetType.BASE_DOOR;
-      newCabinets.push({ id: uuid(), preset, type: CabinetType.BASE, width: w, qty: 1, isAutoFilled: true, fromLeft: x });
-      R -= w; x += w;
+  // 2. Intelligent Placement: Sink under Window (Exactly One)
+  if (options.includeSink && !manualCabs.some(c => c.preset === PresetType.SINK_UNIT)) {
+    const windows = obstacles.filter(o => o.type === 'window' && (o.sillHeight || 0) >= 300);
+    for (const win of windows) {
+      const sinkWidth = 900;
+      const sinkLeft = Math.round((win.fromLeft + (win.width - sinkWidth) / 2) / 25) * 25;
+      if (!isOccupied(sinkLeft, sinkWidth, CabinetType.BASE) && sinkLeft >= 0 && sinkLeft + sinkWidth <= totalLength) {
+        newCabinets.push({
+          id: uuid(), preset: PresetType.SINK_UNIT, type: CabinetType.BASE,
+          width: sinkWidth, qty: 1, isAutoFilled: true, fromLeft: sinkLeft
+        });
+        break; // Only one sink
+      }
     }
-    if (R >= 20) newCabinets.push({ id: uuid(), preset: PresetType.FILLER, type: CabinetType.BASE, width: R, qty: 1, isAutoFilled: true, fromLeft: x });
-  });
+  }
 
-  // 5. Fill Wall Spans (Matching Base widths where possible)
-  wallSpans.forEach(span => {
-    let R = span.end - span.start;
-    let x = span.start;
-    while (R >= 300) {
-      const w = STD_WIDTHS.find(sw => sw <= R) || 300;
-      // Hafale Rule: If below is a Cooker (Drawer >= 800), this Wall unit is a HOOD_UNIT
-      const isOverCooker = newCabinets.some(c => c.type === CabinetType.BASE && c.preset === PresetType.BASE_DRAWER_3 && Math.abs(c.fromLeft - x) < 50);
-      const preset = isOverCooker ? PresetType.HOOD_UNIT : PresetType.WALL_STD;
+  // 3. Intelligent Placement: Cooker (Exactly One)
+  let cookerCabinet: CabinetUnit | null = null;
+  const existingCooker = manualCabs.find(c => c.preset === PresetType.BASE_DRAWER_3);
 
-      newCabinets.push({ id: uuid(), preset, type: CabinetType.WALL, width: w, qty: 1, isAutoFilled: true, fromLeft: x });
-      R -= w; x += w;
+  if (options.includeCooker && !existingCooker) {
+    // Try to place cooker away from sink (working triangle)
+    const cookerWidth = 900;
+    const sinkCab = [...newCabinets, ...manualCabs].find(c => c.preset === PresetType.SINK_UNIT);
+    const preferredX = sinkCab ? (sinkCab.fromLeft + 1800 > totalLength - cookerWidth ? 0 : sinkCab.fromLeft + 1800) : 0;
+
+    // Search from preferredX outwards
+    for (let offset = 0; offset < totalLength; offset += 50) {
+      const positions = [preferredX + offset, preferredX - offset];
+      let found = false;
+      for (const x of positions) {
+        if (x >= 0 && x <= totalLength - cookerWidth && !isOccupied(x, cookerWidth, CabinetType.BASE)) {
+          cookerCabinet = {
+            id: uuid(), preset: PresetType.BASE_DRAWER_3, type: CabinetType.BASE,
+            width: cookerWidth, qty: 1, isAutoFilled: true, fromLeft: x
+          };
+          newCabinets.push(cookerCabinet);
+          found = true;
+          break;
+        }
+      }
+      if (found) break;
     }
-    if (R >= 20) newCabinets.push({ id: uuid(), preset: PresetType.FILLER, type: CabinetType.WALL, width: R, qty: 1, isAutoFilled: true, fromLeft: x });
-  });
+  } else {
+    cookerCabinet = existingCooker || null;
+  }
+
+  // 4. Place Hood EXACTLY above Cooker
+  if (cookerCabinet && options.includeWallCabinets) {
+    const hoodWidth = cookerCabinet.width;
+    const hoodLeft = cookerCabinet.fromLeft;
+    if (!isOccupied(hoodLeft, hoodWidth, CabinetType.WALL)) {
+      newCabinets.push({
+        id: uuid(), preset: PresetType.HOOD_UNIT, type: CabinetType.WALL,
+        width: hoodWidth, qty: 1, isAutoFilled: true, fromLeft: hoodLeft
+      });
+    }
+  }
+
+  // 5. Fill remaining spans
+  const fillSpans = (type: CabinetType) => {
+    if (type === CabinetType.WALL && !options.includeWallCabinets) return;
+    if (type === CabinetType.TALL && !options.includeTall) return;
+
+    let x = 0;
+    while (x < totalLength) {
+      // Find next free spot
+      let foundSpot = false;
+      for (const w of STD_WIDTHS) {
+        if (x + w <= totalLength && !isOccupied(x, w, type)) {
+          const preset = type === CabinetType.BASE
+            ? (options.preferDrawers ? PresetType.BASE_DRAWER_3 : PresetType.BASE_DOOR)
+            : (type === CabinetType.WALL ? PresetType.WALL_STD : PresetType.TALL_UTILITY);
+
+          newCabinets.push({ id: uuid(), preset, type, width: w, qty: 1, isAutoFilled: true, fromLeft: x });
+          x += w;
+          foundSpot = true;
+          break;
+        }
+      }
+      if (!foundSpot) {
+        // Check if we have a small gap that could be a filler
+        let gapWidth = 0;
+        while (x + gapWidth < totalLength && !isOccupied(x + gapWidth, 1, type)) {
+          gapWidth++;
+        }
+        if (gapWidth >= 20) {
+          newCabinets.push({ id: uuid(), preset: PresetType.FILLER, type, width: gapWidth, qty: 1, isAutoFilled: true, fromLeft: x });
+          x += gapWidth;
+        } else {
+          x += 25;
+        }
+      }
+    }
+  };
+
+  fillSpans(CabinetType.BASE);
+  fillSpans(CabinetType.TALL);
+  fillSpans(CabinetType.WALL);
 
   // 6. Sequential Numbering (preserve existing labels, assign new ones as needed)
   const finalCabs = [...newCabinets, ...manualCabs].sort((a, b) => a.fromLeft - b.fromLeft);
@@ -190,6 +259,7 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
   const carcassMaterial = materials.carcassMaterial || `${thickness}mm White`;
   const backPanelMaterial = materials.backPanelMaterial || '6mm MDF';
   const drawerMaterial = materials.drawerMaterial || '16mm White';
+  const doorMaterial = materials.doorMaterial || carcassMaterial;
 
   let height = settings.baseHeight;
   let depth = settings.depthBase;
@@ -251,12 +321,14 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
 
   // Preset Hardware
   if (unit.preset === PresetType.BASE_DOOR) {
+    parts.push({ id: uuid(), name: 'Door', qty: unit.width > 400 ? 2 : 1, width: unit.width > 400 ? (unit.width / 2) - 2 : unit.width - 4, length: height - 4, material: doorMaterial, label: labelPrefix });
     parts.push({ id: uuid(), name: 'Shelf', qty: 1, width: depth - 20, length: horizWidth, material: carcassMaterial, label: labelPrefix });
     parts.push({ id: uuid(), name: HW.HINGE, qty: unit.width > 400 ? 4 : 2, width: 0, length: 0, material: 'Hardware', isHardware: true });
     parts.push({ id: uuid(), name: HW.HANDLE, qty: unit.width > 400 ? 2 : 1, width: 0, length: 0, material: 'Hardware', isHardware: true });
     parts.push({ id: uuid(), name: HW.LEG, qty: 4, width: 0, length: 0, material: 'Hardware', isHardware: true });
   }
   if (unit.preset === PresetType.BASE_DRAWER_3) {
+    parts.push({ id: uuid(), name: 'Drawer Front', qty: 3, width: unit.width - 4, length: Math.round(height / 3) - 4, material: doorMaterial, label: labelPrefix });
     parts.push({ id: uuid(), name: 'Drawer Bottom', qty: 3, width: depth - 50, length: horizWidth - 26, material: drawerMaterial, label: labelPrefix });
     parts.push({ id: uuid(), name: 'Drawer Side', qty: 6, width: depth - 10, length: 150, material: drawerMaterial, label: labelPrefix });
     parts.push({ id: uuid(), name: HW.SLIDE, qty: 3, width: 0, length: 0, material: 'Hardware', isHardware: true });
@@ -264,6 +336,7 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
     parts.push({ id: uuid(), name: HW.LEG, qty: 4, width: 0, length: 0, material: 'Hardware', isHardware: true });
   }
   if (unit.preset === PresetType.WALL_STD) {
+    parts.push({ id: uuid(), name: 'Door', qty: unit.width > 400 ? 2 : 1, width: unit.width > 400 ? (unit.width / 2) - 2 : unit.width - 4, length: height - 4, material: doorMaterial, label: labelPrefix });
     parts.push({ id: uuid(), name: 'Shelf', qty: 2, width: depth - 20, length: horizWidth, material: carcassMaterial, label: labelPrefix });
     parts.push({ id: uuid(), name: HW.HINGE, qty: unit.width > 400 ? 4 : 2, width: 0, length: 0, material: 'Hardware', isHardware: true });
     parts.push({ id: uuid(), name: HW.HANDLE, qty: unit.width > 400 ? 2 : 1, width: 0, length: 0, material: 'Hardware', isHardware: true });

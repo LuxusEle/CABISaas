@@ -68,6 +68,50 @@ describe('bomService', () => {
       expect(result.cabinets[1].fromLeft).toBe(600);
       expect(result.cabinets[2].fromLeft).toBe(1200);
     });
+
+    it('should NOT push cabinets of different types (Base and Wall) if they overlap', () => {
+      const zone: Zone = {
+        id: 'Wall A',
+        active: true,
+        totalLength: 3000,
+        wallHeight: 2400,
+        obstacles: [],
+        cabinets: [
+          { id: 'b1', preset: PresetType.BASE_DOOR, type: CabinetType.BASE, width: 600, qty: 1, fromLeft: 0, label: 'B01' },
+          { id: 'w1', preset: PresetType.WALL_STD, type: CabinetType.WALL, width: 600, qty: 1, fromLeft: 0, label: 'W01' },
+        ]
+      };
+
+      const result = resolveCollisions(zone);
+
+      const b01 = result.cabinets.find(c => c.label === 'B01');
+      const w01 = result.cabinets.find(c => c.label === 'W01');
+
+      expect(b01?.fromLeft).toBe(0);
+      expect(w01?.fromLeft).toBe(0);
+    });
+
+    it('should push any cabinet if a Tall cabinet overlaps it', () => {
+      const zone: Zone = {
+        id: 'Wall A',
+        active: true,
+        totalLength: 3000,
+        wallHeight: 2400,
+        obstacles: [],
+        cabinets: [
+          { id: 't1', preset: PresetType.TALL_UTILITY, type: CabinetType.TALL, width: 600, qty: 1, fromLeft: 0, label: 'T01' },
+          { id: 'w1', preset: PresetType.WALL_STD, type: CabinetType.WALL, width: 600, qty: 1, fromLeft: 0, label: 'W01' },
+        ]
+      };
+
+      const result = resolveCollisions(zone);
+
+      const t01 = result.cabinets.find(c => c.label === 'T01');
+      const w01 = result.cabinets.find(c => c.label === 'W01');
+
+      expect(t01?.fromLeft).toBe(0);
+      expect(w01?.fromLeft).toBe(600);
+    });
   });
 
   describe('createNewProject', () => {
