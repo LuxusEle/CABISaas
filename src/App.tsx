@@ -35,13 +35,13 @@ import { logoService } from './services/logoService';
 const TitleBlock = ({ project, pageTitle }: { project: Project, pageTitle: string }) => (
   <div className="hidden print:flex fixed bottom-0 left-0 right-0 border-t-4 border-black bg-white h-16 text-xs font-sans items-stretch z-50">
     <div className="w-1/4 border-r-2 border-black p-2 flex flex-col justify-between">
-      <div className="font-black text-xl tracking-tighter leading-none italic uppercase">LUXUS<span className="text-slate-400">DESIGN</span></div>
+      <div className="font-black text-xl tracking-tighter leading-none italic uppercase truncate">{project.company || 'COMPANY'}</div>
       <div className="text-[8px] leading-tight text-slate-500 uppercase tracking-widest font-bold">Construction Document / Automated BOM</div>
     </div>
     <div className="flex-1 grid grid-cols-4 border-r-2 border-black">
       <div className="border-r border-black p-2 flex flex-col justify-between">
-        <label className="text-[6px] uppercase font-bold text-slate-400">Client / Project</label>
-        <div className="font-bold text-sm uppercase truncate">{project.company}</div>
+        <label className="text-[6px] uppercase font-bold text-slate-400">Project Name</label>
+        <div className="font-bold text-sm uppercase truncate">{project.name}</div>
       </div>
       <div className="border-r border-black p-2 flex flex-col justify-between">
         <label className="text-[6px] uppercase font-bold text-slate-400">Drawing Name</label>
@@ -1610,6 +1610,7 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
   // Use more specific dependencies to prevent unnecessary recalculations
   const data = useMemo(() => generateProjectBOM(project), [project.id, project.zones, project.settings]);
   const [activeView, setActiveView] = useState<'list' | 'cutplan' | 'wallplan'>('list');
+  const [printMode, setPrintMode] = useState<'bom' | 'invoice'>('bom');
   const cutPlan = useMemo(() => optimizeCuts(data.groups.flatMap(g => g.items), project.settings), [data.groups, project.settings.sheetLength, project.settings.sheetWidth, project.settings.kerf]);
   const currency = project.settings.currency || '$';
 
@@ -1723,7 +1724,27 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
     }));
   }, [cutPlan, project.settings]);
 
-  const handlePrint = () => setTimeout(() => window.print(), 100);
+  const handlePrint = () => {
+    setPrintMode('bom');
+    setTimeout(() => window.print(), 100);
+  };
+
+  // Invoice print handler - uses print-only CSS, no state needed
+  const handlePrintInvoice = () => {
+    setPrintMode('invoice');
+    setTimeout(() => window.print(), 100);
+  };
+
+  // Calculate invoice data
+  const invoiceDate = new Date();
+  const dueDate = new Date(invoiceDate);
+  dueDate.setDate(dueDate.getDate() + 30);
+  const invoiceNumber = `QT-${Date.now().toString().slice(-6)}`;
+
+  // Format currency helper
+  const formatCurrency = (amount: number) => {
+    return `${currency}${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
 
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 w-full overflow-hidden">
@@ -1751,14 +1772,113 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
           <Button variant="primary" size="sm" onClick={() => exportToExcel(data.groups, cutPlan, project)} className="flex-1 sm:flex-none min-h-[40px] text-xs sm:text-sm">
             <FileSpreadsheet size={16} className="mr-1 sm:mr-2" /> Excel
           </Button>
-          <Button variant="secondary" size="sm" onClick={() => exportToInvoicePDF(project, data, project.settings.currency, costs.totalPrice)} className="flex-1 sm:flex-none min-h-[40px] text-xs sm:text-sm">
+          <Button variant="secondary" size="sm" onClick={handlePrintInvoice} className="flex-1 sm:flex-none min-h-[40px] text-xs sm:text-sm">
             <CreditCard size={16} className="mr-1 sm:mr-2" /> Invoice
           </Button>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-8 space-y-6 sm:space-y-8 bg-white dark:bg-slate-950 print:p-4 print:pb-24 print:overflow-visible h-full">
-        <div className="border-b border-slate-200 dark:border-slate-800 pb-4 sm:pb-6 print:block flex flex-col sm:flex-row justify-between items-start gap-4">
+        {/* INVOICE SECTION - Only visible when printing (PDF only) */}
+        <div className={`hidden print:${printMode === 'invoice' ? 'block' : 'hidden'}`}>
+          <div className="max-w-[800px] mx-auto font-sans text-sm">
+            {/* Header */}
+            <div className="bg-[#282828] text-white p-5 flex justify-between items-center">
+              <div className="flex-1">
+                {project.settings.logoUrl && <img src={project.settings.logoUrl} alt="Logo" className="h-10 max-w-[120px] object-contain" />}
+              </div>
+              <div className="flex-1 text-center text-4xl font-normal text-[#c8c8c8]">INVOICE</div>
+              <div className="flex-1 text-right text-[11px] text-[#b4b4b4]">
+                <div>{project.company || 'Company Name'}</div>
+                <div>Cabinet Manufacturing Services</div>
+              </div>
+            </div>
+
+            {/* Total Banner */}
+            <div className="bg-[#f0f0f0] p-4 flex justify-end items-center gap-5">
+              <div className="text-[11px] text-[#646464]">TOTAL</div>
+              <div className="text-2xl font-bold text-[#282828]">{formatCurrency(costs.totalPrice)}</div>
+            </div>
+
+            {/* Content */}
+            <div className="p-8">
+              {/* Customer Section */}
+              <div className="flex justify-between mb-8">
+                <div className="text-lg font-bold text-[#282828]">{project.company || 'Client Company'}</div>
+                <div className="text-right">
+                  <div className="flex justify-end gap-10 mb-1">
+                    <span className="text-[11px] text-[#646464]">Invoice#</span>
+                    <span className="text-[11px] text-[#282828] font-medium w-[100px]">{invoiceNumber}</span>
+                  </div>
+                  <div className="flex justify-end gap-10 mb-1">
+                    <span className="text-[11px] text-[#646464]">Invoice Date</span>
+                    <span className="text-[11px] text-[#282828] font-medium w-[100px]">{invoiceDate.toLocaleDateString('en-GB')}</span>
+                  </div>
+                  <div className="flex justify-end gap-10">
+                    <span className="text-[11px] text-[#646464]">Due Date</span>
+                    <span className="text-[11px] text-[#282828] font-medium w-[100px]">{dueDate.toLocaleDateString('en-GB')}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Table Header */}
+              <div className="border-t border-b border-[#c8c8c8] py-2.5 grid grid-cols-[50px_1fr_120px] text-[10px] text-[#646464] mb-4">
+                <div>#</div>
+                <div>ITEM & DESCRIPTION</div>
+                <div className="text-right">AMOUNT</div>
+              </div>
+
+              {/* Item Row */}
+              <div className="py-4 border-b border-[#e8e8e8]">
+                <div className="flex justify-between">
+                  <div>
+                    <span className="inline-block w-[30px] text-[11px] text-[#282828]">1</span>
+                    <span className="text-[11px] text-[#282828]">{project.name} Specifications</span>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs font-bold text-[#282828]">{formatCurrency(costs.totalPrice)}</div>
+                    <div className="text-[9px] text-[#646464]">1.00 x {formatCurrency(costs.totalPrice)}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Summary */}
+              <div className="mt-8 pt-4 border-t border-[#c8c8c8]">
+                <div className="flex justify-between mb-4">
+                  <div className="text-[10px] text-[#505050]">Looking forward for your business.</div>
+                  <div className="text-right">
+                    <div className="flex justify-end gap-10 mb-2">
+                      <span className="text-[10px] text-[#646464]">Sub Total</span>
+                      <span className="text-[11px] text-[#282828]">{formatCurrency(baseCosts.subtotal)}</span>
+                    </div>
+                    <div className="flex justify-end gap-10">
+                      <span className="text-sm font-bold text-[#282828]">Total</span>
+                      <span className="text-sm font-bold text-[#282828]">{formatCurrency(costs.totalPrice)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="mt-8 pt-5">
+                <div className="text-[9px] text-[#505050] leading-relaxed">
+                  <div className="font-bold uppercase">{(project.company || 'Company Name').toUpperCase()}</div>
+                  <div>BANK NAME - BANK ACCOUNT</div>
+                  <div>ACCOUNT NUMBER - XXXX XXXX XXXX</div>
+                </div>
+
+                <div className="mt-5 text-[9px]">
+                  <div className="font-bold text-[#646464] mb-1">Terms & Conditions</div>
+                  <div className="text-[#787878]">Payment due within 30 days from the invoice date. All prices are inclusive of applicable taxes.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* BOM CONTENT - Hidden when printing invoice */}
+        <div className={`block print:${printMode === 'bom' ? 'block' : 'hidden'}`}>
+        <div className={`border-b border-slate-200 dark:border-slate-800 pb-4 sm:pb-6 print:${printMode === 'bom' ? 'block' : 'hidden'} flex flex-col sm:flex-row justify-between items-start gap-4`}>
           <div>
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">{project.company || "Cabinet Project"}</h1>
             <p className="text-slate-500 text-sm sm:text-base">Project: {project.name}</p>
@@ -1796,13 +1916,13 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
         <div className="break-inside-avoid overflow-x-auto print:break-after-page">
           <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 flex items-center gap-2"><Layers size={18} /> Materials & Hardware</h3>
           <table className="w-full min-w-[400px] text-xs sm:text-sm text-left border-collapse border border-slate-200 dark:border-slate-700 print:border-black">
-            <thead className="bg-slate-100 dark:bg-slate-800 print:bg-slate-200">
+            <thead className="bg-slate-100 dark:bg-slate-800 print:!bg-slate-200 print:!text-black">
               <tr>
-                <th className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">Material</th>
-                <th className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">Size</th>
-                <th className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">Qty</th>
-                <th className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">Cost</th>
-                <th className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">Action</th>
+                <th className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:text-black">Material</th>
+                <th className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:text-black">Size</th>
+                <th className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:text-black">Qty</th>
+                <th className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:text-black">Cost</th>
+                <th className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:text-black print:hidden">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -1987,14 +2107,15 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
                           </tr>
                         ))}
                       </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
+                     </table>
+                   </div>
+                 </div>
+               </div>
+             ))}
+           </div>
+         </div>
+         </div>
+       </div>
+     </div>
+   );
+ };
