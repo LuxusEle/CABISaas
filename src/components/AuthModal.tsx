@@ -9,15 +9,17 @@ interface AuthModalProps {
   onLogout?: () => void;
   user?: User | null;
   initialMode?: 'login' | 'signup';
+  onNavigateToPolicy?: () => void;
 }
 
-export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogout, user, initialMode = 'login' }) => {
+export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogout, user, initialMode = 'login', onNavigateToPolicy }) => {
   const [mode, setMode] = useState<'login' | 'signup'>(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,6 +32,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
 
     if (password.length < 6) {
       setError('Password must be at least 6 characters');
+      return;
+    }
+
+    if (mode === 'signup' && !agreedToTerms) {
+      setError('You must agree to the Terms and Conditions');
       return;
     }
 
@@ -219,6 +226,29 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
             </div>
           )}
 
+          {/* Terms and Conditions checkbox (signup only) */}
+          {mode === 'signup' && (
+            <div className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                id="terms"
+                checked={agreedToTerms}
+                onChange={(e) => setAgreedToTerms(e.target.checked)}
+                className="mt-1 w-4 h-4 text-amber-500 border-slate-300 dark:border-slate-600 rounded focus:ring-amber-500"
+              />
+              <label htmlFor="terms" className="text-sm text-slate-600 dark:text-slate-400">
+                I agree to the{' '}
+                <button
+                  type="button"
+                  onClick={onNavigateToPolicy}
+                  className="text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 font-medium underline"
+                >
+                  Terms and Conditions
+                </button>
+              </label>
+            </div>
+          )}
+
           {/* Error message */}
           {error && (
             <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 text-sm text-red-600 dark:text-red-400 flex items-center gap-2">
@@ -230,7 +260,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
           {/* Submit button */}
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || (mode === 'signup' && !agreedToTerms)}
             className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-3.5 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40"
           >
             {loading && <Loader className="animate-spin" size={18} />}

@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Home, Layers, Calculator, Zap, ArrowLeft, ArrowRight, Trash2, Plus, Box, DoorOpen, Wand2, Moon, Sun, Table2, FileSpreadsheet, X, Pencil, Save, List, Settings, Printer, Download, Scissors, LayoutDashboard, DollarSign, Map, LogOut, Menu, Wrench, CreditCard, ChevronDown, ChevronUp, FileText, Ruler, Book, Upload, Image as ImageIcon } from 'lucide-react';
+import { Home, Layers, Calculator, Zap, ArrowLeft, ArrowRight, Trash2, Plus, Box, DoorOpen, Wand2, Moon, Sun, Table2, FileSpreadsheet, X, Pencil, Save, List, Settings, Printer, Download, Scissors, LayoutDashboard, DollarSign, Map, LogOut, Menu, Wrench, CreditCard, ChevronDown, ChevronUp, FileText, Ruler, Book, Upload, Image as ImageIcon, Shield } from 'lucide-react';
 import { Screen, Project, Zone, ZoneId, PresetType, CabinetType, CabinetUnit, Obstacle, AutoFillOptions } from './types';
 import { createNewProject, generateProjectBOM, autoFillZone, exportToExcel, resolveCollisions, calculateProjectCost, exportProjectToConstructionJSON, buildProjectConstructionData, getIntersectingCabinets } from './services/bomService';
 import { exportToInvoicePDF } from './services/invoiceService';
@@ -29,6 +29,7 @@ import { MaterialAllocationPanel } from './components/MaterialAllocationPanel';
 import { PricingPage } from './components/PricingPage';
 import { HelpButton } from './components/HelpButton';
 import { DocsPage } from './components/DocsPage';
+import { PolicyModal } from './components/PolicyModal';
 import { logoService } from './services/logoService';
 
 // --- PRINT TITLE BLOCK ---
@@ -67,6 +68,7 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'login' | 'signup'>('login');
+  const [showPolicyModal, setShowPolicyModal] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
   const [isDark, setIsDark] = useState(() => {
     try { return localStorage.getItem('app-theme') !== 'false'; } catch { return true; }
@@ -339,8 +341,17 @@ export default function App() {
             setShowAuthModal(false);
             setScreen(Screen.LANDING);
           }}
+          onNavigateToPolicy={() => {
+            setShowPolicyModal(true);
+          }}
         />
       )}
+
+      {/* Policy Modal */}
+      <PolicyModal
+        isOpen={showPolicyModal}
+        onClose={() => setShowPolicyModal(false)}
+      />
 
       {/* Loading State */}
       {authLoading && (

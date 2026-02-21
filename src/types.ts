@@ -218,7 +218,8 @@ export enum Screen {
   BOM_REPORT = 'bom_report',
   TOOLS = 'tools',
   PRICING = 'pricing',
-  DOCS = 'docs'
+  DOCS = 'docs',
+  POLICY = 'policy'
 }
 
 export interface AutoFillOptions {
