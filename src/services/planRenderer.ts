@@ -657,41 +657,73 @@ export type CanvasPdfExportOptions = {
   orientation?: 'portrait' | 'landscape';
 };
 
-export function exportCanvasToPDF(canvas: HTMLCanvasElement, options: CanvasPdfExportOptions) {
-  const {
-    jsPDF,
-    filename = 'kitchen-plan.pdf',
-    marginMm = 10,
-    format = 'a2',
-    orientation = 'landscape',
-  } = options;
-  if (!jsPDF) throw new Error('jsPDF instance not provided');
+// legacy exportCanvasToPDF removed — use exportBOMToPDF or exportInvoiceToPDF
+  // BOM PDF Export: A2 Landscape
+  export function exportBOMToPDF(canvas: HTMLCanvasElement, options: CanvasPdfExportOptions) {
+    const {
+      jsPDF,
+      filename = 'bom-plan.pdf',
+      marginMm = 0,
+      format = 'a2',
+      orientation = 'landscape',
+    } = options;
+    if (!jsPDF) throw new Error('jsPDF instance not provided');
 
-  const imgData = canvas.toDataURL('image/png', 1.0);
+    const imgData = canvas.toDataURL('image/png', 1.0);
+    const pdf = new jsPDF({ orientation, unit: 'mm', format });
+    pdf.setProperties({ title: filename });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const imgWpx = canvas.width;
+    const imgHpx = canvas.height;
+    const pxToMm = (px: number) => (px * 25.4) / 96;
+    const imgWmm = pxToMm(imgWpx);
+    const imgHmm = pxToMm(imgHpx);
+    const maxW = pageW - marginMm * 2;
+    const maxH = pageH - marginMm * 2;
+    const scale = Math.min(maxW / imgWmm, maxH / imgHmm);
+    const drawW = imgWmm * scale;
+    const drawH = imgHmm * scale;
+    const x = (pageW - drawW) / 2;
+    const y = (pageH - drawH) / 2;
+    pdf.addImage(imgData, 'PNG', x, y, drawW, drawH, undefined, 'FAST');
+    while (pdf.getNumberOfPages() > 1) {
+      pdf.deletePage(pdf.getNumberOfPages());
+    }
+    pdf.save(filename);
+  }
 
-  const pdf = new jsPDF({ orientation, unit: 'mm', format });
-  const pageW = pdf.internal.pageSize.getWidth();
-  const pageH = pdf.internal.pageSize.getHeight();
+  // Invoice PDF Export: A4 Portrait (for future use, if needed)
+  export function exportInvoiceToPDF(canvas: HTMLCanvasElement, options: CanvasPdfExportOptions) {
+    const {
+      jsPDF,
+      filename = 'invoice.pdf',
+      marginMm = 10,
+      format = 'a4',
+      orientation = 'portrait',
+    } = options;
+    if (!jsPDF) throw new Error('jsPDF instance not provided');
 
-  // For high-res canvas exports, we don't divide by DPR because we want the pixel-perfect quality.
-  // The scale calculation handles fitting the image to the page.
-  const imgWpx = canvas.width;
-  const imgHpx = canvas.height;
-
-  // Assume 96 DPI for logical-to-mm conversion of the target area
-  const pxToMm = (px: number) => (px * 25.4) / 96;
-  const imgWmm = pxToMm(imgWpx);
-  const imgHmm = pxToMm(imgHpx);
-
-  const maxW = pageW - marginMm * 2;
-  const maxH = pageH - marginMm * 2;
-  const scale = Math.min(maxW / imgWmm, maxH / imgHmm);
-
-  const drawW = imgWmm * scale;
-  const drawH = imgHmm * scale;
-  const x = (pageW - drawW) / 2;
-  const y = (pageH - drawH) / 2;
-
-  pdf.addImage(imgData, 'PNG', x, y, drawW, drawH, undefined, 'FAST');
-  pdf.save(filename);
-}
+    const imgData = canvas.toDataURL('image/png', 1.0);
+    const pdf = new jsPDF({ orientation, unit: 'mm', format });
+    pdf.setProperties({ title: filename });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const imgWpx = canvas.width;
+    const imgHpx = canvas.height;
+    const pxToMm = (px: number) => (px * 25.4) / 96;
+    const imgWmm = pxToMm(imgWpx);
+    const imgHmm = pxToMm(imgHpx);
+    const maxW = pageW - marginMm * 2;
+    const maxH = pageH - marginMm * 2;
+    const scale = Math.min(maxW / imgWmm, maxH / imgHmm);
+    const drawW = imgWmm * scale;
+    const drawH = imgHmm * scale;
+    const x = (pageW - drawW) / 2;
+    const y = (pageH - drawH) / 2;
+    pdf.addImage(imgData, 'PNG', x, y, drawW, drawH, undefined, 'FAST');
+    while (pdf.getNumberOfPages() > 1) {
+      pdf.deletePage(pdf.getNumberOfPages());
+    }
+    pdf.save(filename);
+  }

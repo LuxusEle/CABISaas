@@ -3,7 +3,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Home, Layers, Calculator, Zap, ArrowLeft, ArrowRight, Trash2, Plus, Box, DoorOpen, Wand2, Moon, Sun, Table2, FileSpreadsheet, X, Pencil, Save, List, Settings, Printer, Download, Scissors, LayoutDashboard, DollarSign, Map, LogOut, Menu, Wrench, CreditCard, ChevronDown, ChevronUp, FileText, Ruler, Book, Upload, Image as ImageIcon, Shield } from 'lucide-react';
 import { Screen, Project, Zone, ZoneId, PresetType, CabinetType, CabinetUnit, Obstacle, AutoFillOptions } from './types';
 import { createNewProject, generateProjectBOM, autoFillZone, exportToExcel, resolveCollisions, calculateProjectCost, exportProjectToConstructionJSON, buildProjectConstructionData, getIntersectingCabinets } from './services/bomService';
-import { exportToInvoicePDF } from './services/invoiceService';
+import { generateInvoicePDF } from './services/pdfService';
 import { optimizeCuts } from './services/nestingService';
 import { authService } from './services/authService';
 import { expenseTemplateService, ExpenseTemplate } from './services/expenseTemplateService';
@@ -303,13 +303,7 @@ export default function App() {
 
       <style>{`
         @media print {
-          @page { size: auto; margin: 0; }
-          @page portrait { size: A4 portrait; margin: 0; }
-          @page landscape { size: A4 landscape; margin: 0; }
-          
-          .print-portrait { page: portrait; }
-          .print-landscape { page: landscape; }
-
+          @page { size: landscape; margin: 0; }
           body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
           #root, #main-content, .overflow-y-auto, .overflow-hidden {
             position: relative; height: auto !important; overflow: visible !important;
@@ -321,6 +315,10 @@ export default function App() {
           .print\\:text-black { color: black !important; }
           .print\\:border-black { border-color: black !important; }
           .print\\:bg-white { background-color: white !important; }
+          /* Add back explicit page break utilities as they were needed for some browsers */
+          .print\\:break-before-page { break-before: page !important; page-break-before: always !important; }
+          .print\\:break-after-page { break-after: page !important; page-break-after: always !important; }
+          .print\\:break-inside-avoid { break-inside: avoid !important; page-break-inside: avoid !important; }
         }
       `}</style>
 
@@ -1626,8 +1624,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
 const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject: React.Dispatch<React.SetStateAction<Project>> }) => {
   // Use more specific dependencies to prevent unnecessary recalculations
   const data = useMemo(() => generateProjectBOM(project), [project.id, project.zones, project.settings]);
-  const [activeView, setActiveView] = useState<'list' | 'cutplan' | 'wallplan'>('list');
-  const [printMode, setPrintMode] = useState<'bom' | 'invoice'>('bom');
+  const [activeView, setActiveView] = useState<'list' | 'cutplan' | 'wallplan' | 'invoice'>('list');
   const cutPlan = useMemo(() => optimizeCuts(data.groups.flatMap(g => g.items), project.settings), [data.groups, project.settings.sheetLength, project.settings.sheetWidth, project.settings.kerf]);
   const currency = project.settings.currency || '$';
 
@@ -1741,15 +1738,54 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
     }));
   }, [cutPlan, project.settings]);
 
+  // Calculate Invoice Specifications with Filters
+  const invoiceSpecifications = useMemo(() => {
+    const specs: string[] = [];
+
+    // 1. Materials
+    materialSummary.forEach(m => {
+      specs.push(`Carcass & Face material: ${m.material}`);
+    });
+
+    // 2. Hardware/Accessories from BOM table logic
+    const hardwareItems = [
+      { name: 'Soft-Close Hinges', qty: hingeQuantity },
+      { name: `Handle/Knob`, qty: handleQuantity },
+      { name: `Drawer Slide (Pair)`, qty: drawerSlideQuantity },
+      ...accessories.filter(acc =>
+        !acc.name.toLowerCase().includes('hinge') &&
+        !acc.name.toLowerCase().includes('handle') &&
+        !acc.name.toLowerCase().includes('knob') &&
+        !acc.name.toLowerCase().includes('drawer slide') &&
+        !acc.name.toLowerCase().includes('slide')
+      ).map(acc => ({ name: acc.name, qty: 1 }))
+    ];
+
+    // Apply USER Exclusions
+    const exclusions = ['wall hanger', 'installation nail', 'transport', 'soft-close hinges'];
+
+    hardwareItems.forEach(item => {
+      const isExcluded = exclusions.some(ex => item.name.toLowerCase().includes(ex));
+      if (!isExcluded && item.qty > 0) {
+        specs.push(`${item.name}${item.qty > 1 ? ` (${item.qty})` : ''}`);
+      }
+    });
+
+    return specs;
+  }, [materialSummary, hingeQuantity, handleQuantity, drawerSlideQuantity, accessories]);
+
   const handlePrint = () => {
-    setPrintMode('bom');
     setTimeout(() => window.print(), 100);
   };
 
-  // Invoice print handler - uses print-only CSS, no state needed
   const handlePrintInvoice = () => {
-    setPrintMode('invoice');
-    setTimeout(() => window.print(), 100);
+    generateInvoicePDF(project, invoiceSpecifications, costs, currency, {
+      companyAddress: ['Katuwawala Road', 'Borelesgamuwa', 'Western Province', 'Sri Lanka'],
+      phone: '0777163564',
+      email: 'luxuselemente@gmail.com',
+      bankName: 'Seylan Bank',
+      accountNumber: '021 013 279 542 001'
+    });
   };
 
   // Calculate invoice data
@@ -1765,17 +1801,15 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
 
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 w-full overflow-hidden">
-      {printMode !== 'invoice' && <TitleBlock project={project} pageTitle={activeView === 'list' ? 'Material BOM' : activeView === 'cutplan' ? 'Cut Patterns' : 'Elevations'} />}
-
       <div className="p-3 sm:p-4 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex flex-col gap-3 shrink-0 print:hidden">
         <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg self-start overflow-x-auto w-full">
-          {['list', 'cutplan', 'wallplan'].map((v) => (
+          {['list', 'cutplan', 'wallplan', 'invoice'].map((v) => (
             <button
               key={v}
               onClick={() => setActiveView(v as any)}
               className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 text-xs sm:text-sm font-bold rounded-md capitalize whitespace-nowrap min-h-[40px] ${activeView === v ? 'bg-white dark:bg-slate-700 shadow text-slate-900 dark:text-white' : 'text-slate-500'}`}
             >
-              {v === 'list' ? 'Material List' : v === 'cutplan' ? 'Cut Plan' : 'Wall Plans'}
+              {v === 'list' ? 'Material List' : v === 'cutplan' ? 'Cut Plan' : v === 'wallplan' ? 'Wall Plans' : 'Invoice Review'}
             </button>
           ))}
         </div>
@@ -1789,161 +1823,16 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
           <Button variant="primary" size="sm" onClick={() => exportToExcel(data.groups, cutPlan, project)} className="flex-1 sm:flex-none min-h-[40px] text-xs sm:text-sm">
             <FileSpreadsheet size={16} className="mr-1 sm:mr-2" /> Excel
           </Button>
-          <Button variant="secondary" size="sm" onClick={handlePrintInvoice} className="flex-1 sm:flex-none min-h-[40px] text-xs sm:text-sm">
+          <Button variant={activeView === 'invoice' ? 'primary' : 'secondary'} size="sm" onClick={() => setActiveView('invoice')} className="flex-1 sm:flex-none min-h-[40px] text-xs sm:text-sm">
             <CreditCard size={16} className="mr-1 sm:mr-2" /> Invoice
           </Button>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-8 space-y-6 sm:space-y-8 bg-white dark:bg-slate-950 print:p-4 print:pb-24 print:overflow-visible h-full">
-        {/* INVOICE SECTION - Only visible when printing (PDF only) */}
-        <div className={`hidden print:${printMode === 'invoice' ? 'block' : 'hidden'} print-portrait`}>
-          <div className="max-w-[800px] mx-auto font-sans text-sm">
-            {/* Header */}
-            <div className="bg-[#282828] text-white p-5 flex justify-between items-center">
-              <div className="flex-1">
-                {project.settings.logoUrl && <img src={project.settings.logoUrl} alt="Logo" className="h-10 max-w-[120px] object-contain" />}
-              </div>
-              <div className="flex-1 text-center text-4xl font-normal text-[#c8c8c8] tracking-widest pl-10">INVOICE</div>
-              <div className="flex-1 text-right text-[10px] text-[#b4b4b4] leading-tight font-light">
-                <div className="font-bold text-white text-xs mb-1 uppercase tracking-wider">{project.company || 'Company Name'}</div>
-                <div>Katuwawala Road</div>
-                <div>Borelesgamuwa</div>
-                <div>Western Province</div>
-                <div>Sri Lanka</div>
-                <div className="mt-1">0777163564</div>
-                <div>luxuselemente@gmail.com</div>
-              </div>
-            </div>
-
-            {/* Total Banner */}
-            <div className="bg-[#f0f0f0] p-4 flex justify-end items-center gap-5 border-b border-[#e0e0e0]">
-              <div className="text-[11px] text-[#646464] tracking-widest">TOTAL</div>
-              <div className="text-2xl font-bold text-[#282828]">{currency}{costs.totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-            </div>
-
-            {/* Content */}
-            <div className="p-8 pt-10 relative min-h-[700px]">
-              {/* Customer Section */}
-              <div className="flex justify-between mb-12">
-                <div className="text-xl font-black text-[#282828] uppercase tracking-tighter">{project.company || 'jupiter lanka'}</div>
-                <div className="text-right">
-                  <div className="flex justify-end gap-12 mb-1">
-                    <span className="text-[11px] text-[#8c8c8c]">Invoice#</span>
-                    <span className="text-[11px] text-[#282828] font-medium w-[100px]">{invoiceNumber}</span>
-                  </div>
-                  <div className="flex justify-end gap-12 mb-1">
-                    <span className="text-[11px] text-[#8c8c8c]">Invoice Date</span>
-                    <span className="text-[11px] text-[#282828] font-medium w-[100px]">{invoiceDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
-                  </div>
-                  <div className="flex justify-end gap-12">
-                    <span className="text-[11px] text-[#8c8c8c]">Due Date</span>
-                    <span className="text-[11px] text-[#282828] font-medium w-[100px]">{dueDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Table Header */}
-              <div className="border-t border-b border-[#c8c8c8] py-3 grid grid-cols-[60px_1fr_120px] text-[11px] text-[#8c8c8c] font-bold tracking-widest mb-6">
-                <div>#</div>
-                <div>ITEM & DESCRIPTION</div>
-                <div className="text-right">AMOUNT</div>
-              </div>
-
-              {/* Item Row */}
-              <div className="py-6 border-b border-[#e8e8e8]">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <div className="flex gap-4">
-                      <span className="text-[12px] text-[#282828] font-medium">1</span>
-                      <div className="space-y-4">
-                        <div className="text-[12px] text-[#282828] font-bold uppercase tracking-wide">{project.name || 'Pantry Cupboard'} Specifications</div>
-                        <div className="text-[10px] text-[#707070] leading-loose space-y-1 pl-1">
-                          {/* Materials */}
-                          {materialSummary.map((m, idx) => (
-                            <div key={`mat-${idx}`}>{idx + 1}. Carcass & Face material: {m.material}</div>
-                          ))}
-                          {/* Hardware */}
-                          {hingeQuantity > 0 && <div>{materialSummary.length + 1}. Soft-closing hinges for smooth and silent operation</div>}
-                          {drawerSlideQuantity > 0 && <div>{materialSummary.length + (hingeQuantity > 0 ? 2 : 1)}. Drawer runner units with soft-closing mechanism</div>}
-                          {/* Other Accessories */}
-                          {accessories
-                            .filter(acc =>
-                              !acc.name.toLowerCase().includes('hinge') &&
-                              !acc.name.toLowerCase().includes('handle') &&
-                              !acc.name.toLowerCase().includes('knob') &&
-                              !acc.name.toLowerCase().includes('slide')
-                            )
-                            .map((acc, idx) => (
-                              <div key={`acc-${idx}`}>{materialSummary.length + (hingeQuantity > 0 ? 1 : 0) + (drawerSlideQuantity > 0 ? 1 : 0) + idx + 1}. {acc.name} included</div>
-                            ))
-                          }
-                        </div>
-                        <div className="text-[10px] text-[#909090] italic mt-4 pl-1">
-                          Note: Sink, tap, cooker, and hood to be provided by the customer unless mentioned above.
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-[13px] font-bold text-[#282828] mb-1">{currency}{costs.totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                    <div className="text-[10px] text-[#8c8c8c]">1.00 x {costs.totalPrice.toLocaleString('en-US', { minimumFractionDigits: 0 })}.00</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Watermark Background - Matching screenshot */}
-              <div className="absolute top-[45%] left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-[35deg] text-[60px] font-bold text-slate-100/50 pointer-events-none whitespace-nowrap z-0 select-none uppercase tracking-[0.2em] font-sans">
-                Yet to be Approved
-              </div>
-
-              {/* Summary Section */}
-              <div className="mt-8 bg-[#f8f8f8] p-6 rounded-sm border-t border-[#c8c8c8]">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1 space-y-1 text-[#646464] text-[10px] font-medium leading-relaxed font-sans uppercase">
-                    <p className="text-[11px] text-[#282828] font-bold mb-2">Looking forward for your business.</p>
-                    <p>INFINITY KITCHEN DESIGNERS (PVT) LTD</p>
-                    <p>BANK NAME - SEYLAN BANK</p>
-                    <p>ACCOUNT NUMBER - 021 013 279 542 001</p>
-                  </div>
-                  <div className="w-[280px]">
-                    <div className="flex justify-between mb-4 border-b border-[#e0e0e0] pb-3 px-1">
-                      <span className="text-[11px] text-[#646464] tracking-widest">Sub Total</span>
-                      <span className="text-[12px] text-[#282828] font-bold">{currency}{costs.totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                    </div>
-                    <div className="flex justify-between items-center px-1">
-                      <span className="text-xl font-bold text-[#282828] tracking-widest">Total</span>
-                      <span className="text-xl font-black text-[#282828]">{currency}{costs.totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* SECOND PAGE - Terms & Conditions */}
-            <div className="p-10 pt-16 break-before-page min-h-[1000px] bg-white">
-              <h3 className="text-[11px] font-bold text-[#646464] uppercase tracking-[0.2em] border-b-2 border-slate-100 pb-3 mb-6">Terms & Conditions</h3>
-              <div className="space-y-4 text-[9px] text-[#505050] leading-relaxed uppercase font-sans">
-                <p>1. ADVANCE OF 85% FROM THE ESTIMATE SHOULD BE PLACED IN THE COMPANY ACCOUNT TO COMMENCE THE PROJECT. (ADVANCED WILL NOT BE REFUNDED AFTER THE PROJECT STARTS).</p>
-                <p>2. PROJECT STARTS AFTER THE DULY SIGNED PROJECT DOCUMENT IS RECEIVED BY THE PRODUCTION UNIT AND CLARIFICATION OF THE SPECIAL REQUESTS IS COMPLETED AND DULLY ACCEPTED BY THE CLIENT.</p>
-                <p>3. 30 DAYS WILL BE ALLOCATED FOR THE PRODUCTION FROM THE FINAL CLARIFICATIONS DATE MENTIONED 2. ABOVE.</p>
-                <p>4. CLIENT SHOULD PROVIDE ACCESS TO THE SITE UN UNINTERRUPTEDLY UNLESS THE PROJECT MAY HOLD TILL SUCH ARRANGEMENTS ARE MADE.</p>
-                <p>5. SELECTION OF MATERIAL AND DESIGN ARE FINAL AND AMENDING/ CHANGING DURING PRODUCTION INCUR EXTRA CHARGES.</p>
-                <p>6. FULL PAYMENT FOR ACCESSORIES (IF ANY) SHOULD BE PAID TO START PRODUCTION</p>
-                <p>7. PRODUCTION IS COMPLETED UPON FULL PAYMENT MADE BY THE CUSTOMER</p>
-                <p>8. PARTS ARE WITHOUT LABOR COST IF ASSEMBLY IS DONE BY INFINITY FIXING CHARGE PER LINEAR FOOT ADDED</p>
-                <p>9. ABOVE PRICING ARE FOR THE UNITS ONLY WHICH EXCLUDES FROM ALL OTHER ACCESSORY, FITTING, WIRING, PLUMBING, TRANSPORT, AND HANDLING COSTS OR ANY COST NOT DIRECTLY RELATED TO THE MAKING OF STORAGE COMPARTMENTS.</p>
-                <p>10. ACCESSORIES (UNLESS MENTIONED IN THE PRODUCT SECTION) ARE TO BE PROVIDED BY THE CUSTOMER BEFORE PRODUCTION STARTS</p>
-                <p>11. GRANITE / MARBLE OR ANY OTHER TOP SHOULD BE PROVIDED BY THE CUSTOMER (INFINITY MAY PROVIDE AN OPINION FOR THE COLOR / MATERIAL SELECTION AS A FREE SERVICE).</p>
-                <p>12. 220V ELECTRICAL WIRING AND SINK, WASTE PLUMBING FUME HOOD VENTILATION, GAS LINES, POWER FOR THE COOKER, POWER LINE FOR OWENS, OR ANY ELECTRICAL DEVICE (OR MUST BE CARRIED OUT ACCORDING TO THE PROJECT PLASE BY COMPETENT TECHNICAL STAFF) MUST BE ARRANGED BY THE CUSTOMER BEFORE PRODUCTION START UNIT REPLACEMENT OR INSTALLATION.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* BOM CONTENT - Hidden when printing invoice */}
-        <div className={`block print:${printMode === 'bom' ? 'block' : 'hidden'} print-landscape`}>
-          <div className={`border-b border-slate-200 dark:border-slate-800 pb-4 sm:pb-6 print:${printMode === 'bom' ? 'block' : 'hidden'} flex flex-col sm:flex-row justify-between items-start gap-4`}>
+        {/* BOM CONTENT */}
+        <div className={activeView !== 'invoice' ? 'block' : 'hidden print:block'}>
+          <div className="border-b border-slate-200 dark:border-slate-800 pb-4 sm:pb-6 flex flex-col sm:flex-row justify-between items-start gap-4">
             <div>
               <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">{project.company || "Cabinet Project"}</h1>
               <p className="text-slate-500 text-sm sm:text-base">Project: {project.name}</p>
@@ -1978,7 +1867,7 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
           </div>
 
           {/* MATERIAL SUMMARY TABLE (Always Visible in List/Cut Plan) */}
-          <div className="break-inside-avoid overflow-x-auto print:break-after-page">
+          <div className="break-inside-avoid overflow-x-auto">
             <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 flex items-center gap-2"><Layers size={18} /> Materials & Hardware</h3>
             <table className="w-full min-w-[400px] text-xs sm:text-sm text-left border-collapse border border-slate-200 dark:border-slate-700 print:border-black">
               <thead className="bg-slate-100 dark:bg-slate-800 print:!bg-slate-200 print:!text-black">
@@ -2136,7 +2025,7 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
 
                     {/* Page 2: Wall Visualization - full page, no title */}
                     <div className="bg-white w-full h-[calc(100vh-80px)] flex flex-col items-center justify-start">
-                      <div className="w-full flex items-center justify-center pt-16" style={{ transform: 'scale(0.9)', transformOrigin: 'top center', maxHeight: '100%' }}>
+                      <div className="w-full flex items-center justify-center pt-8" style={{ transform: 'scale(0.85)', transformOrigin: 'top center' }}>
                         <WallVisualizer zone={zone} height={project.settings.tallHeight + 200} hideArrows={true} />
                       </div>
                     </div>
@@ -2180,6 +2069,156 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
             </div>
           </div>
         </div>
+
+        {/* INVOICE PREVIEW */}
+        {activeView === 'invoice' && (
+          <div className="max-w-4xl mx-auto bg-white dark:bg-slate-900 shadow-2xl rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden text-black animate-in fade-in slide-in-from-bottom-4 duration-500 print:shadow-none print:border-0 print:m-0 print:bg-white print:text-black">
+            {/* Invoice Header (Matching PDF Layout) */}
+            <div className="bg-slate-800 dark:bg-black text-white p-8 sm:p-12 flex flex-col sm:flex-row justify-between items-center text-center sm:text-left gap-6 print:bg-slate-800 print:text-white">
+              <div>
+                <h1 className="text-4xl sm:text-5xl font-light tracking-[0.2em] uppercase mb-2">Invoice</h1>
+                <p className="text-slate-400 text-xs tracking-widest uppercase">Quotation / Bill of Quantities</p>
+              </div>
+              <div className="text-center sm:text-right">
+                <div className="font-black text-lg uppercase mb-1 tracking-tight">{project.company || "Company Name"}</div>
+                <div className="text-[10px] sm:text-xs space-y-1 opacity-70 uppercase tracking-wide">
+                  <div>Katuwawala Road, Borelesgamuwa,</div>
+                  <div>Western Province, Sri Lanka</div>
+                  <div className="font-bold text-amber-500">0777163564 | luxuselemente@gmail.com</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 sm:p-12 space-y-12 bg-white text-slate-900">
+              {/* Total Banner */}
+              <div className="bg-slate-50 p-6 flex justify-end items-end gap-12 border-b border-slate-100 rounded-lg">
+                <div className="text-right">
+                  <div className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mb-1 text-right">Total Amount</div>
+                  <div className="text-4xl font-black tracking-tighter text-slate-900">{formatCurrency(costs.totalPrice)}</div>
+                </div>
+              </div>
+
+              {/* Info Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 sm:gap-12">
+                <div>
+                  <div className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em] mb-2">Bill To</div>
+                  <div className="text-2xl font-black uppercase tracking-tight text-slate-800">{project.name || "Customer Name"}</div>
+                  {project.company && <div className="text-slate-500 font-bold uppercase text-xs mt-1">{project.company}</div>}
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between sm:justify-end gap-6 text-xs">
+                    <span className="text-slate-400 uppercase font-bold tracking-widest">Invoice#</span>
+                    <span className="font-bold text-slate-800">{invoiceNumber}</span>
+                  </div>
+                  <div className="flex justify-between sm:justify-end gap-6 text-xs">
+                    <span className="text-slate-400 uppercase font-bold tracking-widest">Invoice Date</span>
+                    <span className="text-slate-800">{invoiceDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                  </div>
+                  <div className="flex justify-between sm:justify-end gap-6 text-xs">
+                    <span className="text-slate-400 uppercase font-bold tracking-widest">Due Date</span>
+                    <span className="text-slate-800">{dueDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Items Table */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-slate-400 uppercase text-[10px] font-bold italic tracking-widest">
+                      <th className="pb-4 text-left w-12">#</th>
+                      <th className="pb-4 text-left">Item & Description</th>
+                      <th className="pb-4 text-right">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody className="border-t border-slate-200 divide-y divide-slate-100">
+                    <tr>
+                      <td className="py-6 align-top font-bold text-slate-400">01</td>
+                      <td className="py-6 align-top">
+                        <div className="font-black text-slate-800 uppercase tracking-tight mb-2">{(project.name || 'Cabinet Project') + ' Specifications'}</div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1 text-[10px] text-slate-500 font-medium">
+                          {invoiceSpecifications.map((spec, idx) => (
+                            <div key={idx} className="flex gap-2">
+                              <span className="text-amber-500">{(idx + 1).toString().padStart(2, '0')}.</span>
+                              <span>{spec}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="py-6 align-top text-right font-black text-slate-900 text-lg">{formatCurrency(costs.totalPrice)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Note */}
+              <div className="bg-amber-50/50 p-4 border-l-4 border-amber-200 text-[10px] text-amber-800 rounded-r-lg font-medium">
+                <span className="font-black uppercase mr-2">Note:</span>
+                Sink, tap, cooker, and hood to be provided by the customer unless mentioned above.
+              </div>
+
+              {/* Summary & Bank Info */}
+              <div className="pt-12 grid grid-cols-1 sm:grid-cols-2 gap-12 items-end">
+                <div className="space-y-8">
+                  <div className="space-y-2">
+                    <div className="text-xs text-slate-400 font-medium italic">Looking forward for your business.</div>
+                    <div className="p-6 bg-slate-50 rounded-xl border border-slate-100 space-y-3">
+                      <div className="text-slate-900 font-black uppercase text-xs tracking-[0.2em] border-b border-slate-200 pb-2">{project.company || 'COMPANY'}</div>
+                      <div className="space-y-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                        <div className="flex justify-between"><span className="text-slate-400">Bank Name</span> <span className="text-slate-700">Seylan Bank</span></div>
+                        <div className="flex justify-between"><span className="text-slate-400">Account</span> <span className="text-slate-700">021 013 279 542 001</span></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-slate-400 font-bold uppercase tracking-widest">Sub Total</span>
+                      <span className="font-bold text-slate-700">{formatCurrency(costs.totalPrice)}</span>
+                    </div>
+                    <div className="h-px bg-slate-100 w-full"></div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-900 font-black uppercase tracking-[0.2em] text-sm">Grand Total</span>
+                      <div className="text-right">
+                        <span className="text-3xl font-black text-slate-900">{formatCurrency(costs.totalPrice)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Terms Section in Preview */}
+              <div className="pt-12 border-t border-slate-100">
+                <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.3em] mb-4">Terms & Conditions</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-[8px] leading-relaxed text-slate-400 uppercase font-bold">
+                  <div>1. Advance of 85% required to commence project.</div>
+                  <div>2. Project starts after duly signed documents received.</div>
+                  <div>3. 30 days allocated for production from final clarification.</div>
+                  <div>4. Client must provide uninterrupted site access.</div>
+                  <div>5. Material and design are final after production starts.</div>
+                  <div>6. Full payment for accessories required to start.</div>
+                  <div>7. Production completed upon full payment.</div>
+                  <div>8. Linear foot fixing charges apply if assembly by Infinity.</div>
+                </div>
+              </div>
+
+              {/* Actions Box */}
+              <div className="pt-12 flex flex-col items-center gap-4 print:hidden border-t border-slate-100">
+                <Button variant="primary" size="lg" onClick={handlePrintInvoice} className="gap-3 px-12 py-6 rounded-full shadow-2xl shadow-amber-500/20 hover:scale-105 transition-transform">
+                  <Download size={24} /> Download Invoice PDF
+                </Button>
+                <button onClick={() => setActiveView('list')} className="text-slate-400 hover:text-slate-600 text-xs font-bold uppercase tracking-widest">Back to Report</button>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="bg-slate-50 dark:bg-slate-950 p-4 border-t border-slate-100 dark:border-slate-800 text-center text-[8px] text-slate-400 uppercase font-black tracking-[0.5em]">
+              Generated by CABENGINE
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

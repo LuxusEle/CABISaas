@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { jsPDF } from 'jspdf';
 import { Button } from './Button';
-import { exportCanvasToPDF, renderKitchenPlanToCanvas } from '../services/planRenderer';
+import { exportBOMToPDF, renderKitchenPlanToCanvas } from '../services/planRenderer';
 import type { ConstructionPlanJSON } from '../types/construction';
 
 type Props = {
@@ -88,14 +88,21 @@ const KitchenPlanViewer: React.FC<SingleProps> = ({ data, scalePxPerMeter }) => 
   }, [renderData, scalePxPerMeter, size.width, size.height, viewMode]);
 
   const handleGeneratePDF = () => {
+    // A2 landscape: 594mm x 420mm
+    const pageWidthMm = 594;
+    const pageHeightMm = 420;
+    const dpi = 96;
+    const mmToPx = mm => Math.round((mm / 25.4) * dpi);
+    const canvasWidth = mmToPx(pageWidthMm);
+    const canvasHeight = mmToPx(pageHeightMm);
     const offScreenCanvas = document.createElement('canvas');
-    const highResWidth = 4200;
-    const highResHeight = 2970;
+    offScreenCanvas.width = canvasWidth;
+    offScreenCanvas.height = canvasHeight;
 
     renderKitchenPlanToCanvas(offScreenCanvas, renderData, {
-      width: highResWidth,
-      height: highResHeight,
-      paddingPx: 100,
+      width: canvasWidth,
+      height: canvasHeight,
+      paddingPx: 0,
       scalePxPerMeter: 400,
       background: '#ffffff',
       forceFill: true,
@@ -104,10 +111,10 @@ const KitchenPlanViewer: React.FC<SingleProps> = ({ data, scalePxPerMeter }) => 
     });
 
     const baseName = activeTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-    exportCanvasToPDF(offScreenCanvas, {
+    exportBOMToPDF(offScreenCanvas, {
       jsPDF,
       filename: `${baseName}_elevation.pdf`,
-      marginMm: 10,
+      marginMm: 0,
       format: 'a2',
       orientation: 'landscape',
     });
