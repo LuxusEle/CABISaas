@@ -77,7 +77,7 @@ export default function App() {
     const checkAuth = async () => {
       const { user } = await authService.getCurrentUser();
       setUser(user);
-      
+
       // If user is logged in, load their saved logo
       if (user) {
         const savedLogo = await logoService.getUserLogo(user.id);
@@ -88,7 +88,7 @@ export default function App() {
           }));
         }
       }
-      
+
       setAuthLoading(false);
       // If user is logged in and we're on landing page, go to dashboard
       if (user && screen === Screen.LANDING) {
@@ -301,7 +301,13 @@ export default function App() {
 
       <style>{`
         @media print {
-          @page { size: landscape; margin: 0; }
+          @page { size: auto; margin: 0; }
+          @page portrait { size: A4 portrait; margin: 0; }
+          @page landscape { size: A4 landscape; margin: 0; }
+          
+          .print-portrait { page: portrait; }
+          .print-landscape { page: landscape; }
+
           body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
           #root, #main-content, .overflow-y-auto, .overflow-hidden {
             position: relative; height: auto !important; overflow: visible !important;
@@ -382,9 +388,9 @@ const ScreenHome = ({ onNewProject, onLoadProject, logoUrl }: { onNewProject: ()
           <p className="text-slate-500 dark:text-slate-400 font-medium italic text-sm sm:text-base">Professional Cabinet Engineering Suite</p>
         </div>
         {logoUrl && (
-          <img 
-            src={logoUrl} 
-            alt="Company Logo" 
+          <img
+            src={logoUrl}
+            alt="Company Logo"
             className="h-10 sm:h-12 w-auto object-contain ml-4"
           />
         )}
@@ -506,12 +512,12 @@ const ScreenPlanView = ({ project }: { project: Project }) => {
 const ScreenProjectSetup = ({ project, setProject }: { project: Project, setProject: React.Dispatch<React.SetStateAction<Project>> }) => {
   // State to track which section is expanded - only one at a time
   const [expandedSection, setExpandedSection] = useState<'projectInfo' | 'sheetTypes' | 'accessories' | 'allocation' | null>('projectInfo');
-  
+
   // Logo upload state
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string | null>(project.settings.logoUrl || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   // Load user's previous logo on mount
   useEffect(() => {
     const loadUserLogo = async () => {
@@ -520,48 +526,48 @@ const ScreenProjectSetup = ({ project, setProject }: { project: Project, setProj
         const savedLogo = await logoService.getUserLogo(user.id);
         if (savedLogo) {
           setLogoPreview(savedLogo);
-          setProject(prev => ({ 
-            ...prev, 
-            settings: { ...prev.settings, logoUrl: savedLogo } 
+          setProject(prev => ({
+            ...prev,
+            settings: { ...prev.settings, logoUrl: savedLogo }
           }));
         }
       }
     };
     loadUserLogo();
   }, []);
-  
+
   // Handle logo file upload
   const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    
+
     // Validate file type
     if (!file.type.startsWith('image/')) {
       alert('Please upload an image file (PNG, JPG, GIF)');
       return;
     }
-    
+
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       alert('File size must be less than 5MB');
       return;
     }
-    
+
     setIsUploadingLogo(true);
-    
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         alert('Please log in to upload a logo');
         return;
       }
-      
+
       const result = await logoService.uploadLogo(file, user.id);
       if (result) {
         setLogoPreview(result.url);
-        setProject(prev => ({ 
-          ...prev, 
-          settings: { ...prev.settings, logoUrl: result.url } 
+        setProject(prev => ({
+          ...prev,
+          settings: { ...prev.settings, logoUrl: result.url }
         }));
       } else {
         alert('Failed to upload logo. Please try again.');
@@ -573,13 +579,13 @@ const ScreenProjectSetup = ({ project, setProject }: { project: Project, setProj
       setIsUploadingLogo(false);
     }
   };
-  
+
   // Handle logo removal
   const handleRemoveLogo = () => {
     setLogoPreview(null);
-    setProject(prev => ({ 
-      ...prev, 
-      settings: { ...prev.settings, logoUrl: undefined } 
+    setProject(prev => ({
+      ...prev,
+      settings: { ...prev.settings, logoUrl: undefined }
     }));
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -597,9 +603,9 @@ const ScreenProjectSetup = ({ project, setProject }: { project: Project, setProj
           <div className="flex justify-between items-center mb-2 sm:mb-4">
             <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">Project Setup</h2>
             {logoPreview && (
-              <img 
-                src={logoPreview} 
-                alt="Company Logo" 
+              <img
+                src={logoPreview}
+                alt="Company Logo"
                 className="h-10 sm:h-12 w-auto object-contain"
               />
             )}
@@ -636,44 +642,44 @@ const ScreenProjectSetup = ({ project, setProject }: { project: Project, setProj
                       <input className="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border dark:border-slate-700 dark:text-white text-sm sm:text-base min-h-[48px]" value={project.company} onChange={e => setProject({ ...project, company: e.target.value })} />
                     </div>
                   </div>
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-400">Currency Symbol</label>
-                        <input className="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border dark:border-slate-700 dark:text-white text-sm sm:text-base min-h-[48px]" value={project.settings.currency} onChange={e => setProject({ ...project, settings: { ...project.settings, currency: e.target.value } })} placeholder="$" />
-                      </div>
-                       <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-400">Company Logo</label>
-                        <div className="flex items-center gap-3">
-                          <div className="flex-1">
-                            <input
-                              ref={fileInputRef}
-                              type="file"
-                              accept="image/*"
-                              onChange={handleLogoUpload}
-                              className="hidden"
-                              id="logo-upload"
-                            />
-                            <label
-                              htmlFor="logo-upload"
-                              className={`flex items-center gap-2 px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-sm font-bold rounded-lg cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors ${isUploadingLogo ? 'opacity-50 pointer-events-none' : ''}`}
-                            >
-                               {isUploadingLogo ? (
-                                  <>
-                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-slate-700 dark:border-slate-200" />
-                                    Uploading...
-                                  </>
-                                ) : (
-                                 <>
-                                   <Upload size={16} />
-                                   {logoPreview ? 'Change Logo' : 'Upload Logo'}
-                                 </>
-                               )}
-                            </label>
-                            <p className="text-xs text-slate-500 mt-1">PNG, JPG, GIF (max 5MB)</p>
-                          </div>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-400">Currency Symbol</label>
+                      <input className="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border dark:border-slate-700 dark:text-white text-sm sm:text-base min-h-[48px]" value={project.settings.currency} onChange={e => setProject({ ...project, settings: { ...project.settings, currency: e.target.value } })} placeholder="$" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-400">Company Logo</label>
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1">
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            onChange={handleLogoUpload}
+                            className="hidden"
+                            id="logo-upload"
+                          />
+                          <label
+                            htmlFor="logo-upload"
+                            className={`flex items-center gap-2 px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-sm font-bold rounded-lg cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors ${isUploadingLogo ? 'opacity-50 pointer-events-none' : ''}`}
+                          >
+                            {isUploadingLogo ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-slate-700 dark:border-slate-200" />
+                                Uploading...
+                              </>
+                            ) : (
+                              <>
+                                <Upload size={16} />
+                                {logoPreview ? 'Change Logo' : 'Upload Logo'}
+                              </>
+                            )}
+                          </label>
+                          <p className="text-xs text-slate-500 mt-1">PNG, JPG, GIF (max 5MB)</p>
                         </div>
                       </div>
                     </div>
+                  </div>
                 </div>
 
                 {/* Dimensions & Nesting Section */}
@@ -1648,10 +1654,10 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
 
   // Calculate hinge quantity (2 per door)
   const hingeQuantity = totalDoors * 2;
-  
+
   // Get hinge cost from accessories
-  const hingeAccessory = accessories.find(acc => 
-    acc.name.toLowerCase().includes('hinge') || 
+  const hingeAccessory = accessories.find(acc =>
+    acc.name.toLowerCase().includes('hinge') ||
     acc.name.toLowerCase().includes('soft-close')
   );
   const hingeUnitCost = hingeAccessory?.default_amount || 5.00;
@@ -1673,8 +1679,8 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
 
   // Calculate Handle/Knob quantity (doors + drawers)
   const handleQuantity = totalDoors + totalDrawers;
-  const handleAccessory = accessories.find(acc => 
-    acc.name.toLowerCase().includes('handle') || 
+  const handleAccessory = accessories.find(acc =>
+    acc.name.toLowerCase().includes('handle') ||
     acc.name.toLowerCase().includes('knob')
   );
   const handleUnitCost = handleAccessory?.default_amount || 8.00;
@@ -1682,8 +1688,8 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
 
   // Calculate Drawer Slide quantity (pairs) = number of drawers
   const drawerSlideQuantity = totalDrawers;
-  const drawerSlideAccessory = accessories.find(acc => 
-    acc.name.toLowerCase().includes('drawer slide') || 
+  const drawerSlideAccessory = accessories.find(acc =>
+    acc.name.toLowerCase().includes('drawer slide') ||
     acc.name.toLowerCase().includes('slide')
   );
   const drawerSlideUnitCost = drawerSlideAccessory?.default_amount || 15.00;
@@ -1691,7 +1697,7 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
 
   // Calculate total hardware cost from all individual items
   const otherAccessoriesCost = accessories
-    .filter(acc => 
+    .filter(acc =>
       !acc.name.toLowerCase().includes('hinge') &&
       !acc.name.toLowerCase().includes('handle') &&
       !acc.name.toLowerCase().includes('knob') &&
@@ -1699,7 +1705,7 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
       !acc.name.toLowerCase().includes('slide')
     )
     .reduce((sum, acc) => sum + acc.default_amount, 0);
-  
+
   const totalHardwareCost = hingeTotalCost + handleTotalCost + drawerSlideTotalCost + otherAccessoriesCost;
 
   // Calculate base costs with proper hardware total
@@ -1748,7 +1754,7 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
 
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 w-full overflow-hidden">
-      <TitleBlock project={project} pageTitle={activeView === 'list' ? 'Material BOM' : activeView === 'cutplan' ? 'Cut Patterns' : 'Elevations'} />
+      {printMode !== 'invoice' && <TitleBlock project={project} pageTitle={activeView === 'list' ? 'Material BOM' : activeView === 'cutplan' ? 'Cut Patterns' : 'Elevations'} />}
 
       <div className="p-3 sm:p-4 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex flex-col gap-3 shrink-0 print:hidden">
         <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg self-start overflow-x-auto w-full">
@@ -1780,342 +1786,390 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
 
       <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-8 space-y-6 sm:space-y-8 bg-white dark:bg-slate-950 print:p-4 print:pb-24 print:overflow-visible h-full">
         {/* INVOICE SECTION - Only visible when printing (PDF only) */}
-        <div className={`hidden print:${printMode === 'invoice' ? 'block' : 'hidden'}`}>
+        <div className={`hidden print:${printMode === 'invoice' ? 'block' : 'hidden'} print-portrait`}>
           <div className="max-w-[800px] mx-auto font-sans text-sm">
             {/* Header */}
             <div className="bg-[#282828] text-white p-5 flex justify-between items-center">
               <div className="flex-1">
                 {project.settings.logoUrl && <img src={project.settings.logoUrl} alt="Logo" className="h-10 max-w-[120px] object-contain" />}
               </div>
-              <div className="flex-1 text-center text-4xl font-normal text-[#c8c8c8]">INVOICE</div>
-              <div className="flex-1 text-right text-[11px] text-[#b4b4b4]">
-                <div>{project.company || 'Company Name'}</div>
-                <div>Cabinet Manufacturing Services</div>
+              <div className="flex-1 text-center text-4xl font-normal text-[#c8c8c8] tracking-widest pl-10">INVOICE</div>
+              <div className="flex-1 text-right text-[10px] text-[#b4b4b4] leading-tight font-light">
+                <div className="font-bold text-white text-xs mb-1 uppercase tracking-wider">{project.company || 'Company Name'}</div>
+                <div>Katuwawala Road</div>
+                <div>Borelesgamuwa</div>
+                <div>Western Province</div>
+                <div>Sri Lanka</div>
+                <div className="mt-1">0777163564</div>
+                <div>luxuselemente@gmail.com</div>
               </div>
             </div>
 
             {/* Total Banner */}
-            <div className="bg-[#f0f0f0] p-4 flex justify-end items-center gap-5">
-              <div className="text-[11px] text-[#646464]">TOTAL</div>
-              <div className="text-2xl font-bold text-[#282828]">{formatCurrency(costs.totalPrice)}</div>
+            <div className="bg-[#f0f0f0] p-4 flex justify-end items-center gap-5 border-b border-[#e0e0e0]">
+              <div className="text-[11px] text-[#646464] tracking-widest">TOTAL</div>
+              <div className="text-2xl font-bold text-[#282828]">{currency}{costs.totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
             </div>
 
             {/* Content */}
-            <div className="p-8">
+            <div className="p-8 pt-10 relative min-h-[700px]">
               {/* Customer Section */}
-              <div className="flex justify-between mb-8">
-                <div className="text-lg font-bold text-[#282828]">{project.company || 'Client Company'}</div>
+              <div className="flex justify-between mb-12">
+                <div className="text-xl font-black text-[#282828] uppercase tracking-tighter">{project.company || 'jupiter lanka'}</div>
                 <div className="text-right">
-                  <div className="flex justify-end gap-10 mb-1">
-                    <span className="text-[11px] text-[#646464]">Invoice#</span>
+                  <div className="flex justify-end gap-12 mb-1">
+                    <span className="text-[11px] text-[#8c8c8c]">Invoice#</span>
                     <span className="text-[11px] text-[#282828] font-medium w-[100px]">{invoiceNumber}</span>
                   </div>
-                  <div className="flex justify-end gap-10 mb-1">
-                    <span className="text-[11px] text-[#646464]">Invoice Date</span>
-                    <span className="text-[11px] text-[#282828] font-medium w-[100px]">{invoiceDate.toLocaleDateString('en-GB')}</span>
+                  <div className="flex justify-end gap-12 mb-1">
+                    <span className="text-[11px] text-[#8c8c8c]">Invoice Date</span>
+                    <span className="text-[11px] text-[#282828] font-medium w-[100px]">{invoiceDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
                   </div>
-                  <div className="flex justify-end gap-10">
-                    <span className="text-[11px] text-[#646464]">Due Date</span>
-                    <span className="text-[11px] text-[#282828] font-medium w-[100px]">{dueDate.toLocaleDateString('en-GB')}</span>
+                  <div className="flex justify-end gap-12">
+                    <span className="text-[11px] text-[#8c8c8c]">Due Date</span>
+                    <span className="text-[11px] text-[#282828] font-medium w-[100px]">{dueDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
                   </div>
                 </div>
               </div>
 
               {/* Table Header */}
-              <div className="border-t border-b border-[#c8c8c8] py-2.5 grid grid-cols-[50px_1fr_120px] text-[10px] text-[#646464] mb-4">
+              <div className="border-t border-b border-[#c8c8c8] py-3 grid grid-cols-[60px_1fr_120px] text-[11px] text-[#8c8c8c] font-bold tracking-widest mb-6">
                 <div>#</div>
                 <div>ITEM & DESCRIPTION</div>
                 <div className="text-right">AMOUNT</div>
               </div>
 
               {/* Item Row */}
-              <div className="py-4 border-b border-[#e8e8e8]">
-                <div className="flex justify-between">
-                  <div>
-                    <span className="inline-block w-[30px] text-[11px] text-[#282828]">1</span>
-                    <span className="text-[11px] text-[#282828]">{project.name} Specifications</span>
+              <div className="py-6 border-b border-[#e8e8e8]">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <div className="flex gap-4">
+                      <span className="text-[12px] text-[#282828] font-medium">1</span>
+                      <div className="space-y-4">
+                        <div className="text-[12px] text-[#282828] font-bold uppercase tracking-wide">{project.name || 'Pantry Cupboard'} Specifications</div>
+                        <div className="text-[10px] text-[#707070] leading-loose space-y-1 pl-1">
+                          {/* Materials */}
+                          {materialSummary.map((m, idx) => (
+                            <div key={`mat-${idx}`}>{idx + 1}. Carcass & Face material: {m.material}</div>
+                          ))}
+                          {/* Hardware */}
+                          {hingeQuantity > 0 && <div>{materialSummary.length + 1}. Soft-closing hinges for smooth and silent operation</div>}
+                          {drawerSlideQuantity > 0 && <div>{materialSummary.length + (hingeQuantity > 0 ? 2 : 1)}. Drawer runner units with soft-closing mechanism</div>}
+                          {/* Other Accessories */}
+                          {accessories
+                            .filter(acc =>
+                              !acc.name.toLowerCase().includes('hinge') &&
+                              !acc.name.toLowerCase().includes('handle') &&
+                              !acc.name.toLowerCase().includes('knob') &&
+                              !acc.name.toLowerCase().includes('slide')
+                            )
+                            .map((acc, idx) => (
+                              <div key={`acc-${idx}`}>{materialSummary.length + (hingeQuantity > 0 ? 1 : 0) + (drawerSlideQuantity > 0 ? 1 : 0) + idx + 1}. {acc.name} included</div>
+                            ))
+                          }
+                        </div>
+                        <div className="text-[10px] text-[#909090] italic mt-4 pl-1">
+                          Note: Sink, tap, cooker, and hood to be provided by the customer unless mentioned above.
+                        </div>
+                      </div>
+                    </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-xs font-bold text-[#282828]">{formatCurrency(costs.totalPrice)}</div>
-                    <div className="text-[9px] text-[#646464]">1.00 x {formatCurrency(costs.totalPrice)}</div>
+                    <div className="text-[13px] font-bold text-[#282828] mb-1">{currency}{costs.totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                    <div className="text-[10px] text-[#8c8c8c]">1.00 x {costs.totalPrice.toLocaleString('en-US', { minimumFractionDigits: 0 })}.00</div>
                   </div>
                 </div>
               </div>
 
-              {/* Summary */}
-              <div className="mt-8 pt-4 border-t border-[#c8c8c8]">
-                <div className="flex justify-between mb-4">
-                  <div className="text-[10px] text-[#505050]">Looking forward for your business.</div>
-                  <div className="text-right">
-                    <div className="flex justify-end gap-10 mb-2">
-                      <span className="text-[10px] text-[#646464]">Sub Total</span>
-                      <span className="text-[11px] text-[#282828]">{formatCurrency(baseCosts.subtotal)}</span>
+              {/* Watermark Background - Matching screenshot */}
+              <div className="absolute top-[45%] left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-[35deg] text-[60px] font-bold text-slate-100/50 pointer-events-none whitespace-nowrap z-0 select-none uppercase tracking-[0.2em] font-sans">
+                Yet to be Approved
+              </div>
+
+              {/* Summary Section */}
+              <div className="mt-8 bg-[#f8f8f8] p-6 rounded-sm border-t border-[#c8c8c8]">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1 space-y-1 text-[#646464] text-[10px] font-medium leading-relaxed font-sans uppercase">
+                    <p className="text-[11px] text-[#282828] font-bold mb-2">Looking forward for your business.</p>
+                    <p>INFINITY KITCHEN DESIGNERS (PVT) LTD</p>
+                    <p>BANK NAME - SEYLAN BANK</p>
+                    <p>ACCOUNT NUMBER - 021 013 279 542 001</p>
+                  </div>
+                  <div className="w-[280px]">
+                    <div className="flex justify-between mb-4 border-b border-[#e0e0e0] pb-3 px-1">
+                      <span className="text-[11px] text-[#646464] tracking-widest">Sub Total</span>
+                      <span className="text-[12px] text-[#282828] font-bold">{currency}{costs.totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     </div>
-                    <div className="flex justify-end gap-10">
-                      <span className="text-sm font-bold text-[#282828]">Total</span>
-                      <span className="text-sm font-bold text-[#282828]">{formatCurrency(costs.totalPrice)}</span>
+                    <div className="flex justify-between items-center px-1">
+                      <span className="text-xl font-bold text-[#282828] tracking-widest">Total</span>
+                      <span className="text-xl font-black text-[#282828]">{currency}{costs.totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     </div>
                   </div>
                 </div>
               </div>
+            </div>
 
-              {/* Footer */}
-              <div className="mt-8 pt-5">
-                <div className="text-[9px] text-[#505050] leading-relaxed">
-                  <div className="font-bold uppercase">{(project.company || 'Company Name').toUpperCase()}</div>
-                  <div>BANK NAME - BANK ACCOUNT</div>
-                  <div>ACCOUNT NUMBER - XXXX XXXX XXXX</div>
-                </div>
-
-                <div className="mt-5 text-[9px]">
-                  <div className="font-bold text-[#646464] mb-1">Terms & Conditions</div>
-                  <div className="text-[#787878]">Payment due within 30 days from the invoice date. All prices are inclusive of applicable taxes.</div>
-                </div>
+            {/* SECOND PAGE - Terms & Conditions */}
+            <div className="p-10 pt-16 break-before-page min-h-[1000px] bg-white">
+              <h3 className="text-[11px] font-bold text-[#646464] uppercase tracking-[0.2em] border-b-2 border-slate-100 pb-3 mb-6">Terms & Conditions</h3>
+              <div className="space-y-4 text-[9px] text-[#505050] leading-relaxed uppercase font-sans">
+                <p>1. ADVANCE OF 85% FROM THE ESTIMATE SHOULD BE PLACED IN THE COMPANY ACCOUNT TO COMMENCE THE PROJECT. (ADVANCED WILL NOT BE REFUNDED AFTER THE PROJECT STARTS).</p>
+                <p>2. PROJECT STARTS AFTER THE DULY SIGNED PROJECT DOCUMENT IS RECEIVED BY THE PRODUCTION UNIT AND CLARIFICATION OF THE SPECIAL REQUESTS IS COMPLETED AND DULLY ACCEPTED BY THE CLIENT.</p>
+                <p>3. 30 DAYS WILL BE ALLOCATED FOR THE PRODUCTION FROM THE FINAL CLARIFICATIONS DATE MENTIONED 2. ABOVE.</p>
+                <p>4. CLIENT SHOULD PROVIDE ACCESS TO THE SITE UN UNINTERRUPTEDLY UNLESS THE PROJECT MAY HOLD TILL SUCH ARRANGEMENTS ARE MADE.</p>
+                <p>5. SELECTION OF MATERIAL AND DESIGN ARE FINAL AND AMENDING/ CHANGING DURING PRODUCTION INCUR EXTRA CHARGES.</p>
+                <p>6. FULL PAYMENT FOR ACCESSORIES (IF ANY) SHOULD BE PAID TO START PRODUCTION</p>
+                <p>7. PRODUCTION IS COMPLETED UPON FULL PAYMENT MADE BY THE CUSTOMER</p>
+                <p>8. PARTS ARE WITHOUT LABOR COST IF ASSEMBLY IS DONE BY INFINITY FIXING CHARGE PER LINEAR FOOT ADDED</p>
+                <p>9. ABOVE PRICING ARE FOR THE UNITS ONLY WHICH EXCLUDES FROM ALL OTHER ACCESSORY, FITTING, WIRING, PLUMBING, TRANSPORT, AND HANDLING COSTS OR ANY COST NOT DIRECTLY RELATED TO THE MAKING OF STORAGE COMPARTMENTS.</p>
+                <p>10. ACCESSORIES (UNLESS MENTIONED IN THE PRODUCT SECTION) ARE TO BE PROVIDED BY THE CUSTOMER BEFORE PRODUCTION STARTS</p>
+                <p>11. GRANITE / MARBLE OR ANY OTHER TOP SHOULD BE PROVIDED BY THE CUSTOMER (INFINITY MAY PROVIDE AN OPINION FOR THE COLOR / MATERIAL SELECTION AS A FREE SERVICE).</p>
+                <p>12. 220V ELECTRICAL WIRING AND SINK, WASTE PLUMBING FUME HOOD VENTILATION, GAS LINES, POWER FOR THE COOKER, POWER LINE FOR OWENS, OR ANY ELECTRICAL DEVICE (OR MUST BE CARRIED OUT ACCORDING TO THE PROJECT PLASE BY COMPETENT TECHNICAL STAFF) MUST BE ARRANGED BY THE CUSTOMER BEFORE PRODUCTION START UNIT REPLACEMENT OR INSTALLATION.</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* BOM CONTENT - Hidden when printing invoice */}
-        <div className={`block print:${printMode === 'bom' ? 'block' : 'hidden'}`}>
-        <div className={`border-b border-slate-200 dark:border-slate-800 pb-4 sm:pb-6 print:${printMode === 'bom' ? 'block' : 'hidden'} flex flex-col sm:flex-row justify-between items-start gap-4`}>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">{project.company || "Cabinet Project"}</h1>
-            <p className="text-slate-500 text-sm sm:text-base">Project: {project.name}</p>
-          </div>
-          {project.settings.logoUrl && <img src={project.settings.logoUrl} alt="Logo" className="h-10 sm:h-12 object-contain max-w-[120px]" />}
-        </div>
-
-        {/* COSTING CARD (Print Safe) */}
-        <div className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl print:bg-white print:text-black print:border-2 print:border-black print:break-inside-avoid shadow-xl print:shadow-none">
-          <h3 className="text-amber-600 dark:text-amber-500 font-bold mb-3 sm:mb-4 flex items-center gap-2 print:text-black text-base sm:text-lg"><DollarSign size={18} /> Cost Estimate</h3>
-          <div className="grid grid-cols-3 gap-3 sm:gap-6">
-            <div><div className="text-slate-500 dark:text-slate-400 text-xs uppercase print:text-black">Material</div><div className="text-lg sm:text-xl font-bold">{currency}{baseCosts.materialCost.toFixed(2)}</div></div>
-            <div><div className="text-slate-500 dark:text-slate-400 text-xs uppercase print:text-black">Hardware</div><div className="text-lg sm:text-xl font-bold">{currency}{baseCosts.hardwareCost.toFixed(2)}</div></div>
-            <div><div className="text-slate-500 dark:text-slate-400 text-xs uppercase print:text-black">Labor</div><div className="text-lg sm:text-xl font-bold">{currency}{baseCosts.laborCost.toFixed(2)}</div></div>
-          </div>
-          <div className="grid grid-cols-2 gap-3 sm:gap-6 mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 print:border-black">
+        <div className={`block print:${printMode === 'bom' ? 'block' : 'hidden'} print-landscape`}>
+          <div className={`border-b border-slate-200 dark:border-slate-800 pb-4 sm:pb-6 print:${printMode === 'bom' ? 'block' : 'hidden'} flex flex-col sm:flex-row justify-between items-start gap-4`}>
             <div>
-              <div className="text-slate-500 dark:text-slate-400 text-xs uppercase print:text-black">Total</div>
-              <div className="text-xl sm:text-2xl font-bold">{currency}{baseCosts.subtotal.toFixed(2)}</div>
+              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">{project.company || "Cabinet Project"}</h1>
+              <p className="text-slate-500 text-sm sm:text-base">Project: {project.name}</p>
             </div>
-            <div className="text-right">
-              <div className="text-amber-600 dark:text-amber-500 text-xs uppercase print:text-black">Sub Total ({project.settings.costs.marginPercent}% margin)</div>
-              <div className="text-2xl sm:text-3xl font-black">{currency}{costs.totalPrice.toFixed(2)}</div>
+            {project.settings.logoUrl && <img src={project.settings.logoUrl} alt="Logo" className="h-10 sm:h-12 object-contain max-w-[120px]" />}
+          </div>
+
+          {/* COSTING CARD (Print Safe) */}
+          <div className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl print:bg-white print:text-black print:border-2 print:border-black print:break-inside-avoid shadow-xl print:shadow-none">
+            <h3 className="text-amber-600 dark:text-amber-500 font-bold mb-3 sm:mb-4 flex items-center gap-2 print:text-black text-base sm:text-lg"><DollarSign size={18} /> Cost Estimate</h3>
+            <div className="grid grid-cols-3 gap-3 sm:gap-6">
+              <div><div className="text-slate-500 dark:text-slate-400 text-xs uppercase print:text-black">Material</div><div className="text-lg sm:text-xl font-bold">{currency}{baseCosts.materialCost.toFixed(2)}</div></div>
+              <div><div className="text-slate-500 dark:text-slate-400 text-xs uppercase print:text-black">Hardware</div><div className="text-lg sm:text-xl font-bold">{currency}{baseCosts.hardwareCost.toFixed(2)}</div></div>
+              <div><div className="text-slate-500 dark:text-slate-400 text-xs uppercase print:text-black">Labor</div><div className="text-lg sm:text-xl font-bold">{currency}{baseCosts.laborCost.toFixed(2)}</div></div>
             </div>
-          </div>
-          {/* Edit Cost Settings (Simple) */}
-          <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 flex flex-wrap gap-3 sm:gap-4 print:hidden">
-            <div className="flex items-center gap-2"><span className="text-xs text-slate-500 dark:text-slate-400">Sheet:</span><input type="number" className="bg-slate-100 dark:bg-slate-800 w-16 sm:w-20 rounded px-2 py-1 text-sm text-slate-900 dark:text-white" value={project.settings.costs.pricePerSheet} onChange={e => setProject({ ...project, settings: { ...project.settings, costs: { ...project.settings.costs, pricePerSheet: Number(e.target.value) } } })} /></div>
-            <div className="flex items-center gap-2"><span className="text-xs text-slate-500 dark:text-slate-400">Labor:</span><input type="number" className="bg-slate-100 dark:bg-slate-800 w-16 sm:w-20 rounded px-2 py-1 text-sm text-slate-900 dark:text-white" value={project.settings.costs.laborRatePerHour} onChange={e => setProject({ ...project, settings: { ...project.settings, costs: { ...project.settings.costs, laborRatePerHour: Number(e.target.value) } } })} /></div>
-            <div className="flex items-center gap-2"><span className="text-xs text-slate-500 dark:text-slate-400">Margin (%):</span><input type="number" className="bg-slate-100 dark:bg-slate-800 w-16 sm:w-20 rounded px-2 py-1 text-sm text-slate-900 dark:text-white" value={project.settings.costs.marginPercent} onChange={e => setProject({ ...project, settings: { ...project.settings, costs: { ...project.settings.costs, marginPercent: Number(e.target.value) } } })} /></div>
-          </div>
-        </div>
-
-        {/* MATERIAL SUMMARY TABLE (Always Visible in List/Cut Plan) */}
-        <div className="break-inside-avoid overflow-x-auto print:break-after-page">
-          <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 flex items-center gap-2"><Layers size={18} /> Materials & Hardware</h3>
-          <table className="w-full min-w-[400px] text-xs sm:text-sm text-left border-collapse border border-slate-200 dark:border-slate-700 print:border-black">
-            <thead className="bg-slate-100 dark:bg-slate-800 print:!bg-slate-200 print:!text-black">
-              <tr>
-                <th className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:text-black">Material</th>
-                <th className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:text-black">Size</th>
-                <th className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:text-black">Qty</th>
-                <th className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:text-black">Cost</th>
-                <th className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:text-black print:hidden">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {materialSummary.map((m) => (
-                <tr key={m.material}>
-                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">{m.material}</td>
-                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">{m.dims}</td>
-                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">{m.sheets}</td>
-                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">{currency}{(m.sheets * project.settings.costs.pricePerSheet).toFixed(2)}</td>
-                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
-                </tr>
-              ))}
-              {/* Soft-Close Hinges - calculated: 2 per door */}
-              {hingeQuantity > 0 && (
-                <tr>
-                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">Soft-Close Hinges (2 per door)</td>
-                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">-</td>
-                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">{hingeQuantity}</td>
-                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">{currency}{hingeTotalCost.toFixed(2)}</td>
-                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
-                </tr>
-              )}
-              {/* Handle/Knob - calculated: doors + drawers */}
-              {handleQuantity > 0 && (
-                <tr>
-                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">Handle/Knob ({totalDoors} doors + {totalDrawers} drawers)</td>
-                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">-</td>
-                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">{handleQuantity}</td>
-                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">{currency}{handleTotalCost.toFixed(2)}</td>
-                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
-                </tr>
-              )}
-              {/* Drawer Slide (Pair) - calculated: number of drawers */}
-              {drawerSlideQuantity > 0 && (
-                <tr>
-                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">Drawer Slide (Pair) ({totalDrawers} drawers)</td>
-                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">-</td>
-                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">{drawerSlideQuantity}</td>
-                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">{currency}{drawerSlideTotalCost.toFixed(2)}</td>
-                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
-                </tr>
-              )}
-              {accessories
-                .filter(acc => 
-                  !acc.name.toLowerCase().includes('hinge') &&
-                  !acc.name.toLowerCase().includes('handle') &&
-                  !acc.name.toLowerCase().includes('knob') &&
-                  !acc.name.toLowerCase().includes('drawer slide') &&
-                  !acc.name.toLowerCase().includes('slide')
-                )
-                .map((acc) => (
-                <tr key={acc.id}>
-                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">{acc.name}</td>
-                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">-</td>
-                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">1</td>
-                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">{currency}{acc.default_amount.toFixed(2)}</td>
-                  <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* LIST VIEW */}
-        <div className={activeView === 'list' ? 'block' : 'hidden print:block'}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 print:grid-cols-2 print:gap-4">
-            {data.groups.map((group, i) => (
-              <div key={i} className="border-2 sm:border-4 border-black p-3 sm:p-4 bg-white break-inside-avoid">
-                <div className="flex items-end gap-2 mb-3 sm:mb-4 border-b-2 border-black pb-1">
-                  <span className="bg-black text-white text-[10px] font-black px-2 py-0.5 uppercase tracking-tighter">POS {i + 1}</span>
-                  <div className="font-black uppercase text-xs sm:text-sm truncate">{group.cabinetName}</div>
-                </div>
-                <table className="w-full text-[10px] sm:text-[11px] font-medium italic">
-                  <tbody>
-                    {group.items.map((item, j) => (
-                      <tr key={j} className="border-b border-slate-100 dark:border-amber-900/20">
-                        <td className="py-1 text-slate-900 font-bold">{item.name}</td>
-                        <td className="py-1 text-right text-slate-500 font-mono text-[8px] sm:text-[9px]">{item.length}x{item.width}</td>
-                        <td className="py-1 pr-1 text-right font-black text-black">x{item.qty}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            <div className="grid grid-cols-2 gap-3 sm:gap-6 mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 print:border-black">
+              <div>
+                <div className="text-slate-500 dark:text-slate-400 text-xs uppercase print:text-black">Total</div>
+                <div className="text-xl sm:text-2xl font-bold">{currency}{baseCosts.subtotal.toFixed(2)}</div>
               </div>
-            ))}
+              <div className="text-right">
+                <div className="text-amber-600 dark:text-amber-500 text-xs uppercase print:text-black">Sub Total ({project.settings.costs.marginPercent}% margin)</div>
+                <div className="text-2xl sm:text-3xl font-black">{currency}{costs.totalPrice.toFixed(2)}</div>
+              </div>
+            </div>
+            {/* Edit Cost Settings (Simple) */}
+            <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 flex flex-wrap gap-3 sm:gap-4 print:hidden">
+              <div className="flex items-center gap-2"><span className="text-xs text-slate-500 dark:text-slate-400">Sheet:</span><input type="number" className="bg-slate-100 dark:bg-slate-800 w-16 sm:w-20 rounded px-2 py-1 text-sm text-slate-900 dark:text-white" value={project.settings.costs.pricePerSheet} onChange={e => setProject({ ...project, settings: { ...project.settings, costs: { ...project.settings.costs, pricePerSheet: Number(e.target.value) } } })} /></div>
+              <div className="flex items-center gap-2"><span className="text-xs text-slate-500 dark:text-slate-400">Labor:</span><input type="number" className="bg-slate-100 dark:bg-slate-800 w-16 sm:w-20 rounded px-2 py-1 text-sm text-slate-900 dark:text-white" value={project.settings.costs.laborRatePerHour} onChange={e => setProject({ ...project, settings: { ...project.settings, costs: { ...project.settings.costs, laborRatePerHour: Number(e.target.value) } } })} /></div>
+              <div className="flex items-center gap-2"><span className="text-xs text-slate-500 dark:text-slate-400">Margin (%):</span><input type="number" className="bg-slate-100 dark:bg-slate-800 w-16 sm:w-20 rounded px-2 py-1 text-sm text-slate-900 dark:text-white" value={project.settings.costs.marginPercent} onChange={e => setProject({ ...project, settings: { ...project.settings, costs: { ...project.settings.costs, marginPercent: Number(e.target.value) } } })} /></div>
+            </div>
           </div>
-        </div>
 
-        {/* CUT PLAN VIEW */}
-        <div className={activeView === 'cutplan' ? 'block' : 'hidden print:block print:break-before-page'}>
-          <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 print:mt-4 flex items-center gap-2 print:hidden"><Scissors size={18} /> Cut Optimization</h3>
-          {/* Screen view - vertical stack */}
-          <div className="space-y-6 sm:space-y-8 print:hidden">{cutPlan.sheets.map((sheet, i) => <CutPlanVisualizer key={i} sheet={sheet} index={i} settings={project.settings} />)}</div>
-          {/* Print view - 2 per page in landscape */}
-          <div className="hidden print:block">
-            {Array.from({ length: Math.ceil(cutPlan.sheets.length / 2) }).map((_, pageIndex) => (
-              <div key={pageIndex} className="print:break-before-page print:break-inside-avoid">
-                <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Scissors size={18} /> Cut Optimization - Sheets {(pageIndex * 2) + 1}-{Math.min((pageIndex * 2) + 2, cutPlan.sheets.length)}</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  {cutPlan.sheets.slice(pageIndex * 2, pageIndex * 2 + 2).map((sheet, i) => (
-                    <CutPlanVisualizer key={pageIndex * 2 + i} sheet={sheet} index={pageIndex * 2 + i} settings={project.settings} />
+          {/* MATERIAL SUMMARY TABLE (Always Visible in List/Cut Plan) */}
+          <div className="break-inside-avoid overflow-x-auto print:break-after-page">
+            <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 flex items-center gap-2"><Layers size={18} /> Materials & Hardware</h3>
+            <table className="w-full min-w-[400px] text-xs sm:text-sm text-left border-collapse border border-slate-200 dark:border-slate-700 print:border-black">
+              <thead className="bg-slate-100 dark:bg-slate-800 print:!bg-slate-200 print:!text-black">
+                <tr>
+                  <th className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:text-black">Material</th>
+                  <th className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:text-black">Size</th>
+                  <th className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:text-black">Qty</th>
+                  <th className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:text-black">Cost</th>
+                  <th className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:text-black print:hidden">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {materialSummary.map((m) => (
+                  <tr key={m.material}>
+                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">{m.material}</td>
+                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">{m.dims}</td>
+                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">{m.sheets}</td>
+                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">{currency}{(m.sheets * project.settings.costs.pricePerSheet).toFixed(2)}</td>
+                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
+                  </tr>
+                ))}
+                {/* Soft-Close Hinges - calculated: 2 per door */}
+                {hingeQuantity > 0 && (
+                  <tr>
+                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">Soft-Close Hinges (2 per door)</td>
+                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">-</td>
+                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">{hingeQuantity}</td>
+                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">{currency}{hingeTotalCost.toFixed(2)}</td>
+                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
+                  </tr>
+                )}
+                {/* Handle/Knob - calculated: doors + drawers */}
+                {handleQuantity > 0 && (
+                  <tr>
+                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">Handle/Knob ({totalDoors} doors + {totalDrawers} drawers)</td>
+                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">-</td>
+                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">{handleQuantity}</td>
+                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">{currency}{handleTotalCost.toFixed(2)}</td>
+                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
+                  </tr>
+                )}
+                {/* Drawer Slide (Pair) - calculated: number of drawers */}
+                {drawerSlideQuantity > 0 && (
+                  <tr>
+                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">Drawer Slide (Pair) ({totalDrawers} drawers)</td>
+                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">-</td>
+                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">{drawerSlideQuantity}</td>
+                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">{currency}{drawerSlideTotalCost.toFixed(2)}</td>
+                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
+                  </tr>
+                )}
+                {accessories
+                  .filter(acc =>
+                    !acc.name.toLowerCase().includes('hinge') &&
+                    !acc.name.toLowerCase().includes('handle') &&
+                    !acc.name.toLowerCase().includes('knob') &&
+                    !acc.name.toLowerCase().includes('drawer slide') &&
+                    !acc.name.toLowerCase().includes('slide')
+                  )
+                  .map((acc) => (
+                    <tr key={acc.id}>
+                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">{acc.name}</td>
+                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">-</td>
+                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">1</td>
+                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">{currency}{acc.default_amount.toFixed(2)}</td>
+                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
+                    </tr>
                   ))}
-                </div>
-              </div>
-            ))}
+              </tbody>
+            </table>
           </div>
-        </div>
 
-        {/* WALL PLAN VIEW */}
-        <div className={activeView === 'wallplan' ? 'block' : 'hidden print:block print:break-before-page'}>
-          <h2 className="text-2xl sm:text-4xl font-black uppercase mb-4 sm:mb-8 tracking-tighter print:hidden">III. Wall Elevations</h2>
-          <div className="space-y-12 print:space-y-0">
-            {project.zones.filter(z => z.active).map((zone, zoneIndex) => (
-              <div key={zone.id} className={`${zoneIndex > 0 ? 'print:break-before-page' : ''}`}>
-                {/* PRINT VIEW: Table first, then visualization */}
-                <div className="hidden print:block">
-                  {/* Page 1: Unit Schedule Table */}
-                  <div className="border-4 border-black p-4 bg-white min-h-[calc(100vh-80px)]">
-                    <h3 className="text-xl font-black uppercase mb-4 border-b-2 border-black pb-2 tracking-widest">{zone.id} - Unit Schedule</h3>
-                    <div>
-                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Unit Schedule</h4>
-                      <table className="w-full text-sm text-left uppercase font-bold border-collapse">
+          {/* LIST VIEW */}
+          <div className={activeView === 'list' ? 'block' : 'hidden print:block'}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 print:grid-cols-2 print:gap-4">
+              {data.groups.map((group, i) => (
+                <div key={i} className="border-2 sm:border-4 border-black p-3 sm:p-4 bg-white break-inside-avoid">
+                  <div className="flex items-end gap-2 mb-3 sm:mb-4 border-b-2 border-black pb-1">
+                    <span className="bg-black text-white text-[10px] font-black px-2 py-0.5 uppercase tracking-tighter">POS {i + 1}</span>
+                    <div className="font-black uppercase text-xs sm:text-sm truncate">{group.cabinetName}</div>
+                  </div>
+                  <table className="w-full text-[10px] sm:text-[11px] font-medium italic">
+                    <tbody>
+                      {group.items.map((item, j) => (
+                        <tr key={j} className="border-b border-slate-100 dark:border-amber-900/20">
+                          <td className="py-1 text-slate-900 font-bold">{item.name}</td>
+                          <td className="py-1 text-right text-slate-500 font-mono text-[8px] sm:text-[9px]">{item.length}x{item.width}</td>
+                          <td className="py-1 pr-1 text-right font-black text-black">x{item.qty}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* CUT PLAN VIEW */}
+          <div className={activeView === 'cutplan' ? 'block' : 'hidden print:block print:break-before-page'}>
+            <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 print:mt-4 flex items-center gap-2 print:hidden"><Scissors size={18} /> Cut Optimization</h3>
+            {/* Screen view - vertical stack */}
+            <div className="space-y-6 sm:space-y-8 print:hidden">{cutPlan.sheets.map((sheet, i) => <CutPlanVisualizer key={i} sheet={sheet} index={i} settings={project.settings} />)}</div>
+            {/* Print view - 2 per page in landscape */}
+            <div className="hidden print:block">
+              {Array.from({ length: Math.ceil(cutPlan.sheets.length / 2) }).map((_, pageIndex) => (
+                <div key={pageIndex} className="print:break-before-page print:break-inside-avoid">
+                  <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Scissors size={18} /> Cut Optimization - Sheets {(pageIndex * 2) + 1}-{Math.min((pageIndex * 2) + 2, cutPlan.sheets.length)}</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    {cutPlan.sheets.slice(pageIndex * 2, pageIndex * 2 + 2).map((sheet, i) => (
+                      <CutPlanVisualizer key={pageIndex * 2 + i} sheet={sheet} index={pageIndex * 2 + i} settings={project.settings} />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* WALL PLAN VIEW */}
+          <div className={activeView === 'wallplan' ? 'block' : 'hidden print:block print:break-before-page'}>
+            <h2 className="text-2xl sm:text-4xl font-black uppercase mb-4 sm:mb-8 tracking-tighter print:hidden">III. Wall Elevations</h2>
+            <div className="space-y-12 print:space-y-0">
+              {project.zones.filter(z => z.active).map((zone, zoneIndex) => (
+                <div key={zone.id} className={`${zoneIndex > 0 ? 'print:break-before-page' : ''}`}>
+                  {/* PRINT VIEW: Table first, then visualization */}
+                  <div className="hidden print:block">
+                    {/* Page 1: Unit Schedule Table */}
+                    <div className="border-4 border-black p-4 bg-white min-h-[calc(100vh-80px)]">
+                      <h3 className="text-xl font-black uppercase mb-4 border-b-2 border-black pb-2 tracking-widest">{zone.id} - Unit Schedule</h3>
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Unit Schedule</h4>
+                        <table className="w-full text-sm text-left uppercase font-bold border-collapse">
+                          <thead>
+                            <tr className="border-b-2 border-black text-slate-500">
+                              <th className="pb-2">POS</th>
+                              <th className="pb-2">Description</th>
+                              <th className="pb-2 text-right">Width</th>
+                              <th className="pb-2 text-right">Type</th>
+                              <th className="pb-2 text-right">Qty</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-black/10">
+                            {zone.cabinets.sort((a, b) => (a.label || '').localeCompare(b.label || '')).map((cab, idx) => (
+                              <tr key={idx}>
+                                <td className="py-3 text-amber-600 font-black italic">{cab.label}</td>
+                                <td className="py-3 font-black tracking-tight">{cab.preset}</td>
+                                <td className="py-3 text-right font-mono">{cab.width}mm</td>
+                                <td className="py-3 text-right text-xs opacity-60">{cab.type}</td>
+                                <td className="py-3 text-right">1</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* Page 2: Wall Visualization - full page, no title */}
+                    <div className="bg-white w-full h-[calc(100vh-80px)] flex flex-col items-center justify-start">
+                      <div className="w-full flex items-center justify-center pt-16" style={{ transform: 'scale(0.9)', transformOrigin: 'top center', maxHeight: '100%' }}>
+                        <WallVisualizer zone={zone} height={project.settings.tallHeight + 200} hideArrows={true} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* SCREEN VIEW: Original layout */}
+                  <div className="border-4 sm:border-8 border-black p-3 sm:p-4 bg-white flex flex-col print:hidden">
+                    <h3 className="text-base sm:text-xl font-black uppercase mb-2 sm:mb-3 border-b-2 border-black pb-1 tracking-widest">{zone.id}</h3>
+                    <div className="h-[260px] sm:h-[380px] mb-4 border-2 border-slate-100 bg-slate-50 print:bg-white print:border-black shrink-0 overflow-hidden">
+                      <WallVisualizer zone={zone} height={project.settings.tallHeight + 100} hideArrows={true} />
+                    </div>
+                    {/* Legend Table */}
+                    <div className="flex-1 overflow-hidden">
+                      <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Unit Schedule</h4>
+                      <table className="w-full text-[9px] text-left uppercase font-bold border-collapse">
                         <thead>
                           <tr className="border-b-2 border-black text-slate-500">
-                            <th className="pb-2">POS</th>
-                            <th className="pb-2">Description</th>
-                            <th className="pb-2 text-right">Width</th>
-                            <th className="pb-2 text-right">Type</th>
-                            <th className="pb-2 text-right">Qty</th>
+                            <th className="pb-1">POS</th>
+                            <th className="pb-1">Description</th>
+                            <th className="pb-1 text-right">Width</th>
+                            <th className="pb-1 text-right">Type</th>
+                            <th className="pb-1 text-right">Qty</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-black/10">
                           {zone.cabinets.sort((a, b) => (a.label || '').localeCompare(b.label || '')).map((cab, idx) => (
                             <tr key={idx}>
-                              <td className="py-3 text-amber-600 font-black italic">{cab.label}</td>
-                              <td className="py-3 font-black tracking-tight">{cab.preset}</td>
-                              <td className="py-3 text-right font-mono">{cab.width}mm</td>
-                              <td className="py-3 text-right text-xs opacity-60">{cab.type}</td>
-                              <td className="py-3 text-right">1</td>
+                              <td className="py-2 text-amber-600 font-black italic text-xs">{cab.label}</td>
+                              <td className="py-2 font-black tracking-tight">{cab.preset}</td>
+                              <td className="py-2 text-right font-mono">{cab.width}mm</td>
+                              <td className="py-2 text-right text-[7px] opacity-60">{cab.type}</td>
+                              <td className="py-2 text-right">1</td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
                     </div>
                   </div>
-                  
-                  {/* Page 2: Wall Visualization - full page, no title */}
-                  <div className="bg-white w-full h-[calc(100vh-80px)] flex flex-col items-center justify-start">
-                    <div className="w-full flex items-center justify-center pt-16" style={{ transform: 'scale(0.9)', transformOrigin: 'top center', maxHeight: '100%' }}>
-                      <WallVisualizer zone={zone} height={project.settings.tallHeight + 200} hideArrows={true} />
-                    </div>
-                  </div>
                 </div>
-                
-                {/* SCREEN VIEW: Original layout */}
-                <div className="border-4 sm:border-8 border-black p-3 sm:p-4 bg-white flex flex-col print:hidden">
-                  <h3 className="text-base sm:text-xl font-black uppercase mb-2 sm:mb-3 border-b-2 border-black pb-1 tracking-widest">{zone.id}</h3>
-                  <div className="h-[260px] sm:h-[380px] mb-4 border-2 border-slate-100 bg-slate-50 print:bg-white print:border-black shrink-0 overflow-hidden">
-                    <WallVisualizer zone={zone} height={project.settings.tallHeight + 100} hideArrows={true} />
-                  </div>
-                  {/* Legend Table */}
-                  <div className="flex-1 overflow-hidden">
-                    <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Unit Schedule</h4>
-                    <table className="w-full text-[9px] text-left uppercase font-bold border-collapse">
-                      <thead>
-                        <tr className="border-b-2 border-black text-slate-500">
-                          <th className="pb-1">POS</th>
-                          <th className="pb-1">Description</th>
-                          <th className="pb-1 text-right">Width</th>
-                          <th className="pb-1 text-right">Type</th>
-                          <th className="pb-1 text-right">Qty</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-black/10">
-                        {zone.cabinets.sort((a, b) => (a.label || '').localeCompare(b.label || '')).map((cab, idx) => (
-                          <tr key={idx}>
-                            <td className="py-2 text-amber-600 font-black italic text-xs">{cab.label}</td>
-                            <td className="py-2 font-black tracking-tight">{cab.preset}</td>
-                            <td className="py-2 text-right font-mono">{cab.width}mm</td>
-                            <td className="py-2 text-right text-[7px] opacity-60">{cab.type}</td>
-                            <td className="py-2 text-right">1</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                     </table>
-                   </div>
-                 </div>
-               </div>
-             ))}
-           </div>
-         </div>
-         </div>
-       </div>
-     </div>
-   );
- };
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
