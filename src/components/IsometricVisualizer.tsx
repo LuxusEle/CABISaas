@@ -1,16 +1,136 @@
 
-import React from 'react';
+import React, { useMemo, ReactElement } from 'react';
 import { Project, CabinetType, CabinetUnit, PresetType, Zone } from '../types';
 import { getActiveColor } from '../services/cabinetColors';
+import { getHingeYPositions, getCamLockPositions, HINGE_SPECS, BOARD_THICKNESS } from '../services/hardware';
 
 interface Props {
     project: Project;
+    showHardware?: boolean;
 }
 
-export const IsometricVisualizer: React.FC<Props> = ({ project }) => {
-    // Simple isometric projection constants
+const getNumDoors = (unit: CabinetUnit): number => {
+    if (unit.customConfig?.num_doors !== undefined) {
+        return unit.customConfig.num_doors;
+    }
+    switch (unit.preset) {
+        case PresetType.BASE_DOOR:
+        case PresetType.WALL_STD:
+            return unit.width > 400 ? 2 : 1;
+        case PresetType.TALL_OVEN:
+        case PresetType.TALL_UTILITY:
+            return 1;
+        default:
+            return 0;
+    }
+};
+
+const getNumHingesPerDoor = (doorHeight: number): number => {
+    if (doorHeight > 1800) return 4;
+    if (doorHeight > 1200) return 3;
+    return 2;
+};
+
+export const IsometricVisualizer: React.FC<Props> = ({ project, showHardware = true }) => {
     const isoX = (x: number, y: number) => (x - y) * Math.cos(Math.PI / 6);
     const isoY = (x: number, y: number, z: number) => (x + y) * Math.sin(Math.PI / 6) - z;
+
+    const projectPoint = (
+        localX: number, 
+        localY: number, 
+        localZ: number,
+        wallOrigin: { x: number, y: number },
+        wallAngle: number,
+        fromLeft: number
+    ) => {
+        const rx = localX * Math.cos(wallAngle) - localY * Math.sin(wallAngle);
+        const ry = localX * Math.sin(wallAngle) + localY * Math.cos(wallAngle);
+        const worldX = wallOrigin.x + (fromLeft * Math.cos(wallAngle)) + rx;
+        const worldY = wallOrigin.y + (fromLeft * Math.sin(wallAngle)) + ry;
+        return { x: isoX(worldX, worldY), y: isoY(worldX, worldY, localZ) };
+    };
+
+    const renderHardwareMarkers = (
+        unit: CabinetUnit,
+        w: number,
+        d: number,
+        h: number,
+        zBase: number,
+        wallOrigin: { x: number, y: number },
+        wallAngle: number
+    ): ReactElement[] => {
+        const markers: ReactElement[] = [];
+        const numDoors = getNumDoors(unit);
+        
+        if (numDoors === 0) return markers;
+
+        const doorHeight = h - 4;
+        const numHingesPerDoor = getNumHingesPerDoor(doorHeight);
+        const hingePositions = getHingeYPositions(doorHeight, numHingesPerDoor);
+        
+        const cupOffset = HINGE_SPECS.door.cup.edgeOffset(4);
+        
+        hingePositions.forEach((yPos, idx) => {
+            const hingeY = zBase + yPos;
+            
+            markers.push(
+                <g key={`hinge-l-${idx}`}>
+                    <circle
+                        cx={projectPoint(cupOffset, -5, hingeY, wallOrigin, wallAngle, unit.fromLeft).x}
+                        cy={projectPoint(cupOffset, -5, hingeY, wallOrigin, wallAngle, unit.fromLeft).y}
+                        r="8"
+                        fill="#3b82f6"
+                        stroke="#1e40af"
+                        strokeWidth="2"
+                        opacity="0.8"
+                    />
+                    <circle
+                        cx={projectPoint(w - cupOffset, -5, hingeY, wallOrigin, wallAngle, unit.fromLeft).x}
+                        cy={projectPoint(w - cupOffset, -5, hingeY, wallOrigin, wallAngle, unit.fromLeft).y}
+                        r="8"
+                        fill="#3b82f6"
+                        stroke="#1e40af"
+                        strokeWidth="2"
+                        opacity="0.8"
+                    />
+                </g>
+            );
+        });
+
+        const camPositions = getCamLockPositions(h, 4);
+        camPositions.forEach((yPos, idx) => {
+            const camY = zBase + yPos;
+            
+            markers.push(
+                <g key={`cam-${idx}`}>
+                    <rect
+                        x={projectPoint(34, d/2, camY, wallOrigin, wallAngle, unit.fromLeft).x - 6}
+                        y={projectPoint(34, d/2, camY, wallOrigin, wallAngle, unit.fromLeft).y - 6}
+                        width="12"
+                        height="12"
+                        fill="#ef4444"
+                        stroke="#b91c1c"
+                        strokeWidth="1.5"
+                        rx="2"
+                        opacity="0.7"
+                    />
+                    <rect
+                        x={projectPoint(34, d/2, camY, wallOrigin, wallAngle, unit.fromLeft + w - 18).x - 6}
+                        y={projectPoint(34, d/2, camY, wallOrigin, wallAngle, unit.fromLeft + w - 18).y - 6}
+                        width="12"
+                        height="12"
+                        fill="#ef4444"
+                        stroke="#b91c1c"
+                        strokeWidth="1.5"
+                        rx="2"
+                        opacity="0.7"
+                    />
+                </g>
+            );
+        });
+
+        return markers;
+    };
 
     const renderCabinet = (unit: CabinetUnit, zone: Zone, wallOrigin: { x: number, y: number }, wallAngle: number) => {
         const isWall = unit.type === CabinetType.WALL;
@@ -68,6 +188,8 @@ export const IsometricVisualizer: React.FC<Props> = ({ project }) => {
                         strokeWidth="1.5"
                     />
                 ))}
+                {/* Hardware markers */}
+                {showHardware && renderHardwareMarkers(unit, w, d, h, zBase, wallOrigin, wallAngle)}
                 {/* Cabinet Label */}
                 {unit.label && (
                     <text
@@ -213,6 +335,23 @@ export const IsometricVisualizer: React.FC<Props> = ({ project }) => {
             <div className="absolute top-4 left-4 text-amber-400 font-black text-xs uppercase tracking-widest z-10">
                 3D ISO VIEW
             </div>
+            
+            {/* Hardware Legend */}
+            {showHardware && (
+                <div className="absolute bottom-4 left-4 bg-slate-900/80 backdrop-blur-sm rounded-lg p-3 text-xs z-10 border border-slate-700">
+                    <div className="text-slate-400 font-bold mb-2 uppercase tracking-wider">Hardware</div>
+                    <div className="flex flex-col gap-1.5">
+                        <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 rounded-full bg-blue-500 border-2 border-blue-700" />
+                            <span className="text-slate-300">Hinge Cup (35mm)</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 rounded-sm bg-red-500 border border-red-700" />
+                            <span className="text-slate-300">Cam-Lock (15mm)</span>
+                        </div>
+                    </div>
+                </div>
+            )}
             
             {/* Floor grid */}
             <div className="absolute inset-0 opacity-20" style={{

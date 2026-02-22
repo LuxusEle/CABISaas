@@ -17,6 +17,7 @@ import { NumberInput } from './components/NumberInput';
 import { WallVisualizer } from './components/WallVisualizer';
 import { CutPlanVisualizer } from './components/CutPlanVisualizer';
 import { IsometricVisualizer } from './components/IsometricVisualizer';
+import { CabinetViewer } from './components/3d';
 import { KitchenPlanCanvas } from './components/KitchenPlanCanvas.tsx';
 import { AuthModal } from './components/AuthModal';
 import { CustomCabinetEditor } from './components/CustomCabinetEditor';
@@ -1241,7 +1242,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
               {visualMode === 'elevation' ? (
                 <WallVisualizer zone={currentZone} height={project.settings.tallHeight + 300} onCabinetClick={(i) => openEdit('cabinet', i)} onObstacleClick={(i) => openEdit('obstacle', i)} onCabinetMove={handleCabinetMove} onObstacleMove={handleObstacleMove} onDragEnd={handleDragEnd} onSwapCabinets={handleSwapCabinets} />
               ) : (
-                <IsometricVisualizer project={project} />
+                <CabinetViewer project={project} showHardware={true} />
               )}
             </div>
 
@@ -1338,7 +1339,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
               {visualMode === 'elevation' ? (
                 <WallVisualizer zone={currentZone} height={project.settings.tallHeight + 300} onCabinetClick={(i) => openEdit('cabinet', i)} onObstacleClick={(i) => openEdit('obstacle', i)} onCabinetMove={handleCabinetMove} onObstacleMove={handleObstacleMove} onDragEnd={handleDragEnd} onSwapCabinets={handleSwapCabinets} />
               ) : (
-                <IsometricVisualizer project={project} />
+                <CabinetViewer project={project} showHardware={true} />
               )}
             </div>
 
