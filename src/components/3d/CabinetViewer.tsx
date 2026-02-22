@@ -95,30 +95,119 @@ const Scene = ({
 }) => {
   const activeZones = project.zones.filter(z => z.active && z.cabinets.length > 0);
   
-  const cabinetData = useMemo(() => {
-    const data: { unit: CabinetUnit; zone: Zone; position: [number, number, number]; rotation: number }[] = [];
+  const layoutData = useMemo(() => {
+    const cabinetPositions: { 
+      unit: CabinetUnit; 
+      zone: Zone; 
+      position: [number, number, number]; 
+      rotation: number;
+      wallIndex: number;
+    }[] = [];
     
-    let currentX = 0;
+    const wallPositions: {
+      zone: Zone;
+      position: [number, number, number];
+      width: number;
+      height: number;
+      rotation: number;
+    }[] = [];
     
-    activeZones.forEach((zone, zoneIndex) => {
+    // First pass: calculate wall dimensions
+    const wallLengths = activeZones.map(z => z.totalLength);
+    const wallAEnd = wallLengths[0] || 0;
+    const wallBEnd = wallLengths[1] || 0;
+    const wallCEnd = wallLengths[2] || 0;
+    
+    activeZones.forEach((zone, wallIndex) => {
+      const wallLength = zone.totalLength;
+      const wallHeight = zone.wallHeight || 2400;
+      
+      // Position cabinets
       zone.cabinets.forEach((cab) => {
-        const cabinetX = currentX + cab.fromLeft;
-        data.push({
+        let pos: [number, number, number];
+        let rotation: number;
+        
+        switch (wallIndex) {
+          case 0: // Wall A: XY plane, cabinets face +Z
+            pos = [cab.fromLeft, 0, 0];
+            rotation = 0;
+            break;
+          case 1: // Wall B: ZY plane, cabinets face -X
+            pos = [wallAEnd, 0, cab.fromLeft];
+            rotation = -Math.PI / 2;
+            break;
+          case 2: // Wall C: XY plane, cabinets face -Z
+            // fromLeft = distance from wall's left edge (X=wallAEnd, corner with B)
+            // Cabinets extend from corner B toward corner D (decreasing X)
+            pos = [wallAEnd - cab.fromLeft, 0, wallBEnd];
+            rotation = Math.PI;
+            break;
+          case 3: // Wall D: ZY plane, cabinets face +X
+            // fromLeft = distance from wall's left edge (Z=wallCEnd, corner with C)
+            // Cabinets extend from corner C toward corner A (decreasing Z)
+            pos = [0, 0, wallCEnd - cab.fromLeft];
+            rotation = Math.PI / 2;
+            break;
+          default:
+            pos = [cab.fromLeft, 0, 0];
+            rotation = 0;
+        }
+        
+        cabinetPositions.push({
           unit: cab,
           zone,
-          position: [cabinetX, 0, 0],
-          rotation: 0
+          position: pos,
+          rotation,
+          wallIndex
         });
       });
       
-      currentX += zone.totalLength + 500;
+      // Position walls
+      let wallPos: [number, number, number];
+      let wallRot: number;
+      let wallW: number;
+      
+      switch (wallIndex) {
+        case 0: // Wall A: behind cabinets at Z = -100
+          wallPos = [0, 0, -100];
+          wallRot = 0;
+          wallW = wallLength;
+          break;
+        case 1: // Wall B: to the right at X = wallAEnd + 100
+          wallPos = [wallAEnd + 100, 0, 0];
+          wallRot = -Math.PI / 2;
+          wallW = wallLength;
+          break;
+        case 2: // Wall C: in front at Z = wallBEnd + 100
+          wallPos = [wallAEnd, 0, wallBEnd + 100];
+          wallRot = Math.PI;
+          wallW = wallLength;
+          break;
+        case 3: // Wall D: to the left at X = -100, aligned with end of Wall C
+          wallPos = [-100, 0, wallCEnd];
+          wallRot = Math.PI / 2;
+          wallW = wallLength;
+          break;
+        default:
+          wallPos = [0, 0, -100];
+          wallRot = 0;
+          wallW = wallLength;
+      }
+      
+      wallPositions.push({
+        zone,
+        position: wallPos,
+        width: wallW,
+        height: wallHeight,
+        rotation: wallRot
+      });
     });
     
-    return data;
+    return { cabinetPositions, wallPositions };
   }, [activeZones]);
 
   const sceneBounds = useMemo(() => {
-    if (cabinetData.length === 0) {
+    if (layoutData.cabinetPositions.length === 0) {
       return { 
         center: [1500, 800, 300] as [number, number, number], 
         size: { width: 3000, depth: 1000, height: 2000 } 
@@ -129,17 +218,30 @@ const Scene = ({
     let minZ = Infinity, maxZ = -Infinity;
     let maxY = 0;
 
-    cabinetData.forEach(({ unit, position }) => {
+    layoutData.cabinetPositions.forEach(({ unit, position, wallIndex }) => {
       const isWall = unit.type === CabinetType.WALL;
       const isTall = unit.type === CabinetType.TALL;
-      const height = isTall ? 2100 : isWall ? 720 : 720;
-      const depth = isWall ? 320 : isTall ? 580 : 560;
+      const cabHeight = isTall ? 2100 : isWall ? 720 : 720;
+      const cabDepth = isWall ? 320 : isTall ? 580 : 560;
       
-      minX = Math.min(minX, position[0]);
-      maxX = Math.max(maxX, position[0] + unit.width);
-      minZ = Math.min(minZ, position[2] - depth);
-      maxZ = Math.max(maxZ, position[2]);
-      maxY = Math.max(maxY, isWall ? 1400 + height : height);
+      let x1 = position[0];
+      let x2 = position[0];
+      let z1 = position[2];
+      let z2 = position[2];
+      
+      if (wallIndex === 0 || wallIndex === 2) {
+        x2 = x1 + unit.width;
+        z2 = z1 + cabDepth;
+      } else {
+        x2 = x1 + cabDepth;
+        z2 = z1 + unit.width;
+      }
+      
+      minX = Math.min(minX, x1, x2);
+      maxX = Math.max(maxX, x1, x2);
+      minZ = Math.min(minZ, z1, z2);
+      maxZ = Math.max(maxZ, z1, z2);
+      maxY = Math.max(maxY, isWall ? 1400 + cabHeight : cabHeight);
     });
 
     const width = Math.max(maxX - minX + 1000, 2000);
@@ -150,7 +252,7 @@ const Scene = ({
       center: [(minX + maxX) / 2, maxY / 2, (minZ + maxZ) / 2] as [number, number, number],
       size: { width, depth, height }
     };
-  }, [cabinetData]);
+  }, [layoutData]);
 
   useEffect(() => {
     onSceneBounds(sceneBounds);
@@ -187,24 +289,17 @@ const Scene = ({
         position={[0, -0.5, 0]}
       />
 
-      {activeZones.map((zone, zoneIndex) => {
-        let zoneStartX = 0;
-        for (let i = 0; i < zoneIndex; i++) {
-          zoneStartX += activeZones[i].totalLength + 500;
-        }
-        
-        return (
-          <Wall
-            key={`wall-${zone.id}`}
-            position={[zoneStartX, 0, -100]}
-            width={zone.totalLength}
-            height={zone.wallHeight || 2400}
-            rotation={0}
-          />
-        );
-      })}
+      {layoutData.wallPositions.map(({ zone, position, width, height, rotation }) => (
+        <Wall
+          key={`wall-${zone.id}`}
+          position={position}
+          width={width}
+          height={height}
+          rotation={rotation}
+        />
+      ))}
 
-      {cabinetData.map(({ unit, zone, position, rotation }) => (
+      {layoutData.cabinetPositions.map(({ unit, zone, position, rotation }) => (
         <Cabinet
           key={unit.id}
           unit={unit}
