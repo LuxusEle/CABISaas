@@ -1,8 +1,9 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Home, Layers, Calculator, Zap, ArrowLeft, ArrowRight, Trash2, Plus, Box, DoorOpen, Wand2, Moon, Sun, Table2, FileSpreadsheet, X, Pencil, Save, List, Settings, Printer, Download, Scissors, LayoutDashboard, DollarSign, Map, LogOut, Menu, Wrench, CreditCard, ChevronDown, ChevronUp, FileText, Ruler, Book, Upload, Image as ImageIcon, Shield } from 'lucide-react';
+import { Home, Layers, Calculator, Zap, ArrowLeft, ArrowRight, Trash2, Plus, Box, DoorOpen, Wand2, Moon, Sun, Table2, FileSpreadsheet, X, Pencil, Save, List, Settings, Printer, Download, Scissors, LayoutDashboard, DollarSign, Map, LogOut, Menu, Wrench, CreditCard, ChevronDown, ChevronUp, FileText, Ruler, Book, Upload, Image as ImageIcon, Shield, FileCode } from 'lucide-react';
 import { Screen, Project, Zone, ZoneId, PresetType, CabinetType, CabinetUnit, Obstacle, AutoFillOptions } from './types';
 import { createNewProject, generateProjectBOM, autoFillZone, exportToExcel, resolveCollisions, calculateProjectCost, exportProjectToConstructionJSON, buildProjectConstructionData, getIntersectingCabinets } from './services/bomService';
+import { exportAllSheetsToDXFZip, exportSingleSheetToDXF } from './services/dxfExportService';
 import { generateInvoicePDF } from './services/pdfService';
 import { optimizeCuts } from './services/nestingService';
 import { authService } from './services/authService';
@@ -920,7 +921,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
         alert("Zone name must be unique");
         return;
       }
-      const newZone = { id: name, active: true, totalLength: 3000, obstacles: [], cabinets: [] };
+      const newZone = { id: name, active: true, totalLength: 3000, wallHeight: 2400, obstacles: [], cabinets: [] };
       const nextZones = [...project.zones, newZone];
       setProject({ ...project, zones: nextZones });
       setActiveTab(name);
@@ -1102,6 +1103,10 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
           <div>
             <NumberInput label="Wall Length" value={currentZone.totalLength} onChange={(e) => updateZone(z => ({ ...z, totalLength: e }))} step={100} />
           </div>
+          {/* Wall Height */}
+          <div>
+            <NumberInput label="Wall Height" value={currentZone.wallHeight} onChange={(e) => updateZone(z => ({ ...z, wallHeight: e }))} step={100} />
+          </div>
 
           {/* Sequential Builder */}
           <div className="border-t border-slate-200 dark:border-slate-800 pt-4">
@@ -1137,7 +1142,10 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
         {/* Desktop SIDEBAR */}
         <div className="hidden md:flex flex-col w-[280px] lg:w-[300px] bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 h-full min-h-0 overflow-y-auto">
           <div className="p-4 border-b border-slate-200 dark:border-slate-800">
-            <NumberInput label="Wall Length" value={currentZone.totalLength} onChange={(e) => updateZone(z => ({ ...z, totalLength: e }))} step={100} />
+            <div className="space-y-3">
+              <NumberInput label="Wall Length" value={currentZone.totalLength} onChange={(e) => updateZone(z => ({ ...z, totalLength: e }))} step={100} />
+              <NumberInput label="Wall Height" value={currentZone.wallHeight} onChange={(e) => updateZone(z => ({ ...z, wallHeight: e }))} step={100} />
+            </div>
           </div>
           <div className="p-4 space-y-2 flex-1">
             <div className="flex justify-between items-center">
@@ -1967,9 +1975,31 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
 
           {/* CUT PLAN VIEW */}
           <div className={activeView === 'cutplan' ? 'block' : 'hidden print:block print:break-before-page'}>
-            <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 print:mt-4 flex items-center gap-2 print:hidden"><Scissors size={18} /> Cut Optimization</h3>
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-3 sm:mb-4 print:hidden">
+              <h3 className="text-lg sm:text-xl font-bold flex items-center gap-2"><Scissors size={18} /> Cut Optimization</h3>
+              <Button 
+                variant="secondary" 
+                size="sm" 
+                onClick={() => exportAllSheetsToDXFZip(cutPlan.sheets, project.settings, project.name)}
+                className="min-h-[40px]"
+              >
+                <FileCode size={16} className="mr-2" /> Export All DXF (ZIP)
+              </Button>
+            </div>
             {/* Screen view - vertical stack */}
-            <div className="space-y-6 sm:space-y-8 print:hidden">{cutPlan.sheets.map((sheet, i) => <CutPlanVisualizer key={i} sheet={sheet} index={i} settings={project.settings} />)}</div>
+            <div className="space-y-6 sm:space-y-8 print:hidden">{cutPlan.sheets.map((sheet, i) => (
+              <div key={i} className="relative">
+                <CutPlanVisualizer sheet={sheet} index={i} settings={project.settings} />
+                <Button 
+                  variant="secondary" 
+                  size="sm" 
+                  onClick={() => exportSingleSheetToDXF(sheet, project.settings, i, project.name)}
+                  className="absolute top-2 right-2 print:hidden"
+                >
+                  <FileCode size={14} className="mr-1" /> DXF
+                </Button>
+              </div>
+            ))}</div>
             {/* Print view - 2 per page in landscape */}
             <div className="hidden print:block">
               {Array.from({ length: Math.ceil(cutPlan.sheets.length / 2) }).map((_, pageIndex) => (
