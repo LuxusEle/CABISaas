@@ -12,7 +12,9 @@ const HW = {
   LEG: 'Adjustable Leg',
   HANDLE: 'Handle/Knob',
   HANGER: 'Wall Hanger (Pair)',
-  NAIL: 'Installation Nail'
+  NAIL: 'Installation Nail',
+  CAM_LOCK: 'Cam-Lock (Minifix)',
+  CONFIRMAT: 'Confirmat Screw'
 };
 
 // Nails per hinge
@@ -430,7 +432,6 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
     parts.push({ id: uuid(), name: HW.SLIDE, qty: 2, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
   }
   if (unit.preset === PresetType.OPEN_BOX) {
-    // Open box with 2 shelves - no doors, no hardware
     parts.push({ id: uuid(), name: 'Shelf', qty: 2, width: depth - 20, length: horizWidth, material: shelfMaterial, category: 'shelf', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label });
     if (unit.type === CabinetType.BASE) {
       parts.push({ id: uuid(), name: HW.LEG, qty: 4, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
@@ -438,6 +439,10 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
       parts.push({ id: uuid(), name: HW.HANGER, qty: 1, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
     }
   }
+
+  const connectorsPerCabinet = 4;
+  parts.push({ id: uuid(), name: HW.CAM_LOCK, qty: connectorsPerCabinet, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
+  parts.push({ id: uuid(), name: HW.CONFIRMAT, qty: connectorsPerCabinet, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
 
   return parts;
 };

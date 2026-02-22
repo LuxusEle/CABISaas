@@ -3,7 +3,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Home, Layers, Calculator, Zap, ArrowLeft, ArrowRight, Trash2, Plus, Box, DoorOpen, Wand2, Moon, Sun, Table2, FileSpreadsheet, X, Pencil, Save, List, Settings, Printer, Download, Scissors, LayoutDashboard, DollarSign, Map, LogOut, Menu, Wrench, CreditCard, ChevronDown, ChevronUp, FileText, Ruler, Book, Upload, Image as ImageIcon, Shield, FileCode } from 'lucide-react';
 import { Screen, Project, Zone, ZoneId, PresetType, CabinetType, CabinetUnit, Obstacle, AutoFillOptions } from './types';
 import { createNewProject, generateProjectBOM, autoFillZone, exportToExcel, resolveCollisions, calculateProjectCost, exportProjectToConstructionJSON, buildProjectConstructionData, getIntersectingCabinets } from './services/bomService';
-import { exportAllSheetsToDXFZip, exportSingleSheetToDXF } from './services/dxfExportService';
+import { exportAllSheetsToDXFZip, exportSingleSheetToDXF, exportAllDrillingToZip } from './services/dxfExportService';
 import { generateInvoicePDF } from './services/pdfService';
 import { optimizeCuts } from './services/nestingService';
 import { authService } from './services/authService';
@@ -1830,6 +1830,12 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
           </Button>
           <Button variant="primary" size="sm" onClick={() => exportToExcel(data.groups, cutPlan, project)} className="flex-1 sm:flex-none min-h-[40px] text-xs sm:text-sm">
             <FileSpreadsheet size={16} className="mr-1 sm:mr-2" /> Excel
+          </Button>
+          <Button variant="secondary" size="sm" onClick={() => {
+            const allCabinets = project.zones.flatMap(z => z.cabinets);
+            exportAllDrillingToZip(allCabinets, project.settings, project.name);
+          }} className="flex-1 sm:flex-none min-h-[40px] text-xs sm:text-sm">
+            <Wrench size={16} className="mr-1 sm:mr-2" /> Drilling DXF
           </Button>
           <Button variant={activeView === 'invoice' ? 'primary' : 'secondary'} size="sm" onClick={() => setActiveView('invoice')} className="flex-1 sm:flex-none min-h-[40px] text-xs sm:text-sm">
             <CreditCard size={16} className="mr-1 sm:mr-2" /> Invoice
