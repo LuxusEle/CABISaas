@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowRight, Sparkles, Box, Ruler, Calculator, ChevronDown, Sun, Moon, Menu, X, User, Check, FileText } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ArrowRight, Sparkles, Box, Ruler, Calculator, ChevronDown, Sun, Moon, Menu, X, User, Check, FileText, Shield } from 'lucide-react';
 import { Button } from './Button';
 import { LandingDocsModal } from './LandingDocsModal';
 
@@ -9,10 +10,10 @@ interface LandingPageProps {
 }
 
 // Animated text component with typing effect
-const TypewriterText: React.FC<{ text: string; delay?: number; className?: string }> = ({ 
-  text, 
-  delay = 0, 
-  className = '' 
+const TypewriterText: React.FC<{ text: string; delay?: number; className?: string }> = ({
+  text,
+  delay = 0,
+  className = ''
 }) => {
   const [displayText, setDisplayText] = useState('');
   const [started, setStarted] = useState(false);
@@ -24,7 +25,7 @@ const TypewriterText: React.FC<{ text: string; delay?: number; className?: strin
 
   useEffect(() => {
     if (!started) return;
-    
+
     let index = 0;
     const interval = setInterval(() => {
       if (index <= text.length) {
@@ -47,10 +48,10 @@ const TypewriterText: React.FC<{ text: string; delay?: number; className?: strin
 };
 
 // Word reveal animation component
-const RevealWord: React.FC<{ text: string; delay?: number; className?: string }> = ({ 
-  text, 
-  delay = 0, 
-  className = '' 
+const RevealWord: React.FC<{ text: string; delay?: number; className?: string }> = ({
+  text,
+  delay = 0,
+  className = ''
 }) => {
   const [isVisible, setIsVisible] = useState(false);
 
@@ -60,12 +61,11 @@ const RevealWord: React.FC<{ text: string; delay?: number; className?: string }>
   }, [delay]);
 
   return (
-    <span 
-      className={`inline-block transition-all duration-700 transform ${
-        isVisible 
-          ? 'opacity-100 translate-y-0' 
+    <span
+      className={`inline-block transition-all duration-700 transform ${isVisible
+          ? 'opacity-100 translate-y-0'
           : 'opacity-0 translate-y-8'
-      } ${className}`}
+        } ${className}`}
     >
       {text}
     </span>
@@ -80,65 +80,65 @@ const CyclingText: React.FC<{
   phrases,
   className = ''
 }) => {
-  const [index, setIndex] = useState(0);
-  const [displayText, setDisplayText] = useState('');
-  const [showCursor, setShowCursor] = useState(true);
-  const timeoutsRef = useRef<NodeJS.Timeout[]>([]);
+    const [index, setIndex] = useState(0);
+    const [displayText, setDisplayText] = useState('');
+    const [showCursor, setShowCursor] = useState(true);
+    const timeoutsRef = useRef<NodeJS.Timeout[]>([]);
 
-  useEffect(() => {
-    // Clear any existing timeouts
-    timeoutsRef.current.forEach(t => clearTimeout(t));
-    timeoutsRef.current = [];
-    
-    const currentPhrase = phrases[index];
-    const charDelay = 2000 / currentPhrase.length; // 2000ms total typing time
-    
-    // Type each character
-    for (let i = 0; i <= currentPhrase.length; i++) {
-      const timeout = setTimeout(() => {
-        setDisplayText(currentPhrase.slice(0, i));
-        
-        // When typing is complete
-        if (i === currentPhrase.length) {
-          // Hide cursor after a brief pause
-          const cursorTimeout = setTimeout(() => {
-            setShowCursor(false);
-          }, 500);
-          timeoutsRef.current.push(cursorTimeout);
-          
-          // Move to next phrase after total display time (3.5s total per phrase)
-          const nextTimeout = setTimeout(() => {
-            setIndex((prev) => (prev + 1) % phrases.length);
-            setShowCursor(true);
-          }, 3500);
-          timeoutsRef.current.push(nextTimeout);
-        }
-      }, i * charDelay);
-      
-      timeoutsRef.current.push(timeout);
-    }
-    
-    return () => {
+    useEffect(() => {
+      // Clear any existing timeouts
       timeoutsRef.current.forEach(t => clearTimeout(t));
-    };
-  }, [index]); // Only re-run when index changes
+      timeoutsRef.current = [];
 
-  return (
-    <span className={`inline-block whitespace-nowrap ${className}`}>
-      {displayText}
-      {showCursor && <span className="animate-pulse">|</span>}
-    </span>
-  );
-};
+      const currentPhrase = phrases[index];
+      const charDelay = 2000 / currentPhrase.length; // 2000ms total typing time
+
+      // Type each character
+      for (let i = 0; i <= currentPhrase.length; i++) {
+        const timeout = setTimeout(() => {
+          setDisplayText(currentPhrase.slice(0, i));
+
+          // When typing is complete
+          if (i === currentPhrase.length) {
+            // Hide cursor after a brief pause
+            const cursorTimeout = setTimeout(() => {
+              setShowCursor(false);
+            }, 500);
+            timeoutsRef.current.push(cursorTimeout);
+
+            // Move to next phrase after total display time (3.5s total per phrase)
+            const nextTimeout = setTimeout(() => {
+              setIndex((prev) => (prev + 1) % phrases.length);
+              setShowCursor(true);
+            }, 3500);
+            timeoutsRef.current.push(nextTimeout);
+          }
+        }, i * charDelay);
+
+        timeoutsRef.current.push(timeout);
+      }
+
+      return () => {
+        timeoutsRef.current.forEach(t => clearTimeout(t));
+      };
+    }, [index]); // Only re-run when index changes
+
+    return (
+      <span className={`inline-block whitespace-nowrap ${className}`}>
+        {displayText}
+        {showCursor && <span className="animate-pulse">|</span>}
+      </span>
+    );
+  };
 
 // Floating animation component
-const FloatingElement: React.FC<{ children: React.ReactNode; delay?: number; className?: string }> = ({ 
-  children, 
-  delay = 0, 
-  className = '' 
+const FloatingElement: React.FC<{ children: React.ReactNode; delay?: number; className?: string }> = ({
+  children,
+  delay = 0,
+  className = ''
 }) => {
   return (
-    <div 
+    <div
       className={`animate-float ${className}`}
       style={{ animationDelay: `${delay}ms` }}
     >
@@ -261,16 +261,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
                 CAB<span className="text-amber-500">ENGINE</span>
               </span>
             </div>
-            
+
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-6">
-              <button 
+              <button
                 onClick={() => scrollToSection('features')}
                 className="text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 transition-colors text-sm font-medium"
               >
                 Features
               </button>
-              <button 
+              <button
                 onClick={() => scrollToSection('about')}
                 className="text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 transition-colors text-sm font-medium"
               >
@@ -288,6 +288,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
               >
                 Docs
               </button>
+              <Link
+                to="/terms"
+                className="text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 transition-colors text-sm font-medium flex items-center gap-1"
+              >
+                Terms
+              </Link>
               <button
                 onClick={() => setIsDark(!isDark)}
                 className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-amber-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
@@ -321,13 +327,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
         {mobileMenuOpen && (
           <div className="md:hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 animate-slide-up">
             <div className="px-4 py-4 space-y-2">
-              <button 
+              <button
                 onClick={() => scrollToSection('features')}
                 className="w-full text-left px-4 py-3 text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors text-base font-medium min-h-[48px]"
               >
                 Features
               </button>
-              <button 
+              <button
                 onClick={() => scrollToSection('about')}
                 className="w-full text-left px-4 py-3 text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors text-base font-medium min-h-[48px]"
               >
@@ -346,14 +352,22 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
                 <FileText size={18} />
                 Docs
               </button>
+              <Link
+                to="/terms"
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full text-left px-4 py-3 text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors text-base font-medium min-h-[48px] flex items-center gap-2"
+              >
+                <Shield size={18} />
+                Terms
+              </Link>
               <div className="border-t border-slate-200 dark:border-slate-700 my-2 pt-2 space-y-2">
-                <button 
+                <button
                   onClick={() => { onSignIn(); setMobileMenuOpen(false); }}
                   className="w-full text-left px-4 py-3 text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors text-base font-medium min-h-[48px]"
                 >
                   Sign In
                 </button>
-                <button 
+                <button
                   onClick={() => { onGetStarted(); setMobileMenuOpen(false); }}
                   className="w-full text-left px-4 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors text-base font-bold min-h-[48px] text-center"
                 >
@@ -368,13 +382,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center pt-14 sm:pt-16">
         <ParticleBackground />
-        
+
         {/* Gradient orbs - smaller on mobile */}
-        <div 
+        <div
           className="absolute top-1/4 left-1/4 w-48 h-48 sm:w-72 sm:h-72 lg:w-96 lg:h-96 bg-amber-500/10 rounded-full blur-3xl"
           style={{ transform: `translate(${scrollY * 0.1}px, ${scrollY * 0.05}px)` }}
         />
-        <div 
+        <div
           className="absolute bottom-1/4 right-1/4 w-48 h-48 sm:w-72 sm:h-72 lg:w-96 lg:h-96 bg-orange-500/10 rounded-full blur-3xl"
           style={{ transform: `translate(${-scrollY * 0.1}px, ${-scrollY * 0.05}px)` }}
         />
@@ -390,10 +404,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
           <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black mb-4 sm:mb-6 leading-tight">
             <div className="text-slate-900 dark:text-white">Build Your</div>
             <div className="mt-1 sm:mt-2 text-gradient inline-block h-[1.2em]">
-              <CyclingText 
+              <CyclingText
                 phrases={[
                   "Dream Kitchen",
-                  "Perfect Cabinets", 
+                  "Perfect Cabinets",
                   "Custom Furniture",
                   "Dream Space"
                 ]}
@@ -407,22 +421,22 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
           </div>
 
           <p className="text-base sm:text-lg text-slate-600 dark:text-slate-500 max-w-2xl mx-auto mb-8 sm:mb-12 px-4 sm:px-0 animate-slide-up" style={{ animationDelay: '1s' }}>
-            Professional-grade cabinet design software with instant 3D visualization, 
+            Professional-grade cabinet design software with instant 3D visualization,
             automated cut lists, and material optimization.
           </p>
 
           {/* CTA Buttons - full width on mobile */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 px-4 sm:px-0 animate-slide-up" style={{ animationDelay: '1.2s' }}>
-            <Button 
-              size="xl" 
+            <Button
+              size="xl"
               onClick={onGetStarted}
               className="w-full sm:w-auto animate-glow group min-h-[56px]"
               leftIcon={<ArrowRight className="group-hover:translate-x-1 transition-transform" />}
             >
               Get Started Free
             </Button>
-            <Button 
-              size="xl" 
+            <Button
+              size="xl"
               variant="secondary"
               onClick={onSignIn}
               className="w-full sm:w-auto min-h-[56px]"
@@ -520,7 +534,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
                   </div>
                   <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Free</h3>
                 </div>
-                
+
                 <div className="mb-4">
                   <span className="text-4xl font-black text-slate-900 dark:text-white">$0</span>
                   <span className="text-slate-500 dark:text-slate-400">/month</span>
@@ -528,8 +542,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
 
                 <p className="text-slate-600 dark:text-slate-400 mb-6">Perfect for hobbyists and small projects</p>
 
-                <Button 
-                  size="lg" 
+                <Button
+                  size="lg"
                   onClick={onGetStarted}
                   variant="secondary"
                   className="w-full mb-6"
@@ -567,7 +581,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
               <div className="absolute top-0 right-0 bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">
                 POPULAR
               </div>
-              
+
               <div className="p-6 sm:p-8">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="p-3 rounded-lg bg-amber-100 dark:bg-amber-900/30">
@@ -575,7 +589,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
                   </div>
                   <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Pro</h3>
                 </div>
-                
+
                 <div className="mb-4">
                   <span className="text-4xl font-black text-slate-900 dark:text-white">$29</span>
                   <span className="text-slate-500 dark:text-slate-400">/month</span>
@@ -583,8 +597,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
 
                 <p className="text-slate-600 dark:text-slate-400 mb-6">For professionals and growing shops</p>
 
-                <Button 
-                  size="lg" 
+                <Button
+                  size="lg"
                   onClick={onGetStarted}
                   className="w-full mb-6 bg-amber-500 hover:bg-amber-600"
                 >
@@ -630,8 +644,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
           <p className="text-base sm:text-xl text-slate-600 dark:text-slate-400 mb-6 sm:mb-8 px-4 sm:px-0">
             Join professional cabinet makers who trust CABENGINE for their projects
           </p>
-          <Button 
-            size="xl" 
+          <Button
+            size="xl"
             onClick={onGetStarted}
             className="animate-glow w-full sm:w-auto min-h-[56px]"
           >
