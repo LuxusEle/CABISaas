@@ -58,7 +58,7 @@ export interface ProjectSettings {
 
   // Costing
   costs: CostSettings;
-  
+
   // Material allocation settings
   materialSettings?: ProjectMaterialSettings;
 }
@@ -70,6 +70,7 @@ export interface Obstacle {
   width: number;
   height: number;
   sillHeight?: number; // Distance from floor to bottom of window
+  elevation?: number; // Distance from floor (alias or used for other types)
   depth?: number;
 }
 
@@ -98,7 +99,7 @@ export interface ProjectMaterialSettings {
   drawerMaterial: string;
   backMaterial: string;
   shelfMaterial: string;
-  
+
   // Sheet specifications per material
   sheetSpecs: Record<string, {
     width: number;

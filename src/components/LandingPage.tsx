@@ -63,8 +63,8 @@ const RevealWord: React.FC<{ text: string; delay?: number; className?: string }>
   return (
     <span
       className={`inline-block transition-all duration-700 transform ${isVisible
-          ? 'opacity-100 translate-y-0'
-          : 'opacity-0 translate-y-8'
+        ? 'opacity-100 translate-y-0'
+        : 'opacity-0 translate-y-8'
         } ${className}`}
     >
       {text}
@@ -282,12 +282,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
               >
                 Pricing
               </button>
-              <button
-                onClick={() => setDocsModalOpen(true)}
+              <Link
+                to="/docs"
                 className="text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 transition-colors text-sm font-medium flex items-center gap-1"
               >
                 Docs
-              </button>
+              </Link>
               <Link
                 to="/terms"
                 className="text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 transition-colors text-sm font-medium flex items-center gap-1"
@@ -345,13 +345,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
               >
                 Pricing
               </button>
-              <button
-                onClick={() => { setDocsModalOpen(true); setMobileMenuOpen(false); }}
+              <Link
+                to="/docs"
+                onClick={() => setMobileMenuOpen(false)}
                 className="w-full text-left px-4 py-3 text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors text-base font-medium min-h-[48px] flex items-center gap-2"
               >
                 <FileText size={18} />
                 Docs
-              </button>
+              </Link>
               <Link
                 to="/terms"
                 onClick={() => setMobileMenuOpen(false)}

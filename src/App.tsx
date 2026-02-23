@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { Home, Layers, Calculator, Zap, ArrowLeft, ArrowRight, Trash2, Plus, Box, DoorOpen, Wand2, Moon, Sun, Table2, FileSpreadsheet, X, Pencil, Save, List, Settings, Printer, Download, Scissors, LayoutDashboard, DollarSign, Map, LogOut, Menu, Wrench, CreditCard, ChevronDown, ChevronUp, FileText, Ruler, Book, Upload, Image as ImageIcon, Shield, FileCode } from 'lucide-react';
 import { Screen, Project, Zone, ZoneId, PresetType, CabinetType, CabinetUnit, Obstacle, AutoFillOptions } from './types';
 import { createNewProject, generateProjectBOM, autoFillZone, exportToExcel, resolveCollisions, calculateProjectCost, exportProjectToConstructionJSON, buildProjectConstructionData, getIntersectingCabinets } from './services/bomService';
@@ -64,6 +64,29 @@ const TitleBlock = ({ project, pageTitle }: { project: Project, pageTitle: strin
   </div>
 );
 
+// --- PROTECTED ROUTE COMPONENT ---
+const ProtectedRoute = ({ user, loading, children }: { user: User | null, loading: boolean, children: React.ReactNode }) => {
+  const location = useLocation();
+
+  if (loading) {
+    return (
+      <div className="fixed inset-0 bg-slate-900 flex items-center justify-center z-50">
+        <div className="text-center">
+          <div className="font-black text-3xl mb-4">CAB<span className="text-amber-500">ENGINE</span></div>
+          <div className="text-slate-400">Verifying session...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    // Redirect to landing page but save the attempt location
+    return <Navigate to="/" state={{ from: location }} replace />;
+  }
+
+  return <>{children}</>;
+};
+
 // --- MAIN APP COMPONENT ---
 
 export default function App() {
@@ -77,6 +100,9 @@ export default function App() {
   const [isDark, setIsDark] = useState(() => {
     try { return localStorage.getItem('app-theme') !== 'false'; } catch { return true; }
   });
+
+  const navigate = useNavigate();
+  const location = useLocation();
 
   // Check authentication on mount and load saved logo
   useEffect(() => {
@@ -97,8 +123,9 @@ export default function App() {
 
       setAuthLoading(false);
       // If user is logged in and we're on landing page, go to dashboard
-      if (user && screen === Screen.LANDING) {
-        setScreen(Screen.DASHBOARD);
+      const isPublicPath = ['/', '/docs', '/terms'].includes(location.pathname);
+      if (user && isPublicPath && location.pathname === '/') {
+        navigate('/dashboard');
       }
     };
     checkAuth();
@@ -106,19 +133,19 @@ export default function App() {
     // Listen to auth changes
     const subscription = authService.onAuthStateChange((user) => {
       setUser(user);
-      // If user logged out and not on landing page, redirect to landing
-      if (!user && screen !== Screen.LANDING) {
-        setScreen(Screen.LANDING);
+      // If user logged out and on a protected page, redirect to landing
+      const protectedPaths = ['/dashboard', '/setup', '/walls', '/bom', '/plan'];
+      if (!user && protectedPaths.includes(location.pathname)) {
+        navigate('/');
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [screen]);
+  }, [location.pathname]);
 
   // Function to require authentication before action
   const requireAuth = (action: () => void) => {
     if (!user) {
-      setScreen(Screen.LANDING);
       setAuthModalMode('login');
       setShowAuthModal(true);
     } else {
@@ -140,6 +167,14 @@ export default function App() {
       console.warn('Failed to save project:', e);
     }
   }, [project]);
+
+  useEffect(() => {
+    // Reset state-based screen when navigating to a URL-based route
+    const routePaths = ['/dashboard', '/setup', '/walls', '/bom', '/plan', '/docs', '/terms', '/pricing', '/'];
+    if (routePaths.includes(location.pathname) && (screen as any) === Screen.PRICING) {
+      setScreen(Screen.LANDING);
+    }
+  }, [location.pathname]);
 
   const toggleTheme = () => setIsDark(!isDark);
 
@@ -181,7 +216,7 @@ export default function App() {
       const savedProj = await handleSaveProject(newProj);
       if (savedProj) {
         setProject(savedProj);
-        setScreen(Screen.PROJECT_SETUP);
+        navigate('/setup');
       }
     });
   };
@@ -218,7 +253,7 @@ export default function App() {
             onNewProject={handleStartProject}
             onLoadProject={(p) => {
               setProject(p);
-              setScreen(Screen.WALL_EDITOR);
+              navigate('/walls');
             }}
             logoUrl={project.settings.logoUrl}
           />
@@ -234,154 +269,219 @@ export default function App() {
   };
 
   return (
-    <Routes>
-      <Route path="/terms" element={<TermsPage />} />
-      <Route path="/*" element={
-        <div className="h-full w-full flex flex-col font-sans transition-colors duration-200 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
-          {/* MOBILE HEADER */}
-          <div className="md:hidden h-14 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 shrink-0 z-40 print:hidden">
-            <div className="font-black text-lg">CAB<span className="text-amber-500">ENGINE</span></div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowAuthModal(true)}
-                className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
-                title={user?.email || "Login"}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
-              </button>
-              <button onClick={toggleTheme} className="p-2 rounded-full bg-slate-100 dark:bg-slate-800">{isDark ? <Sun size={18} /> : <Moon size={18} />}</button>
-            </div>
-          </div>
-
-          <div className="flex-1 flex overflow-hidden md:pb-0 pb-16">
-            {/* DESKTOP SIDEBAR - Hidden on landing page */}
-            {screen !== Screen.LANDING && (
-              <aside className="hidden md:flex w-20 flex-col items-center py-6 bg-slate-900 border-r border-slate-800 shrink-0 z-50 print:hidden">
-                <div className="mb-8 text-amber-500"><LayoutDashboard size={28} /></div>
-                <nav className="flex flex-col gap-6 w-full px-2">
-                  <NavButton active={screen === Screen.DASHBOARD} onClick={() => setScreen(Screen.DASHBOARD)} icon={<Home size={24} />} label="Home" />
-                  <NavButton active={screen === Screen.PROJECT_SETUP} onClick={() => requireAuth(() => setScreen(Screen.PROJECT_SETUP))} icon={<Settings size={24} />} label="Setup" />
-                  <NavButton active={screen === Screen.WALL_EDITOR} onClick={() => requireAuth(() => setScreen(Screen.WALL_EDITOR))} icon={<Box size={24} />} label="Walls" />
-                  <NavButton active={screen === Screen.BOM_REPORT} onClick={() => requireAuth(() => setScreen(Screen.BOM_REPORT))} icon={<Table2 size={24} />} label="BOM" />
-                  <NavButton active={screen === Screen.TOOLS} onClick={() => requireAuth(() => setScreen(Screen.TOOLS))} icon={<Map size={24} />} label="Plan" />
-                  <NavButton active={screen === Screen.PRICING} onClick={() => requireAuth(() => setScreen(Screen.PRICING))} icon={<CreditCard size={24} />} label="Pricing" />
-                  <NavButton active={screen === Screen.DOCS} onClick={() => setScreen(Screen.DOCS)} icon={<Book size={24} />} label="Docs" />
-                </nav>
-                <div className="mt-auto flex flex-col gap-2">
-                  {user ? (
-                    <button
-                      onClick={() => setShowAuthModal(true)}
-                      className="p-3 rounded-xl bg-slate-800 text-amber-500 hover:bg-slate-700 transition-colors"
-                      title={user.email}
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => setShowAuthModal(true)}
-                      className="p-3 rounded-xl bg-slate-800 text-slate-400 hover:bg-slate-700 transition-colors"
-                      title="Login"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
-                    </button>
-                  )}
-                  <button onClick={toggleTheme} className="p-3 rounded-xl bg-slate-800 text-amber-500 hover:bg-slate-700 transition-colors">{isDark ? <Sun size={20} /> : <Moon size={20} />}</button>
-                </div>
-              </aside>
-            )}
-
-            {/* MAIN */}
-            <main className="flex-1 flex flex-col overflow-hidden relative" id="main-content">
-              {renderContent()}
-            </main>
-          </div>
-
-          {/* MOBILE NAV */}
-          {(screen !== Screen.LANDING && screen !== Screen.DASHBOARD) && (
-            <div className="md:hidden h-16 mobile-nav bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex items-stretch justify-around z-[100] shrink-0 print:hidden safe-area-bottom" style={{ position: 'fixed', bottom: 0, left: 0, right: 0 }}>
-              <MobileNavButton active={screen === Screen.DASHBOARD} onClick={() => setScreen(Screen.DASHBOARD)} icon={<Home size={20} />} label="Home" />
-              <MobileNavButton active={screen === Screen.PROJECT_SETUP} onClick={() => setScreen(Screen.PROJECT_SETUP)} icon={<Settings size={20} />} label="Setup" />
-              <MobileNavButton active={screen === Screen.WALL_EDITOR} onClick={() => setScreen(Screen.WALL_EDITOR)} icon={<Box size={20} />} label="Editor" />
-              <MobileNavButton active={screen === Screen.BOM_REPORT} onClick={() => setScreen(Screen.BOM_REPORT)} icon={<Table2 size={20} />} label="BOM" />
-              <MobileNavButton active={screen === Screen.TOOLS} onClick={() => setScreen(Screen.TOOLS)} icon={<Map size={20} />} label="Plan" />
-              <MobileNavButton active={screen === Screen.DOCS} onClick={() => setScreen(Screen.DOCS)} icon={<Book size={20} />} label="Docs" />
-            </div>
-          )}
-
-          <style>{`
-            @media print {
-              @page { size: landscape; margin: 0; }
-              body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-              #root, #main-content, .overflow-y-auto, .overflow-hidden {
-                position: relative; height: auto !important; overflow: visible !important;
-                background-color: white !important; color: black !important; display: block !important;
-              }
-              .print\\:hidden, aside, .md\\:hidden { display: none !important; }
-              .print\\:block { display: block !important; }
-              .print\\:flex { display: flex !important; }
-              .print\\:text-black { color: black !important; }
-              .print\\:border-black { border-color: black !important; }
-              .print\\:bg-white { background-color: white !important; }
-              /* Add back explicit page break utilities as they were needed for some browsers */
-              .print\\:break-before-page { break-before: page !important; page-break-before: always !important; }
-              .print\\:break-after-page { break-after: page !important; page-break-after: always !important; }
-              .print\\:break-inside-avoid { break-inside: avoid !important; page-break-inside: avoid !important; }
-            }
-          `}</style>
-
-          {/* Auth Modal */}
-          {showAuthModal && (
-            <AuthModal
-              user={user}
-              initialMode={authModalMode}
-              onClose={() => setShowAuthModal(false)}
-              onSuccess={() => {
-                setShowAuthModal(false);
-                // After successful login/signup from landing page, go to dashboard
-                if (screen === Screen.LANDING) {
-                  setScreen(Screen.DASHBOARD);
-                }
-              }}
-              onLogout={() => {
-                setShowAuthModal(false);
-                setScreen(Screen.LANDING);
-              }}
-              onNavigateToPolicy={() => {
-                setShowPolicyModal(true);
-              }}
-            />
-          )}
-
-          {/* Policy Modal */}
-          <PolicyModal
-            isOpen={showPolicyModal}
-            onClose={() => setShowPolicyModal(false)}
-          />
-
-          {/* Loading State */}
-          {authLoading && (
-            <div className="fixed inset-0 bg-slate-900 flex items-center justify-center z-50">
-              <div className="text-center">
-                <div className="font-black text-3xl mb-4">CAB<span className="text-amber-500">ENGINE</span></div>
-                <div className="text-slate-400">Loading...</div>
-              </div>
-            </div>
-          )}
-
-          {/* Help Button - Available on all screens */}
-          <HelpButton />
+    <div className="h-full w-full flex flex-col font-sans transition-colors duration-200 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
+      {/* MOBILE HEADER */}
+      <div className="md:hidden h-14 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 shrink-0 z-40 print:hidden">
+        <div className="font-black text-lg">CAB<span className="text-amber-500">ENGINE</span></div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowAuthModal(true)}
+            className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+            title={user?.email || "Login"}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+          </button>
+          <button onClick={toggleTheme} className="p-2 rounded-full bg-slate-100 dark:bg-slate-800">{isDark ? <Sun size={18} /> : <Moon size={18} />}</button>
         </div>
-      } />
-    </Routes>
+      </div>
+
+      <div className="flex-1 flex overflow-hidden md:pb-0 pb-16">
+        {/* DESKTOP SIDEBAR - Hidden on landing page */}
+        {(location.pathname !== '/' && location.pathname !== '/terms' && (location.pathname !== '/docs' || user)) && (
+          <aside className="hidden md:flex w-20 flex-col items-center py-6 bg-slate-900 border-r border-slate-800 shrink-0 z-50 print:hidden">
+            <div className="mb-8 text-amber-500"><LayoutDashboard size={28} /></div>
+            <nav className="flex flex-col gap-6 w-full px-2">
+              <NavButton active={location.pathname === '/dashboard'} path="/dashboard" icon={<Home size={24} />} label="Home" />
+              <NavButton active={location.pathname === '/setup'} path="/setup" icon={<Settings size={24} />} label="Setup" />
+              <NavButton active={location.pathname === '/walls'} path="/walls" icon={<Box size={24} />} label="Walls" />
+              <NavButton active={location.pathname === '/bom'} path="/bom" icon={<Table2 size={24} />} label="BOM" />
+              <NavButton active={location.pathname === '/plan'} path="/plan" icon={<Map size={24} />} label="Plan" />
+              <NavButton active={location.pathname === '/pricing'} path="/pricing" icon={<CreditCard size={24} />} label="Pricing" />
+              <NavButton active={location.pathname === '/docs'} path="/docs" icon={<Book size={24} />} label="Docs" />
+            </nav>
+            <div className="mt-auto flex flex-col gap-2">
+              {user ? (
+                <button
+                  onClick={() => setShowAuthModal(true)}
+                  className="p-3 rounded-xl bg-slate-800 text-amber-500 hover:bg-slate-700 transition-colors"
+                  title={user.email}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+                </button>
+              ) : (
+                <button
+                  onClick={() => setShowAuthModal(true)}
+                  className="p-3 rounded-xl bg-slate-800 text-slate-400 hover:bg-slate-700 transition-colors"
+                  title="Login"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+                </button>
+              )}
+              <button onClick={toggleTheme} className="p-3 rounded-xl bg-slate-800 text-amber-500 hover:bg-slate-700 transition-colors">{isDark ? <Sun size={20} /> : <Moon size={20} />}</button>
+            </div>
+          </aside>
+        )}
+
+        {/* MAIN */}
+        <main className="flex-1 flex flex-col overflow-hidden relative" id="main-content">
+          <Routes>
+            <Route path="/" element={
+              <LandingPage
+                onGetStarted={() => openAuthModal('signup')}
+                onSignIn={() => openAuthModal('login')}
+              />
+            } />
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/docs" element={<DocsPage />} />
+            <Route path="/dashboard" element={
+              <ProtectedRoute user={user} loading={authLoading}>
+                <ScreenHome
+                  onNewProject={handleStartProject}
+                  onLoadProject={(p) => {
+                    setProject(p);
+                    navigate('/walls');
+                  }}
+                  logoUrl={project.settings.logoUrl}
+                />
+              </ProtectedRoute>
+            } />
+            <Route path="/setup" element={
+              <ProtectedRoute user={user} loading={authLoading}>
+                <ScreenProjectSetup project={project} setProject={setProject} />
+              </ProtectedRoute>
+            } />
+            <Route path="/walls" element={
+              <ProtectedRoute user={user} loading={authLoading}>
+                <ScreenWallEditor project={project} setProject={setProject} setScreen={setScreen} onSave={() => handleSaveProject(project)} />
+              </ProtectedRoute>
+            } />
+            <Route path="/bom" element={
+              <ProtectedRoute user={user} loading={authLoading}>
+                <ScreenBOMReport project={project} setProject={setProject} />
+              </ProtectedRoute>
+            } />
+            <Route path="/plan" element={
+              <ProtectedRoute user={user} loading={authLoading}>
+                <ScreenPlanView project={project} />
+              </ProtectedRoute>
+            } />
+            <Route path="/pricing" element={<PricingPage />} />
+            <Route path="*" element={<LandingPage onGetStarted={() => openAuthModal('signup')} onSignIn={() => openAuthModal('login')} />} />
+          </Routes>
+        </main>
+      </div>
+
+      {/* MOBILE NAV */}
+      {location.pathname !== '/' && location.pathname !== '/terms' && (
+        <div className="md:hidden h-16 mobile-nav bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex items-stretch justify-around z-[100] shrink-0 print:hidden safe-area-bottom" style={{ position: 'fixed', bottom: 0, left: 0, right: 0 }}>
+          <MobileNavButton active={location.pathname === '/dashboard'} path="/dashboard" icon={<Home size={20} />} label="Home" />
+          <MobileNavButton active={location.pathname === '/setup'} path="/setup" icon={<Settings size={20} />} label="Setup" />
+          <MobileNavButton active={location.pathname === '/walls'} path="/walls" icon={<Box size={20} />} label="Editor" />
+          <MobileNavButton active={location.pathname === '/bom'} path="/bom" icon={<Table2 size={20} />} label="BOM" />
+          <MobileNavButton active={location.pathname === '/plan'} path="/plan" icon={<Map size={20} />} label="Plan" />
+          <MobileNavButton active={location.pathname === '/docs'} path="/docs" icon={<Book size={20} />} label="Docs" />
+        </div>
+      )}
+
+      <style>{`
+        @media print {
+          @page { size: landscape; margin: 0; }
+          body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          #root, #main-content, .overflow-y-auto, .overflow-hidden {
+            position: relative; height: auto !important; overflow: visible !important;
+            background-color: white !important; color: black !important; display: block !important;
+          }
+          .print\\:hidden, aside, .md\\:hidden { display: none !important; }
+          .print\\:block { display: block !important; }
+          .print\\:flex { display: flex !important; }
+          .print\\:text-black { color: black !important; }
+          .print\\:border-black { border-color: black !important; }
+          .print\\:bg-white { background-color: white !important; }
+          /* Add back explicit page break utilities as they were needed for some browsers */
+          .print\\:break-before-page { break-before: page !important; page-break-before: always !important; }
+          .print\\:break-after-page { break-after: page !important; page-break-after: always !important; }
+          .print\\:break-inside-avoid { break-inside: avoid !important; page-break-inside: avoid !important; }
+        }
+      `}</style>
+
+      {/* Auth Modal */}
+      {showAuthModal && (
+        <AuthModal
+          user={user}
+          initialMode={authModalMode}
+          onClose={() => setShowAuthModal(false)}
+          onSuccess={() => {
+            setShowAuthModal(false);
+            // After successful login/signup, go to dashboard
+            if (location.pathname === '/') {
+              navigate('/dashboard');
+            }
+          }}
+          onLogout={() => {
+            setShowAuthModal(false);
+            navigate('/');
+          }}
+          onNavigateToPolicy={() => {
+            setShowPolicyModal(true);
+          }}
+        />
+      )}
+
+      {/* Policy Modal */}
+      <PolicyModal
+        isOpen={showPolicyModal}
+        onClose={() => setShowPolicyModal(false)}
+      />
+
+      {/* Loading State */}
+      {authLoading && (
+        <div className="fixed inset-0 bg-slate-900 flex items-center justify-center z-50">
+          <div className="text-center">
+            <div className="font-black text-3xl mb-4">CAB<span className="text-amber-500">ENGINE</span></div>
+            <div className="text-slate-400">Loading...</div>
+          </div>
+        </div>
+      )}
+
+      {/* Help Button - Available on all screens */}
+      <HelpButton />
+    </div>
   );
 }
 
-const NavButton = ({ active, onClick, icon, label }: any) => (
-  <button onClick={onClick} className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all w-full ${active ? 'bg-amber-600 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-800'}`} title={label}>{icon}</button>
-);
-const MobileNavButton = ({ active, onClick, icon, label }: any) => (
-  <button onClick={onClick} className={`flex-1 flex flex-col items-center justify-center gap-1 ${active ? 'text-amber-600 dark:text-amber-500' : 'text-slate-400'}`}>{icon}<span className="text-[10px] font-bold">{label}</span></button>
-);
+const NavButton = ({ active, onClick, icon, label, path }: any) => {
+  const navigate = useNavigate();
+  const handleClick = () => {
+    if (path) navigate(path);
+    if (onClick) onClick();
+  };
+  return (
+    <button
+      onClick={handleClick}
+      className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all w-full ${active ? 'bg-amber-600 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-800'}`}
+      title={label}
+    >
+      {icon}
+    </button>
+  );
+};
+
+const MobileNavButton = ({ active, onClick, icon, label, path }: any) => {
+  const navigate = useNavigate();
+  const handleClick = () => {
+    if (path) navigate(path);
+    if (onClick) onClick();
+  };
+  return (
+    <button
+      onClick={handleClick}
+      className={`flex-1 flex flex-col items-center justify-center gap-1 ${active ? 'text-amber-600 dark:text-amber-500' : 'text-slate-400'}`}
+    >
+      {icon}
+      <span className="text-[10px] font-bold">{label}</span>
+    </button>
+  );
+};
 
 // --- SCREENS ---
 
@@ -858,7 +958,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
   const [modalMode, setModalMode] = useState<'none' | 'add_obstacle' | 'add_cabinet' | 'edit_obstacle' | 'edit_cabinet' | 'autofill_options'>('none');
   const [editIndex, setEditIndex] = useState<number>(-1);
   const [tempCabinet, setTempCabinet] = useState<CabinetUnit>({ id: '', preset: PresetType.BASE_DOOR, type: CabinetType.BASE, width: 600, qty: 1, fromLeft: 0 });
-  const [tempObstacle, setTempObstacle] = useState<Obstacle>({ id: '', type: 'door', fromLeft: 0, width: 900, height: 2100, elevation: 0, depth: 150 });
+  const [tempObstacle, setTempObstacle] = useState<Obstacle>({ id: '', type: 'door', fromLeft: 0, width: 900, height: 2100, elevation: 0, depth: 150 } as any);
   const [presetFilter, setPresetFilter] = useState<'Base' | 'Wall' | 'Tall'>('Base');
   const [visualMode, setVisualMode] = useState<'elevation' | 'iso'>('elevation');
 
@@ -1004,7 +1104,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
       setPresetFilter('Base');
       setModalMode('add_cabinet');
     }
-    else { setTempObstacle({ id: Math.random().toString(), type: 'door', fromLeft: 0, width: 900, height: 2100, elevation: 0, depth: 150 }); setModalMode('add_obstacle'); }
+    else { setTempObstacle({ id: Math.random().toString(), type: 'door', fromLeft: 0, width: 900, height: 2100, elevation: 0, depth: 150 } as any); setModalMode('add_obstacle'); }
   };
   const openEdit = (type: 'cabinet' | 'obstacle', idx: number) => {
     setEditIndex(idx);
