@@ -1,12 +1,6 @@
 import { supabase } from './supabaseClient';
 import type { SubscriptionPlan, UserSubscription } from '../types';
 
-// 2Checkout Configuration
-// Replace these with your actual 2Checkout credentials
-const TWOCHECKOUT_MERCHANT_CODE = 'YOUR_MERCHANT_CODE';
-const TWOCHECKOUT_SECRET_KEY = 'YOUR_SECRET_KEY';
-const TWOCHECKOUT_SELLER_ID = 'YOUR_SELLER_ID';
-
 export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   {
     id: 'free',
@@ -20,7 +14,8 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       'Community support'
     ],
     maxProjects: 3,
-    twocheckoutProductId: null
+    twocheckoutProductId: null,
+    paypalPlanId: null
   },
   {
     id: 'pro',
@@ -36,18 +31,17 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       'Email support',
       'Material management'
     ],
-    maxProjects: -1, // unlimited
-    twocheckoutProductId: 'PRO_PLAN_PRODUCT_ID'
+    maxProjects: -1,
+    twocheckoutProductId: null,
+    paypalPlanId: 'P-PRO-29-MONTHLY'
   }
 ];
 
 export const subscriptionService = {
-  // Get available subscription plans
   getPlans(): SubscriptionPlan[] {
     return SUBSCRIPTION_PLANS;
   },
 
-  // Get current user's subscription
   async getUserSubscription(): Promise<UserSubscription | null> {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) return null;
@@ -59,7 +53,6 @@ export const subscriptionService = {
       .single();
 
     if (error) {
-      // If no subscription found, create free tier subscription
       if (error.code === 'PGRST116') {
         return this.createFreeSubscription(userData.user.id);
       }
@@ -70,14 +63,13 @@ export const subscriptionService = {
     return data;
   },
 
-  // Create free tier subscription for new users
   async createFreeSubscription(userId: string): Promise<UserSubscription> {
     const subscription = {
       user_id: userId,
       plan_id: 'free',
       status: 'active',
       current_period_start: new Date().toISOString(),
-      current_period_end: new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000).toISOString(), // 100 years
+      current_period_end: new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000).toISOString(),
       cancel_at_period_end: false
     };
 
@@ -95,37 +87,53 @@ export const subscriptionService = {
     return data;
   },
 
-  // Initialize 2Checkout payment
-  async initiatePayment(planId: string): Promise<{ token: string; url: string } | null> {
+  async initiatePayPalSubscription(planId: string): Promise<{ subscriptionId: string; approvalUrl: string } | null> {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) return null;
 
     const plan = SUBSCRIPTION_PLANS.find(p => p.id === planId);
     if (!plan || plan.id === 'free') return null;
 
-    // Call your backend API to create 2Checkout order
-    const { data, error } = await supabase.functions.invoke('create-2checkout-order', {
-      body: {
-        planId: plan.id,
-        userId: userData.user.id,
-        email: userData.user.email,
-        productId: plan.twocheckoutProductId,
-        price: plan.price
-      }
-    });
+    try {
+      const { data, error } = await supabase.functions.invoke('create-paypal-subscription', {
+        body: { planId: plan.id }
+      });
 
-    if (error) {
-      console.error('Error creating 2Checkout order:', error);
+      if (error) {
+        console.error('Error creating PayPal subscription:', error);
+        return null;
+      }
+
+      return data;
+    } catch (err) {
+      console.error('PayPal subscription error:', err);
       return null;
     }
-
-    return data;
   },
 
-  // Cancel subscription
   async cancelSubscription(): Promise<boolean> {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) return false;
+
+    const { data: subscription } = await supabase
+      .from('subscriptions')
+      .select('paypal_subscription_id')
+      .eq('user_id', userData.user.id)
+      .single();
+
+    if (subscription?.paypal_subscription_id) {
+      try {
+        const { error } = await supabase.functions.invoke('cancel-paypal-subscription', {
+          body: { subscriptionId: subscription.paypal_subscription_id }
+        });
+        
+        if (error) {
+          console.error('Error cancelling PayPal subscription:', error);
+        }
+      } catch (err) {
+        console.error('Cancel subscription error:', err);
+      }
+    }
 
     const { error } = await supabase
       .from('subscriptions')
@@ -143,7 +151,6 @@ export const subscriptionService = {
     return true;
   },
 
-  // Resume cancelled subscription
   async resumeSubscription(): Promise<boolean> {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) return false;
@@ -164,7 +171,6 @@ export const subscriptionService = {
     return true;
   },
 
-  // Check if user can create a new project
   async canCreateProject(): Promise<boolean> {
     const subscription = await this.getUserSubscription();
     if (!subscription) return false;
@@ -172,9 +178,8 @@ export const subscriptionService = {
     const plan = SUBSCRIPTION_PLANS.find(p => p.id === subscription.plan_id);
     if (!plan) return false;
 
-    if (plan.maxProjects === -1) return true; // unlimited
+    if (plan.maxProjects === -1) return true;
 
-    // Count user's projects
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) return false;
 
@@ -186,7 +191,6 @@ export const subscriptionService = {
     return (count || 0) < plan.maxProjects;
   },
 
-  // Get current plan details
   async getCurrentPlan(): Promise<SubscriptionPlan | null> {
     const subscription = await this.getUserSubscription();
     if (!subscription) return null;

@@ -242,17 +242,21 @@ export interface SubscriptionPlan {
   maxProjects: number;
   maxUsers?: number;
   twocheckoutProductId: string | null;
+  paypalPlanId: string | null;
 }
 
 export interface UserSubscription {
   id?: string;
   user_id: string;
   plan_id: string;
-  status: 'active' | 'cancelled' | 'past_due' | 'unpaid';
+  status: 'active' | 'cancelled' | 'past_due' | 'unpaid' | 'suspended';
   current_period_start: string;
   current_period_end: string;
   cancel_at_period_end: boolean;
   twocheckout_subscription_id?: string;
+  paypal_subscription_id?: string;
+  paypal_order_id?: string;
+  paypal_payer_id?: string;
   created_at?: string;
   updated_at?: string;
 }
