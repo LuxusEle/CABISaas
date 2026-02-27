@@ -2053,7 +2053,8 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
             {project.settings.logoUrl && <img src={project.settings.logoUrl} alt="Logo" className="h-10 sm:h-12 object-contain max-w-[120px]" />}
           </div>
 
-          {/* COSTING CARD (Print Safe) */}
+          {/* COSTING CARD - Only show in List view */}
+          {activeView === 'list' && (
           <div className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl print:bg-white print:text-black print:border-2 print:border-black print:break-inside-avoid shadow-xl print:shadow-none">
             <h3 className="text-amber-600 dark:text-amber-500 font-bold mb-3 sm:mb-4 flex items-center gap-2 print:text-black text-base sm:text-lg"><DollarSign size={18} /> Cost Estimate</h3>
             <div className="grid grid-cols-3 gap-3 sm:gap-6">
@@ -2078,8 +2079,10 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
               <div className="flex items-center gap-2"><span className="text-xs text-slate-500 dark:text-slate-400">Margin (%):</span><input type="number" className="bg-slate-100 dark:bg-slate-800 w-16 sm:w-20 rounded px-2 py-1 text-sm text-slate-900 dark:text-white" value={project.settings.costs.marginPercent} onChange={e => setProject({ ...project, settings: { ...project.settings, costs: { ...project.settings.costs, marginPercent: Number(e.target.value) } } })} /></div>
             </div>
           </div>
+          )}
 
-          {/* MATERIAL SUMMARY TABLE (Always Visible in List/Cut Plan) */}
+          {/* MATERIAL SUMMARY TABLE - Only show in List view */}
+          {activeView === 'list' && (
           <div className="break-inside-avoid overflow-x-auto">
             <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 flex items-center gap-2"><Layers size={18} /> Materials & Hardware</h3>
             <table className="w-full min-w-[400px] text-xs sm:text-sm text-left border-collapse border border-slate-200 dark:border-slate-700 print:border-black">
@@ -2185,6 +2188,7 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
               </tbody>
             </table>
           </div>
+          )}
 
           {/* LIST VIEW */}
           <div className={activeView === 'list' ? 'block' : 'hidden print:block'}>
