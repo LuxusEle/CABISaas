@@ -134,7 +134,7 @@ export default function App() {
     const subscription = authService.onAuthStateChange((user) => {
       setUser(user);
       // If user logged out and on a protected page, redirect to landing
-      const protectedPaths = ['/dashboard', '/setup', '/walls', '/bom', '/plan'];
+      const protectedPaths = ['/dashboard', '/setup', '/walls', '/bom'];
       if (!user && protectedPaths.includes(location.pathname)) {
         navigate('/');
       }
@@ -170,7 +170,7 @@ export default function App() {
 
   useEffect(() => {
     // Reset state-based screen when navigating to a URL-based route
-    const routePaths = ['/dashboard', '/setup', '/walls', '/bom', '/plan', '/docs', '/terms', '/pricing', '/'];
+    const routePaths = ['/dashboard', '/setup', '/walls', '/bom', '/docs', '/terms', '/pricing', '/'];
     if (routePaths.includes(location.pathname) && (screen as any) === Screen.PRICING) {
       setScreen(Screen.LANDING);
     }
@@ -228,7 +228,7 @@ export default function App() {
 
   const renderContent = () => {
     // Check authentication for protected screens
-    const protectedScreens = [Screen.DASHBOARD, Screen.PROJECT_SETUP, Screen.WALL_EDITOR, Screen.BOM_REPORT, Screen.TOOLS];
+    const protectedScreens = [Screen.DASHBOARD, Screen.PROJECT_SETUP, Screen.WALL_EDITOR, Screen.BOM_REPORT];
     if (!user && protectedScreens.includes(screen)) {
       // Redirect to landing page if not authenticated
       return (
@@ -261,7 +261,6 @@ export default function App() {
       case Screen.PROJECT_SETUP: return <ScreenProjectSetup project={project} setProject={setProject} />;
       case Screen.WALL_EDITOR: return <ScreenWallEditor project={project} setProject={setProject} setScreen={setScreen} onSave={() => handleSaveProject(project)} />;
       case Screen.BOM_REPORT: return <ScreenBOMReport project={project} setProject={setProject} />;
-      case Screen.TOOLS: return <ScreenPlanView project={project} />;
       case Screen.PRICING: return <PricingPage />;
       case Screen.DOCS: return <DocsPage />;
       default: return <LandingPage onGetStarted={() => openAuthModal('signup')} onSignIn={() => openAuthModal('login')} />;
@@ -295,7 +294,6 @@ export default function App() {
               <NavButton active={location.pathname === '/setup'} path="/setup" icon={<Settings size={24} />} label="Setup" />
               <NavButton active={location.pathname === '/walls'} path="/walls" icon={<Box size={24} />} label="Walls" />
               <NavButton active={location.pathname === '/bom'} path="/bom" icon={<Table2 size={24} />} label="BOM" />
-              <NavButton active={location.pathname === '/plan'} path="/plan" icon={<Map size={24} />} label="Plan" />
               <NavButton active={location.pathname === '/pricing'} path="/pricing" icon={<CreditCard size={24} />} label="Pricing" />
               <NavButton active={location.pathname === '/docs'} path="/docs" icon={<Book size={24} />} label="Docs" />
             </nav>
@@ -360,11 +358,6 @@ export default function App() {
                 <ScreenBOMReport project={project} setProject={setProject} />
               </ProtectedRoute>
             } />
-            <Route path="/plan" element={
-              <ProtectedRoute user={user} loading={authLoading}>
-                <ScreenPlanView project={project} />
-              </ProtectedRoute>
-            } />
             <Route path="/pricing" element={<PricingPage />} />
             <Route path="*" element={<LandingPage onGetStarted={() => openAuthModal('signup')} onSignIn={() => openAuthModal('login')} />} />
           </Routes>
@@ -378,7 +371,6 @@ export default function App() {
           <MobileNavButton active={location.pathname === '/setup'} path="/setup" icon={<Settings size={20} />} label="Setup" />
           <MobileNavButton active={location.pathname === '/walls'} path="/walls" icon={<Box size={20} />} label="Editor" />
           <MobileNavButton active={location.pathname === '/bom'} path="/bom" icon={<Table2 size={20} />} label="BOM" />
-          <MobileNavButton active={location.pathname === '/plan'} path="/plan" icon={<Map size={20} />} label="Plan" />
           <MobileNavButton active={location.pathname === '/docs'} path="/docs" icon={<Book size={20} />} label="Docs" />
         </div>
       )}
@@ -2045,13 +2037,6 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
       <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-8 space-y-6 sm:space-y-8 bg-white dark:bg-slate-950 print:p-4 print:pb-24 print:overflow-visible h-full">
         {/* BOM CONTENT */}
         <div className={activeView !== 'invoice' ? 'block' : 'hidden print:block'}>
-          <div className="border-b border-slate-200 dark:border-slate-800 pb-4 sm:pb-6 flex flex-col sm:flex-row justify-between items-start gap-4">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">{project.company || "Cabinet Project"}</h1>
-              <p className="text-slate-500 text-sm sm:text-base">Project: {project.name}</p>
-            </div>
-            {project.settings.logoUrl && <img src={project.settings.logoUrl} alt="Logo" className="h-10 sm:h-12 object-contain max-w-[120px]" />}
-          </div>
 
           {/* COSTING CARD - Only show in List view */}
           {activeView === 'list' && (
@@ -2259,8 +2244,8 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
 
           {/* WALL PLAN VIEW */}
           <div className={activeView === 'wallplan' ? 'block' : 'hidden print:block print:break-before-page'}>
-            <h2 className="text-2xl sm:text-4xl font-black uppercase mb-4 sm:mb-8 tracking-tighter print:hidden">III. Wall Elevations</h2>
-            <div className="space-y-12 print:space-y-0">
+            <div className="max-w-4xl mx-auto">
+              <div className="space-y-12 print:space-y-0">
               {project.zones.filter(z => z.active).map((zone, zoneIndex) => (
                 <div key={zone.id} className={`${zoneIndex > 0 ? 'print:break-before-page' : ''}`}>
                   {/* PRINT VIEW: Table first, then visualization */}
@@ -2303,44 +2288,16 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
                     </div>
                   </div>
 
-                  {/* SCREEN VIEW: Original layout */}
-                  <div className="border-4 sm:border-8 border-black p-3 sm:p-4 bg-white flex flex-col print:hidden">
-                    <h3 className="text-base sm:text-xl font-black uppercase mb-2 sm:mb-3 border-b-2 border-black pb-1 tracking-widest">{zone.id}</h3>
-                    <div className="h-[260px] sm:h-[380px] mb-4 border-2 border-slate-100 bg-slate-50 print:bg-white print:border-black shrink-0 overflow-hidden">
-                      <WallVisualizer zone={zone} height={zone.wallHeight || 2400} hideArrows={true} />
-                    </div>
-                    {/* Legend Table */}
-                    <div className="flex-1 overflow-hidden">
-                      <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Unit Schedule</h4>
-                      <table className="w-full text-[9px] text-left uppercase font-bold border-collapse">
-                        <thead>
-                          <tr className="border-b-2 border-black text-slate-500">
-                            <th className="pb-1">POS</th>
-                            <th className="pb-1">Description</th>
-                            <th className="pb-1 text-right">Width</th>
-                            <th className="pb-1 text-right">Type</th>
-                            <th className="pb-1 text-right">Qty</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-black/10">
-                          {zone.cabinets.sort((a, b) => (a.label || '').localeCompare(b.label || '')).map((cab, idx) => (
-                            <tr key={idx}>
-                              <td className="py-2 text-amber-600 font-black italic text-xs">{cab.label}</td>
-                              <td className="py-2 font-black tracking-tight">{cab.preset}</td>
-                              <td className="py-2 text-right font-mono">{cab.width}mm</td>
-                              <td className="py-2 text-right text-[7px] opacity-60">{cab.type}</td>
-                              <td className="py-2 text-right">1</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                  {/* SCREEN VIEW: Kitchen Plan Canvas - Same as Plan Page */}
+                  <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border dark:border-slate-800 print:border-none print:shadow-none print:p-0">
+                    <KitchenPlanCanvas data={buildProjectConstructionData(project)} scalePxPerMeter={120} />
                   </div>
                 </div>
               ))}
+              </div>
+            </div>
             </div>
           </div>
-        </div>
 
         {/* INVOICE PREVIEW */}
         {activeView === 'invoice' && (
