@@ -1841,6 +1841,35 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
   // Calculate hinge quantity (2 per door)
   const hingeQuantity = totalDoors * 2;
 
+  // Calculate installation nails (6 per hinge)
+  const totalNails = hingeQuantity * 6;
+
+  // Calculate adjustable legs (4 per BASE or TALL cabinet)
+  const totalLegs = useMemo(() => {
+    let legs = 0;
+    project.zones.forEach(zone => {
+      zone.cabinets.forEach(cab => {
+        if (cab.type === CabinetType.BASE || cab.type === CabinetType.TALL) {
+          legs += 4;
+        }
+      });
+    });
+    return legs;
+  }, [project.zones]);
+
+  // Calculate wall hangers (1 per WALL cabinet)
+  const totalHangers = useMemo(() => {
+    let hangers = 0;
+    project.zones.forEach(zone => {
+      zone.cabinets.forEach(cab => {
+        if (cab.type === CabinetType.WALL) {
+          hangers += 1;
+        }
+      });
+    });
+    return hangers;
+  }, [project.zones]);
+
   // Get hinge cost from accessories
   const hingeAccessory = accessories.find(acc =>
     acc.name.toLowerCase().includes('hinge') ||
@@ -2103,13 +2132,46 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
                     <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
                   </tr>
                 )}
+                {/* Adjustable Leg - calculated: 4 per BASE/TALL cabinet */}
+                {totalLegs > 0 && (
+                  <tr>
+                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">Adjustable Leg</td>
+                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">-</td>
+                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">{totalLegs}</td>
+                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">{currency}{(totalLegs * (accessories.find(a => a.name.toLowerCase().includes('adjustable leg'))?.default_amount || 2)).toFixed(2)}</td>
+                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
+                  </tr>
+                )}
+                {/* Wall Hanger - calculated: 1 per WALL cabinet */}
+                {totalHangers > 0 && (
+                  <tr>
+                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">Wall Hanger (Pair)</td>
+                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">-</td>
+                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">{totalHangers}</td>
+                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">{currency}{(totalHangers * (accessories.find(a => a.name.toLowerCase().includes('wall hanger'))?.default_amount || 6)).toFixed(2)}</td>
+                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
+                  </tr>
+                )}
+                {/* Installation Nail - calculated: 6 per hinge */}
+                {totalNails > 0 && (
+                  <tr>
+                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">Installation Nail</td>
+                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">-</td>
+                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">{totalNails}</td>
+                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">{currency}{(totalNails * (accessories.find(a => a.name.toLowerCase().includes('installation nail'))?.default_amount || 0.10)).toFixed(2)}</td>
+                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
+                  </tr>
+                )}
                 {accessories
                   .filter(acc =>
                     !acc.name.toLowerCase().includes('hinge') &&
                     !acc.name.toLowerCase().includes('handle') &&
                     !acc.name.toLowerCase().includes('knob') &&
                     !acc.name.toLowerCase().includes('drawer slide') &&
-                    !acc.name.toLowerCase().includes('slide')
+                    !acc.name.toLowerCase().includes('slide') &&
+                    !acc.name.toLowerCase().includes('adjustable leg') &&
+                    !acc.name.toLowerCase().includes('wall hanger') &&
+                    !acc.name.toLowerCase().includes('installation nail')
                   )
                   .map((acc) => (
                     <tr key={acc.id}>
