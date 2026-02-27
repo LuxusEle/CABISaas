@@ -1347,7 +1347,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
             {/* Canvas */}
             <div className="min-h-[240px] bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 relative z-10 transition-all min-h-0">
               {visualMode === 'elevation' ? (
-                <WallVisualizer zone={currentZone} height={project.settings.tallHeight + 300} onCabinetClick={(i) => openEdit('cabinet', i)} onObstacleClick={(i) => openEdit('obstacle', i)} onCabinetMove={handleCabinetMove} onObstacleMove={handleObstacleMove} onDragEnd={handleDragEnd} onSwapCabinets={handleSwapCabinets} />
+                <WallVisualizer zone={currentZone} height={currentZone.wallHeight || 2400} onCabinetClick={(i) => openEdit('cabinet', i)} onObstacleClick={(i) => openEdit('obstacle', i)} onCabinetMove={handleCabinetMove} onObstacleMove={handleObstacleMove} onDragEnd={handleDragEnd} onSwapCabinets={handleSwapCabinets} />
               ) : (
                 <CabinetViewer project={project} showHardware={true} />
               )}
@@ -1444,7 +1444,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
             {/* Canvas */}
             <div className="flex-1 min-h-0 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 relative">
               {visualMode === 'elevation' ? (
-                <WallVisualizer zone={currentZone} height={project.settings.tallHeight + 300} onCabinetClick={(i) => openEdit('cabinet', i)} onObstacleClick={(i) => openEdit('obstacle', i)} onCabinetMove={handleCabinetMove} onObstacleMove={handleObstacleMove} onDragEnd={handleDragEnd} onSwapCabinets={handleSwapCabinets} />
+                <WallVisualizer zone={currentZone} height={currentZone.wallHeight || 2400} onCabinetClick={(i) => openEdit('cabinet', i)} onObstacleClick={(i) => openEdit('obstacle', i)} onCabinetMove={handleCabinetMove} onObstacleMove={handleObstacleMove} onDragEnd={handleDragEnd} onSwapCabinets={handleSwapCabinets} />
               ) : (
                 <CabinetViewer project={project} showHardware={true} />
               )}
@@ -2232,7 +2232,7 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
                     {/* Page 2: Wall Visualization - full page, no title */}
                     <div className="bg-white w-full h-[calc(100vh-80px)] flex flex-col items-center justify-start">
                       <div className="w-full flex items-center justify-center pt-8" style={{ transform: 'scale(0.85)', transformOrigin: 'top center' }}>
-                        <WallVisualizer zone={zone} height={project.settings.tallHeight + 200} hideArrows={true} />
+                        <WallVisualizer zone={zone} height={zone.wallHeight || 2400} hideArrows={true} />
                       </div>
                     </div>
                   </div>
@@ -2241,7 +2241,7 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
                   <div className="border-4 sm:border-8 border-black p-3 sm:p-4 bg-white flex flex-col print:hidden">
                     <h3 className="text-base sm:text-xl font-black uppercase mb-2 sm:mb-3 border-b-2 border-black pb-1 tracking-widest">{zone.id}</h3>
                     <div className="h-[260px] sm:h-[380px] mb-4 border-2 border-slate-100 bg-slate-50 print:bg-white print:border-black shrink-0 overflow-hidden">
-                      <WallVisualizer zone={zone} height={project.settings.tallHeight + 100} hideArrows={true} />
+                      <WallVisualizer zone={zone} height={zone.wallHeight || 2400} hideArrows={true} />
                     </div>
                     {/* Legend Table */}
                     <div className="flex-1 overflow-hidden">
