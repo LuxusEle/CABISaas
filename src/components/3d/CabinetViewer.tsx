@@ -2,7 +2,7 @@ import React, { Suspense, useRef, useState, useMemo, useEffect } from 'react';
 import { Canvas, useThree, useLoader } from '@react-three/fiber';
 import { OrbitControls, Grid, Html, useProgress, PerspectiveCamera } from '@react-three/drei';
 import * as THREE from 'three';
-import { Project, CabinetType, CabinetUnit, Zone } from '../../types';
+import { Project, CabinetType, CabinetUnit, Zone, Obstacle } from '../../types';
 import { Cabinet } from './Cabinet';
 import { Wall } from './Wall';
 
@@ -102,6 +102,7 @@ const Scene = ({
       position: [number, number, number]; 
       rotation: number;
       wallIndex: number;
+      label: string;
     }[] = [];
     
     const wallPositions: {
@@ -112,12 +113,30 @@ const Scene = ({
       rotation: number;
     }[] = [];
     
+    const obstaclePositions: {
+      zone: Zone;
+      obstacles: Obstacle[];
+      wallIndex: number;
+      wallAEnd: number;
+      wallBEnd: number;
+      wallCEnd: number;
+    }[] = [];
+
+    const wallCounters: Record<number, { B: number; T: number; W: number }> = {};
+    
     // First pass: calculate wall dimensions
     const wallLengths = activeZones.map(z => z.totalLength);
     const wallAEnd = wallLengths[0] || 0;
     const wallBEnd = wallLengths[1] || 0;
     const wallCEnd = wallLengths[2] || 0;
     
+    activeZones.forEach((zone, wallIndex) => {
+      const wallLength = zone.totalLength;
+      const wallHeight = zone.wallHeight || 2400;
+      
+      wallCounters[wallIndex] = { B: 0, T: 0, W: 0 };
+    });
+
     activeZones.forEach((zone, wallIndex) => {
       const wallLength = zone.totalLength;
       const wallHeight = zone.wallHeight || 2400;
@@ -137,14 +156,10 @@ const Scene = ({
             rotation = -Math.PI / 2;
             break;
           case 2: // Wall C: XY plane, cabinets face -Z
-            // fromLeft = distance from wall's left edge (X=wallAEnd, corner with B)
-            // Cabinets extend from corner B toward corner D (decreasing X)
             pos = [wallAEnd - cab.fromLeft, 0, wallBEnd];
             rotation = Math.PI;
             break;
           case 3: // Wall D: ZY plane, cabinets face +X
-            // fromLeft = distance from wall's left edge (Z=wallCEnd, corner with C)
-            // Cabinets extend from corner C toward corner A (decreasing Z)
             pos = [0, 0, wallCEnd - cab.fromLeft];
             rotation = Math.PI / 2;
             break;
@@ -152,13 +167,29 @@ const Scene = ({
             pos = [cab.fromLeft, 0, 0];
             rotation = 0;
         }
+
+        const counters = wallCounters[wallIndex];
+        let typeChar = 'B';
+        if (cab.type === CabinetType.WALL) {
+          typeChar = 'W';
+          counters.W++;
+        } else if (cab.type === CabinetType.TALL) {
+          typeChar = 'T';
+          counters.T++;
+        } else {
+          counters.B++;
+        }
+        const wallNum = String(wallIndex + 1).padStart(2, '0');
+        const count = counters[typeChar as keyof typeof counters];
+        const label = `W${wallNum}${typeChar}${String(count).padStart(2, '0')}`;
         
         cabinetPositions.push({
           unit: cab,
           zone,
           position: pos,
           rotation,
-          wallIndex
+          wallIndex,
+          label
         });
       });
       
@@ -203,7 +234,19 @@ const Scene = ({
       });
     });
     
-    return { cabinetPositions, wallPositions };
+    // Position obstacles (after all walls are positioned)
+    activeZones.forEach((zone, wallIndex) => {
+      obstaclePositions.push({
+        zone,
+        obstacles: zone.obstacles,
+        wallIndex,
+        wallAEnd,
+        wallBEnd,
+        wallCEnd
+      });
+    });
+    
+    return { cabinetPositions, wallPositions, obstaclePositions };
   }, [activeZones]);
 
   const sceneBounds = useMemo(() => {
@@ -289,23 +332,27 @@ const Scene = ({
         position={[0, -0.5, 0]}
       />
 
-      {layoutData.wallPositions.map(({ zone, position, width, height, rotation }) => (
+      {layoutData.wallPositions.map(({ zone, position, width, height, rotation }, index) => (
         <Wall
           key={`wall-${zone.id}`}
           position={position}
           width={width}
           height={height}
           rotation={rotation}
+          obstacles={zone.obstacles}
+          wallIndex={index}
         />
       ))}
 
-      {layoutData.cabinetPositions.map(({ unit, zone, position, rotation }) => (
+      {layoutData.cabinetPositions.map(({ unit, zone, position, rotation, wallIndex, label }) => (
         <Cabinet
           key={unit.id}
           unit={unit}
           position={position}
           rotation={rotation}
           showHardware={showHardware}
+          wallIndex={wallIndex}
+          label={label}
         />
       ))}
     </>

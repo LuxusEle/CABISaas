@@ -1705,6 +1705,68 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
                   </div>
                   <NumberInput label="Width" value={tempObstacle.width} onChange={v => setTempObstacle({ ...tempObstacle, width: v })} step={50} />
                   <NumberInput label="Position (Left)" value={tempObstacle.fromLeft} onChange={v => setTempObstacle({ ...tempObstacle, fromLeft: v })} step={50} />
+                  
+                  {/* Window-specific fields */}
+                  {tempObstacle.type === 'window' && (
+                    <>
+                      <NumberInput 
+                        label="Window Height" 
+                        value={tempObstacle.height || 1200} 
+                        onChange={v => setTempObstacle({ ...tempObstacle, height: v })} 
+                        step={50} 
+                        min={300}
+                        max={1800}
+                      />
+                      <NumberInput 
+                        label="Sill Height (from floor)" 
+                        value={tempObstacle.sillHeight || 900} 
+                        onChange={v => setTempObstacle({ ...tempObstacle, sillHeight: v })} 
+                        step={50} 
+                        min={300}
+                        max={2000}
+                      />
+                      <div className="text-xs text-slate-500 bg-slate-50 dark:bg-slate-800 p-2 rounded-lg">
+                        <strong>Tip:</strong> Typical window sill height is 900-1200mm from floor. 
+                        Standard window height is 1200-1500mm.
+                      </div>
+                    </>
+                  )}
+                  
+                  {/* Door-specific fields */}
+                  {tempObstacle.type === 'door' && (
+                    <NumberInput 
+                      label="Door Height" 
+                      value={tempObstacle.height || 2100} 
+                      onChange={v => setTempObstacle({ ...tempObstacle, height: v })} 
+                      step={50} 
+                      min={1800}
+                      max={2400}
+                    />
+                  )}
+                  
+                  {/* Column/Pipe height */}
+                  {(tempObstacle.type === 'column' || tempObstacle.type === 'pipe') && (
+                    <NumberInput 
+                      label="Height" 
+                      value={tempObstacle.height || 2100} 
+                      onChange={v => setTempObstacle({ ...tempObstacle, height: v })} 
+                      step={50} 
+                      min={300}
+                      max={3000}
+                    />
+                  )}
+                  
+                  {/* Depth control for columns and pipes only */}
+                  {(tempObstacle.type === 'column' || tempObstacle.type === 'pipe') && (
+                    <NumberInput 
+                      label="Depth" 
+                      value={tempObstacle.depth || 150} 
+                      onChange={v => setTempObstacle({ ...tempObstacle, depth: v })} 
+                      step={25} 
+                      min={50}
+                      max={300}
+                    />
+                  )}
                 </>
               )}
               <div className="flex gap-2 pt-4 pb-2">

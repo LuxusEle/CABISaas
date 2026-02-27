@@ -473,9 +473,41 @@ export const WallVisualizer: React.FC<Props> = ({
               onClick={(e) => { e.stopPropagation(); onObstacleClick?.(idx); }}
               className="cursor-pointer hover:opacity-80 transition-opacity"
             >
-              <rect x={x} y={height - (obs.elevation || 0) - (obs.height || 2100)} width={obs.width} height={obs.height || 2100} fill="var(--obs-fill)" stroke="var(--obs-stroke)" strokeWidth="2" fillOpacity="0.8" className="print:stroke-black print:fill-slate-200" />
-              {obs.type === 'window' && obs.elevation && <text x={x + obs.width / 2} y={height - 20} textAnchor="middle" fontSize="40" fill="var(--obs-stroke)" className="print:fill-black">ELEV: {obs.elevation}</text>}
-              <text x={x + obs.width / 2} y={height - (obs.elevation || 0) - (obs.height || 2100) / 2} fill="var(--obs-stroke)" fontSize="100" textAnchor="middle" dominantBaseline="middle" style={{ textTransform: 'uppercase', opacity: 0.5, pointerEvents: 'none' }} className="print:fill-black print:opacity-100">{obs.type}</text>
+              <rect 
+                x={x} 
+                y={height - (obs.type === 'window' && obs.sillHeight !== undefined ? obs.sillHeight : (obs.elevation || 0)) - (obs.height || 2100)} 
+                width={obs.width} 
+                height={obs.height || 2100} 
+                fill="var(--obs-fill)" 
+                stroke="var(--obs-stroke)" 
+                strokeWidth="2" 
+                fillOpacity="0.8" 
+                className="print:stroke-black print:fill-slate-200" 
+              />
+              {obs.type === 'window' && (obs.sillHeight !== undefined || obs.elevation) && (
+                <text 
+                  x={x + obs.width / 2} 
+                  y={height - 20} 
+                  textAnchor="middle" 
+                  fontSize="40" 
+                  fill="var(--obs-stroke)" 
+                  className="print:fill-black"
+                >
+                  {obs.sillHeight !== undefined ? `SILL: ${obs.sillHeight}` : `ELEV: ${obs.elevation}`}
+                </text>
+              )}
+              <text 
+                x={x + obs.width / 2} 
+                y={height - (obs.type === 'window' && obs.sillHeight !== undefined ? obs.sillHeight : (obs.elevation || 0)) - (obs.height || 2100) / 2} 
+                fill="var(--obs-stroke)" 
+                fontSize="100" 
+                textAnchor="middle" 
+                dominantBaseline="middle" 
+                style={{ textTransform: 'uppercase', opacity: 0.5, pointerEvents: 'none' }} 
+                className="print:fill-black print:opacity-100"
+              >
+                {obs.type}
+              </text>
             </g>
           );
         })}

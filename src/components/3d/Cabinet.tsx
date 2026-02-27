@@ -10,6 +10,8 @@ interface Props {
   position: [number, number, number];
   rotation: number;
   showHardware: boolean;
+  wallIndex?: number;
+  label?: string;
 }
 
 const getNumDoors = (unit: CabinetUnit): number => {
@@ -28,7 +30,7 @@ const getNumDoors = (unit: CabinetUnit): number => {
   }
 };
 
-export const Cabinet: React.FC<Props> = ({ unit, position, rotation, showHardware }) => {
+export const Cabinet: React.FC<Props> = ({ unit, position, rotation, showHardware, wallIndex = 0, label }) => {
   const isWall = unit.type === CabinetType.WALL;
   const isTall = unit.type === CabinetType.TALL;
 
@@ -58,6 +60,8 @@ export const Cabinet: React.FC<Props> = ({ unit, position, rotation, showHardwar
     back: new THREE.MeshStandardMaterial({ color: darkerColor2, roughness: 0.9 }),
     door: new THREE.MeshStandardMaterial({ color: baseColor, roughness: 0.6 }),
   }), [baseColor, darkerColor, darkerColor2]);
+
+  const displayLabel = label || unit.label;
 
   return (
     <group position={position} rotation={[0, rotation, 0]}>
@@ -125,7 +129,7 @@ export const Cabinet: React.FC<Props> = ({ unit, position, rotation, showHardwar
       )}
 
       {/* Label */}
-      {unit.label && (
+      {displayLabel && (
         <Html
           position={[width / 2, zBase + height + 50, depth / 2]}
           center
@@ -135,7 +139,7 @@ export const Cabinet: React.FC<Props> = ({ unit, position, rotation, showHardwar
           }}
         >
           <div className="bg-amber-500/90 text-white px-2 py-1 rounded text-xs font-bold shadow-lg">
-            {unit.label}
+            {displayLabel}
           </div>
         </Html>
       )}
