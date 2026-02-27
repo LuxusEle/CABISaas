@@ -145,26 +145,27 @@ const Scene = ({
       zone.cabinets.forEach((cab) => {
         let pos: [number, number, number];
         let rotation: number;
+        const cabinetOffset = 50; // Distance from wall
         
         switch (wallIndex) {
           case 0: // Wall A: XY plane, cabinets face +Z
-            pos = [cab.fromLeft, 0, 0];
+            pos = [cab.fromLeft, 0, cabinetOffset];
             rotation = 0;
             break;
           case 1: // Wall B: ZY plane, cabinets face -X
-            pos = [wallAEnd, 0, cab.fromLeft];
+            pos = [wallAEnd - cabinetOffset, 0, cab.fromLeft];
             rotation = -Math.PI / 2;
             break;
           case 2: // Wall C: XY plane, cabinets face -Z
-            pos = [wallAEnd - cab.fromLeft, 0, wallBEnd];
+            pos = [wallAEnd - cab.fromLeft, 0, wallBEnd - cabinetOffset];
             rotation = Math.PI;
             break;
           case 3: // Wall D: ZY plane, cabinets face +X
-            pos = [0, 0, wallCEnd - cab.fromLeft];
+            pos = [cabinetOffset, 0, wallBEnd - cab.fromLeft];
             rotation = Math.PI / 2;
             break;
           default:
-            pos = [cab.fromLeft, 0, 0];
+            pos = [cab.fromLeft, 0, cabinetOffset];
             rotation = 0;
         }
 
@@ -199,28 +200,28 @@ const Scene = ({
       let wallW: number;
       
       switch (wallIndex) {
-        case 0: // Wall A: behind cabinets at Z = -100
-          wallPos = [0, 0, -100];
+        case 0: // Wall A: along X axis at Z = 0
+          wallPos = [0, 0, 0];
           wallRot = 0;
           wallW = wallLength;
           break;
-        case 1: // Wall B: to the right at X = wallAEnd + 100
-          wallPos = [wallAEnd + 100, 0, 0];
+        case 1: // Wall B: along Z axis at X = wallAEnd
+          wallPos = [wallAEnd, 0, 0];
           wallRot = -Math.PI / 2;
           wallW = wallLength;
           break;
-        case 2: // Wall C: in front at Z = wallBEnd + 100
-          wallPos = [wallAEnd, 0, wallBEnd + 100];
+        case 2: // Wall C: along X axis at Z = wallBEnd
+          wallPos = [wallAEnd, 0, wallBEnd];
           wallRot = Math.PI;
           wallW = wallLength;
           break;
-        case 3: // Wall D: to the left at X = -100, aligned with end of Wall C
-          wallPos = [-100, 0, wallCEnd];
+        case 3: // Wall D: along Z axis at X = 0
+          wallPos = [0, 0, wallBEnd];
           wallRot = Math.PI / 2;
           wallW = wallLength;
           break;
         default:
-          wallPos = [0, 0, -100];
+          wallPos = [0, 0, 0];
           wallRot = 0;
           wallW = wallLength;
       }

@@ -11,7 +11,7 @@ interface Props {
 }
 
 export const Wall: React.FC<Props> = ({ position, width, height, rotation, obstacles = [], wallIndex = 0 }) => {
-  const wallThickness = 100;
+  const wallThickness = 50;
   const wallDepth = wallThickness;
 
   const openings = obstacles.filter(o => o.type === 'window' || o.type === 'door');
