@@ -91,6 +91,16 @@ const ProtectedRoute = ({ user, loading, children }: { user: User | null, loadin
 // --- MAIN APP COMPONENT ---
 
 export default function App() {
+  const [isDark, setIsDark] = useState(() => {
+    try { return localStorage.getItem('app-theme') !== 'false'; } catch { return true; }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('app-theme', String(isDark));
+    if (isDark) document.documentElement.classList.add('dark');
+    else document.documentElement.classList.remove('dark');
+  }, [isDark]);
+
   const [screen, setScreen] = useState<Screen>(Screen.LANDING);
   const [project, setProject] = useState<Project>(createNewProject());
   const [user, setUser] = useState<User | null>(null);
@@ -98,9 +108,6 @@ export default function App() {
   const [authModalMode, setAuthModalMode] = useState<'login' | 'signup'>('login');
   const [showPolicyModal, setShowPolicyModal] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
-  const [isDark, setIsDark] = useState(() => {
-    try { return localStorage.getItem('app-theme') !== 'false'; } catch { return true; }
-  });
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -153,12 +160,6 @@ export default function App() {
       action();
     }
   };
-
-  useEffect(() => {
-    localStorage.setItem('app-theme', String(isDark));
-    if (isDark) document.documentElement.classList.add('dark');
-    else document.documentElement.classList.remove('dark');
-  }, [isDark]);
 
   // Auto-save project to localStorage
   useEffect(() => {
@@ -237,6 +238,8 @@ export default function App() {
         <LandingPage
           onGetStarted={() => openAuthModal('signup')}
           onSignIn={() => openAuthModal('login')}
+          isDark={isDark}
+          setIsDark={setIsDark}
         />
       );
     }
@@ -247,6 +250,8 @@ export default function App() {
           <LandingPage
             onGetStarted={() => openAuthModal('signup')}
             onSignIn={() => openAuthModal('login')}
+            isDark={isDark}
+            setIsDark={setIsDark}
           />
         );
       case Screen.DASHBOARD:
@@ -263,9 +268,10 @@ export default function App() {
       case Screen.PROJECT_SETUP: return <ScreenProjectSetup project={project} setProject={setProject} onSave={() => handleSaveProject(project)} />;
       case Screen.WALL_EDITOR: return <ScreenWallEditor project={project} setProject={setProject} setScreen={setScreen} onSave={() => handleSaveProject(project)} />;
       case Screen.BOM_REPORT: return <ScreenBOMReport project={project} setProject={setProject} />;
-      case Screen.PRICING: return <PricingPage />;
-      case Screen.DOCS: return <DocsPage />;
-      default: return <LandingPage onGetStarted={() => openAuthModal('signup')} onSignIn={() => openAuthModal('login')} />;
+      case Screen.PRICING: return <PricingPage onSignIn={() => openAuthModal('login')} onGetStarted={() => openAuthModal('signup')} isDark={isDark} setIsDark={setIsDark} />;
+      case Screen.DOCS: return <DocsPage onSignIn={() => openAuthModal('login')} onGetStarted={() => openAuthModal('signup')} isDark={isDark} setIsDark={setIsDark} />;
+      case Screen.TERMS: return <TermsPage onSignIn={() => openAuthModal('login')} onGetStarted={() => openAuthModal('signup')} isDark={isDark} setIsDark={setIsDark} />;
+      default: return <LandingPage onGetStarted={() => openAuthModal('signup')} onSignIn={() => openAuthModal('login')} isDark={isDark} setIsDark={setIsDark} />;
     }
   };
 
@@ -282,7 +288,7 @@ export default function App() {
           >
             <svg xmlns="http://www.w3.org/2000/svg" width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
           </button>
-          <button onClick={toggleTheme} className="p-2 rounded-full bg-slate-100 dark:bg-slate-800">{isDark ? <Sun size={18} /> : <Moon size={18} />}</button>
+          <button onClick={() => setIsDark(!isDark)} className="p-2 rounded-full bg-slate-100 dark:bg-slate-800">{isDark ? <Sun size={18} /> : <Moon size={18} />}</button>
         </div>
       </div>
 
@@ -329,10 +335,26 @@ export default function App() {
               <LandingPage
                 onGetStarted={() => openAuthModal('signup')}
                 onSignIn={() => openAuthModal('login')}
+                isDark={isDark}
+                setIsDark={setIsDark}
               />
             } />
-            <Route path="/terms" element={<TermsPage />} />
-            <Route path="/docs" element={<DocsPage />} />
+            <Route path="/terms" element={
+              <TermsPage
+                onSignIn={() => openAuthModal('login')}
+                onGetStarted={() => openAuthModal('signup')}
+                isDark={isDark}
+                setIsDark={setIsDark}
+              />
+            } />
+            <Route path="/docs" element={
+              <DocsPage
+                onSignIn={() => openAuthModal('login')}
+                onGetStarted={() => openAuthModal('signup')}
+                isDark={isDark}
+                setIsDark={setIsDark}
+              />
+            } />
             <Route path="/dashboard" element={
               <ProtectedRoute user={user} loading={authLoading}>
                 <ScreenHome
@@ -360,8 +382,22 @@ export default function App() {
                 <ScreenBOMReport project={project} setProject={setProject} />
               </ProtectedRoute>
             } />
-            <Route path="/pricing" element={<PricingPage />} />
-            <Route path="*" element={<LandingPage onGetStarted={() => openAuthModal('signup')} onSignIn={() => openAuthModal('login')} />} />
+            <Route path="/pricing" element={
+              <PricingPage
+                onSignIn={() => openAuthModal('login')}
+                onGetStarted={() => openAuthModal('signup')}
+                isDark={isDark}
+                setIsDark={setIsDark}
+              />
+            } />
+            <Route path="*" element={
+              <LandingPage
+                onGetStarted={() => openAuthModal('signup')}
+                onSignIn={() => openAuthModal('login')}
+                isDark={isDark}
+                setIsDark={setIsDark}
+              />
+            } />
           </Routes>
         </main>
       </div>

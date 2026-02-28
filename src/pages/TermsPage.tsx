@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { FileText, Shield, ArrowLeft } from 'lucide-react';
+import { LandingHeader } from '../components/LandingHeader';
 
 const parseMarkdown = (content: string): React.ReactNode => {
   const lines = content.split('\n');
@@ -587,7 +587,19 @@ These Terms, together with the Privacy Policy, Acceptable Use Policy, Cookie Pol
 © 2026 CabEngine / ProTradee. All rights reserved.
 `;
 
-export const TermsPage: React.FC = () => {
+interface TermsPageProps {
+  onSignIn: () => void;
+  onGetStarted: () => void;
+  isDark: boolean;
+  setIsDark: (isDark: boolean) => void;
+}
+
+export const TermsPage: React.FC<TermsPageProps> = ({
+  onSignIn,
+  onGetStarted,
+  isDark,
+  setIsDark
+}) => {
   const [activeSection, setActiveSection] = useState('1-terms-of-service');
 
   const scrollToSection = (id: string) => {
@@ -613,25 +625,15 @@ export const TermsPage: React.FC = () => {
 
   return (
     <div className="h-full overflow-y-auto bg-white dark:bg-slate-950">
-      {/* Header */}
-      <div className="sticky top-0 z-50 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link to="/" className="flex items-center gap-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors">
-              <ArrowLeft size={20} />
-              <span className="text-sm font-medium">Back to App</span>
-            </Link>
-          </div>
-          <div className="flex items-center gap-3">
-            <Shield className="w-5 h-5 text-amber-500" />
-            <h1 className="text-lg font-bold text-slate-900 dark:text-white">Policy & Terms</h1>
-          </div>
-          <div className="w-24" />
-        </div>
-      </div>
+      <LandingHeader
+        onSignIn={onSignIn}
+        onGetStarted={onGetStarted}
+        isDark={isDark}
+        setIsDark={setIsDark}
+      />
 
       {/* Content */}
-      <div className="max-w-6xl mx-auto flex">
+      <div className="max-w-6xl mx-auto flex pt-14 sm:pt-16">
         {/* Sidebar */}
         <aside className="hidden md:block w-56 shrink-0 border-r border-slate-200 dark:border-slate-800 sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto p-4">
           <nav className="space-y-1">
@@ -640,8 +642,8 @@ export const TermsPage: React.FC = () => {
                 key={section.id}
                 onClick={() => scrollToSection(section.id)}
                 className={`w-full flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors text-left ${activeSection === section.id
-                    ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
                   }`}
               >
                 <FileText className="w-4 h-4 shrink-0" />

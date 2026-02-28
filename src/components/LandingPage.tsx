@@ -3,10 +3,13 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Sparkles, Box, Ruler, Calculator, ChevronDown, Sun, Moon, Menu, X, User, Check, FileText, Shield } from 'lucide-react';
 import { Button } from './Button';
 import { LandingDocsModal } from './LandingDocsModal';
+import { LandingHeader } from './LandingHeader';
 
 interface LandingPageProps {
   onGetStarted: () => void;
   onSignIn: () => void;
+  isDark: boolean;
+  setIsDark: (isDark: boolean) => void;
 }
 
 // Animated text component with typing effect
@@ -183,7 +186,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
   const [isDark, setIsDark] = useState(() => {
     try { return localStorage.getItem('app-theme') !== 'false'; } catch { return true; }
   });
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [docsModalOpen, setDocsModalOpen] = useState(false);
 
   useEffect(() => {
@@ -203,7 +205,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
     }
-    setMobileMenuOpen(false);
   };
 
   return (
@@ -251,146 +252,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
         }
       `}</style>
 
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-14 sm:h-16">
-            <div className="flex items-center gap-2">
-              <Box className="w-7 h-7 sm:w-8 sm:h-8 text-amber-500" />
-              <span className="text-lg sm:text-xl font-black tracking-tight text-slate-900 dark:text-white">
-                CAB<span className="text-amber-500">ENGINE</span>
-              </span>
-            </div>
-
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center gap-6">
-              <button
-                onClick={() => scrollToSection('features')}
-                className="text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 transition-colors text-sm font-medium"
-              >
-                Features
-              </button>
-              <button
-                onClick={() => scrollToSection('about')}
-                className="text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 transition-colors text-sm font-medium"
-              >
-                About
-              </button>
-              <button
-                onClick={() => scrollToSection('pricing')}
-                className="text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 transition-colors text-sm font-medium"
-              >
-                Pricing
-              </button>
-              <button
-                onClick={() => scrollToSection('contact')}
-                className="text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 transition-colors text-sm font-medium"
-              >
-                Contact
-              </button>
-              <Link
-                to="/docs"
-                className="text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 transition-colors text-sm font-medium flex items-center gap-1"
-              >
-                Docs
-              </Link>
-              <Link
-                to="/terms"
-                className="text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 transition-colors text-sm font-medium flex items-center gap-1"
-              >
-                Terms
-              </Link>
-              <button
-                onClick={() => setIsDark(!isDark)}
-                className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-amber-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
-                aria-label="Toggle theme"
-              >
-                {isDark ? <Sun size={20} /> : <Moon size={20} />}
-              </button>
-            </div>
-
-            {/* Mobile Menu Button */}
-            <div className="flex md:hidden items-center gap-2">
-              <button
-                onClick={() => setIsDark(!isDark)}
-                className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-amber-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
-                aria-label="Toggle theme"
-              >
-                {isDark ? <Sun size={20} /> : <Moon size={20} />}
-              </button>
-              <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
-                aria-label="Toggle menu"
-              >
-                {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Mobile Menu Dropdown */}
-        {mobileMenuOpen && (
-          <div className="md:hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 animate-slide-up">
-            <div className="px-4 py-4 space-y-2">
-              <button
-                onClick={() => scrollToSection('features')}
-                className="w-full text-left px-4 py-3 text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors text-base font-medium min-h-[48px]"
-              >
-                Features
-              </button>
-              <button
-                onClick={() => scrollToSection('about')}
-                className="w-full text-left px-4 py-3 text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors text-base font-medium min-h-[48px]"
-              >
-                About
-              </button>
-              <button
-                onClick={() => scrollToSection('pricing')}
-                className="w-full text-left px-4 py-3 text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors text-base font-medium min-h-[48px]"
-              >
-                Pricing
-              </button>
-              <button
-                onClick={() => scrollToSection('contact')}
-                className="w-full text-left px-4 py-3 text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors text-base font-medium min-h-[48px]"
-              >
-                Contact
-              </button>
-              <Link
-                to="/docs"
-                onClick={() => setMobileMenuOpen(false)}
-                className="w-full text-left px-4 py-3 text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors text-base font-medium min-h-[48px] flex items-center gap-2"
-              >
-                <FileText size={18} />
-                Docs
-              </Link>
-              <Link
-                to="/terms"
-                onClick={() => setMobileMenuOpen(false)}
-                className="w-full text-left px-4 py-3 text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors text-base font-medium min-h-[48px] flex items-center gap-2"
-              >
-                <Shield size={18} />
-                Terms
-              </Link>
-              <div className="border-t border-slate-200 dark:border-slate-700 my-2 pt-2 space-y-2">
-                <button
-                  onClick={() => { onSignIn(); setMobileMenuOpen(false); }}
-                  className="w-full text-left px-4 py-3 text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors text-base font-medium min-h-[48px]"
-                >
-                  Sign In
-                </button>
-                <button
-                  onClick={() => { onGetStarted(); setMobileMenuOpen(false); }}
-                  className="w-full text-left px-4 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors text-base font-bold min-h-[48px] text-center"
-                >
-                  Get Started Free
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </nav>
+      <LandingHeader
+        onSignIn={onSignIn}
+        onGetStarted={onGetStarted}
+        isDark={isDark}
+        setIsDark={setIsDark}
+      />
 
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center pt-14 sm:pt-16">

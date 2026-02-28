@@ -220,6 +220,7 @@ export enum Screen {
   TOOLS = 'tools',
   PRICING = 'pricing',
   DOCS = 'docs',
+  TERMS = 'terms',
   POLICY = 'policy'
 }
 
