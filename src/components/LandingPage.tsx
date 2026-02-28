@@ -208,7 +208,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gradient-to-b dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-slate-900 dark:text-white overflow-x-hidden">
+    <div className="min-h-screen text-slate-900 dark:text-white overflow-x-hidden relative">
+      {/* Fixed Background Image */}
+      <div
+        className="fixed inset-0 z-0 transition-all duration-1000 ease-out"
+        style={{
+          backgroundImage: isDark ? 'url("/landing-bg.jpeg")' : 'url("/landing-bg-light.jpeg")',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          transform: `scale(1.15) translateY(${scrollY * 0.05}px)`
+        }}
+      />
+
       <style>{`
         @keyframes float {
           0%, 100% { transform: translateY(0px) rotate(0deg); }
@@ -260,83 +271,75 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
       />
 
       {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center pt-14 sm:pt-16">
-        <ParticleBackground />
+      <section className="relative min-h-screen flex items-center justify-center pt-14 sm:pt-16 overflow-hidden bg-transparent">
+        {/* Layered Overlays Removed as requested */}
 
-        {/* Gradient orbs - smaller on mobile */}
-        <div
-          className="absolute top-1/4 left-1/4 w-48 h-48 sm:w-72 sm:h-72 lg:w-96 lg:h-96 bg-amber-500/10 rounded-full blur-3xl"
-          style={{ transform: `translate(${scrollY * 0.1}px, ${scrollY * 0.05}px)` }}
-        />
-        <div
-          className="absolute bottom-1/4 right-1/4 w-48 h-48 sm:w-72 sm:h-72 lg:w-96 lg:h-96 bg-orange-500/10 rounded-full blur-3xl"
-          style={{ transform: `translate(${-scrollY * 0.1}px, ${-scrollY * 0.05}px)` }}
-        />
-
-        <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          {/* Animated badge */}
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-amber-100 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 mb-6 sm:mb-8 animate-slide-up">
-            <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-amber-600 dark:text-amber-500" />
-            <span className="text-xs sm:text-sm font-medium text-amber-700 dark:text-amber-400">Professional Cabinet Design Made Simple</span>
-          </div>
-
-          {/* Main heading with cycling animation - responsive text sizes */}
-          <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black mb-4 sm:mb-6 leading-tight">
-            <div className="text-slate-900 dark:text-white">Build Your</div>
-            <div className="mt-1 sm:mt-2 text-gradient inline-block h-[1.2em]">
-              <CyclingText
-                phrases={[
-                  "Dream Kitchen",
-                  "Perfect Cabinets",
-                  "Custom Furniture",
-                  "Dream Space"
-                ]}
-              />
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-end min-h-screen pt-12 pb-24 md:pb-40 w-full">
+          <div className="w-full max-w-2xl text-center md:text-right flex flex-col items-center md:items-end md:mr-[15%] xl:mr-[-10%]">
+            {/* Animated badge */}
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-amber-100 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 mb-6 sm:mb-8 animate-slide-up">
+              <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-amber-600 dark:text-amber-500" />
+              <span className="text-xs sm:text-sm font-medium text-amber-700 dark:text-amber-400">Professional Cabinet Design Made Simple</span>
             </div>
-          </h1>
 
-          {/* Subheading with typewriter effect */}
-          <div className="text-lg sm:text-xl md:text-2xl text-slate-600 dark:text-slate-400 mb-4">
-            <TypewriterText text="Design. Visualize. Build." delay={800} />
-          </div>
-
-          <p className="text-base sm:text-lg text-slate-600 dark:text-slate-500 max-w-2xl mx-auto mb-8 sm:mb-12 px-4 sm:px-0 animate-slide-up" style={{ animationDelay: '1s' }}>
-            Professional-grade cabinet design software with instant 3D visualization,
-            automated cut lists, and material optimization.
-          </p>
-
-          {/* CTA Buttons - full width on mobile */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 px-4 sm:px-0 animate-slide-up" style={{ animationDelay: '1.2s' }}>
-            <Button
-              size="xl"
-              onClick={onGetStarted}
-              className="w-full sm:w-auto animate-glow group min-h-[56px]"
-              leftIcon={<ArrowRight className="group-hover:translate-x-1 transition-transform" />}
-            >
-              Get Started Free
-            </Button>
-            <Button
-              size="xl"
-              variant="secondary"
-              onClick={onSignIn}
-              className="w-full sm:w-auto min-h-[56px]"
-            >
-              Sign In
-            </Button>
-          </div>
-
-          {/* Stats - better mobile layout */}
-          <div className="grid grid-cols-3 gap-4 sm:gap-8 max-w-lg mx-auto mt-12 sm:mt-16 animate-slide-up px-4 sm:px-0" style={{ animationDelay: '1.4s' }}>
-            {[
-              { value: '3D', label: 'Visualization' },
-              { value: 'BOM', label: 'Auto Reports' },
-              { value: 'Cut', label: 'Optimization' },
-            ].map((stat, i) => (
-              <div key={i} className="text-center">
-                <div className="text-xl sm:text-2xl md:text-3xl font-black text-amber-500">{stat.value}</div>
-                <div className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-500 uppercase tracking-wider">{stat.label}</div>
+            {/* Main heading with cycling animation - responsive text sizes */}
+            <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-black mb-6 sm:mb-8 leading-tight md:leading-snug">
+              <div className="text-slate-900 dark:text-white">Build Your</div>
+              <div className="mt-1 sm:mt-2 text-gradient inline-block h-[1.2em]">
+                <CyclingText
+                  phrases={[
+                    "Dream Kitchen",
+                    "Perfect Cabinets",
+                    "Custom Furniture",
+                    "Dream Space"
+                  ]}
+                />
               </div>
-            ))}
+            </h1>
+
+            {/* Subheading with typewriter effect */}
+            <div className="text-xl sm:text-2xl md:text-3xl text-slate-600 dark:text-slate-400 mb-6 sm:mb-8 font-medium">
+              <TypewriterText text="Design. Visualize. Build." delay={800} />
+            </div>
+
+            <p className="text-lg sm:text-xl md:text-2xl text-slate-600 dark:text-slate-500 max-w-2xl md:ml-auto md:mr-0 mb-10 sm:mb-16 px-4 sm:px-0 animate-slide-up leading-relaxed" style={{ animationDelay: '1s' }}>
+              Professional-grade cabinet design software with instant 3D visualization,
+              automated cut lists, and material optimization.
+            </p>
+
+            {/* CTA Buttons - full width on mobile */}
+            <div className="flex flex-col sm:flex-row items-center md:justify-end justify-center gap-4 sm:gap-6 px-4 sm:px-0 animate-slide-up" style={{ animationDelay: '1.2s' }}>
+              <Button
+                size="xl"
+                onClick={onGetStarted}
+                className="w-full sm:w-auto animate-glow group min-h-[56px]"
+                leftIcon={<ArrowRight className="group-hover:translate-x-1 transition-transform" />}
+              >
+                Get Started Free
+              </Button>
+              <Button
+                size="xl"
+                variant="secondary"
+                onClick={onSignIn}
+                className="w-full sm:w-auto min-h-[56px]"
+              >
+                Sign In
+              </Button>
+            </div>
+
+            {/* Stats - better mobile layout */}
+            <div className="grid grid-cols-3 gap-4 sm:gap-8 max-w-lg md:ml-auto md:mr-0 mt-12 sm:mt-16 animate-slide-up px-4 sm:px-0" style={{ animationDelay: '1.4s' }}>
+              {[
+                { value: '3D', label: 'Visualization' },
+                { value: 'BOM', label: 'Auto Reports' },
+                { value: 'Cut', label: 'Optimization' },
+              ].map((stat, i) => (
+                <div key={i} className="text-center">
+                  <div className="text-xl sm:text-2xl md:text-3xl font-black text-amber-500">{stat.value}</div>
+                  <div className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-500 uppercase tracking-wider">{stat.label}</div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -347,7 +350,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
       </section>
 
       {/* Features Section */}
-      <section id="features" className="relative py-16 sm:py-24 bg-slate-100 dark:bg-slate-950">
+      <section id="features" className="relative py-16 sm:py-24 bg-slate-50/40 dark:bg-slate-950/40 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10 sm:mb-16">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-black mb-3 sm:mb-4">
@@ -379,7 +382,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
               },
             ].map((feature, i) => (
               <FloatingElement key={i} delay={i * 200}>
-                <div className="group relative p-6 sm:p-8 rounded-xl sm:rounded-2xl bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 hover:border-amber-500/50 transition-all duration-500 hover:transform hover:-translate-y-2 shadow-sm dark:shadow-none">
+                <div className="group relative p-6 sm:p-8 rounded-xl sm:rounded-2xl bg-white/10 dark:bg-slate-900/40 backdrop-blur-sm border border-slate-200/50 dark:border-slate-800/50 hover:border-amber-500/50 transition-all duration-500 hover:transform hover:-translate-y-2 shadow-sm dark:shadow-none">
                   <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-${feature.color}-500/10 flex items-center justify-center text-${feature.color}-500 mb-4 sm:mb-6 group-hover:scale-110 transition-transform`}>
                     {feature.icon}
                   </div>
@@ -394,7 +397,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="relative py-16 sm:py-24 bg-slate-50 dark:bg-slate-900">
+      <section id="pricing" className="relative py-16 sm:py-24 bg-white/40 dark:bg-slate-900/40 backdrop-blur-md">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10 sm:mb-16">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-black mb-3 sm:mb-4">
@@ -406,7 +409,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
 
           <div className="grid md:grid-cols-2 gap-6 sm:gap-8 max-w-3xl mx-auto">
             {/* Free Plan */}
-            <div className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-lg border-2 border-slate-200 dark:border-slate-700 overflow-hidden">
+            <div className="relative bg-white/10 dark:bg-slate-900/40 backdrop-blur-sm rounded-2xl shadow-lg border-2 border-slate-200/50 dark:border-slate-800/50 overflow-hidden">
               <div className="p-6 sm:p-8">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="p-3 rounded-lg bg-slate-100 dark:bg-slate-700">
@@ -457,7 +460,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             </div>
 
             {/* Pro Plan */}
-            <div className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-lg border-2 border-amber-500 overflow-hidden">
+            <div className="relative bg-white/10 dark:bg-slate-900/40 backdrop-blur-sm rounded-2xl shadow-xl border-2 border-amber-500 overflow-hidden transform md:-translate-y-4">
               <div className="absolute top-0 right-0 bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">
                 POPULAR
               </div>
@@ -514,7 +517,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
       </section>
 
       {/* Contact Us Section */}
-      <section id="contact" className="relative py-16 sm:py-24 bg-slate-50 dark:bg-slate-900 overflow-hidden">
+      <section id="contact" className="relative py-16 sm:py-24 bg-slate-50/40 dark:bg-slate-950/40 backdrop-blur-md overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12 sm:mb-16">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-black mb-4">
@@ -528,7 +531,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
 
           <div className="max-w-4xl mx-auto grid md:grid-cols-2 gap-8 lg:gap-12">
             {/* Contact Details Card */}
-            <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 animate-slide-up">
+            <div className="bg-white/10 dark:bg-slate-900/40 backdrop-blur-sm p-8 rounded-2xl shadow-xl border border-slate-200/50 dark:border-slate-800/50 animate-slide-up">
               <div className="space-y-6">
                 <div>
                   <h3 className="text-sm font-black text-amber-500 uppercase tracking-widest mb-3">Platform Details</h3>
@@ -551,7 +554,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             </div>
 
             {/* Quick Contact Card */}
-            <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 animate-slide-up" style={{ animationDelay: '200ms' }}>
+            <div className="bg-white/10 dark:bg-slate-900/40 backdrop-blur-sm p-8 rounded-2xl shadow-xl border border-slate-200/50 dark:border-slate-800/50 animate-slide-up" style={{ animationDelay: '200ms' }}>
               <div className="space-y-6">
                 <div>
                   <h3 className="text-sm font-black text-amber-500 uppercase tracking-widest mb-3">Direct Contact</h3>
@@ -599,9 +602,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
       </section>
 
       {/* CTA Section */}
-      <section id="about" className="relative py-16 sm:py-24 overflow-hidden bg-white dark:bg-transparent">
-        <div className="absolute inset-0 bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-600/20 dark:to-orange-600/20" />
-        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <section id="about" className="relative py-16 sm:py-24 overflow-hidden bg-white/40 dark:bg-slate-900/40 backdrop-blur-md">
+        <div className="absolute inset-0 bg-gradient-to-r from-amber-100/50 to-orange-100/50 dark:from-amber-600/30 dark:to-orange-600/30" />
+        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
           <h2 className="text-2xl sm:text-4xl md:text-5xl font-black mb-4 sm:mb-6">
             <span className="text-slate-900 dark:text-white">Ready to Start </span>
             <span className="text-gradient">Building?</span>
@@ -620,7 +623,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
       </section>
 
       {/* Footer */}
-      <footer className="bg-slate-100 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-900 py-8 sm:py-12">
+      <footer className="bg-slate-50/40 dark:bg-slate-950/40 backdrop-blur-md border-t border-slate-200/20 dark:border-slate-800/50 pt-16 pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
