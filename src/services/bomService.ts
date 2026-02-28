@@ -1,5 +1,6 @@
 
 import { Project, Zone, CabinetUnit, BOMGroup, BOMItem, CabinetType, PresetType, ProjectSettings, OptimizationResult, Obstacle, AutoFillOptions } from '../types';
+import { SheetType } from './sheetTypeService';
 import type { ConstructionPlanJSON } from '../types/construction';
 
 // Helper to generate unique IDs
@@ -587,12 +588,32 @@ export const calculateProjectCost = (
   bomData: ReturnType<typeof generateProjectBOM>,
   nestingData: OptimizationResult,
   settings: ProjectSettings,
-  calculatedHardwareCost?: number
+  calculatedHardwareCost?: number,
+  sheetTypes: SheetType[] = []
 ): CostBreakdown => {
   const { costs } = settings;
 
-  // 1. Material (Sheets) - Uses nested result for accuracy
-  const materialCost = nestingData.totalSheets * costs.pricePerSheet;
+  // Helper to find price for a material
+  const findSheetPrice = (materialName: string): number => {
+    const matched = sheetTypes.find(st => 
+      materialName.toLowerCase().includes(st.name.toLowerCase()) ||
+      st.name.toLowerCase().includes(materialName.toLowerCase())
+    );
+    if (matched && matched.price_per_sheet > 0) {
+      return matched.price_per_sheet;
+    }
+    return costs.pricePerSheet;
+  };
+
+  // 1. Material (Sheets) - Calculate per material type using individual prices
+  const materialCostMap: Record<string, number> = {};
+  nestingData.sheets.forEach(sheet => {
+    if (!materialCostMap[sheet.material]) {
+      materialCostMap[sheet.material] = 0;
+    }
+    materialCostMap[sheet.material] += findSheetPrice(sheet.material);
+  });
+  const materialCost = Object.values(materialCostMap).reduce((sum, price) => sum + price, 0);
 
   // 2. Hardware - Use calculated total if provided, otherwise fall back to flat rate
   let hardwareCost: number;

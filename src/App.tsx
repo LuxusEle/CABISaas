@@ -9,6 +9,7 @@ import { generateInvoicePDF } from './services/pdfService';
 import { optimizeCuts } from './services/nestingService';
 import { authService } from './services/authService';
 import { expenseTemplateService, ExpenseTemplate } from './services/expenseTemplateService';
+import { sheetTypeService, SheetType } from './services/sheetTypeService';
 import { supabase } from './services/supabaseClient';
 import type { User } from '@supabase/supabase-js';
 
@@ -258,7 +259,7 @@ export default function App() {
             logoUrl={project.settings.logoUrl}
           />
         );
-      case Screen.PROJECT_SETUP: return <ScreenProjectSetup project={project} setProject={setProject} />;
+      case Screen.PROJECT_SETUP: return <ScreenProjectSetup project={project} setProject={setProject} onSave={() => handleSaveProject(project)} />;
       case Screen.WALL_EDITOR: return <ScreenWallEditor project={project} setProject={setProject} setScreen={setScreen} onSave={() => handleSaveProject(project)} />;
       case Screen.BOM_REPORT: return <ScreenBOMReport project={project} setProject={setProject} />;
       case Screen.PRICING: return <PricingPage />;
@@ -345,7 +346,7 @@ export default function App() {
             } />
             <Route path="/setup" element={
               <ProtectedRoute user={user} loading={authLoading}>
-                <ScreenProjectSetup project={project} setProject={setProject} />
+                <ScreenProjectSetup project={project} setProject={setProject} onSave={() => handleSaveProject(project)} />
               </ProtectedRoute>
             } />
             <Route path="/walls" element={
@@ -619,7 +620,7 @@ const ScreenPlanView = ({ project }: { project: Project }) => {
   );
 };
 
-const ScreenProjectSetup = ({ project, setProject }: { project: Project, setProject: React.Dispatch<React.SetStateAction<Project>> }) => {
+const ScreenProjectSetup = ({ project, setProject, onSave }: { project: Project, setProject: React.Dispatch<React.SetStateAction<Project>>, onSave: () => void }) => {
   // State to track which section is expanded - only one at a time
   const [expandedSection, setExpandedSection] = useState<'projectInfo' | 'sheetTypes' | 'accessories' | 'allocation' | null>('projectInfo');
 
@@ -712,13 +713,18 @@ const ScreenProjectSetup = ({ project, setProject }: { project: Project, setProj
         <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8">
           <div className="flex justify-between items-center mb-2 sm:mb-4">
             <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">Project Setup</h2>
-            {logoPreview && (
-              <img
-                src={logoPreview}
-                alt="Company Logo"
-                className="h-10 sm:h-12 w-auto object-contain"
-              />
-            )}
+            <div className="flex items-center gap-3">
+              {logoPreview && (
+                <img
+                  src={logoPreview}
+                  alt="Company Logo"
+                  className="h-10 sm:h-12 w-auto object-contain"
+                />
+              )}
+              <Button variant="primary" size="sm" onClick={onSave} className="min-h-[40px]">
+                <Save size={16} className="mr-2" /> Save
+              </Button>
+            </div>
           </div>
 
           {/* Project Info & Dimensions - Combined Collapsible Menu */}
@@ -1808,6 +1814,16 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
     loadAccessories();
   }, []);
 
+  // Load sheet types from database for pricing
+  const [sheetTypes, setSheetTypes] = useState<SheetType[]>([]);
+  useEffect(() => {
+    const loadSheetTypes = async () => {
+      const types = await sheetTypeService.getSheetTypes();
+      setSheetTypes(types);
+    };
+    loadSheetTypes();
+  }, []);
+
   // Calculate total doors for hinge calculation
   const totalDoors = useMemo(() => {
     let doors = 0;
@@ -1902,21 +1918,28 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
   const drawerSlideUnitCost = drawerSlideAccessory?.default_amount || 15.00;
   const drawerSlideTotalCost = drawerSlideQuantity * drawerSlideUnitCost;
 
-  // Calculate total hardware cost from all individual items
+  // Calculate total hardware cost from all individual items (only those actually used in project)
   const otherAccessoriesCost = accessories
-    .filter(acc =>
-      !acc.name.toLowerCase().includes('hinge') &&
-      !acc.name.toLowerCase().includes('handle') &&
-      !acc.name.toLowerCase().includes('knob') &&
-      !acc.name.toLowerCase().includes('drawer slide') &&
-      !acc.name.toLowerCase().includes('slide')
-    )
-    .reduce((sum, acc) => sum + acc.default_amount, 0);
+    .filter(acc => {
+      // Skip items already calculated separately
+      const isExcluded = 
+        acc.name.toLowerCase().includes('hinge') ||
+        acc.name.toLowerCase().includes('handle') ||
+        acc.name.toLowerCase().includes('knob') ||
+        acc.name.toLowerCase().includes('drawer slide') ||
+        acc.name.toLowerCase().includes('slide');
+      return !isExcluded;
+    })
+    .reduce((sum, acc) => {
+      // Get actual quantity from BOM, default to 0 if not found
+      const qty = data.hardwareSummary[acc.name] || 0;
+      return sum + (qty * acc.default_amount);
+    }, 0);
 
   const totalHardwareCost = hingeTotalCost + handleTotalCost + drawerSlideTotalCost + otherAccessoriesCost;
 
   // Calculate base costs with proper hardware total
-  const baseCosts = useMemo(() => calculateProjectCost(data, cutPlan, project.settings, totalHardwareCost), [data, cutPlan, project.settings.costs, totalHardwareCost]);
+  const baseCosts = useMemo(() => calculateProjectCost(data, cutPlan, project.settings, totalHardwareCost, sheetTypes), [data, cutPlan, project.settings.costs, totalHardwareCost, sheetTypes]);
 
   // Use base costs directly (no additional expenses)
   const costs = baseCosts;
@@ -1929,13 +1952,27 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
       summary[s.material].sheets++;
       summary[s.material].waste += s.waste;
     });
+    
+    // Helper to find price for a material from database
+    const findSheetPrice = (materialName: string): number => {
+      const matched = sheetTypes.find(st => 
+        materialName.toLowerCase().includes(st.name.toLowerCase()) ||
+        st.name.toLowerCase().includes(materialName.toLowerCase())
+      );
+      if (matched && matched.price_per_sheet > 0) {
+        return matched.price_per_sheet;
+      }
+      return project.settings.costs.pricePerSheet;
+    };
+    
     return Object.entries(summary).map(([mat, data]) => ({
       material: mat,
       sheets: data.sheets,
       waste: Math.round(data.waste / data.sheets),
-      dims: `${project.settings.sheetLength} x ${project.settings.sheetWidth}`
+      dims: `${project.settings.sheetLength} x ${project.settings.sheetWidth}`,
+      cost: data.sheets * findSheetPrice(mat)
     }));
-  }, [cutPlan, project.settings]);
+  }, [cutPlan, project.settings, sheetTypes]);
 
   // Calculate Invoice Specifications with Filters
   const invoiceSpecifications = useMemo(() => {
@@ -2086,7 +2123,7 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
                     <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">{m.material}</td>
                     <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">{m.dims}</td>
                     <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">{m.sheets}</td>
-                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">{currency}{(m.sheets * project.settings.costs.pricePerSheet).toFixed(2)}</td>
+                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">{currency}{m.cost.toFixed(2)}</td>
                     <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
                   </tr>
                 ))}

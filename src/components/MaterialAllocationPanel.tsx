@@ -223,7 +223,7 @@ export const MaterialAllocationPanel: React.FC<MaterialAllocationPanelProps> = (
                       className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm"
                     >
                       <option value="">Select material...</option>
-                      <option value="{allocation.carcassMaterial}">Same as Carcass ({allocation.carcassMaterial || 'Not set'})</option>
+                      <option value="">Same as Carcass ({allocation.carcassMaterial || 'Not set'})</option>
                       {sheetTypes.map((type) => (
                         <option key={type.id} value={type.name}>
                           {type.name} ({type.thickness}mm)
