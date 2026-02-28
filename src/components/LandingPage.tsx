@@ -288,9 +288,22 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-start md:items-center justify-end min-h-screen pt-4 md:pt-12 pb-24 md:pb-40 w-full">
           <div className="w-full max-w-2xl text-center md:text-right flex flex-col items-center md:items-end md:mr-[15%] xl:mr-[-10%]">
             {/* Animated badge */}
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-amber-100 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 mb-6 sm:mb-8 animate-slide-up">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-amber-100 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 mb-4 sm:mb-8 animate-slide-up">
               <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-amber-600 dark:text-amber-500" />
               <span className="text-xs sm:text-sm font-medium text-amber-700 dark:text-amber-400">Professional Cabinet Design Made Simple</span>
+            </div>
+
+            {/* Subheading and description with mobile glassmohrphism background for readability */}
+            <div className="bg-white/5 dark:bg-slate-900/5 backdrop-blur-xs rounded-2xl p-3 md:bg-transparent md:backdrop-blur-none md:p-0 md:rounded-none animate-slide-up w-full max-w-2xl md:ml-auto md:mr-0 mb-6 sm:mb-16 text-right">
+              {/* Subheading with typewriter effect */}
+              <div className="text-xl sm:text-2xl md:text-3xl text-slate-800 dark:text-slate-200 md:text-slate-600 md:dark:text-slate-400 mb-4 sm:mb-6 font-medium">
+                <TypewriterText text="Design. Visualize. Build." delay={800} />
+              </div>
+
+              <p className="text-lg sm:text-xl md:text-2xl text-slate-800 dark:text-slate-300 md:text-slate-600 md:dark:text-slate-500 leading-relaxed" style={{ animationDelay: '1s' }}>
+                Professional-grade cabinet design software with instant 3D visualization,
+                automated cut lists, and material optimization.
+              </p>
             </div>
 
             {/* Main heading with cycling animation - responsive text sizes */}
@@ -307,19 +320,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
                 />
               </div>
             </h1>
-
-            {/* Subheading and description with mobile glassmohrphism background for readability */}
-            <div className="bg-white/5 dark:bg-slate-900/5 backdrop-blur-md rounded-2xl p-6 md:bg-transparent md:backdrop-blur-none md:p-0 md:rounded-none animate-slide-up w-full max-w-2xl md:ml-auto md:mr-0 mb-10 sm:mb-16">
-              {/* Subheading with typewriter effect */}
-              <div className="text-xl sm:text-2xl md:text-3xl text-slate-800 dark:text-slate-200 md:text-slate-600 md:dark:text-slate-400 mb-4 sm:mb-6 font-medium">
-                <TypewriterText text="Design. Visualize. Build." delay={800} />
-              </div>
-
-              <p className="text-lg sm:text-xl md:text-2xl text-slate-800 dark:text-slate-300 md:text-slate-600 md:dark:text-slate-500 leading-relaxed" style={{ animationDelay: '1s' }}>
-                Professional-grade cabinet design software with instant 3D visualization,
-                automated cut lists, and material optimization.
-              </p>
-            </div>
 
             {/* CTA Buttons - full width on mobile */}
             <div className="flex flex-col sm:flex-row items-center md:justify-end justify-center gap-4 sm:gap-6 px-4 sm:px-0 animate-slide-up" style={{ animationDelay: '1.2s' }}>
