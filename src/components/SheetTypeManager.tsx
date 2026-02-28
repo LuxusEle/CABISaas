@@ -11,7 +11,7 @@ interface SheetTypeManagerProps {
   onToggleAccessories?: () => void;
 }
 
-export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({ 
+export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
   currency = '$',
   sheetTypesExpanded: externalSheetTypesExpanded,
   accessoriesExpanded: externalAccessoriesExpanded,
@@ -26,11 +26,11 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
   const [newSheetType, setNewSheetType] = useState({ name: '', thickness: 16, price_per_sheet: 0 });
   const [newAccessory, setNewAccessory] = useState({ name: '', price: 0 });
   const [showAddForm, setShowAddForm] = useState<'sheet' | 'accessory' | null>(null);
-  
+
   // Internal state for standalone usage
-  const [internalSheetTypesExpanded, setInternalSheetTypesExpanded] = useState(true);
+  const [internalSheetTypesExpanded, setInternalSheetTypesExpanded] = useState(false);
   const [internalAccessoriesExpanded, setInternalAccessoriesExpanded] = useState(false);
-  
+
   // Use external state if provided, otherwise use internal
   const sheetTypesExpanded = externalSheetTypesExpanded !== undefined ? externalSheetTypesExpanded : internalSheetTypesExpanded;
   const accessoriesExpanded = externalAccessoriesExpanded !== undefined ? externalAccessoriesExpanded : internalAccessoriesExpanded;
@@ -42,7 +42,7 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
   const loadData = async () => {
     setIsLoading(true);
     let types = await sheetTypeService.getSheetTypes();
-    
+
     // If no sheet types exist, create defaults
     if (types.length === 0) {
       await createDefaultSheetTypes();
@@ -76,7 +76,7 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
 
   const handleAddSheet = async () => {
     if (!newSheetType.name.trim()) return;
-    
+
     // Optimistic update - add to local state immediately
     const tempId = 'temp-' + Date.now();
     const optimisticSheet: SheetType = {
@@ -89,11 +89,11 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
-    
+
     setSheetTypes(prev => [...prev, optimisticSheet]);
     setNewSheetType({ name: '', thickness: 16, price_per_sheet: 0 });
     setShowAddForm(null);
-    
+
     // Save to database in background
     const result = await sheetTypeService.saveSheetType(newSheetType.name, newSheetType.thickness, newSheetType.price_per_sheet);
     if (result) {
@@ -106,7 +106,7 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
 
   const handleAddAccessory = async () => {
     if (!newAccessory.name.trim()) return;
-    
+
     // Optimistic update - add to local state immediately
     const tempId = 'temp-' + Date.now();
     const optimisticAcc: ExpenseTemplate = {
@@ -118,11 +118,11 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
-    
+
     setAccessories(prev => [...prev, optimisticAcc]);
     setNewAccessory({ name: '', price: 0 });
     setShowAddForm(null);
-    
+
     // Save to database in background
     const result = await expenseTemplateService.saveTemplate(newAccessory.name, newAccessory.price);
     if (result) {
@@ -154,22 +154,22 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
 
   const handleUpdateSheet = async (id: string) => {
     const originalSheet = sheetTypes.find(s => s.id === id);
-    
+
     // Optimistic update - update local state immediately
-    setSheetTypes(prev => prev.map(s => 
-      s.id === id 
+    setSheetTypes(prev => prev.map(s =>
+      s.id === id
         ? { ...s, name: editFormData.name, thickness: editFormData.thickness, price_per_sheet: editFormData.price_per_sheet }
         : s
     ));
     setEditingId(null);
-    
+
     // Save to database in background
     const success = await sheetTypeService.updateSheetType(id, {
       name: editFormData.name,
       thickness: editFormData.thickness,
       price_per_sheet: editFormData.price_per_sheet
     });
-    
+
     if (!success && originalSheet) {
       // Revert on failure
       setSheetTypes(prev => prev.map(s => s.id === id ? originalSheet : s));
@@ -179,21 +179,21 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
 
   const handleUpdateAccessory = async (id: string) => {
     const originalAcc = accessories.find(a => a.id === id);
-    
+
     // Optimistic update - update local state immediately
-    setAccessories(prev => prev.map(a => 
-      a.id === id 
+    setAccessories(prev => prev.map(a =>
+      a.id === id
         ? { ...a, name: editFormData.name, default_amount: editFormData.default_amount || 0 }
         : a
     ));
     setEditingId(null);
-    
+
     // Save to database in background
     const success = await expenseTemplateService.updateTemplate(id, {
       name: editFormData.name,
       default_amount: editFormData.default_amount || 0
     });
-    
+
     if (!success && originalAcc) {
       // Revert on failure
       setAccessories(prev => prev.map(a => a.id === id ? originalAcc : a));
@@ -208,15 +208,15 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
 
   const handleDeleteSheet = async (id: string) => {
     if (!confirm('Are you sure you want to delete this sheet type?')) return;
-    
+
     const sheetToDelete = sheetTypes.find(s => s.id === id);
-    
+
     // Optimistic update - remove from local state immediately
     setSheetTypes(prev => prev.filter(s => s.id !== id));
-    
+
     // Delete from database in background
     const success = await sheetTypeService.deleteSheetType(id);
-    
+
     if (!success && sheetToDelete) {
       // Restore on failure
       setSheetTypes(prev => [...prev, sheetToDelete].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()));
@@ -226,15 +226,15 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
 
   const handleDeleteAccessory = async (id: string) => {
     if (!confirm('Are you sure you want to delete this accessory?')) return;
-    
+
     const accToDelete = accessories.find(a => a.id === id);
-    
+
     // Optimistic update - remove from local state immediately
     setAccessories(prev => prev.filter(a => a.id !== id));
-    
+
     // Delete from database in background
     const success = await expenseTemplateService.deleteTemplate(id);
-    
+
     if (!success && accToDelete) {
       // Restore on failure
       setAccessories(prev => [...prev, accToDelete].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()));
@@ -242,35 +242,7 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2 uppercase tracking-tight">
-              <Settings2 className="text-amber-500" /> Sheet Types & Materials
-            </h3>
-          </div>
-          <div className="p-8 text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div>
-            <p className="mt-2 text-slate-500 text-sm">Loading sheet types...</p>
-          </div>
-        </div>
-        
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2 uppercase tracking-tight">
-              <Package className="text-blue-500" /> Hardware & Accessories
-            </h3>
-          </div>
-          <div className="p-8 text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-            <p className="mt-2 text-slate-500 text-sm">Loading accessories...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+
 
   const handleToggleSheetTypes = () => {
     if (onToggleSheetTypes) {
@@ -293,7 +265,7 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
       {/* Sheet Types & Materials - Collapsible */}
       <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
         {/* Header - Always visible */}
-        <div 
+        <div
           className="flex justify-between items-center p-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
           onClick={handleToggleSheetTypes}
         >
@@ -397,7 +369,7 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
       {/* Hardware & Accessories - Collapsible */}
       <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
         {/* Header - Always visible */}
-        <div 
+        <div
           className="flex justify-between items-center p-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
           onClick={handleToggleAccessories}
         >

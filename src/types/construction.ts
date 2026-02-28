@@ -71,6 +71,10 @@ export interface ConstructionPlanJSON {
       elevationUpAxis?: string;
     };
   };
+  site?: {
+    floorLevelY?: number;
+    ceilingHeight?: number;
+  };
   room: ConstructionRoom;
   objects?: ConstructionObject[];
 }

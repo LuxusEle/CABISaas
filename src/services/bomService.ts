@@ -219,7 +219,7 @@ export const autoFillZone = (
 
   // 6. Sequential Numbering (preserve existing labels, assign new ones as needed)
   const finalCabs = [...newCabinets, ...manualCabs].sort((a, b) => a.fromLeft - b.fromLeft);
-  
+
   // Get existing labels to avoid conflicts
   const getExistingLabels = (type: CabinetType) => {
     const existingLabels = manualCabs
@@ -229,14 +229,14 @@ export const autoFillZone = (
         return match ? parseInt(match[2]) : 0;
       })
       .filter(num => num > 0);
-    
+
     return Math.max(0, ...existingLabels);
   };
-  
+
   let bIdx = getExistingLabels(CabinetType.BASE) + 1;
   let wIdx = getExistingLabels(CabinetType.WALL) + 1;
   let tIdx = getExistingLabels(CabinetType.TALL) + 1;
-  
+
   const numbered = finalCabs.map(c => {
     let label = c.label; // Preserve existing labels
     if (!label) {
@@ -256,7 +256,7 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
   const parts: BOMItem[] = [];
   const { thickness } = settings;
   const labelPrefix = unit.label ? `${unit.label} ${unit.preset}` : `#${cabIndex + 1} ${unit.preset}`;
-  
+
   // Get materials from cabinet or use project defaults
   const materials = unit.materials || {};
   const projectMaterials = settings.materialSettings || {
@@ -266,7 +266,7 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
     backMaterial: '6mm MDF',
     shelfMaterial: `${thickness}mm White`
   };
-  
+
   // Resolve materials with fallbacks
   const carcassMaterial = materials.carcassMaterial || projectMaterials.carcassMaterial || `${thickness}mm White`;
   const doorMaterial = materials.doorMaterial || projectMaterials.doorMaterial || `${thickness}mm White`;
@@ -281,13 +281,13 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
   else if (unit.type === CabinetType.TALL) { height = settings.tallHeight; depth = settings.depthTall; }
 
   if (unit.preset === PresetType.FILLER) {
-    parts.push({ 
-      id: uuid(), 
-      name: 'Filler Panel', 
-      qty: 1, 
-      width: unit.width, 
-      length: height, 
-      material: carcassMaterial, 
+    parts.push({
+      id: uuid(),
+      name: 'Filler Panel',
+      qty: 1,
+      width: unit.width,
+      length: height,
+      material: carcassMaterial,
       category: 'carcass',
       label: labelPrefix,
       cabinetId: unit.id,
@@ -298,29 +298,29 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
 
   // CARASS PARTS (Box construction)
   const horizWidth = unit.width - (2 * thickness);
-  
+
   // Side Panels (Left & Right)
-  parts.push({ 
-    id: uuid(), 
-    name: 'Side Panel', 
-    qty: 2, 
-    width: depth, 
-    length: height, 
-    material: carcassMaterial, 
+  parts.push({
+    id: uuid(),
+    name: 'Side Panel',
+    qty: 2,
+    width: depth,
+    length: height,
+    material: carcassMaterial,
     category: 'side',
     label: labelPrefix,
     cabinetId: unit.id,
     cabinetLabel: unit.label
   });
-  
+
   // Bottom Panel
-  parts.push({ 
-    id: uuid(), 
-    name: 'Bottom Panel', 
-    qty: 1, 
-    width: depth, 
-    length: horizWidth, 
-    material: carcassMaterial, 
+  parts.push({
+    id: uuid(),
+    name: 'Bottom Panel',
+    qty: 1,
+    width: depth,
+    length: horizWidth,
+    material: carcassMaterial,
     category: 'bottom',
     label: labelPrefix,
     cabinetId: unit.id,
@@ -329,26 +329,26 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
 
   // Top Panel or Rails
   if (unit.type === CabinetType.BASE) {
-    parts.push({ 
-      id: uuid(), 
-      name: 'Top Rail', 
-      qty: 2, 
-      width: 100, 
-      length: horizWidth, 
-      material: carcassMaterial, 
+    parts.push({
+      id: uuid(),
+      name: 'Top Rail',
+      qty: 2,
+      width: 100,
+      length: horizWidth,
+      material: carcassMaterial,
       category: 'carcass',
       label: labelPrefix,
       cabinetId: unit.id,
       cabinetLabel: unit.label
     });
   } else {
-    parts.push({ 
-      id: uuid(), 
-      name: 'Top Panel', 
-      qty: 1, 
-      width: depth, 
-      length: horizWidth, 
-      material: carcassMaterial, 
+    parts.push({
+      id: uuid(),
+      name: 'Top Panel',
+      qty: 1,
+      width: depth,
+      length: horizWidth,
+      material: carcassMaterial,
       category: 'carcass',
       label: labelPrefix,
       cabinetId: unit.id,
@@ -357,13 +357,13 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
   }
 
   // Back Panel
-  parts.push({ 
-    id: uuid(), 
-    name: 'Back Panel', 
-    qty: 1, 
-    width: unit.width - 2, 
-    length: height - 2, 
-    material: backMaterial, 
+  parts.push({
+    id: uuid(),
+    name: 'Back Panel',
+    qty: 1,
+    width: unit.width - 2,
+    length: height - 2,
+    material: backMaterial,
     category: 'back',
     label: labelPrefix,
     cabinetId: unit.id,
@@ -461,7 +461,7 @@ export const generateProjectBOM = (project: Project): { groups: BOMGroup[], hard
     zone.cabinets.forEach((unit, index) => {
       // Only skip filler panels, include other auto-filled cabinets (boxes)
       if (unit.isAutoFilled && unit.preset === PresetType.FILLER) return;
-      
+
       cabinetCount++;
       if (unit.type !== CabinetType.WALL) zoneLen += unit.width;
 
@@ -517,7 +517,7 @@ export const getMaterialRequirements = (
   project: Project
 ): MaterialBreakdown[] => {
   const allParts: BOMItem[] = [];
-  
+
   // Collect all parts from all cabinets
   project.zones
     .filter(z => z.active)
@@ -546,16 +546,16 @@ export const getMaterialRequirements = (
         (sum, p) => sum + (p.width * p.length * p.qty) / 1000000,
         0
       );
-      
+
       // Estimate sheets needed (rough calculation)
       const sheetArea = (project.settings.sheetWidth * project.settings.sheetLength) / 1000000;
       const estimatedSheets = Math.ceil(totalArea / (sheetArea * 0.85)); // 85% efficiency
-      
+
       // Get thickness from first part or default
-      const thickness = parts[0]?.material?.match(/(\d+)mm/)?.[1] 
+      const thickness = parts[0]?.material?.match(/(\d+)mm/)?.[1]
         ? parseInt(parts[0].material.match(/(\d+)mm/)![1])
         : project.settings.thickness;
-      
+
       // Calculate cost
       const pricePerSheet = project.settings.costs?.pricePerSheet || 85;
       const cost = estimatedSheets * pricePerSheet;
@@ -596,7 +596,7 @@ export const calculateProjectCost = (
 
   // Helper to find price for a material
   const findSheetPrice = (materialName: string): number => {
-    const matched = sheetTypes.find(st => 
+    const matched = sheetTypes.find(st =>
       materialName.toLowerCase().includes(st.name.toLowerCase()) ||
       st.name.toLowerCase().includes(materialName.toLowerCase())
     );
@@ -642,6 +642,37 @@ export const calculateProjectCost = (
     subtotal,
     margin,
     totalPrice: subtotal + margin
+  };
+};
+
+/**
+ * Ensures all required project settings exist, merging with defaults if necessary.
+ * This prevents crashes when loading older projects with missing configuration fields.
+ */
+export const ensureProjectSettings = (project: Project): Project => {
+  const defaults = createNewProject();
+
+  return {
+    ...project,
+    settings: {
+      ...defaults.settings,
+      ...project.settings,
+      costs: {
+        ...defaults.settings.costs,
+        ...(project.settings?.costs || {})
+      },
+      materialSettings: {
+        ...defaults.settings.materialSettings,
+        ...(project.settings?.materialSettings || {})
+      }
+    },
+    zones: (project.zones || []).map(zone => ({
+      ...zone,
+      cabinets: (zone.cabinets || []).map(cab => ({
+        ...cab,
+        materials: cab.materials || {}
+      }))
+    }))
   };
 };
 
@@ -830,7 +861,6 @@ export const buildProjectConstructionData = (project: Project): ConstructionPlan
     },
     units: {
       lengthUnit: "m",
-      angleUnit: "deg",
       axisConvention: {
         x: "right", y: "up", z: "forward",
         planViewPlane: "XZ",
