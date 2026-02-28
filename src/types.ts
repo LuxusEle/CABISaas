@@ -29,9 +29,9 @@ export enum PresetType {
 export interface CostSettings {
   pricePerSheet: number;
   pricePerHardwareUnit: number;
-  laborRatePerHour: number;
-  laborHoursPerCabinet: number;
+  laborCost: number;
   marginPercent: number;
+  transportCost: number;
 }
 
 // Global Project Settings

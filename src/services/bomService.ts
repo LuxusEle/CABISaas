@@ -579,6 +579,7 @@ export interface CostBreakdown {
   materialCost: number;
   hardwareCost: number;
   laborCost: number;
+  transportCost: number;
   subtotal: number;
   margin: number;
   totalPrice: number;
@@ -624,17 +625,20 @@ export const calculateProjectCost = (
     hardwareCost = totalHardwareItems * costs.pricePerHardwareUnit;
   }
 
-  // 3. Labor
-  const totalHours = bomData.cabinetCount * costs.laborHoursPerCabinet;
-  const laborCost = totalHours * costs.laborRatePerHour;
+  // 3. Labor (flat cost from settings)
+  const laborCost = costs.laborCost || 0;
 
-  const subtotal = materialCost + hardwareCost + laborCost;
+  // 4. Transport
+  const transportCost = costs.transportCost || 0;
+
+  const subtotal = materialCost + hardwareCost + laborCost + transportCost;
   const margin = subtotal * (costs.marginPercent / 100);
 
   return {
     materialCost,
     hardwareCost,
     laborCost,
+    transportCost,
     subtotal,
     margin,
     totalPrice: subtotal + margin
@@ -664,9 +668,9 @@ export const createNewProject = (logoUrl?: string): Project => ({
     costs: {
       pricePerSheet: 85.00,
       pricePerHardwareUnit: 5.00,
-      laborRatePerHour: 60.00,
-      laborHoursPerCabinet: 1.5,
-      marginPercent: 50
+      laborCost: 0,
+      marginPercent: 50,
+      transportCost: 1000
     },
     materialSettings: {
       carcassMaterial: '',
