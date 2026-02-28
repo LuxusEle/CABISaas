@@ -282,6 +282,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
               >
                 Pricing
               </button>
+              <button
+                onClick={() => scrollToSection('contact')}
+                className="text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 transition-colors text-sm font-medium"
+              >
+                Contact
+              </button>
               <Link
                 to="/docs"
                 className="text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 transition-colors text-sm font-medium flex items-center gap-1"
@@ -344,6 +350,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
                 className="w-full text-left px-4 py-3 text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors text-base font-medium min-h-[48px]"
               >
                 Pricing
+              </button>
+              <button
+                onClick={() => scrollToSection('contact')}
+                className="w-full text-left px-4 py-3 text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors text-base font-medium min-h-[48px]"
+              >
+                Contact
               </button>
               <Link
                 to="/docs"
@@ -627,6 +639,91 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
                     <Check size={18} className="text-green-500 mt-0.5 flex-shrink-0" />
                     <span className="text-slate-600 dark:text-slate-400 text-sm">Email support</span>
                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Contact Us Section */}
+      <section id="contact" className="relative py-16 sm:py-24 bg-slate-50 dark:bg-slate-900 overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12 sm:mb-16">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-black mb-4">
+              <span className="text-slate-900 dark:text-white">Contact </span>
+              <span className="text-gradient">Us</span>
+            </h2>
+            <p className="text-slate-600 dark:text-slate-400 text-base sm:text-lg max-w-2xl mx-auto">
+              Have questions about Protradee? We're here to help you get started.
+            </p>
+          </div>
+
+          <div className="max-w-4xl mx-auto grid md:grid-cols-2 gap-8 lg:gap-12">
+            {/* Contact Details Card */}
+            <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 animate-slide-up">
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-sm font-black text-amber-500 uppercase tracking-widest mb-3">Platform Details</h3>
+                  <div className="space-y-1">
+                    <p className="text-slate-900 dark:text-white font-bold">Protradee</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Legal Name: ASANKE ABEYKOON JAYALATH RATHNAYAKE</p>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-black text-amber-500 uppercase tracking-widest mb-3">Physical Address</h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed italic">
+                    98/16, NUWARA WEWA WATTA,<br />
+                    JAFFNA ROAD,<br />
+                    ANURADHAPURA,<br />
+                    SRI LANKA
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Contact Card */}
+            <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 animate-slide-up" style={{ animationDelay: '200ms' }}>
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-sm font-black text-amber-500 uppercase tracking-widest mb-3">Direct Contact</h3>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-700">
+                        <Menu className="w-4 h-4 text-amber-500 rotated-45" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase">Phone</p>
+                        <a href="tel:+94777246137" className="text-sm text-slate-900 dark:text-white font-bold hover:text-amber-500 transition-colors tracking-tight">
+                          +94 777 246 137
+                        </a>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-700">
+                        <FileText className="w-4 h-4 text-amber-500" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase">Email Support</p>
+                        <div className="flex flex-col">
+                          <a href="mailto:support@protradee.com" className="text-sm text-slate-900 dark:text-white font-bold hover:text-amber-500 transition-colors">
+                            support@protradee.com
+                          </a>
+                          <a href="mailto:asanke1@gmail.com" className="text-sm text-slate-900 dark:text-white font-bold mt-1 hover:text-amber-500 transition-colors">
+                            asanke1@gmail.com
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    We typically respond to all inquiries within 24-48 business hours.
+                  </p>
                 </div>
               </div>
             </div>
