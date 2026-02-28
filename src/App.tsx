@@ -576,15 +576,15 @@ const ScreenPlanView = ({ project }: { project: Project }) => {
 
       <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-50 dark:bg-slate-950 print:bg-white print:p-0">
         <div className="max-w-6xl mx-auto space-y-8 print:space-y-4">
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border dark:border-slate-800 print:border-none print:shadow-none print:p-0">
+          <div className="bg-slate-50 dark:bg-slate-900 p-6 rounded-3xl shadow-sm border dark:border-slate-800 print:border-none print:shadow-none print:p-0">
             <KitchenPlanCanvas data={buildProjectConstructionData(project)} scalePxPerMeter={120} />
           </div>
 
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border dark:border-slate-800 print:border-4 print:border-black print:p-4 print:rounded-none print:break-before-page">
+          <div className="bg-slate-50 dark:bg-slate-950 p-6 rounded-3xl shadow-sm border dark:border-slate-800 print:border-4 print:border-black print:p-4 print:rounded-none print:break-before-page">
             <h3 className="text-xl font-black mb-6 uppercase tracking-widest border-b-2 pb-2 print:border-b-4 print:border-black">Project BOM (Bill of Materials)</h3>
             <div className="grid md:grid-cols-2 gap-6 print:grid-cols-2 print:gap-4">
               {bomData.groups.map((group, i) => (
-                <div key={i} className="border-2 border-slate-100 dark:border-slate-800 p-4 rounded-xl print:border-2 print:border-black print:rounded-none print:break-inside-avoid">
+                <div key={i} className="bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 p-4 rounded-xl print:border-2 print:border-black print:rounded-none print:break-inside-avoid">
                   <div className="font-bold text-amber-600 mb-2 text-sm uppercase">{group.cabinetName}</div>
                   <table className="w-full text-xs italic">
                     <tbody>
@@ -2213,20 +2213,22 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
                 <FileCode size={16} className="mr-2" /> Export All DXF (ZIP)
               </Button>
             </div>
-            {/* Screen view - vertical stack */}
-            <div className="space-y-6 sm:space-y-8 print:hidden">{cutPlan.sheets.map((sheet, i) => (
-              <div key={i} className="relative">
-                <CutPlanVisualizer sheet={sheet} index={i} settings={project.settings} />
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => exportSingleSheetToDXF(sheet, project.settings, i, project.name)}
-                  className="absolute top-2 right-2 print:hidden"
-                >
-                  <FileCode size={14} className="mr-1" /> DXF
-                </Button>
-              </div>
-            ))}</div>
+            {/* Screen view - grid layout */}
+            <div className="max-w-6xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">{cutPlan.sheets.map((sheet, i) => (
+                <div key={i} className="relative border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
+                  <CutPlanVisualizer sheet={sheet} index={i} settings={project.settings} />
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => exportSingleSheetToDXF(sheet, project.settings, i, project.name)}
+                    className="absolute top-2 right-2 print:hidden"
+                  >
+                    <FileCode size={14} className="mr-1" /> DXF
+                  </Button>
+                </div>
+              ))}</div>
+            </div>
             {/* Print view - 2 per page in landscape */}
             <div className="hidden print:block">
               {Array.from({ length: Math.ceil(cutPlan.sheets.length / 2) }).map((_, pageIndex) => (
