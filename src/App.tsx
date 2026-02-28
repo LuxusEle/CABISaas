@@ -279,7 +279,7 @@ export default function App() {
     <div className="h-full w-full flex flex-col font-sans transition-colors duration-200 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
       {/* MOBILE HEADER */}
       <div className="md:hidden h-14 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 shrink-0 z-40 print:hidden">
-        <div className="font-black text-lg">CAB<span className="text-amber-500">ENGINE</span></div>
+        <img src="/landing.png" alt="CabEngine Logo" className="h-8 w-auto object-contain dark:invert-0 invert" />
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowAuthModal(true)}
@@ -531,8 +531,8 @@ const ScreenHome = ({ onNewProject, onLoadProject, logoUrl }: { onNewProject: ()
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 items-center justify-start max-w-6xl mx-auto w-full overflow-y-auto p-4 sm:p-6">
       <div className="w-full flex justify-between items-start mb-6 sm:mb-8">
-        <div className="text-center space-y-2 flex-1">
-          <h1 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight text-slate-900 dark:text-white">CAB<span className="text-amber-600 dark:text-amber-500">ENGINE</span></h1>
+        <div className="text-center space-y-2 flex-1 flex flex-col items-center">
+          <img src="/landing.png" alt="CabEngine Logo" className="h-10 sm:h-16 md:h-20 w-auto object-contain mb-2 dark:invert-0 invert" />
           <p className="text-slate-500 dark:text-slate-400 font-medium italic text-sm sm:text-base">Professional Cabinet Engineering Suite</p>
         </div>
         {logoUrl && (

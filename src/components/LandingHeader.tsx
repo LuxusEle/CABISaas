@@ -61,10 +61,11 @@ export const LandingHeader: React.FC<LandingHeaderProps> = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14 sm:h-16">
           <Link to="/" className="flex items-center gap-2 group">
-            <Box className="w-7 h-7 sm:w-8 sm:h-8 text-amber-500 group-hover:rotate-12 transition-transform" />
-            <span className="text-lg sm:text-xl font-black tracking-tight text-slate-900 dark:text-white">
-              CAB<span className="text-amber-500">ENGINE</span>
-            </span>
+            <img
+              src="/landing.png"
+              alt="CabEngine Logo"
+              className="h-8 sm:h-10 w-auto object-contain dark:invert-0 invert"
+            />
           </Link>
 
           {/* Desktop Navigation */}

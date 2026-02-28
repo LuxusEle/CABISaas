@@ -624,10 +624,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <Box className="w-5 h-5 sm:w-6 sm:h-6 text-amber-500" />
-              <span className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
-                CAB<span className="text-amber-500">ENGINE</span>
-              </span>
+              <img src="/landing.png" alt="CabEngine Logo" className="h-6 sm:h-8 w-auto object-contain dark:invert-0 invert" />
             </div>
             <p className="text-slate-600 dark:text-slate-600 text-xs sm:text-sm text-center md:text-left">
               Professional cabinet design software
