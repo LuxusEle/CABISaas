@@ -209,11 +209,22 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
 
   return (
     <div className="min-h-screen text-slate-900 dark:text-white overflow-x-hidden relative">
-      {/* Fixed Background Image */}
+      {/* Fixed Background Image - Desktop */}
       <div
-        className="fixed inset-0 z-0 transition-all duration-1000 ease-out"
+        className="fixed inset-0 z-0 transition-all duration-1000 ease-out hidden md:block"
         style={{
           backgroundImage: isDark ? 'url("/landing-bg.jpeg")' : 'url("/landing-bg-light.jpeg")',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          transform: `scale(1.15) translateY(${scrollY * 0.05}px)`
+        }}
+      />
+
+      {/* Fixed Background Image - Mobile */}
+      <div
+        className="fixed inset-0 z-0 transition-all duration-1000 ease-out block md:hidden"
+        style={{
+          backgroundImage: isDark ? 'url("/landing-bg-mobile.jpeg")' : 'url("/landing-bg-light-mobile.jpeg")',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           transform: `scale(1.15) translateY(${scrollY * 0.05}px)`
