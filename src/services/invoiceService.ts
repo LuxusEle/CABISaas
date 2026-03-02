@@ -8,8 +8,8 @@ interface BOMData {
   cabinetCount: number;
 }
 
-export const exportToInvoicePDF = (project: Project, data: BOMData, currency: string = 'LKR', totalWithMargin?: number) => {
-  // This function now just triggers print - the invoice content should be rendered in the DOM
+export const exportToQuotationPDF = (project: Project, data: BOMData, currency: string = 'LKR', totalWithMargin?: number) => {
+  // This function now just triggers print - the quotation content should be rendered in the DOM
   // with appropriate print-only CSS classes
   return {
     project,
@@ -19,4 +19,4 @@ export const exportToInvoicePDF = (project: Project, data: BOMData, currency: st
   };
 };
 
-export default exportToInvoicePDF;
+export default exportToQuotationPDF;

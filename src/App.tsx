@@ -5,7 +5,7 @@ import { Home, Layers, Calculator, Zap, ArrowLeft, ArrowRight, Trash2, Plus, Box
 import { Screen, Project, Zone, ZoneId, PresetType, CabinetType, CabinetUnit, Obstacle, AutoFillOptions } from './types';
 import { createNewProject, generateProjectBOM, autoFillZone, exportToExcel, resolveCollisions, calculateProjectCost, exportProjectToConstructionJSON, buildProjectConstructionData, getIntersectingCabinets, ensureProjectSettings } from './services/bomService';
 import { exportAllSheetsToDXFZip, exportSingleSheetToDXF, exportAllDrillingToZip } from './services/dxfExportService';
-import { generateInvoicePDF } from './services/pdfService';
+import { generateQuotationPDF } from './services/pdfService';
 import { optimizeCuts } from './services/nestingService';
 import { authService } from './services/authService';
 import { expenseTemplateService, ExpenseTemplate } from './services/expenseTemplateService';
@@ -1885,7 +1885,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
 const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject: React.Dispatch<React.SetStateAction<Project>> }) => {
   // Use more specific dependencies to prevent unnecessary recalculations
   const data = useMemo(() => generateProjectBOM(project), [project.id, project.zones, project.settings]);
-  const [activeView, setActiveView] = useState<'list' | 'cutplan' | 'wallplan' | 'invoice'>('list');
+  const [activeView, setActiveView] = useState<'list' | 'cutplan' | 'wallplan' | 'quotation'>('list');
   const cutPlan = useMemo(() => optimizeCuts(data.groups.flatMap(g => g.items), project.settings), [data.groups, project.settings.sheetLength, project.settings.sheetWidth, project.settings.kerf]);
   const currency = project.settings.currency || '$';
 
@@ -2059,8 +2059,8 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
     }));
   }, [cutPlan, project.settings, sheetTypes]);
 
-  // Calculate Invoice Specifications with Filters
-  const invoiceSpecifications = useMemo(() => {
+  // Calculate Quotation Specifications with Filters
+  const quotationSpecifications = useMemo(() => {
     const specs: string[] = [];
 
     // 1. Materials
@@ -2099,8 +2099,8 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
     setTimeout(() => window.print(), 100);
   };
 
-  const handlePrintInvoice = () => {
-    generateInvoicePDF(project, invoiceSpecifications, costs, currency, {
+  const handlePrintQuotation = () => {
+    generateQuotationPDF(project, quotationSpecifications, costs, currency, {
       companyAddress: ['Katuwawala Road', 'Borelesgamuwa', 'Western Province', 'Sri Lanka'],
       phone: '0777163564',
       email: 'luxuselemente@gmail.com',
@@ -2109,11 +2109,11 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
     });
   };
 
-  // Calculate invoice data
-  const invoiceDate = new Date();
-  const dueDate = new Date(invoiceDate);
+  // Calculate quotation data
+  const quotationDate = new Date();
+  const dueDate = new Date(quotationDate);
   dueDate.setDate(dueDate.getDate() + 30);
-  const invoiceNumber = `QT-${Date.now().toString().slice(-6)}`;
+  const quotationNumber = `QT-${Date.now().toString().slice(-6)}`;
 
   // Format currency helper
   const formatCurrency = (amount: number) => {
@@ -2124,13 +2124,13 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
     <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 w-full overflow-hidden">
       <div className="p-3 sm:p-4 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex flex-col gap-3 shrink-0 print:hidden">
         <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg self-start overflow-x-auto w-full">
-          {['list', 'cutplan', 'wallplan', 'invoice'].map((v) => (
+          {['list', 'cutplan', 'wallplan', 'quotation'].map((v) => (
             <button
               key={v}
               onClick={() => setActiveView(v as any)}
               className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 text-xs sm:text-sm font-bold rounded-md capitalize whitespace-nowrap min-h-[40px] ${activeView === v ? 'bg-white dark:bg-slate-700 shadow text-slate-900 dark:text-white' : 'text-slate-500'}`}
             >
-              {v === 'list' ? 'Material List' : v === 'cutplan' ? 'Cut Plan' : v === 'wallplan' ? 'Wall Plans' : 'Invoice Review'}
+              {v === 'list' ? 'Material List' : v === 'cutplan' ? 'Cut Plan' : v === 'wallplan' ? 'Wall Plans' : 'Quotation Review'}
             </button>
           ))}
         </div>
@@ -2150,15 +2150,15 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
           }} className="flex-1 sm:flex-none min-h-[40px] text-xs sm:text-sm">
             <Wrench size={16} className="mr-1 sm:mr-2" /> Drilling DXF
           </Button>
-          <Button variant={activeView === 'invoice' ? 'primary' : 'secondary'} size="sm" onClick={() => setActiveView('invoice')} className="flex-1 sm:flex-none min-h-[40px] text-xs sm:text-sm">
-            <CreditCard size={16} className="mr-1 sm:mr-2" /> Invoice
+          <Button variant={activeView === 'quotation' ? 'primary' : 'secondary'} size="sm" onClick={() => setActiveView('quotation')} className="flex-1 sm:flex-none min-h-[40px] text-xs sm:text-sm">
+            <CreditCard size={16} className="mr-1 sm:mr-2" /> Quotation
           </Button>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-8 space-y-6 sm:space-y-8 bg-white dark:bg-slate-950 print:p-4 print:pb-24 print:overflow-visible h-full">
         {/* BOM CONTENT */}
-        <div className={`${activeView !== 'invoice' ? 'flex' : 'hidden print:flex'} flex-col gap-10 sm:gap-14`}>
+        <div className={`${activeView !== 'quotation' ? 'flex' : 'hidden print:flex'} flex-col gap-10 sm:gap-14`}>
 
           {/* COSTING CARD - Only show in List view */}
           {activeView === 'list' && (
@@ -2419,13 +2419,13 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
           </div>
         </div>
 
-        {/* INVOICE PREVIEW */}
-        {activeView === 'invoice' && (
+        {/* QUOTATION PREVIEW */}
+        {activeView === 'quotation' && (
           <div className="max-w-4xl mx-auto bg-white dark:bg-slate-900 shadow-2xl rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden text-black animate-in fade-in slide-in-from-bottom-4 duration-500 print:shadow-none print:border-0 print:m-0 print:bg-white print:text-black">
-            {/* Invoice Header (Matching PDF Layout) */}
+            {/* Quotation Header (Matching PDF Layout) */}
             <div className="bg-slate-800 dark:bg-black text-white p-8 sm:p-12 flex flex-col sm:flex-row justify-between items-center text-center sm:text-left gap-6 print:bg-slate-800 print:text-white">
               <div>
-                <h1 className="text-4xl sm:text-5xl font-light tracking-[0.2em] uppercase mb-2">Invoice</h1>
+                <h1 className="text-4xl sm:text-5xl font-light tracking-[0.2em] uppercase mb-2">Quotation</h1>
                 <p className="text-slate-400 text-xs tracking-widest uppercase">Quotation / Bill of Quantities</p>
               </div>
               <div className="text-center sm:text-right">
@@ -2456,12 +2456,12 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
                 </div>
                 <div className="space-y-2">
                   <div className="flex justify-between sm:justify-end gap-6 text-xs">
-                    <span className="text-slate-400 uppercase font-bold tracking-widest">Invoice#</span>
-                    <span className="font-bold text-slate-800">{invoiceNumber}</span>
+                    <span className="text-slate-400 uppercase font-bold tracking-widest">Quotation#</span>
+                    <span className="font-bold text-slate-800">{quotationNumber}</span>
                   </div>
                   <div className="flex justify-between sm:justify-end gap-6 text-xs">
-                    <span className="text-slate-400 uppercase font-bold tracking-widest">Invoice Date</span>
-                    <span className="text-slate-800">{invoiceDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                    <span className="text-slate-400 uppercase font-bold tracking-widest">Quotation Date</span>
+                    <span className="text-slate-800">{quotationDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
                   </div>
                   <div className="flex justify-between sm:justify-end gap-6 text-xs">
                     <span className="text-slate-400 uppercase font-bold tracking-widest">Due Date</span>
@@ -2486,7 +2486,7 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
                       <td className="py-6 align-top">
                         <div className="font-black text-slate-800 uppercase tracking-tight mb-2">{(project.name || 'Cabinet Project') + ' Specifications'}</div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1 text-[10px] text-slate-500 font-medium">
-                          {invoiceSpecifications.map((spec, idx) => (
+                          {quotationSpecifications.map((spec, idx) => (
                             <div key={idx} className="flex gap-2">
                               <span className="text-amber-500">{(idx + 1).toString().padStart(2, '0')}.</span>
                               <span>{spec}</span>
@@ -2555,8 +2555,8 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
 
               {/* Actions Box */}
               <div className="pt-12 flex flex-col items-center gap-4 print:hidden border-t border-slate-100">
-                <Button variant="primary" size="lg" onClick={handlePrintInvoice} className="gap-3 px-12 py-6 rounded-full shadow-2xl shadow-amber-500/20 hover:scale-105 transition-transform">
-                  <Download size={24} /> Download Invoice PDF
+                <Button variant="primary" size="lg" onClick={handlePrintQuotation} className="gap-3 px-12 py-6 rounded-full shadow-2xl shadow-amber-500/20 hover:scale-105 transition-transform">
+                  <Download size={24} /> Download Quotation PDF
                 </Button>
                 <button onClick={() => setActiveView('list')} className="text-slate-400 hover:text-slate-600 text-xs font-bold uppercase tracking-widest">Back to Report</button>
               </div>

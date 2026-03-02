@@ -252,7 +252,7 @@ CabEngine is a cloud-based Software-as-a-Service (SaaS) application designed for
 - **Wall Plans** — Technical elevation drawings for workshop reference
 - **Quick Parts Calculator** — Standalone parts calculation for individual components
 - **Area Calculator** — Surface area and coverage calculations
-- **Export & Reporting** — Print, JSON, Excel, and Invoice exports
+- **Export & Reporting** — Print, JSON, Excel, and Quotation exports
 
 ### 1.3 Eligibility
 
