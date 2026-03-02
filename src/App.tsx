@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
-import { Home, Layers, Calculator, Zap, ArrowLeft, ArrowRight, Trash2, Plus, Box, DoorOpen, Wand2, Moon, Sun, Table2, FileSpreadsheet, X, Pencil, Save, List, Settings, Printer, Download, Scissors, LayoutDashboard, DollarSign, Map, LogOut, Menu, Wrench, CreditCard, ChevronDown, ChevronUp, FileText, Ruler, Book, Upload, Image as ImageIcon, Shield, FileCode } from 'lucide-react';
+import { Home, Layers, Calculator, Zap, ArrowLeft, ArrowRight, Trash2, Plus, Box, DoorOpen, Wand2, Moon, Sun, Table2, FileSpreadsheet, X, Pencil, Save, List, Settings, Printer, Download, Scissors, LayoutDashboard, DollarSign, Map, LogOut, Menu, Wrench, CreditCard, ChevronDown, ChevronUp, FileText, Ruler, Book, Upload, Image as ImageIcon, Shield, FileCode, Check } from 'lucide-react';
 import { Screen, Project, Zone, ZoneId, PresetType, CabinetType, CabinetUnit, Obstacle, AutoFillOptions } from './types';
 import { createNewProject, generateProjectBOM, autoFillZone, exportToExcel, resolveCollisions, calculateProjectCost, exportProjectToConstructionJSON, buildProjectConstructionData, getIntersectingCabinets, ensureProjectSettings } from './services/bomService';
 import { exportAllSheetsToDXFZip, exportSingleSheetToDXF, exportAllDrillingToZip } from './services/dxfExportService';
@@ -2130,7 +2130,7 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
               onClick={() => setActiveView(v as any)}
               className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 text-xs sm:text-sm font-bold rounded-md capitalize whitespace-nowrap min-h-[40px] ${activeView === v ? 'bg-white dark:bg-slate-700 shadow text-slate-900 dark:text-white' : 'text-slate-500'}`}
             >
-              {v === 'list' ? 'Material List' : v === 'cutplan' ? 'Cut Plan' : v === 'wallplan' ? 'Wall Plans' : 'Quotation Review'}
+              {v === 'list' ? 'Material List' : v === 'cutplan' ? 'Cut Plan' : v === 'wallplan' ? 'Wall Plans' : (project.settings.quotationStatus === 'invoice' ? 'Invoice Review' : 'Quotation Review')}
             </button>
           ))}
         </div>
@@ -2151,7 +2151,7 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
             <Wrench size={16} className="mr-1 sm:mr-2" /> Drilling DXF
           </Button>
           <Button variant={activeView === 'quotation' ? 'primary' : 'secondary'} size="sm" onClick={() => setActiveView('quotation')} className="flex-1 sm:flex-none min-h-[40px] text-xs sm:text-sm">
-            <CreditCard size={16} className="mr-1 sm:mr-2" /> Quotation
+            <CreditCard size={16} className="mr-1 sm:mr-2" /> {project.settings.quotationStatus === 'invoice' ? 'Invoice' : 'Quotation'}
           </Button>
         </div>
       </div>
@@ -2425,8 +2425,8 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
             {/* Quotation Header (Matching PDF Layout) */}
             <div className="bg-slate-800 dark:bg-black text-white p-8 sm:p-12 flex flex-col sm:flex-row justify-between items-center text-center sm:text-left gap-6 print:bg-slate-800 print:text-white">
               <div>
-                <h1 className="text-4xl sm:text-5xl font-light tracking-[0.2em] uppercase mb-2">Quotation</h1>
-                <p className="text-slate-400 text-xs tracking-widest uppercase">Quotation / Bill of Quantities</p>
+                <h1 className="text-4xl sm:text-5xl font-light tracking-[0.2em] uppercase mb-2">{project.settings.quotationStatus === 'invoice' ? 'Invoice' : 'Quotation'}</h1>
+                <p className="text-slate-400 text-xs tracking-widest uppercase">{project.settings.quotationStatus === 'invoice' ? 'Invoice / Bill' : 'Quotation / Bill of Quantities'}</p>
               </div>
               <div className="text-center sm:text-right">
                 <div className="font-black text-lg uppercase mb-1 tracking-tight">{project.company || "Company Name"}</div>
@@ -2555,8 +2555,17 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
 
               {/* Actions Box */}
               <div className="pt-12 flex flex-col items-center gap-4 print:hidden border-t border-slate-100">
+                {project.settings.quotationStatus !== 'invoice' ? (
+                  <Button variant="secondary" size="lg" onClick={async () => { const updated = { ...project, settings: { ...project.settings, quotationStatus: 'invoice' as const, quotationApprovedDate: new Date().toISOString() } }; setProject(updated); await projectService.updateProject(project.id, updated); }} className="gap-3 px-12 py-6 rounded-full shadow-lg hover:scale-105 transition-transform">
+                    <Check size={24} /> Mark as Approved (Convert to Invoice)
+                  </Button>
+                ) : (
+                  <div className="flex items-center gap-2 text-green-600 font-bold">
+                    <Check size={20} /> Invoice Approved on {new Date(project.settings.quotationApprovedDate || '').toLocaleDateString('en-GB')}
+                  </div>
+                )}
                 <Button variant="primary" size="lg" onClick={handlePrintQuotation} className="gap-3 px-12 py-6 rounded-full shadow-2xl shadow-amber-500/20 hover:scale-105 transition-transform">
-                  <Download size={24} /> Download Quotation PDF
+                  <Download size={24} /> {project.settings.quotationStatus === 'invoice' ? 'Download Invoice PDF' : 'Download Quotation PDF'}
                 </Button>
                 <button onClick={() => setActiveView('list')} className="text-slate-400 hover:text-slate-600 text-xs font-bold uppercase tracking-widest">Back to Report</button>
               </div>

@@ -59,6 +59,10 @@ export interface ProjectSettings {
   // Costing
   costs: CostSettings;
 
+  // Quotation Status
+  quotationStatus?: 'quotation' | 'invoice';
+  quotationApprovedDate?: string;
+
   // Material allocation settings
   materialSettings?: ProjectMaterialSettings;
 }

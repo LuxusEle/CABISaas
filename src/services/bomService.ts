@@ -710,7 +710,9 @@ export const createNewProject = (logoUrl?: string): Project => ({
       backMaterial: '',
       shelfMaterial: '',
       sheetSpecs: {}
-    }
+    },
+    quotationStatus: 'quotation' as const,
+    quotationApprovedDate: undefined
   },
   zones: [
     { id: 'Wall A', active: true, totalLength: 3000, wallHeight: 2400, obstacles: [], cabinets: [] }
