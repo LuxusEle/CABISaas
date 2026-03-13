@@ -224,7 +224,12 @@ export const WallVisualizer: React.FC<Props> = ({
     let y = height - toeKick - baseHeight;
 
     if (isTall) { h = tallHeight; y = height - toeKick - tallHeight; }
-    else if (isWall) { h = wallHeight; y = height - toeKick - wallHeight; }
+    else if (isWall) { 
+      h = wallHeight; 
+      // Wall cabinet sits above counter top using settings
+      const wallElevation = settings?.wallCabinetElevation || 450;
+      y = height - toeKick - baseHeight - counterThickness - wallElevation - wallHeight;
+    }
 
     const x = unit.fromLeft;
     const w = unit.width;

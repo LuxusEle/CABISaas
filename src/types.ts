@@ -67,6 +67,7 @@ export interface ProjectSettings {
   grooveDepth: number;         // Groove depth for back panels - default: 5mm
   backPanelThickness: number;  // Back panel thickness - default: 6mm
   doorMaterialThickness: number; // Door material thickness - default: 18mm
+  wallCabinetElevation: number; // Gap from counter top to wall cabinet bottom - default: 450mm
 
   // Costing
   costs: CostSettings;

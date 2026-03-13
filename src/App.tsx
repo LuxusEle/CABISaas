@@ -856,6 +856,7 @@ const ScreenProjectSetup = ({ project, setProject, onSave }: { project: Project,
                     <NumberInput label="Sheet Length (mm)" value={project.settings.sheetLength} onChange={(v) => setProject({ ...project, settings: { ...project.settings, sheetLength: v } })} step={100} />
                     <NumberInput label="Sheet Width (mm)" value={project.settings.sheetWidth} onChange={(v) => setProject({ ...project, settings: { ...project.settings, sheetWidth: v } })} step={100} />
                     <NumberInput label="Kerf (mm)" value={project.settings.kerf} onChange={(v) => setProject({ ...project, settings: { ...project.settings, kerf: v } })} step={1} />
+                    <NumberInput label="Wall Cabinet Elevation (mm)" value={project.settings.wallCabinetElevation} onChange={(v) => setProject({ ...project, settings: { ...project.settings, wallCabinetElevation: v } })} step={10} />
                   </div>
 
                   {/* Ruby CBX Advanced Settings Button */}

@@ -41,7 +41,16 @@ export const Cabinet: React.FC<Props> = ({ unit, position, rotation, showHardwar
   const width = unit.width;
   const depth = isWall ? (settings?.depthWall || 350) : isTall ? (settings?.depthTall || 600) : (settings?.depthBase || 560);
   const height = isTall ? (settings?.tallHeight || 2100) : isWall ? (settings?.wallHeight || 720) : (settings?.baseHeight || 870);
-  const zBase = isWall ? ((settings?.baseHeight || 870) - 100 || 1400) : 0;
+  
+  const baseHeight = settings?.baseHeight || 870;
+  const counterThickness = settings?.counterThickness || 40;
+  const wallElevation = settings?.wallCabinetElevation || 450;
+  
+  // Wall cabinet sits above counter top using settings
+  let zBase = 0;
+  if (isWall) {
+    zBase = baseHeight + counterThickness + wallElevation;
+  }
 
   const activeColor = getActiveColor(unit.preset);
   const baseColor = new THREE.Color(

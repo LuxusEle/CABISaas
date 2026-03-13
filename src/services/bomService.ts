@@ -743,6 +743,7 @@ export const createNewProject = (logoUrl?: string): Project => ({
     grooveDepth: 5,           // Ruby: 5mm
     backPanelThickness: 6,    // Ruby: 6mm
     doorMaterialThickness: 18, // Ruby: 18mm
+    wallCabinetElevation: 450, // Gap from counter top to wall cabinet bottom - default: 450mm
     costs: {
       pricePerSheet: 85.00,
       pricePerHardwareUnit: 5.00,

@@ -143,7 +143,19 @@ export const IsometricVisualizer: React.FC<Props> = ({ project, showHardware = t
         const w = unit.width;
         const d = isWall ? (settings.depthWall || 350) : isTall ? (settings.depthTall || 600) : (settings.depthBase || 560);
         const h = isTall ? (settings.tallHeight || 2100) : isWall ? (settings.wallHeight || 720) : (settings.baseHeight || 870);
-        const zBase = isWall ? (settings.baseHeight - (settings.wallHeight - 720) || 1400) : 0;
+        const baseHeight = settings?.baseHeight || 870;
+        const counterThickness = settings?.counterThickness || 40;
+        const wallElevation = settings?.wallCabinetElevation || 450;
+        
+        // Wall cabinet sits above counter top using settings
+        let zBase = 0;
+        if (isWall) {
+            zBase = baseHeight + counterThickness + wallElevation;
+        } else if (isTall) {
+            zBase = 0;
+        } else {
+            zBase = 0;
+        }
 
         // Local coordinates for the box corners
         const corners = [
