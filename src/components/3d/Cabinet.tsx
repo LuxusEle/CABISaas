@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
-import { CabinetUnit, CabinetType, PresetType, Zone } from '../../types';
+import { CabinetUnit, CabinetType, PresetType, Zone, ProjectSettings } from '../../types';
 import { getActiveColor } from '../../services/cabinetColors';
 import { HardwareMarkers } from './HardwareMarkers';
 
@@ -12,7 +12,11 @@ interface Props {
   showHardware: boolean;
   wallIndex?: number;
   label?: string;
+  settings?: ProjectSettings;
 }
+
+// Ruby CBX door threshold: < 599.5mm = single door, >= 600mm = double doors
+const RUBY_DOOR_THRESHOLD = 599.5;
 
 const getNumDoors = (unit: CabinetUnit): number => {
   if (unit.customConfig?.num_doors !== undefined) {
@@ -21,7 +25,7 @@ const getNumDoors = (unit: CabinetUnit): number => {
   switch (unit.preset) {
     case PresetType.BASE_DOOR:
     case PresetType.WALL_STD:
-      return unit.width > 400 ? 2 : 1;
+      return unit.width >= RUBY_DOOR_THRESHOLD ? 2 : 1;
     case PresetType.TALL_OVEN:
     case PresetType.TALL_UTILITY:
       return 1;
@@ -30,14 +34,14 @@ const getNumDoors = (unit: CabinetUnit): number => {
   }
 };
 
-export const Cabinet: React.FC<Props> = ({ unit, position, rotation, showHardware, wallIndex = 0, label }) => {
+export const Cabinet: React.FC<Props> = ({ unit, position, rotation, showHardware, wallIndex = 0, label, settings }) => {
   const isWall = unit.type === CabinetType.WALL;
   const isTall = unit.type === CabinetType.TALL;
 
   const width = unit.width;
-  const depth = isWall ? 320 : isTall ? 580 : 560;
-  const height = isTall ? 2100 : isWall ? 720 : 720;
-  const zBase = isWall ? 1400 : 0;
+  const depth = isWall ? (settings?.depthWall || 350) : isTall ? (settings?.depthTall || 600) : (settings?.depthBase || 560);
+  const height = isTall ? (settings?.tallHeight || 2100) : isWall ? (settings?.wallHeight || 720) : (settings?.baseHeight || 870);
+  const zBase = isWall ? ((settings?.baseHeight || 870) - 100 || 1400) : 0;
 
   const activeColor = getActiveColor(unit.preset);
   const baseColor = new THREE.Color(

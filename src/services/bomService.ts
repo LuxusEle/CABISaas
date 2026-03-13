@@ -21,6 +21,38 @@ const HW = {
 // Nails per hinge
 const NAILS_PER_HINGE = 4;
 
+// Ruby CBX Door Calculation Helper
+// Returns door configuration based on cabinet width and settings
+// Ruby rules: Single door if width < 599.5mm, Double doors if width >= 600mm
+const calculateDoors = (cabinetWidth: number, doorHeight: number, settings: ProjectSettings) => {
+  const threshold = 599.5; // Ruby threshold in mm
+  const outerGap = settings.doorOuterGap || 3;
+  const innerGap = settings.doorInnerGap || 3;
+  
+  const isDoubleDoor = cabinetWidth >= threshold;
+  
+  if (isDoubleDoor) {
+    const doorOpening = cabinetWidth - 2 * outerGap - innerGap;
+    const doorWidth = doorOpening / 2;
+    return {
+      qty: 2,
+      width: doorWidth,
+      length: doorHeight,
+      hinges: 4,
+      handles: 2
+    };
+  } else {
+    const doorWidth = cabinetWidth - 2 * outerGap;
+    return {
+      qty: 1,
+      width: doorWidth,
+      length: doorHeight,
+      hinges: 2,
+      handles: 1
+    };
+  }
+};
+
 // --- COLLISION LOGIC ---
 
 export const resolveCollisions = (zone: Zone): Zone => {
@@ -385,8 +417,9 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
       parts.push({ id: uuid(), name: 'Drawer Side', qty: config.num_drawers * 2, width: depth - 10, length: 150, material: drawerMaterial, category: 'drawer', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label });
     }
 
-    // Add custom hardware
-    const hinges = config.hinges ?? (config.num_doors > 0 ? (unit.width > 400 ? config.num_doors * 2 : config.num_doors) : 0);
+    // Add custom hardware (using Ruby CBX door threshold: >= 600mm = double door)
+    const isDoubleDoor = unit.width >= 599.5;
+    const hinges = config.hinges ?? (config.num_doors > 0 ? (isDoubleDoor ? config.num_doors * 2 : config.num_doors) : 0);
     const slides = config.slides ?? config.num_drawers;
     const handles = config.handles ?? (config.num_doors + config.num_drawers);
 
@@ -405,11 +438,14 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
   }
 
   // Preset Hardware
+  // Calculate door dimensions using Ruby CBX rules
+  const doorConfig = calculateDoors(unit.width, height - 4, settings);
+  
   if (unit.preset === PresetType.BASE_DOOR) {
-    parts.push({ id: uuid(), name: 'Door', qty: unit.width > 400 ? 2 : 1, width: unit.width > 400 ? (unit.width / 2) - 2 : unit.width - 4, length: height - 4, material: doorMaterial, category: 'door', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label });
+    parts.push({ id: uuid(), name: 'Door', qty: doorConfig.qty, width: doorConfig.width, length: doorConfig.length, material: doorMaterial, category: 'door', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label });
     parts.push({ id: uuid(), name: 'Shelf', qty: 1, width: depth - 20, length: horizWidth, material: shelfMaterial, category: 'shelf', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label });
-    parts.push({ id: uuid(), name: HW.HINGE, qty: unit.width > 400 ? 4 : 2, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
-    parts.push({ id: uuid(), name: HW.HANDLE, qty: unit.width > 400 ? 2 : 1, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
+    parts.push({ id: uuid(), name: HW.HINGE, qty: doorConfig.hinges, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
+    parts.push({ id: uuid(), name: HW.HANDLE, qty: doorConfig.handles, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
     parts.push({ id: uuid(), name: HW.LEG, qty: 4, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
   }
   if (unit.preset === PresetType.BASE_DRAWER_3) {
@@ -421,10 +457,10 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
     parts.push({ id: uuid(), name: HW.LEG, qty: 4, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
   }
   if (unit.preset === PresetType.WALL_STD) {
-    parts.push({ id: uuid(), name: 'Door', qty: unit.width > 400 ? 2 : 1, width: unit.width > 400 ? (unit.width / 2) - 2 : unit.width - 4, length: height - 4, material: doorMaterial, category: 'door', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label });
+    parts.push({ id: uuid(), name: 'Door', qty: doorConfig.qty, width: doorConfig.width, length: doorConfig.length, material: doorMaterial, category: 'door', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label });
     parts.push({ id: uuid(), name: 'Shelf', qty: 2, width: depth - 20, length: horizWidth, material: shelfMaterial, category: 'shelf', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label });
-    parts.push({ id: uuid(), name: HW.HINGE, qty: unit.width > 400 ? 4 : 2, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
-    parts.push({ id: uuid(), name: HW.HANDLE, qty: unit.width > 400 ? 2 : 1, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
+    parts.push({ id: uuid(), name: HW.HINGE, qty: doorConfig.hinges, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
+    parts.push({ id: uuid(), name: HW.HANDLE, qty: doorConfig.handles, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
     parts.push({ id: uuid(), name: HW.HANGER, qty: 1, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
   }
   if (unit.preset === PresetType.TALL_OVEN) {
@@ -684,18 +720,29 @@ export const createNewProject = (logoUrl?: string): Project => ({
   settings: {
     currency: 'LKR',
     logoUrl: logoUrl,
-    baseHeight: 720,
-    wallHeight: 720,
-    tallHeight: 2100,
-    depthBase: 560,
-    depthWall: 320,
-    depthTall: 580,
-    thickness: 16,
+    // Dimensions - Updated to match Ruby CBX defaults
+    baseHeight: 870,    // Ruby: 870mm (includes plinth)
+    wallHeight: 720,    // Ruby: 720mm
+    tallHeight: 2100,  // Ruby: 2100mm
+    depthBase: 560,    // Ruby: 560mm
+    depthWall: 350,    // Ruby: 350mm
+    depthTall: 600,    // Ruby: 600mm
+    thickness: 18,     // Ruby: 18mm
     counterThickness: 40,
-    toeKickHeight: 150,
+    toeKickHeight: 100, // Ruby: 100mm plinth
     sheetWidth: 1220,
     sheetLength: 2440,
     kerf: 4,
+    // Ruby CBX Design Rules - Gap & Clearance Settings
+    doorToDoorGap: 2.0,      // Ruby: 2.0mm
+    doorToPanelGap: 2.0,     // Ruby: 2.0mm
+    drawerToDrawerGap: 2.0,  // Ruby: 2.0mm
+    doorOuterGap: 3.0,        // Ruby: 3.0mm
+    doorInnerGap: 3.0,        // Ruby: 3.0mm
+    doorSideClearance: 3.0,   // Ruby: 3.0mm
+    grooveDepth: 5,           // Ruby: 5mm
+    backPanelThickness: 6,    // Ruby: 6mm
+    doorMaterialThickness: 18, // Ruby: 18mm
     costs: {
       pricePerSheet: 85.00,
       pricePerHardwareUnit: 5.00,

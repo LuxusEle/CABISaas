@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
-import { Home, Layers, Calculator, Zap, ArrowLeft, ArrowRight, Trash2, Plus, Box, DoorOpen, Wand2, Moon, Sun, Table2, FileSpreadsheet, X, Pencil, Save, List, Settings, Printer, Download, Scissors, LayoutDashboard, DollarSign, Map, LogOut, Menu, Wrench, CreditCard, ChevronDown, ChevronUp, FileText, Ruler, Book, Upload, Image as ImageIcon, Shield, FileCode, Check } from 'lucide-react';
+import { Home, Layers, Calculator, Zap, ArrowLeft, ArrowRight, Trash2, Plus, Box, DoorOpen, Wand2, Moon, Sun, Table2, FileSpreadsheet, X, Pencil, Save, List, Settings, Printer, Download, Scissors, LayoutDashboard, DollarSign, Map, LogOut, Menu, Wrench, CreditCard, ChevronDown, ChevronUp, FileText, Ruler, Book, Upload, Image as ImageIcon, Shield, FileCode, Check, Settings2 } from 'lucide-react';
 import { Screen, Project, Zone, ZoneId, PresetType, CabinetType, CabinetUnit, Obstacle, AutoFillOptions } from './types';
 import { createNewProject, generateProjectBOM, autoFillZone, exportToExcel, resolveCollisions, calculateProjectCost, exportProjectToConstructionJSON, buildProjectConstructionData, getIntersectingCabinets, ensureProjectSettings } from './services/bomService';
 import { exportAllSheetsToDXFZip, exportSingleSheetToDXF, exportAllDrillingToZip } from './services/dxfExportService';
@@ -661,6 +661,9 @@ const ScreenProjectSetup = ({ project, setProject, onSave }: { project: Project,
   // State to track which section is expanded - only one at a time
   const [expandedSection, setExpandedSection] = useState<'projectInfo' | 'sheetTypes' | 'accessories' | 'allocation' | 'costs' | null>('projectInfo');
 
+  // CBX Advanced Settings Modal
+  const [showCbxModal, setShowCbxModal] = useState(false);
+
   // Logo upload state
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string | null>(project.settings.logoUrl || null);
@@ -841,14 +844,75 @@ const ScreenProjectSetup = ({ project, setProject, onSave }: { project: Project,
                     <Ruler size={14} /> Dimensions & Nesting
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                    <NumberInput label="Base Height" value={project.settings.baseHeight} onChange={(v) => setProject({ ...project, settings: { ...project.settings, baseHeight: v } })} step={10} />
-                    <NumberInput label="Sheet Length" value={project.settings.sheetLength} onChange={(v) => setProject({ ...project, settings: { ...project.settings, sheetLength: v } })} step={100} />
-                    <NumberInput label="Sheet Width" value={project.settings.sheetWidth} onChange={(v) => setProject({ ...project, settings: { ...project.settings, sheetWidth: v } })} step={100} />
+                    <NumberInput label="Base Height (mm)" value={project.settings.baseHeight} onChange={(v) => setProject({ ...project, settings: { ...project.settings, baseHeight: v } })} step={10} />
+                    <NumberInput label="Wall Height (mm)" value={project.settings.wallHeight} onChange={(v) => setProject({ ...project, settings: { ...project.settings, wallHeight: v } })} step={10} />
+                    <NumberInput label="Tall Height (mm)" value={project.settings.tallHeight} onChange={(v) => setProject({ ...project, settings: { ...project.settings, tallHeight: v } })} step={10} />
+                    <NumberInput label="Depth Base (mm)" value={project.settings.depthBase} onChange={(v) => setProject({ ...project, settings: { ...project.settings, depthBase: v } })} step={10} />
+                    <NumberInput label="Depth Wall (mm)" value={project.settings.depthWall} onChange={(v) => setProject({ ...project, settings: { ...project.settings, depthWall: v } })} step={10} />
+                    <NumberInput label="Depth Tall (mm)" value={project.settings.depthTall} onChange={(v) => setProject({ ...project, settings: { ...project.settings, depthTall: v } })} step={10} />
+                    <NumberInput label="Panel Thickness (mm)" value={project.settings.thickness} onChange={(v) => setProject({ ...project, settings: { ...project.settings, thickness: v as 16|18|19 } })} step={1} />
+                    <NumberInput label="Counter Thickness (mm)" value={project.settings.counterThickness} onChange={(v) => setProject({ ...project, settings: { ...project.settings, counterThickness: v } })} step={5} />
+                    <NumberInput label="Toe Kick (mm)" value={project.settings.toeKickHeight} onChange={(v) => setProject({ ...project, settings: { ...project.settings, toeKickHeight: v } })} step={10} />
+                    <NumberInput label="Sheet Length (mm)" value={project.settings.sheetLength} onChange={(v) => setProject({ ...project, settings: { ...project.settings, sheetLength: v } })} step={100} />
+                    <NumberInput label="Sheet Width (mm)" value={project.settings.sheetWidth} onChange={(v) => setProject({ ...project, settings: { ...project.settings, sheetWidth: v } })} step={100} />
+                    <NumberInput label="Kerf (mm)" value={project.settings.kerf} onChange={(v) => setProject({ ...project, settings: { ...project.settings, kerf: v } })} step={1} />
+                  </div>
+
+                  {/* Ruby CBX Advanced Settings Button */}
+                  <div className="mt-4">
+                    <button
+                      onClick={() => setShowCbxModal(true)}
+                      className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg text-sm font-medium transition-colors"
+                    >
+                      <Settings2 size={16} />
+                      Ruby CBX Design Rules (Advanced)
+                    </button>
                   </div>
                 </div>
               </div>
             </div>
           </div>
+
+          {/* CBX Design Rules Modal */}
+          {showCbxModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+                <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
+                  <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                    <Settings2 size={20} /> Ruby CBX Design Rules
+                  </h3>
+                  <button
+                    onClick={() => setShowCbxModal(false)}
+                    className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
+                  >
+                    <X size={20} className="text-slate-500" />
+                  </button>
+                </div>
+                <div className="p-4 overflow-y-auto max-h-[calc(90vh-80px)]">
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">Gap and clearance settings matching Ruby CBX Shotgun plugin defaults.</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    <NumberInput label="Door-to-Door Gap (mm)" value={project.settings.doorToDoorGap} onChange={(v) => setProject({ ...project, settings: { ...project.settings, doorToDoorGap: v } })} step={0.5} />
+                    <NumberInput label="Door-to-Panel Gap (mm)" value={project.settings.doorToPanelGap} onChange={(v) => setProject({ ...project, settings: { ...project.settings, doorToPanelGap: v } })} step={0.5} />
+                    <NumberInput label="Drawer-to-Drawer Gap (mm)" value={project.settings.drawerToDrawerGap} onChange={(v) => setProject({ ...project, settings: { ...project.settings, drawerToDrawerGap: v } })} step={0.5} />
+                    <NumberInput label="Door Outer Gap (mm)" value={project.settings.doorOuterGap} onChange={(v) => setProject({ ...project, settings: { ...project.settings, doorOuterGap: v } })} step={0.5} />
+                    <NumberInput label="Door Inner Gap (mm)" value={project.settings.doorInnerGap} onChange={(v) => setProject({ ...project, settings: { ...project.settings, doorInnerGap: v } })} step={0.5} />
+                    <NumberInput label="Door Side Clearance (mm)" value={project.settings.doorSideClearance} onChange={(v) => setProject({ ...project, settings: { ...project.settings, doorSideClearance: v } })} step={0.5} />
+                    <NumberInput label="Groove Depth (mm)" value={project.settings.grooveDepth} onChange={(v) => setProject({ ...project, settings: { ...project.settings, grooveDepth: v } })} step={1} />
+                    <NumberInput label="Back Panel Thickness (mm)" value={project.settings.backPanelThickness} onChange={(v) => setProject({ ...project, settings: { ...project.settings, backPanelThickness: v } })} step={1} />
+                    <NumberInput label="Door Material Thickness (mm)" value={project.settings.doorMaterialThickness} onChange={(v) => setProject({ ...project, settings: { ...project.settings, doorMaterialThickness: v } })} step={1} />
+                  </div>
+                  <div className="mt-6 flex justify-end">
+                    <button
+                      onClick={() => setShowCbxModal(false)}
+                      className="px-6 py-2 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-lg font-medium hover:bg-slate-800 dark:hover:bg-slate-200 transition-colors"
+                    >
+                      Done
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Sheet Types Manager */}
           <SheetTypeManager
@@ -1430,7 +1494,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
             {/* Canvas */}
             <div className="min-h-[240px] bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 relative z-10 transition-all min-h-0">
               {visualMode === 'elevation' ? (
-                <WallVisualizer zone={currentZone} height={currentZone.wallHeight || 2400} onCabinetClick={(i) => openEdit('cabinet', i)} onObstacleClick={(i) => openEdit('obstacle', i)} onCabinetMove={handleCabinetMove} onObstacleMove={handleObstacleMove} onDragEnd={handleDragEnd} onSwapCabinets={handleSwapCabinets} />
+                <WallVisualizer zone={currentZone} height={currentZone.wallHeight || 2400} settings={project.settings} onCabinetClick={(i) => openEdit('cabinet', i)} onObstacleClick={(i) => openEdit('obstacle', i)} onCabinetMove={handleCabinetMove} onObstacleMove={handleObstacleMove} onDragEnd={handleDragEnd} onSwapCabinets={handleSwapCabinets} />
               ) : (
                 <CabinetViewer project={project} showHardware={true} />
               )}
@@ -1527,7 +1591,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
             {/* Canvas */}
             <div className="flex-1 min-h-0 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 relative">
               {visualMode === 'elevation' ? (
-                <WallVisualizer zone={currentZone} height={currentZone.wallHeight || 2400} onCabinetClick={(i) => openEdit('cabinet', i)} onObstacleClick={(i) => openEdit('obstacle', i)} onCabinetMove={handleCabinetMove} onObstacleMove={handleObstacleMove} onDragEnd={handleDragEnd} onSwapCabinets={handleSwapCabinets} />
+                <WallVisualizer zone={currentZone} height={currentZone.wallHeight || 2400} settings={project.settings} onCabinetClick={(i) => openEdit('cabinet', i)} onObstacleClick={(i) => openEdit('obstacle', i)} onCabinetMove={handleCabinetMove} onObstacleMove={handleObstacleMove} onDragEnd={handleDragEnd} onSwapCabinets={handleSwapCabinets} />
               ) : (
                 <CabinetViewer project={project} showHardware={true} />
               )}
@@ -1910,17 +1974,19 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
   }, []);
 
   // Calculate total doors for hinge calculation
+  // Ruby CBX door threshold: < 599.5mm = single door, >= 600mm = double doors
+  const RUBY_DOOR_THRESHOLD = 599.5;
   const totalDoors = useMemo(() => {
     let doors = 0;
     project.zones.forEach(zone => {
       zone.cabinets.forEach(cab => {
         // Count doors: base door cabinets have 1 or 2 doors depending on width
         if (cab.preset === PresetType.BASE_DOOR) {
-          doors += cab.width > 400 ? 2 : 1;
+          doors += cab.width >= RUBY_DOOR_THRESHOLD ? 2 : 1;
         }
         // Wall cabinets also have doors
         if (cab.type === CabinetType.WALL && cab.preset !== PresetType.OPEN_BOX) {
-          doors += cab.width > 400 ? 2 : 1;
+          doors += cab.width >= RUBY_DOOR_THRESHOLD ? 2 : 1;
         }
         // Tall cabinets
         if (cab.type === CabinetType.TALL) {
@@ -2403,7 +2469,7 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
                       {/* Page 2: Wall Visualization - full page, no title */}
                       <div className="bg-white w-full h-[calc(100vh-80px)] flex flex-col items-center justify-start">
                         <div className="w-full flex items-center justify-center pt-8" style={{ transform: 'scale(0.85)', transformOrigin: 'top center' }}>
-                          <WallVisualizer zone={zone} height={zone.wallHeight || 2400} hideArrows={true} />
+                          <WallVisualizer zone={zone} height={zone.wallHeight || 2400} settings={project.settings} hideArrows={true} />
                         </div>
                       </div>
                     </div>

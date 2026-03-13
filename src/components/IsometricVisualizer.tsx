@@ -9,6 +9,9 @@ interface Props {
     showHardware?: boolean;
 }
 
+// Ruby CBX door threshold: < 599.5mm = single door, >= 600mm = double doors
+const RUBY_DOOR_THRESHOLD = 599.5;
+
 const getNumDoors = (unit: CabinetUnit): number => {
     if (unit.customConfig?.num_doors !== undefined) {
         return unit.customConfig.num_doors;
@@ -16,7 +19,7 @@ const getNumDoors = (unit: CabinetUnit): number => {
     switch (unit.preset) {
         case PresetType.BASE_DOOR:
         case PresetType.WALL_STD:
-            return unit.width > 400 ? 2 : 1;
+            return unit.width >= RUBY_DOOR_THRESHOLD ? 2 : 1;
         case PresetType.TALL_OVEN:
         case PresetType.TALL_UTILITY:
             return 1;
@@ -136,10 +139,11 @@ export const IsometricVisualizer: React.FC<Props> = ({ project, showHardware = t
         const isWall = unit.type === CabinetType.WALL;
         const isTall = unit.type === CabinetType.TALL;
 
+        const settings = project.settings;
         const w = unit.width;
-        const d = isWall ? 300 : isTall ? 600 : 600;
-        const h = isTall ? 2100 : isWall ? 720 : 720;
-        const zBase = isWall ? 1400 : 0;
+        const d = isWall ? (settings.depthWall || 350) : isTall ? (settings.depthTall || 600) : (settings.depthBase || 560);
+        const h = isTall ? (settings.tallHeight || 2100) : isWall ? (settings.wallHeight || 720) : (settings.baseHeight || 870);
+        const zBase = isWall ? (settings.baseHeight - (settings.wallHeight - 720) || 1400) : 0;
 
         // Local coordinates for the box corners
         const corners = [

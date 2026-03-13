@@ -17,6 +17,7 @@ export enum PresetType {
   BASE_DRAWER_3 = 'Base 3-Drawer',
   BASE_CORNER = 'Base Corner',
   WALL_STD = 'Wall Standard',
+  WALL_CORNER = 'Wall Corner',  // Ruby: Top Corner cabinet (blind corner)
   TALL_OVEN = 'Tall Oven/Micro',
   TALL_UTILITY = 'Tall Utility',
   SINK_UNIT = 'Sink Unit',
@@ -56,6 +57,17 @@ export interface ProjectSettings {
   sheetLength: number;
   kerf: number;
 
+  // Ruby CBX Design Rules - Gap & Clearance Settings
+  doorToDoorGap: number;      // Door-to-door gap (between two doors in same cabinet) - default: 2mm
+  doorToPanelGap: number;     // Door to cabinet side/end panel gap - default: 2mm
+  drawerToDrawerGap: number;  // Drawer front to drawer front gap - default: 2mm
+  doorOuterGap: number;        // Door outer gap (from cabinet edge) - default: 3mm
+  doorInnerGap: number;        // Door inner gap (between double doors) - default: 3mm
+  doorSideClearance: number;   // Door side clearance - default: 3mm
+  grooveDepth: number;         // Groove depth for back panels - default: 5mm
+  backPanelThickness: number;  // Back panel thickness - default: 6mm
+  doorMaterialThickness: number; // Door material thickness - default: 18mm
+
   // Costing
   costs: CostSettings;
 
@@ -86,6 +98,9 @@ export interface CustomCabinetConfig {
   hinges?: number;
   slides?: number;
   handles?: number;
+  // Ruby CBX Tall Side Panels configuration
+  // Options: 'none' | 'both' | 'left_100mm' | 'right_100mm' | 'left_only' | 'right_only'
+  tallSidePanels?: 'none' | 'both' | 'left_100mm' | 'right_100mm' | 'left_only' | 'right_only';
 }
 
 export interface CabinetMaterials {

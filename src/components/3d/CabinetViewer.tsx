@@ -354,6 +354,7 @@ const Scene = ({
           showHardware={showHardware}
           wallIndex={wallIndex}
           label={label}
+          settings={project.settings}
         />
       ))}
     </>
