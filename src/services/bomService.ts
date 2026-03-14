@@ -727,6 +727,9 @@ export const createNewProject = (logoUrl?: string): Project => ({
     depthBase: 560,    // Ruby: 560mm
     depthWall: 350,    // Ruby: 350mm
     depthTall: 600,    // Ruby: 600mm
+    widthBase: 600,   // Default base cabinet width
+    widthWall: 600,   // Default wall cabinet width
+    widthTall: 450,  // Default tall cabinet width (Ruby standard)
     thickness: 18,     // Ruby: 18mm
     counterThickness: 40,
     toeKickHeight: 100, // Ruby: 100mm plinth

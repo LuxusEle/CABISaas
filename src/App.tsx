@@ -28,6 +28,8 @@ import { customCabinetService } from './services/customCabinetService';
 import { projectService } from './services/projectService';
 import { SequentialBoxInput } from './components/SequentialBoxInput';
 import { SheetTypeManager } from './components/SheetTypeManager';
+import { CabinetPreviewCard } from './components/CabinetPreviewCard';
+import { CabinetEditModal } from './components/CabinetEditModal';
 import { MaterialSelector } from './components/MaterialSelector';
 import { MaterialAllocationPanel } from './components/MaterialAllocationPanel';
 import { PricingPage } from './components/PricingPage';
@@ -664,6 +666,10 @@ const ScreenProjectSetup = ({ project, setProject, onSave }: { project: Project,
   // CBX Advanced Settings Modal
   const [showCbxModal, setShowCbxModal] = useState(false);
 
+  // Cabinet Edit Modal
+  const [showCabinetModal, setShowCabinetModal] = useState(false);
+  const [editingCabinetType, setEditingCabinetType] = useState<'base' | 'wall' | 'tall'>('base');
+
   // Logo upload state
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string | null>(project.settings.logoUrl || null);
@@ -841,22 +847,34 @@ const ScreenProjectSetup = ({ project, setProject, onSave }: { project: Project,
                 {/* Dimensions & Nesting Section */}
                 <div className="space-y-4">
                   <h4 className="text-slate-500 font-bold uppercase text-xs tracking-wider flex items-center gap-2">
-                    <Ruler size={14} /> Dimensions & Nesting
+                    <Ruler size={14} /> Cabinet Dimensions
                   </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                    <NumberInput label="Base Height (mm)" value={project.settings.baseHeight} onChange={(v) => setProject({ ...project, settings: { ...project.settings, baseHeight: v } })} step={10} />
-                    <NumberInput label="Wall Height (mm)" value={project.settings.wallHeight} onChange={(v) => setProject({ ...project, settings: { ...project.settings, wallHeight: v } })} step={10} />
-                    <NumberInput label="Tall Height (mm)" value={project.settings.tallHeight} onChange={(v) => setProject({ ...project, settings: { ...project.settings, tallHeight: v } })} step={10} />
-                    <NumberInput label="Depth Base (mm)" value={project.settings.depthBase} onChange={(v) => setProject({ ...project, settings: { ...project.settings, depthBase: v } })} step={10} />
-                    <NumberInput label="Depth Wall (mm)" value={project.settings.depthWall} onChange={(v) => setProject({ ...project, settings: { ...project.settings, depthWall: v } })} step={10} />
-                    <NumberInput label="Depth Tall (mm)" value={project.settings.depthTall} onChange={(v) => setProject({ ...project, settings: { ...project.settings, depthTall: v } })} step={10} />
-                    <NumberInput label="Panel Thickness (mm)" value={project.settings.thickness} onChange={(v) => setProject({ ...project, settings: { ...project.settings, thickness: v as 16|18|19 } })} step={1} />
-                    <NumberInput label="Counter Thickness (mm)" value={project.settings.counterThickness} onChange={(v) => setProject({ ...project, settings: { ...project.settings, counterThickness: v } })} step={5} />
-                    <NumberInput label="Toe Kick (mm)" value={project.settings.toeKickHeight} onChange={(v) => setProject({ ...project, settings: { ...project.settings, toeKickHeight: v } })} step={10} />
+                  
+                  {/* Cabinet Preview Cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <CabinetPreviewCard
+                      type="base"
+                      settings={project.settings}
+                      onClick={() => { setEditingCabinetType('base'); setShowCabinetModal(true); }}
+                    />
+                    <CabinetPreviewCard
+                      type="wall"
+                      settings={project.settings}
+                      onClick={() => { setEditingCabinetType('wall'); setShowCabinetModal(true); }}
+                    />
+                    <CabinetPreviewCard
+                      type="tall"
+                      settings={project.settings}
+                      onClick={() => { setEditingCabinetType('tall'); setShowCabinetModal(true); }}
+                    />
+                  </div>
+
+                  {/* Additional Settings */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4">
                     <NumberInput label="Sheet Length (mm)" value={project.settings.sheetLength} onChange={(v) => setProject({ ...project, settings: { ...project.settings, sheetLength: v } })} step={100} />
                     <NumberInput label="Sheet Width (mm)" value={project.settings.sheetWidth} onChange={(v) => setProject({ ...project, settings: { ...project.settings, sheetWidth: v } })} step={100} />
                     <NumberInput label="Kerf (mm)" value={project.settings.kerf} onChange={(v) => setProject({ ...project, settings: { ...project.settings, kerf: v } })} step={1} />
-                    <NumberInput label="Wall Cabinet Elevation (mm)" value={project.settings.wallCabinetElevation} onChange={(v) => setProject({ ...project, settings: { ...project.settings, wallCabinetElevation: v } })} step={10} />
+                    <NumberInput label="Counter Thickness (mm)" value={project.settings.counterThickness} onChange={(v) => setProject({ ...project, settings: { ...project.settings, counterThickness: v } })} step={5} />
                   </div>
 
                   {/* Ruby CBX Advanced Settings Button */}
@@ -914,6 +932,17 @@ const ScreenProjectSetup = ({ project, setProject, onSave }: { project: Project,
               </div>
             </div>
           )}
+
+          {/* Cabinet Edit Modal */}
+          <CabinetEditModal
+            isOpen={showCabinetModal}
+            onClose={() => setShowCabinetModal(false)}
+            cabinetType={editingCabinetType}
+            settings={project.settings}
+            onSave={(newSettings) => {
+              setProject({ ...project, settings: newSettings });
+            }}
+          />
 
           {/* Sheet Types Manager */}
           <SheetTypeManager

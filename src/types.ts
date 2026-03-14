@@ -48,6 +48,9 @@ export interface ProjectSettings {
   depthBase: number;
   depthWall: number;
   depthTall: number;
+  widthBase: number;   // Default width for base cabinets
+  widthWall: number;   // Default width for wall cabinets
+  widthTall: number;  // Default width for tall cabinets
   thickness: 16 | 18 | 19;
   counterThickness: number;
   toeKickHeight: number;
