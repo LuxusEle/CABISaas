@@ -1,3 +1,4 @@
+/// <reference types="@react-three/fiber" />
 import React, { Suspense, useRef, useState, useMemo, useEffect } from 'react';
 import { Canvas, useThree, useLoader } from '@react-three/fiber';
 import { OrbitControls, Grid, Html, useProgress, PerspectiveCamera } from '@react-three/drei';
@@ -9,6 +10,10 @@ import { Wall } from './Wall';
 interface Props {
   project: Project;
   showHardware?: boolean;
+  showEmptyWalls?: boolean;
+  onWallClick?: (wallId: string) => void;
+  activeWallId?: string;
+  lightTheme?: boolean;
 }
 
 const LoadingFallback = () => {
@@ -23,11 +28,13 @@ const LoadingFallback = () => {
 const CameraController = ({ 
   targetView, 
   sceneCenter, 
-  sceneSize 
+  sceneSize,
+  lightTheme
 }: { 
   targetView: string; 
   sceneCenter: [number, number, number];
   sceneSize: { width: number; depth: number; height: number };
+  lightTheme?: boolean;
 }) => {
   const { camera } = useThree();
   const controlsRef = useRef<any>(null);
@@ -78,6 +85,8 @@ const CameraController = ({
       maxDistance={maxDim * 5}
       maxPolarAngle={Math.PI / 2.1}
       target={sceneCenter}
+      enableZoom={!lightTheme}
+      enablePan={!lightTheme}
     />
   );
 };
@@ -86,14 +95,24 @@ const Scene = ({
   project, 
   showHardware, 
   viewMode,
-  onSceneBounds
+  showEmptyWalls,
+  onSceneBounds,
+  onWallClick,
+  activeWallId,
+  lightTheme
 }: { 
   project: Project; 
   showHardware: boolean; 
   viewMode: string;
+  showEmptyWalls?: boolean;
   onSceneBounds: (bounds: { center: [number, number, number]; size: { width: number; depth: number; height: number } }) => void;
+  onWallClick?: (wallId: string) => void;
+  activeWallId?: string;
+  lightTheme?: boolean;
 }) => {
-  const activeZones = project.zones.filter(z => z.active && z.cabinets.length > 0);
+  const activeZones = showEmptyWalls 
+    ? project.zones.filter(z => z.active)
+    : project.zones.filter(z => z.active && z.cabinets.length > 0);
   
   const layoutData = useMemo(() => {
     const cabinetPositions: { 
@@ -251,7 +270,7 @@ const Scene = ({
   }, [activeZones]);
 
   const sceneBounds = useMemo(() => {
-    if (layoutData.cabinetPositions.length === 0) {
+    if (layoutData.cabinetPositions.length === 0 && (!showEmptyWalls || layoutData.wallPositions.length === 0)) {
       return { 
         center: [1500, 800, 300] as [number, number, number], 
         size: { width: 3000, depth: 1000, height: 2000 } 
@@ -262,31 +281,49 @@ const Scene = ({
     let minZ = Infinity, maxZ = -Infinity;
     let maxY = 0;
 
-    layoutData.cabinetPositions.forEach(({ unit, position, wallIndex }) => {
-      const isWall = unit.type === CabinetType.WALL;
-      const isTall = unit.type === CabinetType.TALL;
-      const cabHeight = isTall ? 2100 : isWall ? 720 : 720;
-      const cabDepth = isWall ? 320 : isTall ? 580 : 560;
-      
-      let x1 = position[0];
-      let x2 = position[0];
-      let z1 = position[2];
-      let z2 = position[2];
-      
-      if (wallIndex === 0 || wallIndex === 2) {
-        x2 = x1 + unit.width;
-        z2 = z1 + cabDepth;
-      } else {
-        x2 = x1 + cabDepth;
-        z2 = z1 + unit.width;
-      }
-      
-      minX = Math.min(minX, x1, x2);
-      maxX = Math.max(maxX, x1, x2);
-      minZ = Math.min(minZ, z1, z2);
-      maxZ = Math.max(maxZ, z1, z2);
-      maxY = Math.max(maxY, isWall ? 1400 + cabHeight : cabHeight);
-    });
+    if (layoutData.cabinetPositions.length > 0) {
+      layoutData.cabinetPositions.forEach(({ unit, position, wallIndex }) => {
+        const isWall = unit.type === CabinetType.WALL;
+        const isTall = unit.type === CabinetType.TALL;
+        const cabHeight = isTall ? 2100 : isWall ? 720 : 720;
+        const cabDepth = isWall ? 320 : isTall ? 580 : 560;
+        
+        let x1 = position[0];
+        let x2 = position[0];
+        let z1 = position[2];
+        let z2 = position[2];
+        
+        if (wallIndex === 0 || wallIndex === 2) {
+          x2 = x1 + unit.width;
+          z2 = z1 + cabDepth;
+        } else {
+          x2 = x1 + cabDepth;
+          z2 = z1 + unit.width;
+        }
+        
+        minX = Math.min(minX, x1, x2);
+        maxX = Math.max(maxX, x1, x2);
+        minZ = Math.min(minZ, z1, z2);
+        maxZ = Math.max(maxZ, z1, z2);
+        maxY = Math.max(maxY, isWall ? 1400 + cabHeight : cabHeight);
+      });
+    } else if (showEmptyWalls) {
+      layoutData.wallPositions.forEach(({ position, width, height, rotation }) => {
+        const x1 = position[0];
+        const z1 = position[2];
+        let x2 = x1, z2 = z1;
+        if (Math.abs(rotation) < 0.1 || Math.abs(rotation - Math.PI) < 0.1) {
+          x2 = x1 + width;
+        } else {
+          z2 = z1 + width;
+        }
+        minX = Math.min(minX, Math.min(x1, x2));
+        maxX = Math.max(maxX, Math.max(x1, x2));
+        minZ = Math.min(minZ, Math.min(z1, z2));
+        maxZ = Math.max(maxZ, Math.max(z1, z2));
+        maxY = Math.max(maxY, height);
+      });
+    }
 
     const width = Math.max(maxX - minX + 1000, 2000);
     const depth = Math.max(maxZ - minZ + 1000, 1000);
@@ -296,7 +333,7 @@ const Scene = ({
       center: [(minX + maxX) / 2, maxY / 2, (minZ + maxZ) / 2] as [number, number, number],
       size: { width, depth, height }
     };
-  }, [layoutData]);
+  }, [layoutData, showEmptyWalls]);
 
   useEffect(() => {
     onSceneBounds(sceneBounds);
@@ -307,7 +344,8 @@ const Scene = ({
       <CameraController 
         targetView={viewMode} 
         sceneCenter={sceneBounds.center} 
-        sceneSize={sceneBounds.size} 
+        sceneSize={sceneBounds.size}
+        lightTheme={lightTheme}
       />
       
       <ambientLight intensity={0.5} />
@@ -325,10 +363,10 @@ const Scene = ({
         args={[20000, 20000]}
         cellSize={100}
         cellThickness={0.5}
-        cellColor="#374151"
+        cellColor={lightTheme ? '#94a3b8' : '#374151'}
         sectionSize={500}
         sectionThickness={1}
-        sectionColor="#1f2937"
+        sectionColor={lightTheme ? '#64748b' : '#1f2937'}
         fadeDistance={10000}
         position={[0, -0.5, 0]}
       />
@@ -342,6 +380,8 @@ const Scene = ({
           rotation={rotation}
           obstacles={zone.obstacles}
           wallIndex={index}
+          isActive={activeWallId === zone.id}
+          onClick={() => onWallClick?.(zone.id)}
         />
       ))}
 
@@ -361,7 +401,7 @@ const Scene = ({
   );
 };
 
-export const CabinetViewer: React.FC<Props> = ({ project, showHardware = true }) => {
+export const CabinetViewer: React.FC<Props> = ({ project, showHardware = true, showEmptyWalls = false, onWallClick, activeWallId, lightTheme = false }) => {
   const [viewMode, setViewMode] = useState<string>('isometric');
   const [showHW, setShowHW] = useState(showHardware);
   const [sceneBounds, setSceneBounds] = useState<{ 
@@ -376,10 +416,12 @@ export const CabinetViewer: React.FC<Props> = ({ project, showHardware = true })
     setSceneBounds(bounds);
   };
 
-  const activeZones = project.zones.filter(z => z.active && z.cabinets.length > 0);
-  const hasCabinets = activeZones.some(z => z.cabinets.length > 0);
+  const activeZones = showEmptyWalls 
+    ? project.zones.filter(z => z.active)
+    : project.zones.filter(z => z.active && z.cabinets.length > 0);
+  const hasContent = activeZones.length > 0 && (showEmptyWalls || activeZones.some(z => z.cabinets.length > 0));
 
-  if (!hasCabinets) {
+  if (!hasContent) {
     return (
       <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900">
         <div className="text-center">
@@ -391,75 +433,79 @@ export const CabinetViewer: React.FC<Props> = ({ project, showHardware = true })
   }
 
   return (
-    <div className="w-full h-full relative overflow-hidden">
-      <div className="absolute top-2 left-2 z-10 flex flex-col gap-1.5">
-        <div className="bg-slate-900/95 backdrop-blur-sm rounded-lg p-2 border border-slate-700 shadow-lg">
-          <div className="text-amber-400 font-bold text-xs uppercase tracking-wider mb-2">
-            3D View
-          </div>
-          
-          <div className="flex flex-wrap gap-1 mb-2">
-            {['front', 'side', 'top', 'isometric'].map((view) => (
-              <button
-                key={view}
-                onClick={() => setViewMode(view)}
-                className={`px-2 py-1 text-xs font-bold rounded transition-all ${
-                  viewMode === view
-                    ? 'bg-amber-500 text-white shadow-md'
-                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                }`}
-              >
-                {view.charAt(0).toUpperCase() + view.slice(1)}
-              </button>
-            ))}
-          </div>
-          
-          <div className="flex flex-col gap-1">
-            <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={showHW}
-                onChange={(e) => setShowHW(e.target.checked)}
-                className="w-3 h-3 rounded accent-amber-500"
-              />
-              Hardware
-            </label>
-          </div>
-        </div>
-        
-        {showHW && (
-          <div className="bg-slate-900/95 backdrop-blur-sm rounded-lg p-2 border border-slate-700 shadow-lg">
-            <div className="text-slate-400 font-bold text-[10px] uppercase tracking-wider mb-1.5">
-              Legend
-            </div>
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
-                <span className="text-slate-400 text-[10px]">Hinge</span>
+    <div className={`w-full h-full relative overflow-hidden ${lightTheme ? 'bg-gradient-to-br from-slate-100 to-slate-200' : ''}`}>
+      {!lightTheme && (
+        <>
+          <div className="absolute top-2 left-2 z-10 flex flex-col gap-1.5">
+            <div className="bg-slate-900/95 backdrop-blur-sm rounded-lg p-2 border border-slate-700 shadow-lg">
+              <div className="text-amber-400 font-bold text-xs uppercase tracking-wider mb-2">
+                3D View
               </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded bg-red-500" />
-                <span className="text-slate-400 text-[10px]">Cam-Lock</span>
+              
+              <div className="flex flex-wrap gap-1 mb-2">
+                {['front', 'side', 'top', 'isometric'].map((view) => (
+                  <button
+                    key={view}
+                    onClick={() => setViewMode(view)}
+                    className={`px-2 py-1 text-xs font-bold rounded transition-all ${
+                      viewMode === view
+                        ? 'bg-amber-500 text-white shadow-md'
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    }`}
+                  >
+                    {view.charAt(0).toUpperCase() + view.slice(1)}
+                  </button>
+                ))}
               </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded bg-yellow-500" />
-                <span className="text-slate-400 text-[10px]">Confirmat</span>
+              
+              <div className="flex flex-col gap-1">
+                <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={showHW}
+                    onChange={(e) => setShowHW(e.target.checked)}
+                    className="w-3 h-3 rounded accent-amber-500"
+                  />
+                  Hardware
+                </label>
               </div>
             </div>
+            
+            {showHW && (
+              <div className="bg-slate-900/95 backdrop-blur-sm rounded-lg p-2 border border-slate-700 shadow-lg">
+                <div className="text-slate-400 font-bold text-[10px] uppercase tracking-wider mb-1.5">
+                  Legend
+                </div>
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                    <span className="text-slate-400 text-[10px]">Hinge</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2.5 h-2.5 rounded bg-red-500" />
+                    <span className="text-slate-400 text-[10px]">Cam-Lock</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2.5 h-2.5 rounded bg-yellow-500" />
+                    <span className="text-slate-400 text-[10px]">Confirmat</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
-      <div className="absolute bottom-2 left-2 z-10 bg-slate-900/80 backdrop-blur-sm rounded px-2 py-1 border border-slate-700">
-        <div className="text-slate-400 text-[10px]">
-          Left: Rotate | Right: Pan | Scroll: Zoom
-        </div>
-      </div>
+          <div className="absolute bottom-2 left-2 z-10 bg-slate-900/80 backdrop-blur-sm rounded px-2 py-1 border border-slate-700">
+            <div className="text-slate-400 text-[10px]">
+              Left: Rotate | Right: Pan | Scroll: Zoom
+            </div>
+          </div>
+        </>
+      )}
 
       <Canvas
         shadows
         camera={{ fov: 50 }}
-        style={{ background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)' }}
+        style={{ background: lightTheme ? 'linear-gradient(180deg, #e5e7eb 0%, #d1d5db 100%)' : 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)' }}
       >
         <PerspectiveCamera 
           makeDefault 
@@ -477,7 +523,11 @@ export const CabinetViewer: React.FC<Props> = ({ project, showHardware = true })
             project={project} 
             showHardware={showHW} 
             viewMode={viewMode}
+            showEmptyWalls={showEmptyWalls}
             onSceneBounds={handleSceneBounds}
+            onWallClick={onWallClick}
+            activeWallId={activeWallId}
+            lightTheme={lightTheme}
           />
         </Suspense>
       </Canvas>

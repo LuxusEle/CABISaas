@@ -8,11 +8,16 @@ interface Props {
   rotation: number;
   obstacles?: Obstacle[];
   wallIndex?: number;
+  isActive?: boolean;
+  onClick?: () => void;
 }
 
-export const Wall: React.FC<Props> = ({ position, width, height, rotation, obstacles = [], wallIndex = 0 }) => {
+export const Wall: React.FC<Props> = ({ position, width, height, rotation, obstacles = [], wallIndex = 0, isActive = false, onClick }) => {
   const wallThickness = 50;
   const wallDepth = wallThickness;
+
+  const activeColor = isActive ? '#f59e0b' : '#94a3b8';
+  const activeOpacity = isActive ? 0.8 : 0.5;
 
   const openings = obstacles.filter(o => o.type === 'window' || o.type === 'door');
   const protrudingObstacles = obstacles.filter(o => o.type === 'column' || o.type === 'pipe');
@@ -25,9 +30,14 @@ export const Wall: React.FC<Props> = ({ position, width, height, rotation, obsta
     
     if (sortedOpenings.length === 0) {
       segments.push(
-        <mesh key="full-wall" position={[width / 2, height / 2, -wallDepth / 2]} receiveShadow>
+        <mesh 
+          key="full-wall" 
+          position={[width / 2, height / 2, -wallDepth / 2]} 
+          receiveShadow
+          onClick={onClick}
+        >
           <boxGeometry args={[width, height, wallDepth]} />
-          <meshStandardMaterial color="#94a3b8" roughness={0.9} transparent opacity={0.5} />
+          <meshStandardMaterial color={activeColor} roughness={0.9} transparent opacity={activeOpacity} />
         </mesh>
       );
       return segments;
@@ -49,9 +59,14 @@ export const Wall: React.FC<Props> = ({ position, width, height, rotation, obsta
       if (opening.fromLeft > currentX) {
         const segWidth = opening.fromLeft - currentX;
         segments.push(
-          <mesh key={`seg-before-${index}`} position={[currentX + segWidth / 2, height / 2, -wallDepth / 2]} receiveShadow>
+          <mesh 
+            key={`seg-before-${index}`} 
+            position={[currentX + segWidth / 2, height / 2, -wallDepth / 2]} 
+            receiveShadow
+            onClick={onClick}
+          >
             <boxGeometry args={[segWidth, height, wallDepth]} />
-            <meshStandardMaterial color="#94a3b8" roughness={0.9} transparent opacity={0.5} />
+            <meshStandardMaterial color={activeColor} roughness={0.9} transparent opacity={activeOpacity} />
           </mesh>
         );
       }
@@ -59,9 +74,14 @@ export const Wall: React.FC<Props> = ({ position, width, height, rotation, obsta
       if (openingY + openingHeight / 2 < height) {
         const aboveHeight = height - (openingY + openingHeight / 2);
         segments.push(
-          <mesh key={`seg-above-${index}`} position={[opening.fromLeft + openingWidth / 2, openingY + openingHeight / 2 + aboveHeight / 2, -wallDepth / 2]} receiveShadow>
+          <mesh 
+            key={`seg-above-${index}`} 
+            position={[opening.fromLeft + openingWidth / 2, openingY + openingHeight / 2 + aboveHeight / 2, -wallDepth / 2]} 
+            receiveShadow
+            onClick={onClick}
+          >
             <boxGeometry args={[openingWidth, aboveHeight, wallDepth]} />
-            <meshStandardMaterial color="#94a3b8" roughness={0.9} transparent opacity={0.5} />
+            <meshStandardMaterial color={activeColor} roughness={0.9} transparent opacity={activeOpacity} />
           </mesh>
         );
       }
@@ -69,9 +89,14 @@ export const Wall: React.FC<Props> = ({ position, width, height, rotation, obsta
       if (openingY - openingHeight / 2 > 0) {
         const belowHeight = openingY - openingHeight / 2;
         segments.push(
-          <mesh key={`seg-below-${index}`} position={[opening.fromLeft + openingWidth / 2, belowHeight / 2, -wallDepth / 2]} receiveShadow>
+          <mesh 
+            key={`seg-below-${index}`} 
+            position={[opening.fromLeft + openingWidth / 2, belowHeight / 2, -wallDepth / 2]} 
+            receiveShadow
+            onClick={onClick}
+          >
             <boxGeometry args={[openingWidth, belowHeight, wallDepth]} />
-            <meshStandardMaterial color="#94a3b8" roughness={0.9} transparent opacity={0.5} />
+            <meshStandardMaterial color={activeColor} roughness={0.9} transparent opacity={activeOpacity} />
           </mesh>
         );
       }
@@ -82,9 +107,14 @@ export const Wall: React.FC<Props> = ({ position, width, height, rotation, obsta
     if (currentX < width) {
       const segWidth = width - currentX;
       segments.push(
-        <mesh key="seg-after" position={[currentX + segWidth / 2, height / 2, -wallDepth / 2]} receiveShadow>
+        <mesh 
+          key="seg-after" 
+          position={[currentX + segWidth / 2, height / 2, -wallDepth / 2]} 
+          receiveShadow
+          onClick={onClick}
+        >
           <boxGeometry args={[segWidth, height, wallDepth]} />
-          <meshStandardMaterial color="#94a3b8" roughness={0.9} transparent opacity={0.5} />
+          <meshStandardMaterial color={activeColor} roughness={0.9} transparent opacity={activeOpacity} />
         </mesh>
       );
     }

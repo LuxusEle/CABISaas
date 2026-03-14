@@ -30,6 +30,8 @@ import { SequentialBoxInput } from './components/SequentialBoxInput';
 import { SheetTypeManager } from './components/SheetTypeManager';
 import { CabinetPreviewCard } from './components/CabinetPreviewCard';
 import { CabinetEditModal } from './components/CabinetEditModal';
+import { WallSetupCard } from './components/WallSetupCard';
+import { WallEditModal } from './components/WallEditModal';
 import { MaterialSelector } from './components/MaterialSelector';
 import { MaterialAllocationPanel } from './components/MaterialAllocationPanel';
 import { PricingPage } from './components/PricingPage';
@@ -670,6 +672,9 @@ const ScreenProjectSetup = ({ project, setProject, onSave }: { project: Project,
   const [showCabinetModal, setShowCabinetModal] = useState(false);
   const [editingCabinetType, setEditingCabinetType] = useState<'base' | 'wall' | 'tall'>('base');
 
+  // Wall Edit Modal
+  const [showWallModal, setShowWallModal] = useState(false);
+
   // Logo upload state
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string | null>(project.settings.logoUrl || null);
@@ -846,6 +851,11 @@ const ScreenProjectSetup = ({ project, setProject, onSave }: { project: Project,
 
                 {/* Dimensions & Nesting Section */}
                 <div className="space-y-4">
+                  <WallSetupCard 
+                    project={project}
+                    onClick={() => setShowWallModal(true)}
+                  />
+
                   <h4 className="text-slate-500 font-bold uppercase text-xs tracking-wider flex items-center gap-2">
                     <Ruler size={14} /> Cabinet Dimensions
                   </h4>
@@ -932,6 +942,16 @@ const ScreenProjectSetup = ({ project, setProject, onSave }: { project: Project,
               </div>
             </div>
           )}
+
+          {/* Wall Edit Modal */}
+          <WallEditModal
+            isOpen={showWallModal}
+            onClose={() => setShowWallModal(false)}
+            project={project}
+            onSave={(newZones) => {
+              setProject({ ...project, zones: newZones });
+            }}
+          />
 
           {/* Cabinet Edit Modal */}
           <CabinetEditModal
