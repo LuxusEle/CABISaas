@@ -40,6 +40,7 @@ import { DocsPage } from './components/DocsPage';
 import { PolicyModal } from './components/PolicyModal';
 import { logoService } from './services/logoService';
 import TermsPage from './pages/TermsPage';
+import { CabinetTestingPage } from './components/CabinetTestingPage';
 
 // --- PRINT TITLE BLOCK ---
 const TitleBlock = ({ project, pageTitle }: { project: Project, pageTitle: string }) => (
@@ -298,7 +299,7 @@ export default function App() {
 
       <div className="flex-1 flex overflow-hidden md:pb-0 pb-16">
         {/* DESKTOP SIDEBAR - Hidden on landing page */}
-        {(location.pathname !== '/' && location.pathname !== '/terms' && (location.pathname !== '/docs' || user)) && (
+        {(location.pathname !== '/' && location.pathname !== '/terms' && location.pathname !== '/testing' && (location.pathname !== '/docs' || user)) && (
           <aside className="hidden md:flex w-20 flex-col items-center py-6 bg-slate-900 border-r border-slate-800 shrink-0 z-50 print:hidden">
             <div className="mb-8 text-amber-500"><LayoutDashboard size={28} /></div>
             <nav className="flex flex-col gap-6 w-full px-2">
@@ -307,6 +308,7 @@ export default function App() {
               <NavButton active={location.pathname === '/walls'} path="/walls" icon={<Box size={24} />} label="Walls" />
               <NavButton active={location.pathname === '/bom'} path="/bom" icon={<Table2 size={24} />} label="BOM" />
               <NavButton active={location.pathname === '/pricing'} path="/pricing" icon={<CreditCard size={24} />} label="Pricing" />
+              <NavButton active={location.pathname === '/testing'} path="/testing" icon={<Wrench size={24} />} label="Testing" />
               <NavButton active={location.pathname === '/docs'} path="/docs" icon={<Book size={24} />} label="Docs" />
             </nav>
             <div className="mt-auto flex flex-col gap-2">
@@ -394,6 +396,9 @@ export default function App() {
                 setIsDark={setIsDark}
               />
             } />
+            <Route path="/testing" element={
+              <CabinetTestingPage />
+            } />
             <Route path="*" element={
               <LandingPage
                 onGetStarted={() => openAuthModal('signup')}
@@ -407,12 +412,13 @@ export default function App() {
       </div>
 
       {/* MOBILE NAV */}
-      {location.pathname !== '/' && location.pathname !== '/terms' && (
+      {location.pathname !== '/' && location.pathname !== '/terms' && location.pathname !== '/testing' && (
         <div className="md:hidden h-16 mobile-nav bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex items-stretch justify-around z-[100] shrink-0 print:hidden safe-area-bottom" style={{ position: 'fixed', bottom: 0, left: 0, right: 0 }}>
           <MobileNavButton active={location.pathname === '/dashboard'} path="/dashboard" icon={<Home size={20} />} label="Home" />
           <MobileNavButton active={location.pathname === '/setup'} path="/setup" icon={<Settings size={20} />} label="Setup" />
           <MobileNavButton active={location.pathname === '/walls'} path="/walls" icon={<Box size={20} />} label="Editor" />
           <MobileNavButton active={location.pathname === '/bom'} path="/bom" icon={<Table2 size={20} />} label="BOM" />
+          <MobileNavButton active={location.pathname === '/testing'} path="/testing" icon={<Wrench size={20} />} label="Test" />
           <MobileNavButton active={location.pathname === '/docs'} path="/docs" icon={<Book size={20} />} label="Docs" />
         </div>
       )}
