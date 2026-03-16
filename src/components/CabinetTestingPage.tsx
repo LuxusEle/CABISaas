@@ -159,6 +159,86 @@ const createGroovedPanelGeo = (
   return finalGeo;
 };
 
+const createPanelWithHolesGeo = (
+  sizeX: number, // thickness
+  sizeY: number, // height
+  sizeZ: number, // depth
+  grooveLocalZMin: number, // depth direction min (front to back)
+  grooveLocalZMax: number, // depth direction max
+  grooveDepth: number,
+  grooveFace: 'px' | 'nx' | 'py' | 'ny',
+  holes: { y: number, z: number, r: number }[],
+  grooveStartOffset: number = 0,
+  grooveEndOffset: number = 0
+) => {
+  const uMin = -sizeZ / 2;
+  const uMax = sizeZ / 2;
+  const vMin = -sizeY / 2;
+  const vMax = sizeY / 2;
+
+  const createBaseShape = (includeGroove: boolean) => {
+    const shape = new THREE.Shape();
+    shape.moveTo(uMin, vMin);
+    shape.lineTo(uMax, vMin);
+    shape.lineTo(uMax, vMax);
+    shape.lineTo(uMin, vMax);
+    shape.closePath();
+
+    // Add through-holes
+    holes.forEach(h => {
+      const path = new THREE.Path();
+      path.absarc(h.z, h.y, h.r, 0, Math.PI * 2, true);
+      shape.holes.push(path);
+    });
+
+    if (includeGroove) {
+      const gPath = new THREE.Path();
+      const gZMin = grooveLocalZMin;
+      const gZMax = grooveLocalZMax;
+      const gYMin = vMin + grooveEndOffset;
+      const gYMax = vMax - grooveStartOffset;
+      
+      gPath.moveTo(gZMin, gYMin);
+      gPath.lineTo(gZMax, gYMin);
+      gPath.lineTo(gZMax, gYMax);
+      gPath.lineTo(gZMin, gYMax);
+      gPath.closePath();
+      shape.holes.push(gPath);
+    }
+    
+    return shape;
+  };
+
+  const outerThickness = sizeX - grooveDepth;
+  const outerGeo = new THREE.ExtrudeGeometry(createBaseShape(false), { depth: outerThickness, bevelEnabled: false });
+  
+  const innerGeo = new THREE.ExtrudeGeometry(createBaseShape(true), { depth: grooveDepth, bevelEnabled: false });
+  innerGeo.translate(0, 0, outerThickness);
+
+  let mergedGeo = BufferGeometryUtils.mergeGeometries([outerGeo, innerGeo]);
+  mergedGeo = BufferGeometryUtils.mergeVertices(mergedGeo);
+  
+  const positions = mergedGeo.attributes.position;
+  for (let i = 0; i < positions.count; i++) {
+    const depthVal = positions.getX(i);
+    const heightVal = positions.getY(i);
+    const thicknessVal = positions.getZ(i) - sizeX / 2;
+
+    if (grooveFace === 'px') {
+      positions.setXYZ(i, thicknessVal, heightVal, depthVal);
+    } else if (grooveFace === 'nx') {
+      positions.setXYZ(i, -thicknessVal, heightVal, depthVal);
+    } else if (grooveFace === 'py') {
+      positions.setXYZ(i, heightVal, thicknessVal, depthVal);
+    } else if (grooveFace === 'ny') {
+      positions.setXYZ(i, heightVal, -thicknessVal, depthVal);
+    }
+  }
+  
+  mergedGeo.computeVertexNormals();
+  return mergedGeo;
+};
+
 interface TestingSettings {
   width: number;
   height: number;
@@ -191,6 +271,8 @@ interface TestingSettings {
   hingeHorizontalOffset: number;
   hingeVerticalOffset: number;
   showDifferentPanelColors: boolean;
+  showNailHoles: boolean;
+  nailHoleDiameter: number;
 }
 
 const DEFAULT_SETTINGS: TestingSettings = {
@@ -224,7 +306,9 @@ const DEFAULT_SETTINGS: TestingSettings = {
   hingeDepth: 7,
   hingeHorizontalOffset: 40,
   hingeVerticalOffset: 60,
-  showDifferentPanelColors: false
+  showDifferentPanelColors: false,
+  showNailHoles: true,
+  nailHoleDiameter: 3
 };
 
 const RUBY_DOOR_THRESHOLD = 599.5;
@@ -236,7 +320,8 @@ const TestingCabinet: React.FC<{ settings: TestingSettings }> = ({ settings }) =
     drawerToDrawerGap, doorOuterGap, doorInnerGap, doorSideClearance,
     toeKickHeight, backStretcherHeight, topStretcherWidth, showBackPanel, showBackStretchers,
     showDoors, showDrawers, showHinges, skeletonView, partsSeparatedView, selectedPart, numDrawers, cabinetType,
-    hingeDiameter, hingeDepth, hingeHorizontalOffset, hingeVerticalOffset, showDifferentPanelColors
+    hingeDiameter, hingeDepth, hingeHorizontalOffset, hingeVerticalOffset, showDifferentPanelColors,
+    showNailHoles, nailHoleDiameter
   } = settings;
 
   const isBase = cabinetType === 'base';
@@ -347,26 +432,114 @@ const TestingCabinet: React.FC<{ settings: TestingSettings }> = ({ settings }) =
     return offsets[part] || [0, 0, 0];
   };
 
-  const leftPanelGeo = useMemo(() => createGroovedPanelGeo(
+  const nailHolePositions = useMemo(() => {
+    if (!showNailHoles) return [];
+    const panelHeight = height - panelThickness;
+    const y = panelHeight / 2 - panelThickness / 2;
+    const r = nailHoleDiameter / 2;
+    
+    // Front Holes (Top Stretcher)
+    const zFront1 = depth / 2 - (topStretcherWidth / 4);
+    const zFront2 = depth / 2 - (topStretcherWidth * 3 / 4);
+    
+    // Back Holes (Top Stretcher mirrored at -z)
+    const zBack1 = -depth / 2 + (topStretcherWidth / 4);
+    const zBack2 = -depth / 2 + (topStretcherWidth * 3 / 4);
+
+    const positions = [
+      { y, z: zFront1, r },
+      { y, z: zFront2, r },
+      { y, z: zBack1, r },
+      { y, z: zBack2, r }
+    ];
+
+    // Holes for Back Stretchers (if enabled and base cabinet)
+    if (showBackStretchers && isBase) {
+      const zBackStretcher = -depth / 2 + panelThickness / 2;
+      
+      // Top Back Stretcher holes
+      const yTopBackMax = panelHeight / 2;
+      positions.push({ y: yTopBackMax - (backStretcherHeight / 4) - panelThickness, z: zBackStretcher, r });
+      positions.push({ y: yTopBackMax - (backStretcherHeight * 3 / 4) - panelThickness, z: zBackStretcher, r });
+      
+      // Bottom Back Stretcher holes
+      const yBottomBackMin = -panelHeight / 2 + panelThickness;
+      positions.push({ y: (yBottomBackMin + (backStretcherHeight / 4)) - panelThickness, z: zBackStretcher, r });
+      positions.push({ y: (yBottomBackMin + (backStretcherHeight * 3 / 4)) - panelThickness, z: zBackStretcher, r });
+    }
+    
+    return positions;
+  }, [showNailHoles, height, depth, panelThickness, nailHoleDiameter, topStretcherWidth, showBackStretchers, isBase, backStretcherHeight]);
+
+  const leftPanelGeo = useMemo(() => createPanelWithHolesGeo(
     panelThickness, height - panelThickness, depth,
     -depth / 2 + panelThickness, -depth / 2 + panelThickness + backPanelThickness,
     grooveDepth, 'px',
+    nailHolePositions,
     0, panelThickness
-  ), [panelThickness, height, depth, backPanelThickness, grooveDepth]);
+  ), [panelThickness, height, depth, backPanelThickness, grooveDepth, nailHolePositions]);
 
-  const rightPanelGeo = useMemo(() => createGroovedPanelGeo(
+  const rightPanelGeo = useMemo(() => createPanelWithHolesGeo(
     panelThickness, height - panelThickness, depth,
     -depth / 2 + panelThickness, -depth / 2 + panelThickness + backPanelThickness,
     grooveDepth, 'nx',
+    nailHolePositions,
     0, panelThickness
-  ), [panelThickness, height, depth, backPanelThickness, grooveDepth]);
+  ), [panelThickness, height, depth, backPanelThickness, grooveDepth, nailHolePositions]);
 
-  const bottomPanelGeo = useMemo(() => createGroovedPanelGeo(
-    innerWidth, panelThickness, innerDepth,
+  const bottomPanelHoles = useMemo(() => {
+    if (!showNailHoles) return [];
+    const length = innerWidth;
+    const depthVal = innerDepth;
+    const r = nailHoleDiameter / 2;
+    // Across depth (U in shape)
+    const u1 = -depthVal / 2 + depthVal / 5;
+    const u2 = 0;
+    const u3 = depthVal / 2 - depthVal / 5;
+    // At edges for side panels (V in shape maps to World X)
+    const vLeft = -length / 2 + panelThickness / 2;
+    const vRight = length / 2 - panelThickness / 2;
+    
+    // In length (V in shape) for horizontal parts
+    const v1 = -length / 2 + length / 5;
+    const v2 = 0;
+    const v3 = length / 2 - length / 5;
+
+    const positions = [
+      { y: vLeft, z: u1, r },
+      { y: vLeft, z: u2, r },
+      { y: vLeft, z: u3, r },
+      { y: vRight, z: u1, r },
+      { y: vRight, z: u2, r },
+      { y: vRight, z: u3, r }
+    ];
+
+    // Holes for Bottom Back Stretcher
+    if (showBackStretchers && isBase) {
+      const zBack = -depthVal / 2 + panelThickness / 2;
+      positions.push({ y: v1, z: zBack, r });
+      positions.push({ y: v2, z: zBack, r });
+      positions.push({ y: v3, z: zBack, r });
+    }
+
+    // Holes for Toe Kick (if base cabinet)
+    if (isBase) {
+      const zToeKick = depthVal / 2 - 50 - panelThickness / 2;
+      positions.push({ y: v1, z: zToeKick, r });
+      positions.push({ y: v2, z: zToeKick, r });
+      positions.push({ y: v3, z: zToeKick, r });
+    }
+    
+    return positions;
+  }, [showNailHoles, innerWidth, innerDepth, panelThickness, nailHoleDiameter, showBackStretchers, isBase]);
+
+  const bottomPanelGeo = useMemo(() => createPanelWithHolesGeo(
+    panelThickness, innerWidth, innerDepth,
     -innerDepth / 2 + panelThickness, -innerDepth / 2 + panelThickness + backPanelThickness,
     grooveDepth, 'py',
+    bottomPanelHoles,
     panelThickness, panelThickness
-  ), [innerWidth, panelThickness, innerDepth, backPanelThickness, grooveDepth]);
+  ), [innerWidth, panelThickness, innerDepth, backPanelThickness, grooveDepth, bottomPanelHoles]);
 
   const topPanelGeo = useMemo(() => createGroovedPanelGeo(
     innerWidth, panelThickness, innerDepth,
@@ -374,11 +547,31 @@ const TestingCabinet: React.FC<{ settings: TestingSettings }> = ({ settings }) =
     grooveDepth, 'ny'
   ), [innerWidth, panelThickness, innerDepth, backPanelThickness, grooveDepth]);
 
-  const topStretcherBackGeo = useMemo(() => createGroovedPanelGeo(
-    innerWidth - panelThickness * 2, panelThickness, topStretcherWidth,
+  const topStretcherBackHoles = useMemo(() => {
+    if (!showNailHoles) return [];
+    const length = innerWidth - panelThickness * 2;
+    const r = nailHoleDiameter / 2;
+    // Across length (local Y in shape maps to World X)
+    // Distances: 1/5, 1/2, 4/5
+    const y1 = -length / 2 + length / 5;
+    const y2 = 0;
+    const y3 = length / 2 - length / 5;
+    // Aligned with back stretcher center (local Z maps to World Z)
+    const z = -topStretcherWidth / 2 + panelThickness / 2;
+    
+    return [
+      { y: y1, z, r },
+      { y: y2, z, r },
+      { y: y3, z, r }
+    ];
+  }, [showNailHoles, innerWidth, panelThickness, nailHoleDiameter, topStretcherWidth]);
+
+  const topStretcherBackGeo = useMemo(() => createPanelWithHolesGeo(
+    panelThickness, innerWidth - panelThickness * 2, topStretcherWidth,
     panelThickness - topStretcherWidth / 2, panelThickness + backPanelThickness - topStretcherWidth / 2,
-    grooveDepth, 'ny'
-  ), [innerWidth, panelThickness, topStretcherWidth, backPanelThickness, grooveDepth]);
+    grooveDepth, 'ny',
+    topStretcherBackHoles
+  ), [innerWidth, panelThickness, topStretcherWidth, backPanelThickness, grooveDepth, topStretcherBackHoles]);
 
   const shouldShow = (part: string): boolean => {
     if (!partsSeparatedView) return true;
@@ -865,6 +1058,14 @@ export const CabinetTestingPage: React.FC = () => {
             <CheckboxRow label="Show Drawers" checked={settings.showDrawers} onChange={v => updateSetting('showDrawers', v)} />
             {settings.showDrawers && (
               <SettingRow label="Num Drawers" value={settings.numDrawers} onChange={v => updateSetting('numDrawers', v)} step={1} min={1} max={6} />
+            )}
+          </div>
+
+          <div className="bg-slate-700 rounded-lg p-3 space-y-2">
+            <h3 className="text-sm font-bold text-slate-300 mb-2">Construction</h3>
+            <CheckboxRow label="Show Nail Holes" checked={settings.showNailHoles} onChange={v => updateSetting('showNailHoles', v)} />
+            {settings.showNailHoles && (
+              <SettingRow label="Nail Hole Diameter" value={settings.nailHoleDiameter} onChange={v => updateSetting('nailHoleDiameter', v)} step={0.5} min={1} max={10} />
             )}
           </div>
 
