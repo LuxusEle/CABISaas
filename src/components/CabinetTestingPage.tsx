@@ -522,7 +522,7 @@ const TestingCabinet: React.FC<{ settings: TestingSettings }> = ({ settings }) =
     const zFront2 = depth / 2 - (topStretcherWidth * 3 / 4);
     
     // Back Holes (Top Stretcher mirrored at -z)
-    const zBack1 = -depth / 2 + (topStretcherWidth / 4);
+    const zBack1 = -depth / 2 + (topStretcherWidth / 3);
     const zBack2 = -depth / 2 + (topStretcherWidth * 3 / 4);
 
     const positions: { y: number, z: number, r: number, through?: boolean }[] = [
@@ -1435,30 +1435,34 @@ export const CabinetTestingPage: React.FC = () => {
     const addPanelToZip = (name: string, width: number, height: number, holes: { y: number, z: number, r: number, through?: boolean }[] = [], groove?: { x: number, y: number, w: number, h: number, depth: number }) => {
       const writer = new DxfWriter();
       writer.setUnits(Units.Millimeters);
+      
+      writer.addLayer('PANEL', 7, 'CONTINUOUS');
+      writer.addLayer('DRILL', 1, 'CONTINUOUS');
+      writer.addLayer('GROOVE', 3, 'CONTINUOUS');
+      writer.addLayer('TEXT', 7, 'CONTINUOUS');
+      
       const modelSpace = writer.modelSpace;
 
       modelSpace.addLWPolyline(
         [{ point: { x: 0, y: 0 } }, { point: { x: width, y: 0 } }, { point: { x: width, y: height } }, { point: { x: 0, y: height } }, { point: { x: 0, y: 0 } }],
-        { flags: LWPolylineFlags.Closed }
+        { flags: LWPolylineFlags.Closed, layerName: 'PANEL' }
       );
+
+      modelSpace.addText(point3d(10, height - 15, 0), 8, name, { layerName: 'TEXT' });
 
       holes.forEach(hole => {
         const radius = hole.r;
         let centerX, centerY;
         if (name.includes('Side')) {
-          // Side panel plane: X=Z (depth), Y=Y (height)
           centerX = hole.z + width / 2;
           centerY = hole.y + height / 2;
         } else if (name.includes('Bottom') || name.includes('Top')) {
-          // Horizontal panel plane: X=X (width), Y=Z (depth)
           centerX = hole.y + width / 2;
           centerY = hole.z + height / 2;
         } else if (name.includes('Back_Panel')) {
-          // Back panel plane: X=X (width), Y=Y (height)
-          centerX = hole.z + width / 2; // hole.z is width coordinate for back panel
+          centerX = hole.z + width / 2;
           centerY = hole.y + height / 2;
         } else if (name.includes('Door') || name.includes('Drawer')) {
-          // Front panel plane: X=Z (width), Y=Y (height)
           centerX = hole.z + width / 2;
           centerY = hole.y + height / 2;
         } else {
@@ -1472,14 +1476,13 @@ export const CabinetTestingPage: React.FC = () => {
           const angle = (i / segments) * 2 * Math.PI;
           points.push({ point: { x: centerX + radius * Math.cos(angle), y: centerY + radius * Math.sin(angle) } });
         }
-        modelSpace.addLWPolyline(points, { flags: LWPolylineFlags.Closed, colorNumber: hole.through ? 1 : 4 });
-        modelSpace.addText(point3d(centerX, centerY, 0), 5, `${hole.r * 2}x${hole.through ? panelThickness : settings.nailHoleDepth}`);
+        modelSpace.addLWPolyline(points, { flags: LWPolylineFlags.Closed, layerName: 'DRILL' });
       });
 
       if (groove) {
         modelSpace.addLWPolyline(
           [{ point: { x: groove.x, y: groove.y } }, { point: { x: groove.x + groove.w, y: groove.y } }, { point: { x: groove.x + groove.w, y: groove.y + groove.h } }, { point: { x: groove.x, y: groove.y + groove.h } }, { point: { x: groove.x, y: groove.y } }],
-          { flags: LWPolylineFlags.Closed, colorNumber: 3 }
+          { flags: LWPolylineFlags.Closed, layerName: 'GROOVE' }
         );
       }
       zip.file(`${name}.dxf`, writer.stringify());
