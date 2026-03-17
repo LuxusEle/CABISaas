@@ -522,7 +522,7 @@ const TestingCabinet: React.FC<{ settings: TestingSettings }> = ({ settings }) =
     const zFront2 = depth / 2 - (topStretcherWidth * 3 / 4);
     
     // Back Holes (Top Stretcher mirrored at -z)
-    const zBack1 = -depth / 2 + (topStretcherWidth / 3);
+    const zBack1 = -depth / 2 + (topStretcherWidth / 4);
     const zBack2 = -depth / 2 + (topStretcherWidth * 3 / 4);
 
     const positions: { y: number, z: number, r: number, through?: boolean }[] = [
@@ -585,7 +585,7 @@ const TestingCabinet: React.FC<{ settings: TestingSettings }> = ({ settings }) =
     grooveDepth, 'px',
     nailHolePositions,
     settings.nailHoleDepth,
-    0, panelThickness
+    panelThickness, 0
   ), [panelThickness, height, depth, backPanelThickness, grooveDepth, nailHolePositions, settings.nailHoleDepth]);
 
   const rightPanelGeo = useMemo(() => createPanelWithHolesGeo(
@@ -594,7 +594,7 @@ const TestingCabinet: React.FC<{ settings: TestingSettings }> = ({ settings }) =
     grooveDepth, 'nx',
     nailHolePositions,
     settings.nailHoleDepth,
-    0, panelThickness
+    panelThickness, 0
   ), [panelThickness, height, depth, backPanelThickness, grooveDepth, nailHolePositions, settings.nailHoleDepth]);
 
   const bottomPanelHoles = useMemo(() => {
@@ -1448,7 +1448,7 @@ export const CabinetTestingPage: React.FC = () => {
         { flags: LWPolylineFlags.Closed, layerName: 'PANEL' }
       );
 
-      modelSpace.addText(point3d(10, height - 15, 0), 8, name, { layerName: 'TEXT' });
+      modelSpace.addText(point3d(width / 2, height / 2, 0), 12, name, { layerName: 'TEXT' });
 
       holes.forEach(hole => {
         const radius = hole.r;
@@ -1490,7 +1490,7 @@ export const CabinetTestingPage: React.FC = () => {
 
     const sideW = depth;
     const sideH_Panel = height - panelThickness;
-    const sideGroove = { x: panelThickness, y: 0, w: backPanelThickness + 2, h: sideH_Panel, depth: grooveDepth };
+    const sideGroove = { x: panelThickness, y: 0, w: backPanelThickness + 2, h: sideH_Panel - panelThickness, depth: grooveDepth };
     
     addPanelToZip('Left_Panel', sideW, sideH_Panel, nailHolePositions, sideGroove);
     addPanelToZip('Right_Panel', sideW, sideH_Panel, nailHolePositions, sideGroove);
