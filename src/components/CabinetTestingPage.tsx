@@ -424,7 +424,7 @@ const TestingCabinet: React.FC<{ settings: TestingSettings }> = ({ settings }) =
   };
 
   const innerWidth = width;
-  const innerHeight = height;
+  const innerHeight = isBase ? height - toeKickHeight : height;
   const innerDepth = depth;
 
   const baseColor = new THREE.Color('#d4a574');
@@ -512,7 +512,7 @@ const TestingCabinet: React.FC<{ settings: TestingSettings }> = ({ settings }) =
 
   const nailHolePositions = useMemo(() => {
     if (!showNailHoles) return [];
-    const panelHeight = height - panelThickness;
+    const panelHeight = innerHeight - panelThickness;
     const y = panelHeight / 2 - panelThickness / 2;
     const technicalR = nailHoleDiameter / 2;
     const shelfR = settings.shelfHoleDiameter / 2;
@@ -534,11 +534,11 @@ const TestingCabinet: React.FC<{ settings: TestingSettings }> = ({ settings }) =
 
     // Shelf Pin Holes (below each shelf)
     if (numShelves > 0 && !showDrawers) {
-      const availableHeight = height - panelThickness * 2;
+      const availableHeight = innerHeight - panelThickness * 2;
       const spacing = availableHeight / (numShelves + 1);
       for (let i = 0; i < numShelves; i++) {
         // Shelf Y in cabinet world coordinate (relative to cabinet center)
-        const shelfYCabinet = -height / 2 + panelThickness + spacing * (i + 1);
+        const shelfYCabinet = -innerHeight / 2 + panelThickness + spacing * (i + 1);
         
         // Side panel local Y: 0 is vertical center
         // Side panel height is height - panelThickness.
@@ -577,25 +577,25 @@ const TestingCabinet: React.FC<{ settings: TestingSettings }> = ({ settings }) =
     }
     
     return positions;
-  }, [showNailHoles, height, depth, panelThickness, backPanelThickness, nailHoleDiameter, settings.shelfHoleDiameter, topStretcherWidth, showBackStretchers, isBase, backStretcherHeight, numShelves, showDrawers, settings.nailHoleShelfDistance, settings.shelfDepth]);
+  }, [showNailHoles, height, depth, panelThickness, backPanelThickness, nailHoleDiameter, settings.shelfHoleDiameter, topStretcherWidth, showBackStretchers, isBase, backStretcherHeight, numShelves, showDrawers, settings.nailHoleShelfDistance, settings.shelfDepth, innerHeight]);
 
   const leftPanelGeo = useMemo(() => createPanelWithHolesGeo(
-    panelThickness, height - panelThickness, depth,
+    panelThickness, innerHeight - panelThickness, depth,
     -depth / 2 + panelThickness, -depth / 2 + panelThickness + backPanelThickness,
     grooveDepth, 'px',
     nailHolePositions,
     settings.nailHoleDepth,
-    panelThickness, 0
-  ), [panelThickness, height, depth, backPanelThickness, grooveDepth, nailHolePositions, settings.nailHoleDepth]);
+    panelThickness - grooveDepth, 0
+  ), [panelThickness, innerHeight, depth, backPanelThickness, grooveDepth, nailHolePositions, settings.nailHoleDepth]);
 
   const rightPanelGeo = useMemo(() => createPanelWithHolesGeo(
-    panelThickness, height - panelThickness, depth,
+    panelThickness, innerHeight - panelThickness, depth,
     -depth / 2 + panelThickness, -depth / 2 + panelThickness + backPanelThickness,
     grooveDepth, 'nx',
     nailHolePositions,
     settings.nailHoleDepth,
-    panelThickness, 0
-  ), [panelThickness, height, depth, backPanelThickness, grooveDepth, nailHolePositions, settings.nailHoleDepth]);
+    panelThickness - grooveDepth, 0
+  ), [panelThickness, innerHeight, depth, backPanelThickness, grooveDepth, nailHolePositions, settings.nailHoleDepth]);
 
   const bottomPanelHoles = useMemo(() => {
     if (!showNailHoles) return [];
@@ -705,7 +705,7 @@ const TestingCabinet: React.FC<{ settings: TestingSettings }> = ({ settings }) =
   }, [actualNumDoors, doorWidth, doorHeight, doorMaterialThickness, hingeHorizontalOffset, hingeDiameter, hingeDepth, hingeVerticalOffset, doorInnerGap]);
 
   const { drawerFrontGeo, bottomDrawerFrontGeo, drawerSideLGeo, drawerSideRGeo } = useMemo(() => {
-    const drawerHeightVal = (height - panelThickness * 2 - doorOuterGap * (numDrawers + 1)) / numDrawers;
+    const drawerHeightVal = (innerHeight - panelThickness * 2 - doorOuterGap * (numDrawers + 1)) / numDrawers;
     const cabinetInnerWidthForDrawer = width - panelThickness * 2;
     const boxWidth = cabinetInnerWidthForDrawer - drawerSideClearance * 2;
     const boxHeight = drawerHeightVal * drawerBoxHeightRatio;
@@ -767,7 +767,7 @@ const TestingCabinet: React.FC<{ settings: TestingSettings }> = ({ settings }) =
       drawerSideLGeo: createPanelWithHolesGeo(panelThickness, boxHeight, boxDepth, 0, 0, 0, 'nx', sideHoles, panelThickness),
       drawerSideRGeo: createPanelWithHolesGeo(panelThickness, boxHeight, boxDepth, 0, 0, 0, 'px', sideHoles, panelThickness)
     };
-  }, [width, height, depth, panelThickness, backPanelThickness, doorOuterGap, numDrawers, drawerSideClearance, drawerBoxHeightRatio, settings.drawerBackClearance, innerWidth, nailHoleDiameter, showNailHoles, doorMaterialThickness, drawerBackThickness, drawerBottomThickness]);
+  }, [width, innerHeight, depth, panelThickness, backPanelThickness, doorOuterGap, numDrawers, drawerSideClearance, drawerBoxHeightRatio, settings.drawerBackClearance, innerWidth, nailHoleDiameter, showNailHoles, doorMaterialThickness, drawerBackThickness, drawerBottomThickness]);
 
   const shouldShow = (part: string): boolean => {
     if (!partsSeparatedView) return true;
@@ -778,12 +778,12 @@ const TestingCabinet: React.FC<{ settings: TestingSettings }> = ({ settings }) =
 
   return (
     <group>
-      <group position={[width / 2, isBase ? toeKickHeight + height / 2 : height / 2, depth / 2]}>
+      <group position={[width / 2, isBase ? toeKickHeight + innerHeight / 2 : height / 2, depth / 2]}>
         {isBase && shouldShow('bottomPanel') && (
           <>
             <mesh position={[
               0 + getOffset('bottomPanel')[0],
-              -height / 2 + panelThickness / 2 + getOffset('bottomPanel')[1],
+              -innerHeight / 2 + panelThickness / 2 + getOffset('bottomPanel')[1],
               0 + getOffset('bottomPanel')[2]
             ]} castShadow receiveShadow visible={!skeletonView}>
             <primitive object={bottomPanelGeo} attach="geometry" />
@@ -792,7 +792,7 @@ const TestingCabinet: React.FC<{ settings: TestingSettings }> = ({ settings }) =
             {skeletonView && (
               <lineSegments position={[
                 0 + getOffset('bottomPanel')[0],
-                -height / 2 + panelThickness / 2 + getOffset('bottomPanel')[1],
+                -innerHeight / 2 + panelThickness / 2 + getOffset('bottomPanel')[1],
                 0 + getOffset('bottomPanel')[2]
               ]}>
                 <edgesGeometry args={[bottomPanelGeo]} />
@@ -805,7 +805,7 @@ const TestingCabinet: React.FC<{ settings: TestingSettings }> = ({ settings }) =
         {isWall && shouldShow('topPanel') && (
           <mesh position={[
             0 + getOffset('topPanel')[0],
-            height / 2 - panelThickness / 2 + getOffset('topPanel')[1],
+            innerHeight / 2 - panelThickness / 2 + getOffset('topPanel')[1],
             0 + getOffset('topPanel')[2]
           ]} castShadow receiveShadow visible={!skeletonView}>
             <primitive object={topPanelGeo} attach="geometry" />
@@ -817,7 +817,7 @@ const TestingCabinet: React.FC<{ settings: TestingSettings }> = ({ settings }) =
           <>
             <mesh position={[
               0 + getOffset('topPanel')[0],
-              height / 2 - panelThickness / 2 + getOffset('topPanel')[1],
+              innerHeight / 2 - panelThickness / 2 + getOffset('topPanel')[1],
               0 + getOffset('topPanel')[2]
             ]} castShadow receiveShadow visible={!skeletonView}>
             <primitive object={topPanelGeo} attach="geometry" />
@@ -829,7 +829,7 @@ const TestingCabinet: React.FC<{ settings: TestingSettings }> = ({ settings }) =
         {isTall && shouldShow('bottomPanel') && (
           <mesh position={[
             0 + getOffset('bottomPanel')[0],
-            -height / 2 + panelThickness / 2 + getOffset('bottomPanel')[1],
+            -innerHeight / 2 + panelThickness / 2 + getOffset('bottomPanel')[1],
             0 + getOffset('bottomPanel')[2]
           ]} castShadow receiveShadow visible={!skeletonView}>
             <primitive object={bottomPanelGeo} attach="geometry" />
@@ -903,7 +903,7 @@ const TestingCabinet: React.FC<{ settings: TestingSettings }> = ({ settings }) =
         {showBackStretchers && isBase && shouldShow('backStretcherTop') && (
           <mesh position={[
             0 + getOffset('backStretcherTop')[0],
-            height / 2 - panelThickness - backStretcherHeight / 2 + getOffset('backStretcherTop')[1],
+            innerHeight / 2 - panelThickness - backStretcherHeight / 2 + getOffset('backStretcherTop')[1],
             -innerDepth / 2 + panelThickness / 2 + getOffset('backStretcherTop')[2]
           ]} castShadow receiveShadow visible={!skeletonView}>
             <boxGeometry args={[innerWidth - panelThickness * 2, backStretcherHeight, panelThickness]} />
@@ -913,7 +913,7 @@ const TestingCabinet: React.FC<{ settings: TestingSettings }> = ({ settings }) =
         {showBackStretchers && isBase && shouldShow('backStretcherBottom') && (
           <mesh position={[
             0 + getOffset('backStretcherBottom')[0],
-            -height / 2 + panelThickness + backStretcherHeight / 2 + getOffset('backStretcherBottom')[1],
+            -innerHeight / 2 + panelThickness + backStretcherHeight / 2 + getOffset('backStretcherBottom')[1],
             -innerDepth / 2 + panelThickness / 2 + getOffset('backStretcherBottom')[2]
           ]} castShadow receiveShadow visible={!skeletonView}>
             <boxGeometry args={[innerWidth - panelThickness * 2, backStretcherHeight, panelThickness]} />
@@ -925,7 +925,7 @@ const TestingCabinet: React.FC<{ settings: TestingSettings }> = ({ settings }) =
             {shouldShow('backStretcherTop') && (
               <lineSegments position={[
                 0 + getOffset('backStretcherTop')[0],
-                height / 2 - panelThickness - backStretcherHeight / 2 + getOffset('backStretcherTop')[1],
+                innerHeight / 2 - panelThickness - backStretcherHeight / 2 + getOffset('backStretcherTop')[1],
                 -innerDepth / 2 + panelThickness / 2 + getOffset('backStretcherTop')[2]
               ]}>
                 <edgesGeometry args={[new THREE.BoxGeometry(innerWidth - panelThickness * 2, backStretcherHeight, panelThickness)]} />
@@ -935,7 +935,7 @@ const TestingCabinet: React.FC<{ settings: TestingSettings }> = ({ settings }) =
             {shouldShow('backStretcherBottom') && (
               <lineSegments position={[
                 0 + getOffset('backStretcherBottom')[0],
-                -height / 2 + panelThickness + backStretcherHeight / 2 + getOffset('backStretcherBottom')[1],
+                -innerHeight / 2 + panelThickness + backStretcherHeight / 2 + getOffset('backStretcherBottom')[1],
                 -innerDepth / 2 + panelThickness / 2 + getOffset('backStretcherBottom')[2]
               ]}>
                 <edgesGeometry args={[new THREE.BoxGeometry(innerWidth - panelThickness * 2, backStretcherHeight, panelThickness)]} />
@@ -948,7 +948,7 @@ const TestingCabinet: React.FC<{ settings: TestingSettings }> = ({ settings }) =
         {showBackStretchers && isBase && shouldShow('topStretcherFront') && (
           <mesh position={[
             0 + getOffset('topStretcherFront')[0],
-            height / 2 - panelThickness / 2 + getOffset('topStretcherFront')[1],
+            innerHeight / 2 - panelThickness / 2 + getOffset('topStretcherFront')[1],
             depth / 2 - topStretcherWidth / 2 + getOffset('topStretcherFront')[2]
           ]} castShadow receiveShadow visible={!skeletonView}>
             <boxGeometry args={[innerWidth - panelThickness * 2, panelThickness, topStretcherWidth]} />
@@ -958,7 +958,7 @@ const TestingCabinet: React.FC<{ settings: TestingSettings }> = ({ settings }) =
         {showBackStretchers && isBase && shouldShow('topStretcherBack') && (
           <mesh position={[
             0 + getOffset('topStretcherBack')[0],
-            height / 2 - panelThickness / 2 + getOffset('topStretcherBack')[1],
+            innerHeight / 2 - panelThickness / 2 + getOffset('topStretcherBack')[1],
             -innerDepth / 2 + topStretcherWidth / 2 + getOffset('topStretcherBack')[2]
           ]} castShadow receiveShadow visible={!skeletonView}>
             <primitive object={topStretcherBackGeo} attach="geometry" />
@@ -970,7 +970,7 @@ const TestingCabinet: React.FC<{ settings: TestingSettings }> = ({ settings }) =
             {shouldShow('topStretcherFront') && (
               <lineSegments position={[
                 0 + getOffset('topStretcherFront')[0],
-                height / 2 - panelThickness / 2 + getOffset('topStretcherFront')[1],
+                innerHeight / 2 - panelThickness / 2 + getOffset('topStretcherFront')[1],
                 depth / 2 - topStretcherWidth / 2 + getOffset('topStretcherFront')[2]
               ]}>
                 <edgesGeometry args={[new THREE.BoxGeometry(innerWidth - panelThickness * 2, panelThickness, topStretcherWidth)]} />
@@ -980,7 +980,7 @@ const TestingCabinet: React.FC<{ settings: TestingSettings }> = ({ settings }) =
             {shouldShow('topStretcherBack') && (
               <lineSegments position={[
                 0 + getOffset('topStretcherBack')[0],
-                height / 2 - panelThickness / 2 + getOffset('topStretcherBack')[1],
+                innerHeight / 2 - panelThickness / 2 + getOffset('topStretcherBack')[1],
                 -innerDepth / 2 + topStretcherWidth / 2 + getOffset('topStretcherBack')[2]
               ]}>
                 <edgesGeometry args={[topStretcherBackGeo]} />
@@ -1074,7 +1074,7 @@ const TestingCabinet: React.FC<{ settings: TestingSettings }> = ({ settings }) =
         })}
 
         {showDrawers && numDrawers > 0 && Array.from({ length: numDrawers }).map((_, i) => {
-          const drawerY = -height / 2 + panelThickness + doorOuterGap + i * (drawerHeight + drawerToDrawerGap) + drawerHeight / 2;
+          const drawerY = -innerHeight / 2 + panelThickness + doorOuterGap + i * (drawerHeight + drawerToDrawerGap) + drawerHeight / 2;
           
           const cabinetInnerWidthForDrawer = width - panelThickness * 2;
           const boxWidth = cabinetInnerWidthForDrawer - drawerSideClearance * 2;
@@ -1176,9 +1176,9 @@ const TestingCabinet: React.FC<{ settings: TestingSettings }> = ({ settings }) =
         })}
 
         {numShelves > 0 && !showDrawers && Array.from({ length: numShelves }).map((_, i) => {
-          const availableHeight = height - panelThickness * 2;
+          const availableHeight = innerHeight - panelThickness * 2;
           const spacing = availableHeight / (numShelves + 1);
-          const shelfY = -height / 2 + panelThickness + spacing * (i + 1);
+          const shelfY = -innerHeight / 2 + panelThickness + spacing * (i + 1);
           const shelfZStart = -depth / 2 + panelThickness + backPanelThickness;
           const shelfZPos = shelfZStart + settings.shelfDepth / 2;
           
@@ -1326,7 +1326,7 @@ export const CabinetTestingPage: React.FC = () => {
   // Re-calculate hole positions for export - MUST match TestingCabinet exactly
   const nailHolePositions = useMemo(() => {
     if (!settings.showNailHoles) return [];
-    const panelHeight = height - panelThickness;
+    const panelHeight = innerHeight - panelThickness;
     const y = panelHeight / 2 - panelThickness / 2;
     const technicalR = settings.nailHoleDiameter / 2;
     const shelfR = settings.shelfHoleDiameter / 2;
@@ -1344,10 +1344,10 @@ export const CabinetTestingPage: React.FC = () => {
     ];
 
     if (numShelves > 0 && !showDrawers) {
-      const availableHeight = height - panelThickness * 2;
+      const availableHeight = innerHeight - panelThickness * 2;
       const spacing = availableHeight / (numShelves + 1);
       for (let i = 0; i < numShelves; i++) {
-        const shelfYCabinet = -height / 2 + panelThickness + spacing * (i + 1);
+        const shelfYCabinet = -innerHeight / 2 + panelThickness + spacing * (i + 1);
         const yLocalSide = shelfYCabinet - panelThickness / 2;
         const holeY = yLocalSide - panelThickness / 2 - settings.nailHoleShelfDistance;
         const shelfZStart = -depth / 2 + panelThickness + backPanelThickness;
@@ -1489,8 +1489,8 @@ export const CabinetTestingPage: React.FC = () => {
     };
 
     const sideW = depth;
-    const sideH_Panel = height - panelThickness;
-    const sideGroove = { x: panelThickness, y: 0, w: backPanelThickness + 2, h: sideH_Panel - panelThickness, depth: grooveDepth };
+    const sideH_Panel = innerHeight - panelThickness;
+    const sideGroove = { x: panelThickness, y: 0, w: backPanelThickness + 2, h: sideH_Panel - panelThickness + grooveDepth, depth: grooveDepth };
     
     addPanelToZip('Left_Panel', sideW, sideH_Panel, nailHolePositions, sideGroove);
     addPanelToZip('Right_Panel', sideW, sideH_Panel, nailHolePositions, sideGroove);
@@ -1500,7 +1500,7 @@ export const CabinetTestingPage: React.FC = () => {
       addPanelToZip('Top_Panel', innerWidth, innerDepth, [], { x: 0, y: panelThickness, w: innerWidth, h: backPanelThickness + 2, depth: grooveDepth });
     }
     
-    const doorHeightValue = height - panelThickness * 2 - doorOuterGap * 2;
+    const doorHeightValue = innerHeight - panelThickness * 2 - doorOuterGap * 2;
     if (showDoors) {
       for (let i = 0; i < actualNumDoors; i++) {
         const hingeX = actualNumDoors === 1 
@@ -1517,7 +1517,7 @@ export const CabinetTestingPage: React.FC = () => {
 
     if (showDrawers && settings.numDrawers > 0) {
       for (let i = 0; i < settings.numDrawers; i++) {
-        const drawerHeightVal = (height - panelThickness * 2 - doorOuterGap * (settings.numDrawers + 1)) / settings.numDrawers;
+        const drawerHeightVal = (innerHeight - panelThickness * 2 - doorOuterGap * (settings.numDrawers + 1)) / settings.numDrawers;
         const cabinetInnerWidthForDrawer = width - panelThickness * 2;
         const boxWidth = cabinetInnerWidthForDrawer - drawerSideClearance * 2;
         const boxHeight = drawerHeightVal * drawerBoxHeightRatio;
