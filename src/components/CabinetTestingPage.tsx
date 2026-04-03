@@ -1507,8 +1507,12 @@ export const CabinetTestingPage: React.FC = () => {
     const technicalR = settings.nailHoleDiameter / 2;
     const shelfR = settings.shelfHoleDiameter / 2;
     
-    const zFront1 = depth / 2 - (topStretcherWidth / 4);
-    const zFront2 = depth / 2 - (topStretcherWidth * 3 / 4);
+    // Front Holes (Top Stretcher)
+    const golaOffset = (settings.enableGola && isBase && showDoors && !showDrawers) ? settings.golaCutoutDepth : 0;
+    const zFront1 = depth / 2 - (topStretcherWidth / 4) - golaOffset;
+    const zFront2 = depth / 2 - (topStretcherWidth * 3 / 4) - golaOffset;
+    
+    // Back Holes (Top Stretcher mirrored at -z)
     const zBack1 = -depth / 2 + (topStretcherWidth / 4);
     const zBack2 = -depth / 2 + (topStretcherWidth * 3 / 4);
 
@@ -1547,7 +1551,7 @@ export const CabinetTestingPage: React.FC = () => {
     }
     
     return positions;
-  }, [settings.showNailHoles, height, depth, panelThickness, backPanelThickness, settings.shelfHoleDiameter, topStretcherWidth, showBackStretchers, isBase, backStretcherHeight, numShelves, showDrawers, settings.nailHoleShelfDistance, settings.shelfDepth, settings.nailHoleDiameter]);
+  }, [settings.showNailHoles, height, depth, panelThickness, backPanelThickness, settings.shelfHoleDiameter, topStretcherWidth, showBackStretchers, isBase, backStretcherHeight, numShelves, showDrawers, showDoors, settings.enableGola, settings.golaCutoutDepth, settings.nailHoleShelfDistance, settings.shelfDepth, settings.nailHoleDiameter]);
 
   const bottomPanelHoles = useMemo(() => {
     if (!settings.showNailHoles) return [];
@@ -1619,8 +1623,32 @@ export const CabinetTestingPage: React.FC = () => {
       
       const modelSpace = writer.modelSpace;
 
+      // Define standard rectangle points
+      let points = [
+        { point: { x: 0, y: 0 } }, 
+        { point: { x: width, y: 0 } }, 
+        { point: { x: width, y: height } }, 
+        { point: { x: 0, y: height } }
+      ];
+
+      // If Gola L-cut is present (assuming top front corner TR for side panels)
+      if (golaCutouts && golaCutouts.length > 0) {
+        const cutout = golaCutouts[0]; // Assuming first cutout is the L-notch for side panels
+        // L-notch at TR corner:
+        // Original TR: (width, height)
+        // New points: (width, height - cutout.h) -> (width - cutout.w, height - cutout.h) -> (width - cutout.w, height)
+        points = [
+          { point: { x: 0, y: 0 } }, 
+          { point: { x: width, y: 0 } }, 
+          { point: { x: width, y: cutout.y } }, // Bottom-right of notch
+          { point: { x: cutout.x, y: cutout.y } }, // Inner corner of notch
+          { point: { x: cutout.x, y: height } }, // Top-left of notch (at top edge)
+          { point: { x: 0, y: height } }
+        ];
+      }
+
       modelSpace.addLWPolyline(
-        [{ point: { x: 0, y: 0 } }, { point: { x: width, y: 0 } }, { point: { x: width, y: height } }, { point: { x: 0, y: height } }, { point: { x: 0, y: 0 } }],
+        [...points, points[0]],
         { flags: LWPolylineFlags.Closed, layerName: 'PANEL' }
       );
 
@@ -1662,14 +1690,7 @@ export const CabinetTestingPage: React.FC = () => {
         );
       }
 
-      if (golaCutouts) {
-        golaCutouts.forEach(cutout => {
-          modelSpace.addLWPolyline(
-            [{ point: { x: cutout.x, y: cutout.y } }, { point: { x: cutout.x + cutout.w, y: cutout.y } }, { point: { x: cutout.x + cutout.w, y: cutout.y + cutout.h } }, { point: { x: cutout.x, y: cutout.y + cutout.h } }, { point: { x: cutout.x, y: cutout.y } }],
-            { flags: LWPolylineFlags.Closed, layerName: 'GROOVE' }
-          );
-        });
-      }
+      // We removed the separate green Gola boxes as they are now part of the PANEL outline
       zip.file(`${name}.dxf`, writer.stringify());
     };
 
