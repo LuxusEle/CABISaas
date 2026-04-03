@@ -1612,7 +1612,7 @@ export const CabinetTestingPage: React.FC = () => {
   const handleExportDXF = async () => {
     const zip = new JSZip();
     
-    const addPanelToZip = (name: string, width: number, height: number, holes: { y: number, z: number, r: number, through?: boolean }[] = [], groove?: { x: number, y: number, w: number, h: number, depth: number }, golaCutouts?: { x: number, y: number, w: number, h: number }[]) => {
+    const addPanelToZip = (name: string, width: number, height: number, holesInput: { y: number, z: number, r: number, through?: boolean }[] = [], grooveInput?: { x: number, y: number, w: number, h: number, depth: number }, golaCutouts?: { x: number, y: number, w: number, h: number }[], mirrorX: boolean = false) => {
       const writer = new DxfWriter();
       writer.setUnits(Units.Millimeters);
       
@@ -1622,6 +1622,20 @@ export const CabinetTestingPage: React.FC = () => {
       writer.addLayer('TEXT', 7, 'CONTINUOUS');
       
       const modelSpace = writer.modelSpace;
+
+      // Clone inputs to avoid mutation of shared memos
+      const holes = holesInput.map(h => ({ ...h }));
+      const groove = grooveInput ? { ...grooveInput } : undefined;
+
+      // Apply mirroring if requested
+      if (mirrorX) {
+        if (groove) {
+          groove.x = width - groove.x - groove.w;
+        }
+        holes.forEach(h => {
+          h.z = -h.z;
+        });
+      }
 
       // Define standard rectangle points
       let points = [
@@ -1635,8 +1649,6 @@ export const CabinetTestingPage: React.FC = () => {
       if (golaCutouts && golaCutouts.length > 0) {
         const cutout = golaCutouts[0]; // Assuming first cutout is the L-notch for side panels
         // L-notch at TR corner:
-        // Original TR: (width, height)
-        // New points: (width, height - cutout.h) -> (width - cutout.w, height - cutout.h) -> (width - cutout.w, height)
         points = [
           { point: { x: 0, y: 0 } }, 
           { point: { x: width, y: 0 } }, 
@@ -1645,6 +1657,13 @@ export const CabinetTestingPage: React.FC = () => {
           { point: { x: cutout.x, y: height } }, // Top-left of notch (at top edge)
           { point: { x: 0, y: height } }
         ];
+      }
+
+      // Final mirroring of points if requested
+      if (mirrorX) {
+        points.forEach(p => {
+          p.point.x = width - p.point.x;
+        });
       }
 
       modelSpace.addLWPolyline(
@@ -1657,7 +1676,7 @@ export const CabinetTestingPage: React.FC = () => {
       holes.forEach(hole => {
         const radius = hole.r;
         let centerX, centerY;
-        if (name.includes('Side')) {
+        if (name.includes('Side') || name.includes('Left_Panel') || name.includes('Right_Panel')) {
           centerX = hole.z + width / 2;
           centerY = hole.y + height / 2;
         } else if (name.includes('Bottom') || name.includes('Top')) {
@@ -1675,12 +1694,12 @@ export const CabinetTestingPage: React.FC = () => {
         }
         
         const segments = 32;
-        const points = [];
+        const pts = [];
         for (let i = 0; i <= segments; i++) {
           const angle = (i / segments) * 2 * Math.PI;
-          points.push({ point: { x: centerX + radius * Math.cos(angle), y: centerY + radius * Math.sin(angle) } });
+          pts.push({ point: { x: centerX + radius * Math.cos(angle), y: centerY + radius * Math.sin(angle) } });
         }
-        modelSpace.addLWPolyline(points, { flags: LWPolylineFlags.Closed, layerName: 'DRILL' });
+        modelSpace.addLWPolyline(pts, { flags: LWPolylineFlags.Closed, layerName: 'DRILL' });
       });
 
       if (groove) {
@@ -1690,7 +1709,6 @@ export const CabinetTestingPage: React.FC = () => {
         );
       }
 
-      // We removed the separate green Gola boxes as they are now part of the PANEL outline
       zip.file(`${name}.dxf`, writer.stringify());
     };
 
@@ -1713,8 +1731,8 @@ export const CabinetTestingPage: React.FC = () => {
       golaCutoutsArr.push({ x: sideW - lD, y: lBottom, w: lD, h: lH });
     }
 
-    addPanelToZip('Left_Panel', sideW, sideH_Panel, nailHolePositions, sideGroove, golaCutoutsArr);
-    addPanelToZip('Right_Panel', sideW, sideH_Panel, nailHolePositions, sideGroove, golaCutoutsArr);
+    addPanelToZip('Left_Panel', sideW, sideH_Panel, nailHolePositions, sideGroove, golaCutoutsArr, false);
+    addPanelToZip('Right_Panel', sideW, sideH_Panel, nailHolePositions, sideGroove, golaCutoutsArr, true);
     addPanelToZip('Bottom_Panel', innerWidth, innerDepth, bottomPanelHoles, { x: 0, y: panelThickness, w: innerWidth, h: backPanelThickness + 2, depth: grooveDepth });
     
     if (isWall || isTall) {
