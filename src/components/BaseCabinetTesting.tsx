@@ -541,7 +541,7 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
         const { drawerYPositions, boxWidth, boxDepth, boxZOffset } = drawerData;
         const { frontGeo, sideLGeo, sideRGeo, boxH } = getDrawerGeos(i);
         return (
-          <group key={`drawer-${i}`} position={getOffset('drawer', i)}>
+          <group key={`drawer-${i}`} position={[getOffset('drawer', i)[0], getOffset('drawer', i)[1], getOffset('drawer', i)[2] + (settings.drawerOpenDistances[i] || 0)]}>
             <mesh position={[0, drawerYPositions[i], depth / 2 + doorMaterialThickness / 2]} rotation={[0, -Math.PI / 2, 0]} castShadow receiveShadow visible={!skeletonView}>
               <primitive object={frontGeo} attach="geometry" />
               <meshStandardMaterial color={showDifferentPanelColors ? panelColors.drawerFront : doorColor} roughness={0.6} side={THREE.DoubleSide} />
