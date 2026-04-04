@@ -40,6 +40,7 @@ export interface TestingSettings {
   showNailHoles: boolean;
   nailHoleDiameter: number;
   shelfHoleDiameter: number;
+  wallBottomRecess: number;
   nailHoleShelfDistance: number;
   nailHoleDepth: number;
   shelfDepth: number;
@@ -96,6 +97,7 @@ export const DEFAULT_SETTINGS: TestingSettings = {
   showNailHoles: true,
   nailHoleDiameter: 5,
   shelfHoleDiameter: 5,
+  wallBottomRecess: 0,
   nailHoleShelfDistance: 10,
   nailHoleDepth: 5,
   shelfDepth: 560 - 18 - 6,

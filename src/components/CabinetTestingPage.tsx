@@ -198,7 +198,7 @@ export const CabinetTestingPage: React.FC = () => {
             <h3 className="text-[11px] font-bold text-amber-500 uppercase tracking-wider mb-3">Gaps & Clearances</h3>
             <SettingRow label="Door to Door" value={settings.doorToDoorGap} onChange={v => updateSetting('doorToDoorGap', v)} step={0.5} min={0} max={10} />
             <SettingRow label="Door to Panel" value={settings.doorToPanelGap} onChange={v => updateSetting('doorToPanelGap', v)} step={0.5} min={0} max={10} />
-            <SettingRow label="Drawer to Drawer" value={settings.drawerToDrawerGap} onChange={v => updateSetting('drawerToDrawerGap', v)} step={0.5} min={0} max={10} />
+            {activeType !== 'wall' && <SettingRow label="Drawer to Drawer" value={settings.drawerToDrawerGap} onChange={v => updateSetting('drawerToDrawerGap', v)} step={0.5} min={0} max={10} />}
             <SettingRow label="Door Outer Gap" value={settings.doorOuterGap} onChange={v => updateSetting('doorOuterGap', v)} step={0.5} min={0} max={10} />
             <SettingRow label="Door Inner Gap" value={settings.doorInnerGap} onChange={v => updateSetting('doorInnerGap', v)} step={0.5} min={0} max={10} />
             <SettingRow label="Door Side Clear." value={settings.doorSideClearance} onChange={v => updateSetting('doorSideClearance', v)} step={0.5} min={0} max={10} />
@@ -206,7 +206,47 @@ export const CabinetTestingPage: React.FC = () => {
 
           <Section>
             <h3 className="text-[11px] font-bold text-amber-500 uppercase tracking-wider mb-3">Front Options</h3>
-            {!settings.showDrawers ? (
+            {activeType !== 'wall' && (
+              settings.showDrawers ? (
+                <div className="flex flex-col gap-2 mb-3">
+                  {Array.from({ length: settings.numDrawers }).map((_, i) => {
+                    const dataIndex = settings.numDrawers - 1 - i;
+                    return (
+                      <div key={`drawer-open-${dataIndex}`} className="flex flex-col gap-1">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex justify-between">
+                          <span>Drawer {i + 1} Open Dist</span>
+                          <span className="text-blue-500">{settings.drawerOpenDistances[dataIndex] || 0}mm</span>
+                        </label>
+                        <input 
+                          type="range" min="0" max={settings.depth - 50} step="5" 
+                          value={settings.drawerOpenDistances[dataIndex] || 0} 
+                          onChange={(e) => {
+                            const newDists = [...settings.drawerOpenDistances];
+                            newDists[dataIndex] = parseInt(e.target.value);
+                            updateSetting('drawerOpenDistances', newDists);
+                          }} 
+                          className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500" 
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="flex flex-col gap-1 mb-3">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex justify-between">
+                    <span>Door Opening Angle</span>
+                    <span className="text-blue-500">{settings.doorOpenAngle}°</span>
+                  </label>
+                  <input 
+                    type="range" min="0" max="110" step="1" 
+                    value={settings.doorOpenAngle} 
+                    onChange={(e) => updateSetting('doorOpenAngle', parseInt(e.target.value))} 
+                    className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500" 
+                  />
+                </div>
+              )
+            )}
+            {activeType === 'wall' && (
               <div className="flex flex-col gap-1 mb-3">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex justify-between">
                   <span>Door Opening Angle</span>
@@ -219,30 +259,6 @@ export const CabinetTestingPage: React.FC = () => {
                   className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500" 
                 />
               </div>
-            ) : (
-              <div className="flex flex-col gap-2 mb-3">
-                {Array.from({ length: settings.numDrawers }).map((_, i) => {
-                  const dataIndex = settings.numDrawers - 1 - i;
-                  return (
-                    <div key={`drawer-open-${dataIndex}`} className="flex flex-col gap-1">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex justify-between">
-                        <span>Drawer {i + 1} Open Dist</span>
-                        <span className="text-blue-500">{settings.drawerOpenDistances[dataIndex] || 0}mm</span>
-                      </label>
-                      <input 
-                        type="range" min="0" max={settings.depth - 50} step="5" 
-                        value={settings.drawerOpenDistances[dataIndex] || 0} 
-                        onChange={(e) => {
-                          const newDists = [...settings.drawerOpenDistances];
-                          newDists[dataIndex] = parseInt(e.target.value);
-                          updateSetting('drawerOpenDistances', newDists);
-                        }} 
-                        className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500" 
-                      />
-                    </div>
-                  );
-                })}
-              </div>
             )}
             <CheckboxRow label="Show Doors" checked={settings.showDoors} onChange={v => updateSetting('showDoors', v)} />
             <CheckboxRow label="Show Hinges" checked={settings.showHinges} onChange={v => updateSetting('showHinges', v)} />
@@ -254,7 +270,7 @@ export const CabinetTestingPage: React.FC = () => {
                 <SettingRow label="Hinge V Offset" value={settings.hingeVerticalOffset} onChange={v => updateSetting('hingeVerticalOffset', v)} step={1} min={20} max={200} />
               </div>
             )}
-            <CheckboxRow label="Show Drawers" checked={settings.showDrawers} onChange={v => updateSetting('showDrawers', v)} />
+            {activeType !== 'wall' && <CheckboxRow label="Show Drawers" checked={settings.showDrawers} onChange={v => updateSetting('showDrawers', v)} />}
             {settings.showDrawers && (
               <div className="mt-2 pl-2 border-l-2 border-amber-500/30 space-y-2">
                 <SettingRow label="Num Drawers" value={settings.numDrawers} onChange={v => updateSetting('numDrawers', v)} step={1} min={1} max={6} />
