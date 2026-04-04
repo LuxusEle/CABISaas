@@ -766,13 +766,10 @@ export const exportTallCabinetDXF = async (settings: TestingSettings, zip: JSZip
         points.push({ point: { x: width, y: c.y } });
         points.push({ point: { x: c.x, y: c.y } });
         points.push({ point: { x: c.x, y: c.y + c.h } });
-        if (c.y + c.h < height - 0.1) {
-          points.push({ point: { x: width, y: c.y + c.h } });
-        }
+        points.push({ point: { x: width, y: c.y + c.h } });
       });
-    } else {
-      points.push({ point: { x: width, y: height } });
     }
+    points.push({ point: { x: width, y: height } });
     points.push({ point: { x: 0, y: height } });
 
     if (mirrorX) points.forEach(p => { p.point.x = width - p.point.x; });
@@ -920,12 +917,12 @@ export const exportTallCabinetDXF = async (settings: TestingSettings, zip: JSZip
   const vLeftb = -innerWidth / 2 + panelThickness / 2;
   const vRightb = innerWidth / 2 - panelThickness / 2;
   bottomNailHoles.push(
-    { y: vLeftb, z: u1b, r: technicalR, through: true },
-    { y: vLeftb, z: u2b, r: technicalR, through: true },
-    { y: vLeftb, z: u3b, r: technicalR, through: true },
-    { y: vRightb, z: u1b, r: technicalR, through: true },
-    { y: vRightb, z: u2b, r: technicalR, through: true },
-    { y: vRightb, z: u3b, r: technicalR, through: true }
+    { z: vLeftb, y: u1b, r: technicalR, through: true },
+    { z: vLeftb, y: u2b, r: technicalR, through: true },
+    { z: vLeftb, y: u3b, r: technicalR, through: true },
+    { z: vRightb, y: u1b, r: technicalR, through: true },
+    { z: vRightb, y: u2b, r: technicalR, through: true },
+    { z: vRightb, y: u3b, r: technicalR, through: true }
   );
 
   if (showBackStretchers) {
@@ -934,14 +931,14 @@ export const exportTallCabinetDXF = async (settings: TestingSettings, zip: JSZip
     const v3 = innerWidth / 2 - innerWidth / 5;
     const zBackH = -innerDepth / 2 + panelThickness / 2;
     bottomNailHoles.push(
-      { y: v1, z: zBackH, r: technicalR, through: true },
-      { y: v2, z: zBackH, r: technicalR, through: true },
-      { y: v3, z: zBackH, r: technicalR, through: true }
+      { z: v1, y: zBackH, r: technicalR, through: true },
+      { z: v2, y: zBackH, r: technicalR, through: true },
+      { z: v3, y: zBackH, r: technicalR, through: true }
     );
   }
 
-  addPanelToZip('Bottom_Panel', innerWidth, innerDepth, bottomNailHoles, { x: 0, y: panelThickness, w: innerWidth, h: backPanelThickness + 2, depth: grooveDepth });
-  addPanelToZip('Top_Panel', innerWidth, innerDepth, bottomNailHoles, { x: 0, y: panelThickness, w: innerWidth, h: backPanelThickness + 2, depth: grooveDepth });
+  addPanelToZip('Bottom_Panel', innerWidth, innerDepth, bottomNailHoles, { x: panelThickness, y: panelThickness, w: innerWidth - 2 * panelThickness, h: backPanelThickness + 2, depth: grooveDepth });
+  addPanelToZip('Top_Panel', innerWidth, innerDepth, bottomNailHoles, { x: panelThickness, y: panelThickness, w: innerWidth - 2 * panelThickness, h: backPanelThickness + 2, depth: grooveDepth });
 
   if (showBackStretchers) {
     addPanelToZip('Top_Stretcher_Back', innerWidth - panelThickness * 2, 100);
