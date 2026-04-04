@@ -43,7 +43,15 @@ export const WallCabinetTesting: React.FC<Props> = ({ settings }) => {
   const doorWidth = actualNumDoors === 1 
     ? innerWidth - doorOuterGap * 2 
     : (innerWidth - doorOuterGap * 2 - doorInnerGap) / 2;
-  const doorHeight = innerHeight - doorOuterGap * 2;
+
+  const isGolaActive = settings.enableGola && showDoors;
+  
+  let doorHeight = innerHeight - doorOuterGap * 2;
+  let doorYOffset = 0;
+  if (isGolaActive) {
+    doorHeight -= settings.doorOverride;
+    doorYOffset = settings.doorOverride / 2;
+  }
 
   const getOffset = (part: string, index: number = 0): [number, number, number] => {
     if (!partsSeparatedView || selectedPart !== 'all' && selectedPart !== part) return [0, 0, 0];
@@ -100,34 +108,46 @@ export const WallCabinetTesting: React.FC<Props> = ({ settings }) => {
 
   const leftPanelGeo = useMemo(() => {
     const sidePanelHeight = innerHeight - panelThickness * 2;
+    const notches: any[] = [];
+    if (isGolaActive) {
+      notches.push({ u: depth / 2, v: -sidePanelHeight / 2, width: settings.golaLCutoutDepth, height: settings.golaLCutoutHeight, alignV: 'bottom' });
+    }
     return createPanelWithHolesGeo(
       panelThickness, sidePanelHeight, depth,
       -depth / 2 + panelThickness, -depth / 2 + panelThickness + backPanelThickness,
       grooveDepth, 'px',
       nailHolePositions, 
       settings.nailHoleDepth,
-      panelThickness - grooveDepth, 0
+      panelThickness - grooveDepth, 0,
+      notches
     );
-  }, [panelThickness, innerHeight, depth, backPanelThickness, grooveDepth, nailHolePositions, settings.nailHoleDepth]);
+  }, [panelThickness, innerHeight, depth, backPanelThickness, grooveDepth, nailHolePositions, settings.nailHoleDepth, isGolaActive, settings.golaLCutoutDepth, settings.golaLCutoutHeight]);
 
   const rightPanelGeo = useMemo(() => {
     const sidePanelHeight = innerHeight - panelThickness * 2;
+    const notches: any[] = [];
+    if (isGolaActive) {
+      notches.push({ u: depth / 2, v: -sidePanelHeight / 2, width: settings.golaLCutoutDepth, height: settings.golaLCutoutHeight, alignV: 'bottom' });
+    }
     return createPanelWithHolesGeo(
       panelThickness, sidePanelHeight, depth,
       -depth / 2 + panelThickness, -depth / 2 + panelThickness + backPanelThickness,
       grooveDepth, 'nx',
       nailHolePositions, 
       settings.nailHoleDepth,
-      panelThickness - grooveDepth, 0
+      panelThickness - grooveDepth, 0,
+      notches
     );
-  }, [panelThickness, innerHeight, depth, backPanelThickness, grooveDepth, nailHolePositions, settings.nailHoleDepth]);
+  }, [panelThickness, innerHeight, depth, backPanelThickness, grooveDepth, nailHolePositions, settings.nailHoleDepth, isGolaActive, settings.golaLCutoutDepth, settings.golaLCutoutHeight]);
+
+  const actualBottomDepth = isGolaActive ? innerDepth - settings.golaLCutoutDepth : innerDepth;
 
   const bottomPanelHoles = useMemo(() => {
     if (!showNailHoles) return [];
     const technicalR = nailHoleDiameter / 2;
-    const u1 = -innerDepth / 2 + innerDepth / 5;
+    const u1 = -actualBottomDepth / 2 + actualBottomDepth / 5;
     const u2 = 0;
-    const u3 = innerDepth / 2 - innerDepth / 5;
+    const u3 = actualBottomDepth / 2 - actualBottomDepth / 5;
     const vLeft = -innerWidth / 2 + panelThickness / 2;
     const vRight = innerWidth / 2 - panelThickness / 2;
 
@@ -144,7 +164,7 @@ export const WallCabinetTesting: React.FC<Props> = ({ settings }) => {
       const v1 = -innerWidth / 2 + innerWidth / 5;
       const v2 = 0;
       const v3 = innerWidth / 2 - innerWidth / 5;
-      const zBackHole = -innerDepth / 2 + panelThickness / 2;
+      const zBackHole = -actualBottomDepth / 2 + panelThickness / 2;
       positions.push(
         { y: v1, z: zBackHole, r: technicalR, through: true },
         { y: v2, z: zBackHole, r: technicalR, through: true },
@@ -152,15 +172,16 @@ export const WallCabinetTesting: React.FC<Props> = ({ settings }) => {
       );
     }
     return positions;
-  }, [showNailHoles, innerWidth, innerDepth, panelThickness, nailHoleDiameter, showBackStretchers]);
+  }, [showNailHoles, innerWidth, innerDepth, actualBottomDepth, panelThickness, nailHoleDiameter, showBackStretchers]);
 
   const bottomPanelGeo = useMemo(() => createPanelWithHolesGeo(
-    panelThickness, innerWidth, innerDepth,
-    -innerDepth / 2 + panelThickness, -innerDepth / 2 + panelThickness + backPanelThickness,
+    panelThickness, innerWidth, actualBottomDepth,
+    -actualBottomDepth / 2 + panelThickness, -actualBottomDepth / 2 + panelThickness + backPanelThickness,
     grooveDepth, 'py',
     bottomPanelHoles, settings.nailHoleDepth,
     panelThickness, panelThickness
-  ), [innerWidth, panelThickness, innerDepth, backPanelThickness, grooveDepth, bottomPanelHoles, settings.nailHoleDepth]);
+  ), [innerWidth, actualBottomDepth, panelThickness, backPanelThickness, grooveDepth, bottomPanelHoles, settings.nailHoleDepth]);
+
 
   const topPanelGeo = useMemo(() => createPanelWithHolesGeo(
     panelThickness, innerWidth, innerDepth,
@@ -201,13 +222,13 @@ export const WallCabinetTesting: React.FC<Props> = ({ settings }) => {
   return (
     <group position={[width / 2, height / 2, depth / 2]}>
       {shouldShow('bottomPanel') && (
-        <mesh position={[0 + getOffset('bottomPanel')[0], -innerHeight / 2 + panelThickness / 2 + settings.wallBottomRecess + getOffset('bottomPanel')[1], 0 + getOffset('bottomPanel')[2]]} castShadow receiveShadow visible={!skeletonView}>
+        <mesh position={[0 + getOffset('bottomPanel')[0], -innerHeight / 2 + panelThickness / 2 + settings.wallBottomRecess + getOffset('bottomPanel')[1], (isGolaActive ? -settings.golaLCutoutDepth / 2 : 0) + getOffset('bottomPanel')[2]]} castShadow receiveShadow visible={!skeletonView}>
           <primitive object={bottomPanelGeo} attach="geometry" />
           <meshStandardMaterial color={getPanelColor('bottomPanel')} roughness={0.8} side={THREE.DoubleSide} />
         </mesh>
       )}
       {skeletonView && shouldShow('bottomPanel') && (
-        <lineSegments position={[0 + getOffset('bottomPanel')[0], -innerHeight / 2 + panelThickness / 2 + settings.wallBottomRecess + getOffset('bottomPanel')[1], 0 + getOffset('bottomPanel')[2]]}>
+        <lineSegments position={[0 + getOffset('bottomPanel')[0], -innerHeight / 2 + panelThickness / 2 + settings.wallBottomRecess + getOffset('bottomPanel')[1], (isGolaActive ? -settings.golaLCutoutDepth / 2 : 0) + getOffset('bottomPanel')[2]]}>
           <edgesGeometry args={[bottomPanelGeo]} />
           <lineBasicMaterial color={getPanelColor('bottomPanel')} linewidth={2} />
         </lineSegments>
@@ -303,7 +324,7 @@ export const WallCabinetTesting: React.FC<Props> = ({ settings }) => {
         const pivotX = isLeftDoor ? -doorWidth / 2 : doorWidth / 2;
 
         return (
-          <group key={`door-${i}`} position={[doorX + getOffset('door', i)[0], 0 + getOffset('door', i)[1], depth / 2 + getOffset('door', i)[2]]}>
+          <group key={`door-${i}`} position={[doorX + getOffset('door', i)[0], doorYOffset + getOffset('door', i)[1], depth / 2 + getOffset('door', i)[2]]}>
             <group position={[pivotX, 0, 0]} rotation={[0, rotationDirection * doorAngle, 0]}>
               <mesh position={[-pivotX, 0, doorMaterialThickness / 2]} castShadow receiveShadow visible={!skeletonView}>
                 <primitive object={doorGeos[i]} attach="geometry" />
@@ -315,7 +336,7 @@ export const WallCabinetTesting: React.FC<Props> = ({ settings }) => {
                   <lineBasicMaterial color={getPanelColor('door')} linewidth={2} />
                 </lineSegments>
               )}
-              {shouldShow('door') && (
+              {shouldShow('door') && !isGolaActive && (
                 <mesh position={[handleXOffset - pivotX, -doorHeight / 2 + 50, doorMaterialThickness + 5]} rotation={[0, 0, Math.PI / 2]} castShadow>
                   <cylinderGeometry args={[3, 3, 60, 16]} />
                   <meshStandardMaterial color="#4a5568" metalness={0.8} roughness={0.2} />
@@ -381,7 +402,7 @@ export const exportWallCabinetDXF = async (settings: TestingSettings, zip: JSZip
   const doorWidth = actualNumDoors === 1 ? innerWidth - doorOuterGap * 2 : (innerWidth - doorOuterGap * 2 - doorInnerGap) / 2;
   const doorHeight = innerHeight - doorOuterGap * 2;
 
-  const addPanelToZip = (name: string, width: number, height: number, holesInput: { y: number, z: number, r: number, through?: boolean }[] = [], grooveInput?: { x: number, y: number, w: number, h: number, depth: number }, mirrorX: boolean = false) => {
+  const addPanelToZip = (name: string, width: number, height: number, holesInput: { y: number, z: number, r: number, through?: boolean }[] = [], grooveInput?: { x: number, y: number, w: number, h: number, depth: number }, mirrorX: boolean = false, golaCutouts?: { x: number, y: number, w: number, h: number, bottom?: boolean }[]) => {
     const writer = new DxfWriter();
     writer.setUnits(Units.Millimeters);
     writer.addLayer('PANEL', 7, 'CONTINUOUS');
@@ -394,8 +415,29 @@ export const exportWallCabinetDXF = async (settings: TestingSettings, zip: JSZip
     if (mirrorX) {
       if (groove) groove.x = width - groove.x - groove.w;
       holes.forEach(h => { h.z = -h.z; });
+      if (golaCutouts) golaCutouts.forEach(c => { c.x = width - c.x - c.w; });
     }
-    const points = [{ point: { x: 0, y: 0 } }, { point: { x: width, y: 0 } }, { point: { x: width, y: height } }, { point: { x: 0, y: height } }];
+    
+    let points = [{ point: { x: 0, y: 0 } }];
+    if (golaCutouts && golaCutouts.length > 0) {
+      const sorted = [...golaCutouts].sort((a, b) => a.y - b.y);
+      if (sorted.some(c => c.bottom)) {
+        const c = sorted.find(c => c.bottom)!;
+        points = [
+          { point: { x: 0, y: c.h } },
+          { point: { x: c.x + c.w, y: c.h } },
+          { point: { x: c.x + c.w, y: 0 } },
+          { point: { x: width, y: 0 } }
+        ];
+      } else {
+        points.push({ point: { x: width, y: 0 } });
+      }
+    } else {
+      points.push({ point: { x: width, y: 0 } });
+    }
+    
+    points.push({ point: { x: width, y: height } }, { point: { x: 0, y: height } });
+
     if (mirrorX) points.forEach(p => { p.point.x = width - p.point.x; });
     modelSpace.addLWPolyline([...points, points[0]], { flags: LWPolylineFlags.Closed, layerName: 'PANEL' });
     modelSpace.addText(point3d(width / 2, height / 2, 0), 12, name, { layerName: 'TEXT' });
@@ -449,12 +491,17 @@ export const exportWallCabinetDXF = async (settings: TestingSettings, zip: JSZip
   const sideH_Panel = innerHeight - panelThickness * 2;
   const sideGroove = { x: panelThickness, y: 0, w: backPanelThickness + 2, h: sideH_Panel - panelThickness + grooveDepth, depth: grooveDepth };
   
-  addPanelToZip('Left_Panel', sideW, sideH_Panel, nailHoles, sideGroove, false);
-  addPanelToZip('Right_Panel', sideW, sideH_Panel, nailHoles, sideGroove, true);
+  const isGolaActive = settings.enableGola && showDoors;
+  const leftNotches = isGolaActive ? [{ bottom: true, x: 0, y: 0, w: settings.golaLCutoutDepth, h: settings.golaLCutoutHeight }] : undefined;
+  const rightNotches = isGolaActive ? [{ bottom: true, x: depth - settings.golaLCutoutDepth, y: 0, w: settings.golaLCutoutDepth, h: settings.golaLCutoutHeight }] : undefined;
+
+  addPanelToZip('Left_Panel', sideW, sideH_Panel, nailHoles, sideGroove, false, leftNotches);
+  addPanelToZip('Right_Panel', sideW, sideH_Panel, nailHoles, sideGroove, true, rightNotches);
+  const actualBottomDepthDXF = isGolaActive ? innerDepth - settings.golaLCutoutDepth : innerDepth;
   const bottomNailHoles = [];
-  const u1b = -innerDepth / 2 + innerDepth / 5;
+  const u1b = -actualBottomDepthDXF / 2 + actualBottomDepthDXF / 5;
   const u2b = 0;
-  const u3b = innerDepth / 2 - innerDepth / 5;
+  const u3b = actualBottomDepthDXF / 2 - actualBottomDepthDXF / 5;
   const vLeftb = -innerWidth / 2 + panelThickness / 2;
   const vRightb = innerWidth / 2 - panelThickness / 2;
   bottomNailHoles.push(
@@ -469,7 +516,7 @@ export const exportWallCabinetDXF = async (settings: TestingSettings, zip: JSZip
     const v1 = -innerWidth / 2 + innerWidth / 5;
     const v2 = 0;
     const v3 = innerWidth / 2 - innerWidth / 5;
-    const zBackH = -innerDepth / 2 + panelThickness / 2;
+    const zBackH = -actualBottomDepthDXF / 2 + panelThickness / 2;
     bottomNailHoles.push(
       { y: v1, z: zBackH, r: technicalR, through: true },
       { y: v2, z: zBackH, r: technicalR, through: true },
@@ -477,7 +524,7 @@ export const exportWallCabinetDXF = async (settings: TestingSettings, zip: JSZip
     );
   }
 
-  addPanelToZip('Bottom_Panel', innerWidth, innerDepth, bottomNailHoles, { x: 0, y: panelThickness, w: innerWidth, h: backPanelThickness + 2, depth: grooveDepth });
+  addPanelToZip('Bottom_Panel', innerWidth, actualBottomDepthDXF, bottomNailHoles, { x: 0, y: panelThickness, w: innerWidth, h: backPanelThickness + 2, depth: grooveDepth });
   addPanelToZip('Top_Panel', innerWidth, innerDepth, bottomNailHoles, { x: 0, y: panelThickness, w: innerWidth, h: backPanelThickness + 2, depth: grooveDepth });
 
 

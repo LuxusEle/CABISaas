@@ -311,7 +311,7 @@ export const CabinetTestingPage: React.FC = () => {
             )}
           </Section>
 
-          {settings.cabinetType === 'base' && (settings.showDoors || settings.showDrawers) && (
+          {(settings.cabinetType === 'base' || settings.cabinetType === 'wall') && (settings.showDoors || settings.showDrawers) && (
            <Section>
              <h3 className="text-[11px] font-bold text-amber-500 uppercase tracking-wider mb-3">Gola System</h3>
              <CheckboxRow label="Enable Gola" checked={settings.enableGola} onChange={v => updateSetting('enableGola', v)} />
