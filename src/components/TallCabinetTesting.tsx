@@ -362,6 +362,16 @@ export const exportTallCabinetDXF = async (settings: TestingSettings, zip: JSZip
     }
   }
 
+  // Fixed Shelves for tall cabinet
+  if (showShelves) {
+    const shelfWidth = innerWidth - panelThickness * 2;
+    const shelfDepth = innerDepth - backPanelThickness - panelThickness;
+    const fixedShelvesHs = [innerHeight * 0.3, innerHeight * 0.7]; // Examples of fixed shelf positions
+    fixedShelvesHs.forEach((fh, idx) => {
+       addPanelToZip(`Fixed_Shelf_${idx + 1}`, shelfWidth, shelfDepth);
+    });
+  }
+
   if (showShelves && numShelves > 0) {
     const shelfWidth = innerWidth - panelThickness * 2 - 2;
     const shelfDepth = settings.shelfDepth;

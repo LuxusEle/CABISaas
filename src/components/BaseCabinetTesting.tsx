@@ -645,23 +645,27 @@ export const exportBaseCabinetDXF = async (settings: TestingSettings, zip: JSZip
   const actualNumDoors = width < RUBY_DOOR_THRESHOLD ? 1 : 2;
   const isGolaActive = settings.enableGola && (showDoors || (showDrawers && numDrawers > 0));
   const golaVerticalGap = isGolaActive ? 13 : doorOuterGap;
-  const golaHorizontalGap3 = isGolaActive ? 3 : doorOuterGap;
   const golaTopGap = isGolaActive ? settings.golaTopGap : doorOuterGap;
-  const midZForGola = (innerHeight - golaTopGap) / 2;
 
   const gapHeights: number[] = [];
-  if (isGolaActive && showDrawers && numDrawers > 1) {
-    const golaGapTotal = golaVerticalGap * 2;
-    const totalAvailablePool = (innerHeight - golaTopGap) - doorOuterGap - panelThickness;
-    const eachFrontH = (totalAvailablePool - (numDrawers - 1) * golaGapTotal) / numDrawers;
-    const dFrontHs = Array.from({ length: numDrawers }).map((_, i) => (i === 0 ? eachFrontH + panelThickness : eachFrontH));
-    
-    for (let i = 0; i < numDrawers - 1; i++) {
-      let yBase = doorOuterGap;
-      for (let j = 0; j <= i; j++) {
-        yBase += dFrontHs[j] + (j < i ? golaGapTotal : 0);
+  let drawerFrontHeights: number[] = [];
+  if (showDrawers && numDrawers > 0) {
+    if (isGolaActive) {
+      const golaGapTotal = golaVerticalGap * 2;
+      const totalAvailablePool = (innerHeight - golaTopGap) - doorOuterGap - panelThickness;
+      const eachFrontH = (totalAvailablePool - (numDrawers - 1) * golaGapTotal) / numDrawers;
+      drawerFrontHeights = Array.from({ length: numDrawers }).map((_, i) => (i === 0 ? eachFrontH + panelThickness : eachFrontH));
+      
+      for (let i = 0; i < numDrawers - 1; i++) {
+        let yBase = doorOuterGap;
+        for (let j = 0; j <= i; j++) {
+          yBase += drawerFrontHeights[j] + (j < i ? golaGapTotal : 0);
+        }
+        gapHeights.push(yBase + golaVerticalGap);
       }
-      gapHeights.push(yBase + golaVerticalGap);
+    } else {
+      const drawerHeight = (innerHeight - panelThickness - doorOuterGap * (numDrawers + 1)) / numDrawers;
+      drawerFrontHeights = Array.from({ length: numDrawers }).map((_, i) => (i === 0 ? drawerHeight + panelThickness : drawerHeight));
     }
   }
 
@@ -684,11 +688,22 @@ export const exportBaseCabinetDXF = async (settings: TestingSettings, zip: JSZip
       if (groove) groove.x = width - groove.x - groove.w;
       holes.forEach(h => { h.z = -h.z; });
     }
-    let points = [{ point: { x: 0, y: 0 } }, { point: { x: width, y: 0 } }, { point: { x: width, y: height } }, { point: { x: 0, y: height } }];
+    let points = [{ point: { x: 0, y: 0 } }, { point: { x: width, y: 0 } }];
     if (golaCutouts && golaCutouts.length > 0) {
-      const cutout = golaCutouts[0];
-      points = [{ point: { x: 0, y: 0 } }, { point: { x: width, y: 0 } }, { point: { x: width, y: cutout.y } }, { point: { x: cutout.x, y: cutout.y } }, { point: { x: cutout.x, y: height } }, { point: { x: 0, y: height } }];
+      const sorted = [...golaCutouts].sort((a, b) => a.y - b.y);
+      sorted.forEach(c => {
+        points.push({ point: { x: width, y: c.y } });
+        points.push({ point: { x: c.x, y: c.y } });
+        points.push({ point: { x: c.x, y: c.y + c.h } });
+        if (c.y + c.h < height - 0.1) {
+          points.push({ point: { x: width, y: c.y + c.h } });
+        }
+      });
+    } else {
+      points.push({ point: { x: width, y: height } });
     }
+    points.push({ point: { x: 0, y: height } });
+
     if (mirrorX) points.forEach(p => { p.point.x = width - p.point.x; });
     modelSpace.addLWPolyline([...points, points[0]], { flags: LWPolylineFlags.Closed, layerName: 'PANEL' });
     modelSpace.addText(point3d(width / 2, height / 2, 0), 12, name, { layerName: 'TEXT' });
@@ -785,24 +800,28 @@ export const exportBaseCabinetDXF = async (settings: TestingSettings, zip: JSZip
     addPanelToZip('Back_Panel', innerWidth - panelThickness * 2 + grooveDepth * 2, innerHeight - panelThickness * 2 + grooveDepth * 2);
   }
 
-  // Top Stretchers
-  addPanelToZip('top_front_stretcher', innerWidth - panelThickness * 2, topStretcherWidth);
+  // Top Stretchers (Only if enabled in construction)
+  if (showBackStretchers) {
+    addPanelToZip('top_front_stretcher', innerWidth - panelThickness * 2, topStretcherWidth);
+  }
   
-  // top_back_stretcher with holes and groove
-  const technicalR2 = nailHoleDiameter / 2;
-  const tbsWidth = innerWidth - panelThickness * 2;
-  const tbsY1 = -tbsWidth / 2 + tbsWidth / 5;
-  const tbsY2 = 0;
-  const tbsY3 = tbsWidth / 2 - tbsWidth / 5;
-  const tbsZ = -topStretcherWidth / 2 + panelThickness / 2;
-  const topBackHoles = [
-    { z: tbsY1, y: tbsZ, r: technicalR2, through: true },
-    { z: tbsY2, y: tbsZ, r: technicalR2, through: true },
-    { z: tbsY3, y: tbsZ, r: technicalR2, through: true }
-  ];
-  // Groove for back panel (at panelThickness from the edge)
-  const topBackGroove = { x: 0, y: panelThickness, w: tbsWidth, h: backPanelThickness + 2, depth: grooveDepth };
-  addPanelToZip('top_back_stretcher', tbsWidth, topStretcherWidth, topBackHoles, topBackGroove);
+  // top_back_stretcher with holes and groove (Only if enabled)
+  if (showBackStretchers) {
+    const technicalR2 = nailHoleDiameter / 2;
+    const tbsWidth = innerWidth - panelThickness * 2;
+    const tbsY1 = -tbsWidth / 2 + tbsWidth / 5;
+    const tbsY2 = 0;
+    const tbsY3 = tbsWidth / 2 - tbsWidth / 5;
+    const tbsZ = -topStretcherWidth / 2 + panelThickness / 2;
+    const topBackHoles = [
+      { z: tbsY1, y: tbsZ, r: technicalR2, through: true },
+      { z: tbsY2, y: tbsZ, r: technicalR2, through: true },
+      { z: tbsY3, y: tbsZ, r: technicalR2, through: true }
+    ];
+    // Groove for back panel (at panelThickness from the edge)
+    const topBackGroove = { x: 0, y: panelThickness, w: tbsWidth, h: backPanelThickness + 2, depth: grooveDepth };
+    addPanelToZip('top_back_stretcher', tbsWidth, topStretcherWidth, topBackHoles, topBackGroove);
+  }
   
   if (showBackStretchers) {
      addPanelToZip('back_top_stretcher', innerWidth - panelThickness * 2, backStretcherHeight);
@@ -810,9 +829,10 @@ export const exportBaseCabinetDXF = async (settings: TestingSettings, zip: JSZip
   }
 
   if (showDoors) {
+    const doorHeight = innerHeight - doorOuterGap * 2;
     for (let i = 0; i < actualNumDoors; i++) {
       const hX = actualNumDoors === 1 ? -doorWidth / 2 + hingeHorizontalOffset : (i === 0 ? -doorWidth / 2 + hingeHorizontalOffset : doorWidth / 2 - hingeHorizontalOffset);
-      const hingeHoles = [{ y: doorHeight / 2 - topHingeVerticalOffset, z: hX, r: hingeDiameter / 2 }, { y: -doorHeight / 2 + bottomHingeVerticalOffset, z: hX, r: hingeDiameter / 2 }];
+      const hingeHoles = [{ y: doorHeight / 2 - hingeVerticalOffset, z: hX, r: hingeDiameter / 2 }, { y: -doorHeight / 2 + hingeVerticalOffset, z: hX, r: hingeDiameter / 2 }];
       addPanelToZip(`Door_${i + 1}`, doorWidth, doorHeight, hingeHoles);
     }
   }
@@ -833,7 +853,17 @@ export const exportBaseCabinetDXF = async (settings: TestingSettings, zip: JSZip
     const boxDepth = depth - panelThickness - backPanelThickness - settings.drawerBackClearance;
     const boxWidth = (width - panelThickness * 2) - drawerSideClearance * 2;
     const boxHeight = (innerHeight / numDrawers) * drawerBoxHeightRatio; // Approx, but good for labels
+    
+    const frontWidth = width - doorOuterGap * 2;
     for (let i = 0; i < numDrawers; i++) {
+      const frontHeight = drawerFrontHeights[i];
+      const handleHoles: { y: number, z: number, r: number, through?: boolean }[] = [];
+      if (!isGolaActive) {
+        // Center handle Holes (assuming 128mm CC)
+        handleHoles.push({ y: 0, z: -64, r: 2.5, through: true }, { y: 0, z: 64, r: 2.5, through: true });
+      }
+      
+      addPanelToZip(`Drawer_${i + 1}_Front`, frontWidth, frontHeight, handleHoles);
       addPanelToZip(`Drawer_${i + 1}_Side_L`, boxDepth, boxHeight);
       addPanelToZip(`Drawer_${i + 1}_Side_R`, boxDepth, boxHeight);
       addPanelToZip(`Drawer_${i + 1}_Back`, boxWidth - panelThickness * 2, boxHeight);
