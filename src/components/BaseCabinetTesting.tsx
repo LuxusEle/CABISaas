@@ -794,7 +794,7 @@ export const exportBaseCabinetDXF = async (settings: TestingSettings, zip: JSZip
   const v3 = innerWidth / 2 - innerWidth / 5;
   bottomHoles.push({ z: v1, y: zToeKick, r: nailR, through: true }, { z: v2, y: zToeKick, r: nailR, through: true }, { z: v3, y: zToeKick, r: nailR, through: true });
 
-  addPanelToZip('Bottom_Panel', innerWidth, innerDepth, bottomHoles, { x: 0, y: panelThickness, w: innerWidth, h: backPanelThickness + 2, depth: grooveDepth });
+  addPanelToZip('Bottom_Panel', innerWidth, innerDepth, bottomHoles, { x: panelThickness, y: panelThickness, w: innerWidth - 2 * panelThickness, h: backPanelThickness + 2, depth: grooveDepth });
 
   if (showBackPanel) {
     addPanelToZip('Back_Panel', innerWidth - panelThickness * 2 + grooveDepth * 2, innerHeight - panelThickness * 2 + grooveDepth * 2);
