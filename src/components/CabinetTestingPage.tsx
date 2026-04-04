@@ -215,7 +215,17 @@ export const CabinetTestingPage: React.FC = () => {
                     <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
                     Upper Section
                   </h3>
-                  <SettingRow label="Upper Section H" value={settings.tallUpperSectionHeight} onChange={v => updateSetting('tallUpperSectionHeight', v)} step={10} min={100} max={settings.height - 200} />
+                  <SettingRow 
+                    label="Upper Section H" 
+                    value={settings.tallUpperSectionHeight} 
+                    onChange={v => {
+                      updateSetting('tallUpperSectionHeight', v);
+                      if (v + settings.tallLowerSectionHeight > settings.height) {
+                        updateSetting('tallLowerSectionHeight', settings.height - v);
+                      }
+                    }} 
+                    step={10} min={100} max={settings.height - 100} 
+                  />
                   <CheckboxRow 
                     label="Show Upper Doors" 
                     checked={settings.showDoors} 
@@ -252,16 +262,42 @@ export const CabinetTestingPage: React.FC = () => {
                     <span className="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
                     Lower Section
                   </h3>
-                  <SettingRow label="Lower Section H" value={settings.tallLowerSectionHeight} onChange={v => updateSetting('tallLowerSectionHeight', v)} step={10} min={100} max={settings.height - 200} />
+                  <SettingRow 
+                    label="Lower Section H" 
+                    value={settings.tallLowerSectionHeight} 
+                    onChange={v => {
+                      updateSetting('tallLowerSectionHeight', v);
+                      if (v + settings.tallUpperSectionHeight > settings.height) {
+                        updateSetting('tallUpperSectionHeight', settings.height - v);
+                      }
+                      if (settings.lowerSectionDrawerStackHeight > v) {
+                        updateSetting('lowerSectionDrawerStackHeight', v);
+                      }
+                    }} 
+                    step={10} min={100} max={settings.height - 100} 
+                  />
                   <CheckboxRow 
                     label="Show Lower Doors" 
                     checked={settings.showLowerDoors} 
                     onChange={v => {
                       updateSetting('showLowerDoors', v);
-                      if (v) updateSetting('showHinges', true);
+                      if (v) {
+                        updateSetting('showHinges', true);
+                        updateSetting('showDrawers', false);
+                      }
                     }} 
                   />
-                  <CheckboxRow label="Show Drawers" checked={settings.showDrawers} onChange={v => updateSetting('showDrawers', v)} />
+                  <CheckboxRow 
+                    label="Show Drawers" 
+                    checked={settings.showDrawers} 
+                    onChange={v => {
+                      updateSetting('showDrawers', v);
+                      if (v) {
+                        updateSetting('showLowerDoors', false);
+                        updateSetting('showNailHoles', true);
+                      }
+                    }} 
+                  />
                   <CheckboxRow label="Show Lower Shelves" checked={settings.showLowerShelves} onChange={v => updateSetting('showLowerShelves', v)} />
                   
                   {settings.showLowerDoors && (
@@ -281,7 +317,7 @@ export const CabinetTestingPage: React.FC = () => {
 
                   {settings.showDrawers && (
                     <div className="ml-4 p-2 bg-slate-900/50 rounded-md border-l-2 border-amber-500/50 space-y-2">
-                      <SettingRow label="Drawer Stack H" value={settings.lowerSectionDrawerStackHeight} onChange={v => updateSetting('lowerSectionDrawerStackHeight', v)} step={10} min={50} max={settings.tallLowerSectionHeight - 50} />
+                      <SettingRow label="Drawer Stack H" value={settings.lowerSectionDrawerStackHeight} onChange={v => updateSetting('lowerSectionDrawerStackHeight', v)} step={10} min={50} max={settings.tallLowerSectionHeight} />
                       <SettingRow label="Num Drawers" value={settings.numDrawers} onChange={v => updateSetting('numDrawers', v)} step={1} min={1} max={6} />
                       <div className="flex flex-col gap-2 mt-2">
                         {Array.from({ length: settings.numDrawers }).map((_, i) => {

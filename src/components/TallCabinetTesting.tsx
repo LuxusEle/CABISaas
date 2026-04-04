@@ -103,6 +103,10 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
     const frontZ = shelfZStart + settings.shelfDepth * 0.25;
     const backZ = shelfZStart + settings.shelfDepth * 0.75;
     
+    // Always add divider deck holes
+    positions.push({ y: holeY, z: frontZ, r: shelfR, through: false });
+    positions.push({ y: holeY, z: backZ, r: shelfR, through: false });
+
     if (showDrawers) {
       const drawerZoneBottom = dividerY - lowerSectionDrawerStackHeight;
       const dH = (lowerSectionDrawerStackHeight - doorOuterGap * (numDrawers + 1)) / numDrawers;
@@ -112,9 +116,6 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
         positions.push({ y: hy, z: frontZ, r: shelfR, through: false });
         positions.push({ y: hy, z: backZ, r: shelfR, through: false });
       }
-    } else {
-      positions.push({ y: holeY, z: frontZ, r: shelfR, through: false });
-      positions.push({ y: holeY, z: backZ, r: shelfR, through: false });
     }
 
     if (showShelves && numShelves > 0) {
@@ -155,7 +156,8 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
   }, [showNailHoles, height, depth, panelThickness, backPanelThickness, settings.shelfHoleDiameter, 
       showShelves, numShelves, showLowerShelves, numLowerShelves,
       tallLowerSectionHeight, tallUpperSectionHeight, doorOuterGap,
-      settings.nailHoleShelfDistance, settings.shelfDepth, settings.wallBottomRecess, nailHoleDiameter, showBackStretchers]);
+      settings.nailHoleShelfDistance, settings.shelfDepth, settings.wallBottomRecess, nailHoleDiameter, showBackStretchers,
+      showDrawers, numDrawers, lowerSectionDrawerStackHeight]);
 
   const leftPanelGeo = useMemo(() => {
     const sidePanelHeight = innerHeight - panelThickness * 2;
