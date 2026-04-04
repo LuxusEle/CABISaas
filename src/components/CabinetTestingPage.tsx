@@ -58,17 +58,27 @@ const CheckboxRow: React.FC<{ label: string; checked: boolean; onChange: (v: boo
 );
 
 export const CabinetTestingPage: React.FC = () => {
-  const [settings, setSettings] = useState<TestingSettings>(DEFAULT_SETTINGS);
+  const [activeType, setActiveType] = useState<'base' | 'wall' | 'tall'>('base');
+  const [allConfigs, setAllConfigs] = useState<Record<'base' | 'wall' | 'tall', TestingSettings>>({
+    base: { ...DEFAULT_SETTINGS, cabinetType: 'base' },
+    wall: { ...DEFAULT_SETTINGS, cabinetType: 'wall', height: 720, depth: 300, toeKickHeight: 0, showDrawers: false, showDoors: true },
+    tall: { ...DEFAULT_SETTINGS, cabinetType: 'tall', height: 2100, depth: 580, toeKickHeight: 0, showDrawers: false, showDoors: true }
+  });
+
+  const settings = allConfigs[activeType];
 
   const updateSetting = <K extends keyof TestingSettings>(key: K, value: TestingSettings[K]) => {
-    setSettings(prev => {
-      const next = { ...prev, [key]: value };
+    setAllConfigs(prev => {
+      const current = prev[activeType];
+      const next = { ...current, [key]: value };
+
       // Gola auto-sync logic
       if (key === 'enableGola' && value === true) {
         next.doorOverride = 20;
       } else if (key === 'enableGola' && value === false) {
         next.doorOverride = 0;
       }
+      
       // Gola mode auto-disable
       if (next.cabinetType === 'base' && next.enableGola) {
         if (!next.showDoors && !next.showDrawers) {
@@ -76,24 +86,26 @@ export const CabinetTestingPage: React.FC = () => {
           next.doorOverride = 0;
         }
       }
+
       // Dynamic internal component resizing
       if (key === 'depth') {
-        const diff = (value as number) - prev.depth;
-        next.shelfDepth = Math.max(0, prev.shelfDepth + diff);
+        const diff = (value as number) - current.depth;
+        next.shelfDepth = Math.max(0, current.shelfDepth + diff);
       }
 
       // Mutual exclusion for shelves, drawers, and doors
       if (key === 'showDrawers' && value === true) {
         next.showShelves = false;
-        next.showDoors = false; // NEW
+        next.showDoors = false;
       }
       if (key === 'showShelves' && value === true) {
         next.showDrawers = false;
       }
       if (key === 'showDoors' && value === true) {
-        next.showDrawers = false; // NEW
+        next.showDrawers = false;
       }
-      return next;
+
+      return { ...prev, [activeType]: next };
     });
   };
 
@@ -147,9 +159,9 @@ export const CabinetTestingPage: React.FC = () => {
               {(['base', 'wall', 'tall'] as const).map(type => (
                 <button
                   key={type}
-                  onClick={() => updateSetting('cabinetType', type)}
+                  onClick={() => setActiveType(type)}
                   className={`px-3 py-2 text-[10px] font-bold rounded-md transition-all duration-200 ${
-                    settings.cabinetType === type 
+                    activeType === type 
                       ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' 
                       : 'bg-slate-600 text-slate-300 hover:bg-slate-500'
                   }`}
@@ -338,10 +350,10 @@ export const CabinetTestingPage: React.FC = () => {
           </div>
           
           <button
-            onClick={() => setSettings(DEFAULT_SETTINGS)}
+            onClick={() => setAllConfigs(prev => ({ ...prev, [activeType]: { ...DEFAULT_SETTINGS, cabinetType: activeType } }))}
             className="w-full px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-[11px] font-bold rounded-md transition-colors"
           >
-            Reset CONFIG
+            Reset {activeType.toUpperCase()} CONFIG
           </button>
         </div>
       </div>
