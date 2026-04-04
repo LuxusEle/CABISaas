@@ -215,38 +215,43 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
         const handleXOffset = actualNumDoors === 1 ? doorWidth / 2 - 30 : (i === 0 ? doorWidth / 2 - 30 : -doorWidth / 2 + 30);
         const hingeXOffset = actualNumDoors === 1 ? -doorWidth / 2 + hingeHorizontalOffset : (i === 0 ? -doorWidth / 2 + hingeHorizontalOffset : doorWidth / 2 - hingeHorizontalOffset);
 
+        const doorAngle = (settings.doorOpenAngle * Math.PI) / 180;
+        const isLeftDoor = actualNumDoors === 1 || i === 0;
+        const rotationDirection = isLeftDoor ? -1 : 1;
+        const pivotX = isLeftDoor ? -doorWidth / 2 : doorWidth / 2;
+
         return (
-          <group key={`door-${i}`}>
-            {shouldShow('door') && (
-              <mesh position={[doorX + getOffset('door', i)[0], 0 + getOffset('door', i)[1], depth / 2 + doorMaterialThickness / 2 + getOffset('door', i)[2]]} castShadow receiveShadow visible={!skeletonView}>
+          <group key={`door-${i}`} position={[doorX + getOffset('door', i)[0], 0 + getOffset('door', i)[1], depth / 2 + getOffset('door', i)[2]]}>
+            <group position={[pivotX, 0, 0]} rotation={[0, rotationDirection * doorAngle, 0]}>
+              <mesh position={[-pivotX, 0, doorMaterialThickness / 2]} castShadow receiveShadow visible={!skeletonView}>
                 <primitive object={doorGeos[i]} attach="geometry" />
                 <meshStandardMaterial color={doorColor} roughness={0.6} />
               </mesh>
-            )}
-            {shouldShow('door') && skeletonView && (
-              <lineSegments position={[doorX + getOffset('door', i)[0], 0 + getOffset('door', i)[1], depth / 2 + doorMaterialThickness / 2 + getOffset('door', i)[2]]}>
-                <edgesGeometry args={[doorGeos[i]]} />
-                <lineBasicMaterial color={getPanelColor('door')} linewidth={2} />
-              </lineSegments>
-            )}
-            {shouldShow('door') && (
-              <mesh position={[doorX + handleXOffset + getOffset('door', i)[0], 0 + getOffset('door', i)[1], depth / 2 + doorMaterialThickness + 5 + getOffset('door', i)[2]]} castShadow>
-                <cylinderGeometry args={[2.5, 2.5, 50, 16]} />
-                <meshStandardMaterial color="#4a5568" metalness={0.8} roughness={0.2} />
-              </mesh>
-            )}
-            {showHinges && (
-              <>
-                <mesh position={[doorX + hingeXOffset, doorHeight / 2 - hingeVerticalOffset, depth / 2 - hingeDepth / 2]} rotation={[Math.PI / 2, 0, 0]} castShadow>
-                  <cylinderGeometry args={[hingeDiameter / 2, hingeDiameter / 2, hingeDepth, 16]} />
-                  <meshStandardMaterial color="#888888" metalness={0.9} roughness={0.1} />
+              {skeletonView && (
+                <lineSegments position={[-pivotX, 0, doorMaterialThickness / 2]}>
+                  <edgesGeometry args={[doorGeos[i]]} />
+                  <lineBasicMaterial color={getPanelColor('door')} linewidth={2} />
+                </lineSegments>
+              )}
+              {shouldShow('door') && (
+                <mesh position={[handleXOffset - pivotX, 0, doorMaterialThickness + 5]} castShadow>
+                  <cylinderGeometry args={[2.5, 2.5, 50, 16]} />
+                  <meshStandardMaterial color="#4a5568" metalness={0.8} roughness={0.2} />
                 </mesh>
-                <mesh position={[doorX + hingeXOffset, -doorHeight / 2 + hingeVerticalOffset, depth / 2 - hingeDepth / 2]} rotation={[Math.PI / 2, 0, 0]} castShadow>
-                  <cylinderGeometry args={[hingeDiameter / 2, hingeDiameter / 2, hingeDepth, 16]} />
-                  <meshStandardMaterial color="#888888" metalness={0.9} roughness={0.1} />
-                </mesh>
-              </>
-            )}
+              )}
+              {showHinges && (
+                <>
+                  <mesh position={[hingeXOffset - pivotX, doorHeight / 2 - hingeVerticalOffset, -hingeDepth / 2]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+                    <cylinderGeometry args={[hingeDiameter / 2, hingeDiameter / 2, hingeDepth, 16]} />
+                    <meshStandardMaterial color="#333333" metalness={0.9} roughness={0.1} />
+                  </mesh>
+                  <mesh position={[hingeXOffset - pivotX, -doorHeight / 2 + hingeVerticalOffset, -hingeDepth / 2]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+                    <cylinderGeometry args={[hingeDiameter / 2, hingeDiameter / 2, hingeDepth, 16]} />
+                    <meshStandardMaterial color="#333333" metalness={0.9} roughness={0.1} />
+                  </mesh>
+                </>
+              )}
+            </group>
           </group>
         );
       })}

@@ -194,6 +194,18 @@ export const CabinetTestingPage: React.FC = () => {
 
           <Section>
             <h3 className="text-[11px] font-bold text-amber-500 uppercase tracking-wider mb-3">Front Options</h3>
+            <div className="flex flex-col gap-1 mb-3">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex justify-between">
+                <span>Door Opening Angle</span>
+                <span className="text-blue-500">{settings.doorOpenAngle}°</span>
+              </label>
+              <input 
+                type="range" min="0" max="110" step="1" 
+                value={settings.doorOpenAngle} 
+                onChange={(e) => updateSetting('doorOpenAngle', parseInt(e.target.value))} 
+                className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500" 
+              />
+            </div>
             <CheckboxRow label="Show Doors" checked={settings.showDoors} onChange={v => updateSetting('showDoors', v)} />
             <CheckboxRow label="Show Hinges" checked={settings.showHinges} onChange={v => updateSetting('showHinges', v)} />
             {settings.showHinges && (
