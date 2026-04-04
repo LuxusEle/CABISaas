@@ -56,6 +56,10 @@ export interface TestingSettings {
   golaTopGap: number;
   doorOpenAngle: number;
   drawerOpenDistances: number[];
+  tallLowerSectionHeight: number;
+  tallUpperSectionHeight: number;
+  showLowerShelves: boolean;
+  numLowerShelves: number;
 }
 
 export const DEFAULT_SETTINGS: TestingSettings = {
@@ -112,7 +116,11 @@ export const DEFAULT_SETTINGS: TestingSettings = {
   golaLCutoutDepth: 26,
   golaLCutoutHeight: 59,
   golaCCutoutHeight: 73.5,
-  golaTopGap: 30
+  golaTopGap: 30,
+  tallLowerSectionHeight: 800,
+  tallUpperSectionHeight: 1000,
+  showLowerShelves: false,
+  numLowerShelves: 0
 };
 
 export const RUBY_DOOR_THRESHOLD = 599.5;

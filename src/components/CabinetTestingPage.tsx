@@ -93,16 +93,18 @@ export const CabinetTestingPage: React.FC = () => {
         next.shelfDepth = Math.max(0, current.shelfDepth + diff);
       }
 
-      // Mutual exclusion for shelves, drawers, and doors
-      if (key === 'showDrawers' && value === true) {
-        next.showShelves = false;
-        next.showDoors = false;
-      }
-      if (key === 'showShelves' && value === true) {
-        next.showDrawers = false;
-      }
-      if (key === 'showDoors' && value === true) {
-        next.showDrawers = false;
+      // Mutual exclusion for shelves, drawers, and doors (skip for tall cabinets)
+      if (activeType !== 'tall') {
+        if (key === 'showDrawers' && value === true) {
+          next.showShelves = false;
+          next.showDoors = false;
+        }
+        if (key === 'showShelves' && value === true) {
+          next.showDrawers = false;
+        }
+        if (key === 'showDoors' && value === true) {
+          next.showDrawers = false;
+        }
       }
 
       return { ...prev, [activeType]: next };
@@ -281,10 +283,22 @@ export const CabinetTestingPage: React.FC = () => {
                 <SettingRow label="Back Clearance" value={settings.drawerBackClearance} onChange={v => updateSetting('drawerBackClearance', v)} step={1} min={0} max={100} />
               </div>
             )}
-            <CheckboxRow label="Show Shelves" checked={settings.showShelves} onChange={v => updateSetting('showShelves', v)} />
+            <CheckboxRow label="Show Upper Shelves" checked={settings.showShelves} onChange={v => updateSetting('showShelves', v)} />
             {settings.showShelves && (
               <div className="mt-2 pl-2 border-l-2 border-amber-500/30 space-y-2">
-                <SettingRow label="Num Shelves" value={settings.numShelves} onChange={v => updateSetting('numShelves', v)} step={1} min={0} max={10} />
+                <SettingRow label="Num Upper Shelves" value={settings.numShelves} onChange={v => updateSetting('numShelves', v)} step={1} min={0} max={10} />
+              </div>
+            )}
+
+            {activeType === 'tall' && (
+              <div className="mt-4 pt-4 border-t border-slate-700">
+                <h3 className="text-[11px] font-bold text-blue-500 uppercase tracking-wider mb-2">Section Heights</h3>
+                <SettingRow label="Lower Section H" value={settings.tallLowerSectionHeight} onChange={v => updateSetting('tallLowerSectionHeight', v)} step={10} min={100} max={settings.height - 200} />
+                <CheckboxRow label="Lower Section Shelves" checked={settings.showLowerShelves} onChange={v => updateSetting('showLowerShelves', v)} />
+                {settings.showLowerShelves && (
+                  <SettingRow label="Num Lower Shelves" value={settings.numLowerShelves} onChange={v => updateSetting('numLowerShelves', v)} step={1} min={0} max={10} />
+                )}
+                <SettingRow label="Upper Section H" value={settings.tallUpperSectionHeight} onChange={v => updateSetting('tallUpperSectionHeight', v)} step={10} min={100} max={settings.height - 200} />
               </div>
             )}
           </Section>
