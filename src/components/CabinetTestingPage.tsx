@@ -205,6 +205,18 @@ export const CabinetTestingPage: React.FC = () => {
             <SettingRow label="Door Side Clear." value={settings.doorSideClearance} onChange={v => updateSetting('doorSideClearance', v)} step={0.5} min={0} max={10} />
           </Section>
 
+          {(settings.enableGola || settings.enableTallUpperGola) && (
+            <Section>
+              <h3 className="text-[11px] font-bold text-amber-500 uppercase tracking-wider mb-3">Gola System</h3>
+              <SettingRow label="Door Override" value={settings.doorOverride} onChange={v => updateSetting('doorOverride', v)} step={1} min={10} max={60} />
+              <SettingRow label="L-Gola Height" value={settings.golaLCutoutHeight} onChange={v => updateSetting('golaLCutoutHeight', v)} step={1} min={20} max={100} />
+              <SettingRow label="L-Gola Depth" value={settings.golaLCutoutDepth} onChange={v => updateSetting('golaLCutoutDepth', v)} step={1} min={10} max={60} />
+              <SettingRow label="C-Gola Height" value={settings.golaCCutoutHeight} onChange={v => updateSetting('golaCCutoutHeight', v)} step={1} min={20} max={100} />
+              <SettingRow label="C-Gola Depth" value={settings.golaCutoutDepth} onChange={v => updateSetting('golaCutoutDepth', v)} step={1} min={10} max={60} />
+              {activeType !== 'wall' && <SettingRow label="Gola Top Gap" value={settings.golaTopGap} onChange={v => updateSetting('golaTopGap', v)} step={1} min={0} max={60} />}
+            </Section>
+          )}
+
           <Section>
             <h3 className="text-[11px] font-bold text-amber-500 uppercase tracking-wider mb-3">Front Options</h3>
             {activeType === 'tall' ? (
@@ -226,6 +238,7 @@ export const CabinetTestingPage: React.FC = () => {
                     }} 
                     step={10} min={100} max={settings.height - 100} 
                   />
+                  <CheckboxRow label="Enable Gola (Upper Section)" checked={settings.enableTallUpperGola} onChange={v => updateSetting('enableTallUpperGola', v)} />
                   <CheckboxRow 
                     label="Show Upper Doors" 
                     checked={settings.showDoors} 
@@ -276,6 +289,7 @@ export const CabinetTestingPage: React.FC = () => {
                     }} 
                     step={10} min={100} max={settings.height - 100} 
                   />
+                  <CheckboxRow label="Enable Gola (Lower Section)" checked={settings.enableGola} onChange={v => updateSetting('enableGola', v)} />
                   <CheckboxRow 
                     label="Show Lower Doors" 
                     checked={settings.showLowerDoors} 
