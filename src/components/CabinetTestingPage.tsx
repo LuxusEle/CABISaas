@@ -3,7 +3,6 @@ import { Download } from 'lucide-react';
 import JSZip from 'jszip';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
-import * as THREE from 'three';
 import { 
   TestingSettings, 
   DEFAULT_SETTINGS, 
@@ -208,98 +207,206 @@ export const CabinetTestingPage: React.FC = () => {
 
           <Section>
             <h3 className="text-[11px] font-bold text-amber-500 uppercase tracking-wider mb-3">Front Options</h3>
-            {activeType !== 'wall' && (
-              settings.showDrawers ? (
-                <div className="flex flex-col gap-2 mb-3">
-                  {Array.from({ length: settings.numDrawers }).map((_, i) => {
-                    const dataIndex = settings.numDrawers - 1 - i;
-                    return (
-                      <div key={`drawer-open-${dataIndex}`} className="flex flex-col gap-1">
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex justify-between">
-                          <span>Drawer {i + 1} Open Dist</span>
-                          <span className="text-blue-500">{settings.drawerOpenDistances[dataIndex] || 0}mm</span>
-                        </label>
-                        <input 
-                          type="range" min="0" max={settings.depth - 50} step="5" 
-                          value={settings.drawerOpenDistances[dataIndex] || 0} 
-                          onChange={(e) => {
-                            const newDists = [...settings.drawerOpenDistances];
-                            newDists[dataIndex] = parseInt(e.target.value);
-                            updateSetting('drawerOpenDistances', newDists);
-                          }} 
-                          className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500" 
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="flex flex-col gap-1 mb-3">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex justify-between">
-                    <span>Door Opening Angle</span>
-                    <span className="text-blue-500">{settings.doorOpenAngle}°</span>
-                  </label>
-                  <input 
-                    type="range" min="0" max="110" step="1" 
-                    value={settings.doorOpenAngle} 
-                    onChange={(e) => updateSetting('doorOpenAngle', parseInt(e.target.value))} 
-                    className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500" 
+            {activeType === 'tall' ? (
+              <div className="space-y-6 mt-4">
+                {/* Upper Section Settings */}
+                <div className="p-3 bg-slate-800/40 rounded-lg border border-slate-700/50 space-y-3">
+                  <h3 className="text-[10px] font-bold text-blue-400 uppercase tracking-[0.1em] mb-2 flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
+                    Upper Section
+                  </h3>
+                  <SettingRow label="Upper Section H" value={settings.tallUpperSectionHeight} onChange={v => updateSetting('tallUpperSectionHeight', v)} step={10} min={100} max={settings.height - 200} />
+                  <CheckboxRow 
+                    label="Show Upper Doors" 
+                    checked={settings.showDoors} 
+                    onChange={v => {
+                      updateSetting('showDoors', v);
+                      if (v) updateSetting('showHinges', true);
+                    }} 
                   />
+                  <CheckboxRow label="Show Upper Shelves" checked={settings.showShelves} onChange={v => updateSetting('showShelves', v)} />
+                  {settings.showShelves && (
+                    <div className="ml-4 p-2 bg-slate-900/50 rounded-md border-l-2 border-blue-500/50">
+                      <SettingRow label="Num Shelves" value={settings.numShelves} onChange={v => updateSetting('numShelves', v)} step={1} min={0} max={10} />
+                    </div>
+                  )}
+                  {settings.showDoors && (
+                    <div className="flex flex-col gap-1.5 mt-2">
+                      <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider flex justify-between">
+                        <span>Upper Door Angle</span>
+                        <span className="text-blue-400">{settings.doorOpenAngle}°</span>
+                      </label>
+                      <input 
+                        type="range" min="0" max="110" step="1" 
+                        value={settings.doorOpenAngle} 
+                        onChange={(e) => updateSetting('doorOpenAngle', parseInt(e.target.value))} 
+                        className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500" 
+                      />
+                    </div>
+                  )}
                 </div>
-              )
-            )}
-            {activeType === 'wall' && (
-              <div className="flex flex-col gap-1 mb-3">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex justify-between">
-                  <span>Door Opening Angle</span>
-                  <span className="text-blue-500">{settings.doorOpenAngle}°</span>
-                </label>
-                <input 
-                  type="range" min="0" max="110" step="1" 
-                  value={settings.doorOpenAngle} 
-                  onChange={(e) => updateSetting('doorOpenAngle', parseInt(e.target.value))} 
-                  className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500" 
-                />
-              </div>
-            )}
-            <CheckboxRow label="Show Doors" checked={settings.showDoors} onChange={v => updateSetting('showDoors', v)} />
-            <CheckboxRow label="Show Hinges" checked={settings.showHinges} onChange={v => updateSetting('showHinges', v)} />
-            {settings.showHinges && (
-              <div className="mt-2 pl-2 border-l-2 border-amber-500/30 space-y-2">
-                <SettingRow label="Hinge Diameter" value={settings.hingeDiameter} onChange={v => updateSetting('hingeDiameter', v)} step={1} min={10} max={50} />
-                <SettingRow label="Hinge Depth" value={settings.hingeDepth} onChange={v => updateSetting('hingeDepth', v)} step={1} min={2} max={20} />
-                <SettingRow label="Hinge H Offset" value={settings.hingeHorizontalOffset} onChange={v => updateSetting('hingeHorizontalOffset', v)} step={1} min={20} max={100} />
-                <SettingRow label="Hinge V Offset" value={settings.hingeVerticalOffset} onChange={v => updateSetting('hingeVerticalOffset', v)} step={1} min={20} max={200} />
-              </div>
-            )}
-            {activeType !== 'wall' && <CheckboxRow label="Show Drawers" checked={settings.showDrawers} onChange={v => updateSetting('showDrawers', v)} />}
-            {settings.showDrawers && (
-              <div className="mt-2 pl-2 border-l-2 border-amber-500/30 space-y-2">
-                <SettingRow label="Num Drawers" value={settings.numDrawers} onChange={v => updateSetting('numDrawers', v)} step={1} min={1} max={6} />
-                <SettingRow label="Side Clearance" value={settings.drawerSideClearance} onChange={v => updateSetting('drawerSideClearance', v)} step={1} min={0} max={50} />
-                <SettingRow label="Box Bottom Thk" value={settings.drawerBottomThickness} onChange={v => updateSetting('drawerBottomThickness', v)} step={1} min={3} max={20} />
-                <SettingRow label="Box Back Thk" value={settings.drawerBackThickness} onChange={v => updateSetting('drawerBackThickness', v)} step={1} min={3} max={20} />
-                <SettingRow label="Box H Ratio" value={settings.drawerBoxHeightRatio} onChange={v => updateSetting('drawerBoxHeightRatio', v)} step={0.1} min={0.1} max={1} />
-                <SettingRow label="Back Clearance" value={settings.drawerBackClearance} onChange={v => updateSetting('drawerBackClearance', v)} step={1} min={0} max={100} />
-              </div>
-            )}
-            <CheckboxRow label="Show Upper Shelves" checked={settings.showShelves} onChange={v => updateSetting('showShelves', v)} />
-            {settings.showShelves && (
-              <div className="mt-2 pl-2 border-l-2 border-amber-500/30 space-y-2">
-                <SettingRow label="Num Upper Shelves" value={settings.numShelves} onChange={v => updateSetting('numShelves', v)} step={1} min={0} max={10} />
-              </div>
-            )}
 
-            {activeType === 'tall' && (
-              <div className="mt-4 pt-4 border-t border-slate-700">
-                <h3 className="text-[11px] font-bold text-blue-500 uppercase tracking-wider mb-2">Section Heights</h3>
-                <SettingRow label="Lower Section H" value={settings.tallLowerSectionHeight} onChange={v => updateSetting('tallLowerSectionHeight', v)} step={10} min={100} max={settings.height - 200} />
-                <CheckboxRow label="Lower Section Shelves" checked={settings.showLowerShelves} onChange={v => updateSetting('showLowerShelves', v)} />
-                {settings.showLowerShelves && (
-                  <SettingRow label="Num Lower Shelves" value={settings.numLowerShelves} onChange={v => updateSetting('numLowerShelves', v)} step={1} min={0} max={10} />
-                )}
-                <SettingRow label="Upper Section H" value={settings.tallUpperSectionHeight} onChange={v => updateSetting('tallUpperSectionHeight', v)} step={10} min={100} max={settings.height - 200} />
+                {/* Lower Section Settings */}
+                <div className="p-3 bg-slate-800/40 rounded-lg border border-slate-700/50 space-y-3">
+                  <h3 className="text-[10px] font-bold text-amber-400 uppercase tracking-[0.1em] mb-2 flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
+                    Lower Section
+                  </h3>
+                  <SettingRow label="Lower Section H" value={settings.tallLowerSectionHeight} onChange={v => updateSetting('tallLowerSectionHeight', v)} step={10} min={100} max={settings.height - 200} />
+                  <CheckboxRow 
+                    label="Show Lower Doors" 
+                    checked={settings.showLowerDoors} 
+                    onChange={v => {
+                      updateSetting('showLowerDoors', v);
+                      if (v) updateSetting('showHinges', true);
+                    }} 
+                  />
+                  <CheckboxRow label="Show Drawers" checked={settings.showDrawers} onChange={v => updateSetting('showDrawers', v)} />
+                  <CheckboxRow label="Show Lower Shelves" checked={settings.showLowerShelves} onChange={v => updateSetting('showLowerShelves', v)} />
+                  
+                  {settings.showLowerDoors && (
+                    <div className="flex flex-col gap-1.5 mt-2">
+                      <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider flex justify-between">
+                        <span>Lower Door Angle</span>
+                        <span className="text-amber-400">{settings.lowerDoorOpenAngle}°</span>
+                      </label>
+                      <input 
+                        type="range" min="0" max="110" step="1" 
+                        value={settings.lowerDoorOpenAngle} 
+                        onChange={(e) => updateSetting('lowerDoorOpenAngle', parseInt(e.target.value))} 
+                        className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-500" 
+                      />
+                    </div>
+                  )}
+
+                  {settings.showDrawers && (
+                    <div className="ml-4 p-2 bg-slate-900/50 rounded-md border-l-2 border-amber-500/50 space-y-2">
+                      <SettingRow label="Drawer Stack H" value={settings.lowerSectionDrawerStackHeight} onChange={v => updateSetting('lowerSectionDrawerStackHeight', v)} step={10} min={50} max={settings.tallLowerSectionHeight - 50} />
+                      <SettingRow label="Num Drawers" value={settings.numDrawers} onChange={v => updateSetting('numDrawers', v)} step={1} min={1} max={6} />
+                      <div className="flex flex-col gap-2 mt-2">
+                        {Array.from({ length: settings.numDrawers }).map((_, i) => {
+                          const dataIndex = settings.numDrawers - 1 - i;
+                          return (
+                            <div key={`lower-drawer-open-${dataIndex}`} className="flex flex-col gap-1">
+                              <label className="text-[9px] font-bold text-slate-500 uppercase tracking-wider flex justify-between">
+                                <span>Drawer {i + 1} Open Dist</span>
+                                <span className="text-blue-500">{settings.drawerOpenDistances[dataIndex] || 0}mm</span>
+                              </label>
+                              <input 
+                                type="range" min="0" max={settings.depth - 50} step="5" 
+                                value={settings.drawerOpenDistances[dataIndex] || 0} 
+                                onChange={(e) => {
+                                  const newDists = [...settings.drawerOpenDistances];
+                                  newDists[dataIndex] = parseInt(e.target.value);
+                                  updateSetting('drawerOpenDistances', newDists);
+                                }} 
+                                className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500" 
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {settings.showLowerShelves && (
+                    <div className="ml-4 p-2 bg-slate-900/50 rounded-md border-l-2 border-amber-500/50">
+                      <SettingRow label="Num Shelves" value={settings.numLowerShelves} onChange={v => updateSetting('numLowerShelves', v)} step={1} min={0} max={10} />
+                    </div>
+                  )}
+                </div>
               </div>
+            ) : (
+              <>
+                {activeType !== 'wall' && (
+                  settings.showDrawers ? (
+                    <div className="flex flex-col gap-2 mb-3">
+                      {Array.from({ length: settings.numDrawers }).map((_, i) => {
+                        const dataIndex = settings.numDrawers - 1 - i;
+                        return (
+                          <div key={`drawer-open-${dataIndex}`} className="flex flex-col gap-1">
+                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex justify-between">
+                              <span>Drawer {i + 1} Open Dist</span>
+                              <span className="text-blue-500">{settings.drawerOpenDistances[dataIndex] || 0}mm</span>
+                            </label>
+                            <input 
+                              type="range" min="0" max={settings.depth - 50} step="5" 
+                              value={settings.drawerOpenDistances[dataIndex] || 0} 
+                              onChange={(e) => {
+                                const newDists = [...settings.drawerOpenDistances];
+                                newDists[dataIndex] = parseInt(e.target.value);
+                                updateSetting('drawerOpenDistances', newDists);
+                              }} 
+                              className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500" 
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-1 mb-3">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex justify-between">
+                        <span>Door Opening Angle</span>
+                        <span className="text-blue-500">{settings.doorOpenAngle}°</span>
+                      </label>
+                      <input 
+                        type="range" min="0" max="110" step="1" 
+                        value={settings.doorOpenAngle} 
+                        onChange={(e) => updateSetting('doorOpenAngle', parseInt(e.target.value))} 
+                        className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500" 
+                      />
+                    </div>
+                  )
+                )}
+                {activeType === 'wall' && (
+                  <div className="flex flex-col gap-1 mb-3">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex justify-between">
+                      <span>Door Opening Angle</span>
+                      <span className="text-blue-500">{settings.doorOpenAngle}°</span>
+                    </label>
+                    <input 
+                      type="range" min="0" max="110" step="1" 
+                      value={settings.doorOpenAngle} 
+                      onChange={(e) => updateSetting('doorOpenAngle', parseInt(e.target.value))} 
+                      className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500" 
+                    />
+                  </div>
+                )}
+                <CheckboxRow 
+                  label="Show Doors" 
+                  checked={settings.showDoors} 
+                  onChange={v => {
+                    updateSetting('showDoors', v);
+                    if (v) updateSetting('showHinges', true);
+                  }} 
+                />
+                <CheckboxRow label="Show Hinges" checked={settings.showHinges} onChange={v => updateSetting('showHinges', v)} />
+                {settings.showHinges && (
+                  <div className="mt-2 pl-2 border-l-2 border-amber-500/30 space-y-2">
+                    <SettingRow label="Hinge Diameter" value={settings.hingeDiameter} onChange={v => updateSetting('hingeDiameter', v)} step={1} min={10} max={50} />
+                    <SettingRow label="Hinge Depth" value={settings.hingeDepth} onChange={v => updateSetting('hingeDepth', v)} step={1} min={2} max={20} />
+                    <SettingRow label="Hinge H Offset" value={settings.hingeHorizontalOffset} onChange={v => updateSetting('hingeHorizontalOffset', v)} step={1} min={20} max={100} />
+                    <SettingRow label="Hinge V Offset" value={settings.hingeVerticalOffset} onChange={v => updateSetting('hingeVerticalOffset', v)} step={1} min={20} max={200} />
+                  </div>
+                )}
+                {activeType !== 'wall' && <CheckboxRow label="Show Drawers" checked={settings.showDrawers} onChange={v => updateSetting('showDrawers', v)} />}
+                {settings.showDrawers && (
+                  <div className="mt-2 pl-2 border-l-2 border-amber-500/30 space-y-2">
+                    <SettingRow label="Num Drawers" value={settings.numDrawers} onChange={v => updateSetting('numDrawers', v)} step={1} min={1} max={6} />
+                    <SettingRow label="Side Clearance" value={settings.drawerSideClearance} onChange={v => updateSetting('drawerSideClearance', v)} step={1} min={0} max={50} />
+                    <SettingRow label="Box Bottom Thk" value={settings.drawerBottomThickness} onChange={v => updateSetting('drawerBottomThickness', v)} step={1} min={3} max={20} />
+                    <SettingRow label="Box Back Thk" value={settings.drawerBackThickness} onChange={v => updateSetting('drawerBackThickness', v)} step={1} min={3} max={20} />
+                    <SettingRow label="Box H Ratio" value={settings.drawerBoxHeightRatio} onChange={v => updateSetting('drawerBoxHeightRatio', v)} step={0.1} min={0.1} max={1} />
+                    <SettingRow label="Back Clearance" value={settings.drawerBackClearance} onChange={v => updateSetting('drawerBackClearance', v)} step={1} min={0} max={100} />
+                  </div>
+                )}
+                <CheckboxRow label="Show Shelves" checked={settings.showShelves} onChange={v => updateSetting('showShelves', v)} />
+                {settings.showShelves && (
+                  <div className="mt-2 pl-2 border-l-2 border-amber-500/30 space-y-2">
+                    <SettingRow label="Num Shelves" value={settings.numShelves} onChange={v => updateSetting('numShelves', v)} step={1} min={0} max={10} />
+                  </div>
+                )}
+              </>
             )}
           </Section>
 

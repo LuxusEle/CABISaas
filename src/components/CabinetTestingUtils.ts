@@ -60,6 +60,9 @@ export interface TestingSettings {
   tallUpperSectionHeight: number;
   showLowerShelves: boolean;
   numLowerShelves: number;
+  showLowerDoors: boolean;
+  lowerDoorOpenAngle: number;
+  lowerSectionDrawerStackHeight: number;
 }
 
 export const DEFAULT_SETTINGS: TestingSettings = {
@@ -120,7 +123,10 @@ export const DEFAULT_SETTINGS: TestingSettings = {
   tallLowerSectionHeight: 800,
   tallUpperSectionHeight: 1000,
   showLowerShelves: false,
-  numLowerShelves: 0
+  numLowerShelves: 0,
+  showLowerDoors: false,
+  lowerDoorOpenAngle: 0,
+  lowerSectionDrawerStackHeight: 400
 };
 
 export const RUBY_DOOR_THRESHOLD = 599.5;
