@@ -71,7 +71,7 @@ export const CabinetTestingPage: React.FC = () => {
       }
       // Gola mode auto-disable
       if (next.cabinetType === 'base' && next.enableGola) {
-        if (!next.showDoors || next.showDrawers) {
+        if (!next.showDoors && !next.showDrawers) {
           next.enableGola = false;
           next.doorOverride = 0;
         }
@@ -257,7 +257,7 @@ export const CabinetTestingPage: React.FC = () => {
             )}
           </Section>
 
-          {settings.cabinetType === 'base' && settings.showDoors && !settings.showDrawers && (
+          {settings.cabinetType === 'base' && (settings.showDoors || settings.showDrawers) && (
            <Section>
              <h3 className="text-[11px] font-bold text-amber-500 uppercase tracking-wider mb-3">Gola System</h3>
              <CheckboxRow label="Enable Gola" checked={settings.enableGola} onChange={v => updateSetting('enableGola', v)} />
@@ -265,7 +265,11 @@ export const CabinetTestingPage: React.FC = () => {
                <div className="mt-2 pl-2 border-l-2 border-amber-500/30 space-y-2">
                  <SettingRow label="Door Drop" value={settings.doorOverride} onChange={v => updateSetting('doorOverride', v)} step={1} min={0} max={50} />
                  <SettingRow label="L-Cut Height" value={settings.golaLCutoutHeight} onChange={v => updateSetting('golaLCutoutHeight', v)} step={1} min={20} max={100} />
-                 <SettingRow label="Cut Depth" value={settings.golaCutoutDepth} onChange={v => updateSetting('golaCutoutDepth', v)} step={1} min={10} max={50} />
+                 <SettingRow label="L-Cut Depth" value={settings.golaLCutoutDepth} onChange={v => updateSetting('golaLCutoutDepth', v)} step={1} min={10} max={50} />
+                 {settings.showDrawers && settings.numDrawers > 1 && (
+                   <SettingRow label="C-Cut Height" value={settings.golaCCutoutHeight} onChange={v => updateSetting('golaCCutoutHeight', v)} step={1} min={20} max={100} />
+                 )}
+                 <SettingRow label="C-Cut Depth" value={settings.golaCutoutDepth} onChange={v => updateSetting('golaCutoutDepth', v)} step={1} min={10} max={50} />
                </div>
              )}
            </Section>

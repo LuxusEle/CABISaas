@@ -49,6 +49,7 @@ export interface TestingSettings {
   drawerBoxHeightRatio: number;
   drawerBackClearance: number;
   golaCutoutDepth: number;
+  golaLCutoutDepth: number;
   golaLCutoutHeight: number;
   golaCCutoutHeight: number;
   golaTopGap: number;
@@ -104,6 +105,7 @@ export const DEFAULT_SETTINGS: TestingSettings = {
   drawerBackClearance: 5,
   doorOpenAngle: 0,
   golaCutoutDepth: 26,
+  golaLCutoutDepth: 26,
   golaLCutoutHeight: 59,
   golaCCutoutHeight: 73.5,
   golaTopGap: 30

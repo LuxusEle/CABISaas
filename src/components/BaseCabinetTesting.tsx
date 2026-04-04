@@ -43,7 +43,7 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
   const innerDepth = depth;
 
   const actualNumDoors = width < RUBY_DOOR_THRESHOLD ? 1 : 2;
-  const isGolaActive = settings.enableGola && showDoors && !showDrawers;
+  const isGolaActive = settings.enableGola && (showDoors || (showDrawers && numDrawers > 0));
   const doorWidth = actualNumDoors === 1 
     ? innerWidth - doorOuterGap * 2 
     : (innerWidth - doorOuterGap * 2 - doorInnerGap) / 2;
@@ -57,6 +57,7 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
   const golaVerticalGap = isGolaActive ? 13 : doorOuterGap;
   const golaHorizontalGap3 = isGolaActive ? 3 : doorOuterGap;
   const golaDepthOffset = isGolaActive ? settings.golaCutoutDepth : 0;
+  const golaLDepthOffset = isGolaActive ? settings.golaLCutoutDepth : 0;
   const golaTopGap = isGolaActive ? settings.golaTopGap : doorOuterGap;
   const midZForGola = (innerHeight - golaTopGap) / 2;
 
@@ -98,9 +99,8 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
     const technicalR = nailHoleDiameter / 2;
     const shelfR = settings.shelfHoleDiameter / 2;
     
-    const golaOffset = isGolaActive ? settings.golaCutoutDepth : 0;
-    const zFront1 = depth / 2 - (topStretcherWidth / 4) - golaOffset;
-    const zFront2 = depth / 2 - (topStretcherWidth * 3 / 4) - golaOffset;
+    const zFront1 = depth / 2 - (topStretcherWidth / 4) - golaLDepthOffset;
+    const zFront2 = depth / 2 - (topStretcherWidth * 3 / 4) - golaLDepthOffset;
     const zBack1 = -depth / 2 + (topStretcherWidth / 4);
     const zBack2 = -depth / 2 + (topStretcherWidth * 3 / 4);
 
@@ -137,13 +137,76 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
     }
     
     return positions;
-  }, [showNailHoles, innerHeight, depth, panelThickness, backPanelThickness, nailHoleDiameter, settings.shelfHoleDiameter, topStretcherWidth, showBackStretchers, backStretcherHeight, numShelves, showDrawers, settings.nailHoleShelfDistance, settings.shelfDepth, isGolaActive, settings.golaCutoutDepth]);
+  }, [showNailHoles, innerHeight, depth, panelThickness, backPanelThickness, nailHoleDiameter, settings.shelfHoleDiameter, topStretcherWidth, showBackStretchers, backStretcherHeight, numShelves, showDrawers, settings.nailHoleShelfDistance, settings.shelfDepth, isGolaActive, settings.golaLCutoutDepth, settings.golaCutoutDepth]);
+
+  const drawerData = useMemo(() => {
+    const boxDepth = depth - panelThickness - backPanelThickness - settings.drawerBackClearance;
+    const frontWidth = innerWidth - doorOuterGap * 2;
+    const boxWidth = (width - panelThickness * 2) - drawerSideClearance * 2;
+    const boxHeight = drawerHeight * drawerBoxHeightRatio;
+
+    let drawerFrontHeights = Array(numDrawers).fill(drawerHeight);
+    let drawerYPositions = Array(numDrawers).fill(0);
+
+    const gapHeights: number[] = [];
+    if (settings.enableGola && numDrawers > 0) {
+      const golaGapTotal = golaVerticalGap * 2;
+      const totalAvailablePool = (innerHeight - golaTopGap) - doorOuterGap - panelThickness;
+      const numGaps = numDrawers - 1;
+      const totalGapSpace = numGaps * golaGapTotal;
+      const eachFrontH = (totalAvailablePool - totalGapSpace) / numDrawers;
+
+      for (let i = 0; i < numDrawers; i++) {
+        drawerFrontHeights[i] = (i === 0) ? eachFrontH + panelThickness : eachFrontH;
+        
+        let yBase = doorOuterGap;
+        for (let j = 0; j < i; j++) {
+           yBase += drawerFrontHeights[j] + golaGapTotal;
+        }
+        const relativeY = yBase + drawerFrontHeights[i] / 2;
+        drawerYPositions[i] = -innerHeight / 2 + relativeY;
+        
+        if (i < numDrawers - 1) {
+          gapHeights.push(yBase + drawerFrontHeights[i] + golaVerticalGap);
+        }
+      }
+    } else {
+      for (let i = 0; i < numDrawers; i++) {
+        drawerFrontHeights[i] = i === 0 ? drawerHeight + panelThickness : drawerHeight;
+        drawerYPositions[i] = -innerHeight / 2 + panelThickness + doorOuterGap + i * (drawerHeight + doorOuterGap) + drawerHeight / 2 - (i === 0 ? panelThickness / 2 : 0);
+      }
+    }
+
+    const technicalR = nailHoleDiameter / 2;
+    const frontHoles = [];
+    if (showNailHoles) {
+      [-1, 1].forEach(side => [0.25, 0.75].forEach(vRatio => {
+        frontHoles.push({ z: side * (boxWidth / 2 - panelThickness / 2), y: -boxHeight / 2 + boxHeight * vRatio, r: technicalR, through: true });
+      }));
+    }
+
+    return {
+      drawerFrontHeights,
+      drawerYPositions,
+      boxWidth,
+      boxDepth,
+      frontWidth,
+      boxH: boxHeight,
+      gapHeights,
+      boxZOffset: (panelThickness + backPanelThickness + settings.drawerBackClearance) / 2
+    };
+  }, [width, innerHeight, depth, panelThickness, backPanelThickness, doorOuterGap, numDrawers, drawerSideClearance, drawerBoxHeightRatio, settings.drawerBackClearance, innerWidth, nailHoleDiameter, showNailHoles, doorMaterialThickness, drawerBackThickness, drawerBottomThickness, settings.enableGola, settings.golaTopGap, golaVerticalGap, golaHorizontalGap3, drawerHeight, midZForGola]);
 
   const leftPanelGeo = useMemo(() => {
     const sidePanelHeight = innerHeight - panelThickness;
     const notches: any[] = [];
     if (isGolaActive) {
-      notches.push({ u: depth / 2, v: sidePanelHeight / 2, width: settings.golaCutoutDepth, height: settings.golaLCutoutHeight, alignV: 'top' });
+      notches.push({ u: depth / 2, v: sidePanelHeight / 2, width: settings.golaLCutoutDepth, height: settings.golaLCutoutHeight, alignV: 'top' });
+      if (showDrawers && drawerData.gapHeights.length > 0) {
+        drawerData.gapHeights.forEach(gh => {
+          notches.push({ u: depth / 2, v: gh - (innerHeight + panelThickness) / 2, width: settings.golaCutoutDepth, height: settings.golaCCutoutHeight, alignV: 'center' });
+        });
+      }
     }
     return createPanelWithHolesGeo(
       panelThickness, sidePanelHeight, depth,
@@ -154,13 +217,18 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
       panelThickness - grooveDepth, 0,
       notches
     );
-  }, [panelThickness, innerHeight, depth, backPanelThickness, grooveDepth, nailHolePositions, settings.nailHoleDepth, isGolaActive, settings.golaCutoutDepth, settings.golaLCutoutHeight]);
+  }, [panelThickness, innerHeight, depth, backPanelThickness, grooveDepth, nailHolePositions, settings.nailHoleDepth, isGolaActive, settings.golaLCutoutDepth, settings.golaCutoutDepth, settings.golaLCutoutHeight, midZForGola, settings.golaCCutoutHeight, numDrawers, showDrawers, drawerData.gapHeights]);
 
   const rightPanelGeo = useMemo(() => {
     const sidePanelHeight = innerHeight - panelThickness;
-    const notches: any[] = [];
+    const notchesR: any[] = [];
     if (isGolaActive) {
-      notches.push({ u: depth / 2, v: sidePanelHeight / 2, width: settings.golaCutoutDepth, height: settings.golaLCutoutHeight, alignV: 'top' });
+      notchesR.push({ u: depth / 2, v: sidePanelHeight / 2, width: settings.golaLCutoutDepth, height: settings.golaLCutoutHeight, alignV: 'top' });
+      if (showDrawers && drawerData.gapHeights.length > 0) {
+        drawerData.gapHeights.forEach(gh => {
+          notchesR.push({ u: depth / 2, v: gh - (innerHeight + panelThickness) / 2, width: settings.golaCutoutDepth, height: settings.golaCCutoutHeight, alignV: 'center' });
+        });
+      }
     }
     return createPanelWithHolesGeo(
       panelThickness, sidePanelHeight, depth,
@@ -169,9 +237,9 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
       nailHolePositions,
       settings.nailHoleDepth,
       panelThickness - grooveDepth, 0,
-      notches
+      notchesR
     );
-  }, [panelThickness, innerHeight, depth, backPanelThickness, grooveDepth, nailHolePositions, settings.nailHoleDepth, isGolaActive, settings.golaCutoutDepth, settings.golaLCutoutHeight]);
+  }, [panelThickness, innerHeight, depth, backPanelThickness, grooveDepth, nailHolePositions, settings.nailHoleDepth, isGolaActive, settings.golaLCutoutDepth, settings.golaCutoutDepth, settings.golaLCutoutHeight, midZForGola, settings.golaCCutoutHeight, numDrawers, showDrawers, drawerData.gapHeights]);
 
   const bottomPanelHoles = useMemo(() => {
     if (!showNailHoles) return [];
@@ -181,9 +249,6 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
     const u3 = innerDepth / 2 - innerDepth / 5;
     const vLeft = -innerWidth / 2 + panelThickness / 2;
     const vRight = innerWidth / 2 - panelThickness / 2;
-    const v1 = -innerWidth / 2 + innerWidth / 5;
-    const v2 = 0;
-    const v3 = innerWidth / 2 - innerWidth / 5;
 
     const positions = [
       { y: vLeft, z: u1, r: technicalR, through: true },
@@ -195,10 +260,16 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
     ];
 
     if (showBackStretchers) {
+      const v1 = -innerWidth / 2 + innerWidth / 5;
+      const v2 = 0;
+      const v3 = innerWidth / 2 - innerWidth / 5;
       const zBack = -innerDepth / 2 + panelThickness / 2;
       positions.push({ y: v1, z: zBack, r: technicalR, through: true }, { y: v2, z: zBack, r: technicalR, through: true }, { y: v3, z: zBack, r: technicalR, through: true });
     }
 
+    const v1 = -innerWidth / 2 + innerWidth / 5;
+    const v2 = 0;
+    const v3 = innerWidth / 2 - innerWidth / 5;
     const zToeKick = innerDepth / 2 - 50 - panelThickness / 2;
     positions.push({ y: v1, z: zToeKick, r: technicalR, through: true }, { y: v2, z: zToeKick, r: technicalR, through: true }, { y: v3, z: zToeKick, r: technicalR, through: true });
     
@@ -252,76 +323,6 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
     return geos;
   }, [actualNumDoors, doorWidth, doorHeight, doorMaterialThickness, hingeHorizontalOffset, hingeDiameter, hingeDepth, topHingeVerticalOffset, bottomHingeVerticalOffset, doorInnerGap]);
 
-  const drawerData = useMemo(() => {
-    const boxDepth = depth - panelThickness - backPanelThickness - settings.drawerBackClearance;
-    const frontWidth = innerWidth - doorOuterGap * 2;
-    const boxWidth = (width - panelThickness * 2) - drawerSideClearance * 2;
-    const boxHeight = drawerHeight * drawerBoxHeightRatio;
-
-    let drawerFrontHeights = Array(numDrawers).fill(drawerHeight);
-    let drawerYPositions = Array(numDrawers).fill(0);
-
-    if (settings.enableGola && numDrawers > 0) {
-      if (numDrawers === 2) {
-        const bottomH = midZForGola - golaVerticalGap - doorOuterGap;
-        const topH = (innerHeight - golaTopGap) - (midZForGola + golaVerticalGap);
-        drawerFrontHeights = [bottomH + panelThickness, topH];
-        drawerYPositions = [
-          -innerHeight / 2 + doorOuterGap + bottomH / 2 - panelThickness / 2,
-          -innerHeight / 2 + (midZForGola + golaVerticalGap) + topH / 2
-        ];
-      } else if (numDrawers === 3) {
-        const bottomH = midZForGola - golaVerticalGap - doorOuterGap;
-        const topRegionH = (innerHeight - golaTopGap) - (midZForGola + golaVerticalGap);
-        const topTwoH = (topRegionH - golaHorizontalGap3) / 2;
-        drawerFrontHeights = [bottomH + panelThickness, topTwoH, topTwoH];
-        drawerYPositions = [
-          -innerHeight / 2 + doorOuterGap + bottomH / 2 - panelThickness / 2,
-          -innerHeight / 2 + (midZForGola + golaVerticalGap) + topTwoH / 2,
-          -innerHeight / 2 + (midZForGola + golaVerticalGap) + topTwoH + golaHorizontalGap3 + topTwoH / 2
-        ];
-      }
-    } else {
-      for (let i = 0; i < numDrawers; i++) {
-        drawerFrontHeights[i] = i === 0 ? drawerHeight + panelThickness : drawerHeight;
-        drawerYPositions[i] = -innerHeight / 2 + panelThickness + doorOuterGap + i * (drawerHeight + doorOuterGap) + drawerHeight / 2 - (i === 0 ? panelThickness / 2 : 0);
-      }
-    }
-
-    const technicalR = nailHoleDiameter / 2;
-    const frontHoles = [];
-    if (showNailHoles) {
-      [-1, 1].forEach(side => [0.25, 0.75].forEach(vRatio => {
-        frontHoles.push({ z: side * (boxWidth / 2 - panelThickness / 2), y: -boxHeight / 2 + boxHeight * vRatio, r: technicalR, through: true });
-      }));
-    }
-    const bottomFrontHoles = [];
-    if (showNailHoles) {
-      [-1, 1].forEach(side => [0.25, 0.75].forEach(vRatio => {
-        bottomFrontHoles.push({ z: side * (boxWidth / 2 - panelThickness / 2), y: -boxHeight / 2 + boxHeight * vRatio + panelThickness / 2, r: technicalR, through: true });
-      }));
-    }
-    const sideHoles = [];
-    if (showNailHoles) {
-      [0.25, 0.75].forEach(vRatio => {
-        sideHoles.push({ z: -boxDepth / 2 + drawerBackThickness / 2, y: -boxHeight / 2 + boxHeight * vRatio, r: technicalR, through: true });
-      });
-      [0.2, 0.5, 0.8].forEach(dRatio => {
-        sideHoles.push({ z: -boxDepth / 2 + boxDepth * dRatio, y: -boxHeight / 2 + drawerBottomThickness / 2, r: technicalR, through: true });
-      });
-    }
-
-    return {
-      drawerFrontHeights,
-      drawerYPositions,
-      boxWidth,
-      boxDepth,
-      frontWidth,
-      boxZOffset: (panelThickness + backPanelThickness + settings.drawerBackClearance) / 2
-    };
-  }, [width, innerHeight, depth, panelThickness, backPanelThickness, doorOuterGap, numDrawers, drawerSideClearance, drawerBoxHeightRatio, settings.drawerBackClearance, innerWidth, nailHoleDiameter, showNailHoles, doorMaterialThickness, drawerBackThickness, drawerBottomThickness, settings.enableGola, settings.golaTopGap, golaVerticalGap, golaHorizontalGap3, drawerHeight, midZForGola]);
-
-  // Drawer helper for per-instance geometry
   const getDrawerGeos = (i: number) => {
     const { drawerFrontHeights, boxWidth, boxDepth, frontWidth } = drawerData;
     const h = drawerFrontHeights[i];
@@ -338,21 +339,21 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
       });
     }
 
-    const frontHoles = [];
+    const fHoles = [];
     if (showNailHoles) {
       [-1, 1].forEach(side => [0.25, 0.75].forEach(vRatio => {
-        frontHoles.push({ z: side * (boxWidth / 2 - panelThickness / 2), y: -boxH / 2 + boxH * vRatio, r: technicalR, through: true });
+        fHoles.push({ z: side * (boxWidth / 2 - panelThickness / 2), y: -boxH / 2 + boxH * vRatio, r: technicalR, through: true });
       }));
     }
-    const bottomFrontHoles = [];
+    const bottomFHoles = [];
     if (showNailHoles) {
       [-1, 1].forEach(side => [0.25, 0.75].forEach(vRatio => {
-        bottomFrontHoles.push({ z: side * (boxWidth / 2 - panelThickness / 2), y: -boxH / 2 + boxH * vRatio + panelThickness / 2, r: technicalR, through: true });
+        bottomFHoles.push({ z: side * (boxWidth / 2 - panelThickness / 2), y: -boxH / 2 + boxH * vRatio + panelThickness / 2, r: technicalR, through: true });
       }));
     }
 
     return {
-      frontGeo: createPanelWithHolesGeo(doorMaterialThickness, h, frontWidth, 0, 0, 0, 'px', i === 0 ? bottomFrontHoles : frontHoles, doorMaterialThickness),
+      frontGeo: createPanelWithHolesGeo(doorMaterialThickness, h, frontWidth, 0, 0, 0, 'px', i === 0 ? bottomFHoles : fHoles, doorMaterialThickness),
       sideLGeo: createPanelWithHolesGeo(panelThickness, boxH, boxDepth, 0, 0, 0, 'nx', sideHoles, panelThickness),
       sideRGeo: createPanelWithHolesGeo(panelThickness, boxH, boxDepth, 0, 0, 0, 'px', sideHoles, panelThickness),
       boxH
@@ -453,7 +454,7 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
       )}
 
       {showBackStretchers && shouldShow('topStretcherFront') && (
-        <mesh position={[0 + getOffset('topStretcherFront')[0], innerHeight / 2 - panelThickness / 2 + getOffset('topStretcherFront')[1], depth / 2 - topStretcherWidth / 2 - golaDepthOffset + getOffset('topStretcherFront')[2]]} castShadow receiveShadow visible={!skeletonView}>
+        <mesh position={[0 + getOffset('topStretcherFront')[0], innerHeight / 2 - panelThickness / 2 + getOffset('topStretcherFront')[1], depth / 2 - topStretcherWidth / 2 - golaLDepthOffset + getOffset('topStretcherFront')[2]]} castShadow receiveShadow visible={!skeletonView}>
           <boxGeometry args={[innerWidth - panelThickness * 2, panelThickness, topStretcherWidth]} />
           <meshStandardMaterial color={getPanelColor('topStretcherFront')} roughness={0.8} />
         </mesh>
@@ -465,7 +466,7 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
         </mesh>
       )}
       {showBackStretchers && skeletonView && shouldShow('topStretcherFront') && (
-        <lineSegments position={[0 + getOffset('topStretcherFront')[0], innerHeight / 2 - panelThickness / 2 + getOffset('topStretcherFront')[1], depth / 2 - topStretcherWidth / 2 - golaDepthOffset + getOffset('topStretcherFront')[2]]}>
+        <lineSegments position={[0 + getOffset('topStretcherFront')[0], innerHeight / 2 - panelThickness / 2 + getOffset('topStretcherFront')[1], depth / 2 - topStretcherWidth / 2 - golaLDepthOffset + getOffset('topStretcherFront')[2]]}>
           <edgesGeometry args={[new THREE.BoxGeometry(innerWidth - panelThickness * 2, panelThickness, topStretcherWidth)]} />
           <lineBasicMaterial color={getPanelColor('topStretcherFront')} linewidth={2} />
         </lineSegments>
@@ -545,6 +546,12 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
               <primitive object={frontGeo} attach="geometry" />
               <meshStandardMaterial color={showDifferentPanelColors ? panelColors.drawerFront : doorColor} roughness={0.6} side={THREE.DoubleSide} />
             </mesh>
+            {!settings.enableGola && (
+              <mesh position={[0, drawerYPositions[i], depth / 2 + doorMaterialThickness + 5]} rotation={[0, 0, Math.PI / 2]} castShadow>
+                <cylinderGeometry args={[3, 3, 150, 16]} />
+                <meshStandardMaterial color="#4a5568" metalness={0.8} roughness={0.2} />
+              </mesh>
+            )}
             {shouldShow('drawerBottom') && (
               <mesh position={[0, drawerYPositions[i] - boxH / 2 + drawerBottomThickness / 2, boxZOffset + drawerBackThickness / 2]} castShadow receiveShadow visible={!skeletonView}>
                 <boxGeometry args={[boxWidth - panelThickness * 2, drawerBottomThickness, boxDepth - drawerBackThickness]} />
@@ -636,7 +643,28 @@ export const exportBaseCabinetDXF = async (settings: TestingSettings, zip: JSZip
   const innerHeight = height - toeKickHeight;
   const innerDepth = depth;
   const actualNumDoors = width < RUBY_DOOR_THRESHOLD ? 1 : 2;
-  const isGolaActive = settings.enableGola && showDoors && !showDrawers;
+  const isGolaActive = settings.enableGola && (showDoors || (showDrawers && numDrawers > 0));
+  const golaVerticalGap = isGolaActive ? 13 : doorOuterGap;
+  const golaHorizontalGap3 = isGolaActive ? 3 : doorOuterGap;
+  const golaTopGap = isGolaActive ? settings.golaTopGap : doorOuterGap;
+  const midZForGola = (innerHeight - golaTopGap) / 2;
+
+  const gapHeights: number[] = [];
+  if (isGolaActive && showDrawers && numDrawers > 1) {
+    const golaGapTotal = golaVerticalGap * 2;
+    const totalAvailablePool = (innerHeight - golaTopGap) - doorOuterGap - panelThickness;
+    const eachFrontH = (totalAvailablePool - (numDrawers - 1) * golaGapTotal) / numDrawers;
+    const dFrontHs = Array.from({ length: numDrawers }).map((_, i) => (i === 0 ? eachFrontH + panelThickness : eachFrontH));
+    
+    for (let i = 0; i < numDrawers - 1; i++) {
+      let yBase = doorOuterGap;
+      for (let j = 0; j <= i; j++) {
+        yBase += dFrontHs[j] + (j < i ? golaGapTotal : 0);
+      }
+      gapHeights.push(yBase + golaVerticalGap);
+    }
+  }
+
   const doorWidth = actualNumDoors === 1 ? innerWidth - doorOuterGap * 2 : (innerWidth - doorOuterGap * 2 - doorInnerGap) / 2;
   const doorHeight = innerHeight - doorOuterGap * 2 - (isGolaActive ? settings.doorOverride : 0);
   const topHingeVerticalOffset = isGolaActive ? (settings.golaLCutoutHeight + settings.hingeVerticalOffset - settings.doorOverride - doorOuterGap) : settings.hingeVerticalOffset;
@@ -686,10 +714,10 @@ export const exportBaseCabinetDXF = async (settings: TestingSettings, zip: JSZip
   const nailR = nailHoleDiameter / 2;
   const panelHeight = innerHeight - panelThickness;
   const nailY = panelHeight / 2 - panelThickness / 2;
-  const golaOffset = isGolaActive ? settings.golaCutoutDepth : 0;
+  const golaLOffsetDXF = isGolaActive ? settings.golaLCutoutDepth : 0;
   const nailHoles = [
-    { y: nailY, z: depth / 2 - topStretcherWidth / 4 - golaOffset, r: nailR, through: true },
-    { y: nailY, z: depth / 2 - topStretcherWidth * 3 / 4 - golaOffset, r: nailR, through: true },
+    { y: nailY, z: depth / 2 - topStretcherWidth / 4 - golaLOffsetDXF, r: nailR, through: true },
+    { y: nailY, z: depth / 2 - topStretcherWidth * 3 / 4 - golaLOffsetDXF, r: nailR, through: true },
     { y: nailY, z: -depth / 2 + topStretcherWidth / 4, r: nailR, through: true },
     { y: nailY, z: -depth / 2 + topStretcherWidth * 3 / 4, r: nailR, through: true }
   ];
@@ -714,7 +742,17 @@ export const exportBaseCabinetDXF = async (settings: TestingSettings, zip: JSZip
     }
   }
 
-  const golaCutoutsArr = isGolaActive ? [{ x: sideW - settings.golaCutoutDepth, y: sideH_Panel - settings.golaLCutoutHeight, w: settings.golaCutoutDepth, h: settings.golaLCutoutHeight }] : [];
+  const golaCutoutsArr = isGolaActive ? [{ x: sideW - settings.golaLCutoutDepth, y: sideH_Panel - settings.golaLCutoutHeight, w: settings.golaLCutoutDepth, h: settings.golaLCutoutHeight }] : [];
+  if (isGolaActive && showDrawers && gapHeights.length > 0) {
+    gapHeights.forEach(gh => {
+      golaCutoutsArr.push({ 
+        x: sideW - settings.golaCutoutDepth, 
+        y: gh - settings.golaCCutoutHeight / 2 - panelThickness, 
+        w: settings.golaCutoutDepth, 
+        h: settings.golaCCutoutHeight 
+      });
+    });
+  }
   addPanelToZip('Left_Panel', sideW, sideH_Panel, nailHoles, sideGroove, golaCutoutsArr, false);
   addPanelToZip('Right_Panel', sideW, sideH_Panel, nailHoles, sideGroove, golaCutoutsArr, true);
 
