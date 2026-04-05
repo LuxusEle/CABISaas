@@ -31,7 +31,9 @@ export interface TestingSettings {
   numDrawers: number;
   numShelves: number;
   showShelves: boolean;
-  cabinetType: 'base' | 'wall' | 'tall';
+  cabinetType: 'base' | 'wall' | 'tall' | 'corner';
+  blindPanelWidth: number;
+  blindCornerSide: 'left' | 'right';
   hingeDiameter: number;
   hingeDepth: number;
   hingeHorizontalOffset: number;
@@ -128,7 +130,9 @@ export const DEFAULT_SETTINGS: TestingSettings = {
   showLowerDoors: false,
   lowerDoorOpenAngle: 0,
   lowerSectionDrawerStackHeight: 800,
-  enableTallUpperGola: false
+  enableTallUpperGola: false,
+  blindPanelWidth: 400,
+  blindCornerSide: 'left'
 };
 
 export const RUBY_DOOR_THRESHOLD = 599.5;
@@ -472,6 +476,7 @@ export const panelColors = {
   drawerSide: new THREE.Color('#e67e22'),
   drawerBack: new THREE.Color('#d35400'),
   drawerBottom: new THREE.Color('#7f8c8d'),
+  blindPanel: new THREE.Color('#e0e0e0'),
 };
 
 /**

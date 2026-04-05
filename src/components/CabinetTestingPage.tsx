@@ -11,6 +11,7 @@ import {
 import { BaseCabinetTesting, exportBaseCabinetDXF } from './BaseCabinetTesting';
 import { WallCabinetTesting, exportWallCabinetDXF } from './WallCabinetTesting';
 import { TallCabinetTesting, exportTallCabinetDXF } from './TallCabinetTesting';
+import { BaseCornerCabinetTesting, exportBaseCornerCabinetDXF } from './BaseCornerCabinetTesting';
 
 const Section: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div className="bg-slate-700/50 p-3 rounded-lg border border-slate-600/50 mb-3 last:mb-0">
@@ -57,11 +58,12 @@ const CheckboxRow: React.FC<{ label: string; checked: boolean; onChange: (v: boo
 );
 
 export const CabinetTestingPage: React.FC = () => {
-  const [activeType, setActiveType] = useState<'base' | 'wall' | 'tall'>('base');
-  const [allConfigs, setAllConfigs] = useState<Record<'base' | 'wall' | 'tall', TestingSettings>>({
+  const [activeType, setActiveType] = useState<'base' | 'wall' | 'tall' | 'corner'>('base');
+  const [allConfigs, setAllConfigs] = useState<Record<'base' | 'wall' | 'tall' | 'corner', TestingSettings>>({
     base: { ...DEFAULT_SETTINGS, cabinetType: 'base' },
     wall: { ...DEFAULT_SETTINGS, cabinetType: 'wall', height: 720, depth: 300, toeKickHeight: 0, showDrawers: false, showDoors: true, shelfDepth: 300 - 18 - 6 },
-    tall: { ...DEFAULT_SETTINGS, cabinetType: 'tall', height: 2100, depth: 560, toeKickHeight: 100, showDrawers: false, showDoors: true, shelfDepth: 560 - 18 - 6 }
+    tall: { ...DEFAULT_SETTINGS, cabinetType: 'tall', height: 2100, depth: 560, toeKickHeight: 100, showDrawers: false, showDoors: true, shelfDepth: 560 - 18 - 6 },
+    corner: { ...DEFAULT_SETTINGS, cabinetType: 'corner', width: 1000, height: 870, depth: 560, blindPanelWidth: 400, blindCornerSide: 'left' }
   });
 
   const settings = allConfigs[activeType];
@@ -118,6 +120,8 @@ export const CabinetTestingPage: React.FC = () => {
       await exportWallCabinetDXF(settings, zip);
     } else if (settings.cabinetType === 'tall') {
       await exportTallCabinetDXF(settings, zip);
+    } else if (settings.cabinetType === 'corner') {
+      await exportBaseCornerCabinetDXF(settings, zip);
     }
     const content = await zip.generateAsync({ type: 'blob' });
     const url = URL.createObjectURL(content);
@@ -156,8 +160,8 @@ export const CabinetTestingPage: React.FC = () => {
         <div className="space-y-4">
           <Section>
             <h3 className="text-[11px] font-bold text-amber-500 uppercase tracking-wider mb-3">Cabinet Type</h3>
-            <div className="grid grid-cols-3 gap-2">
-              {(['base', 'wall', 'tall'] as const).map(type => (
+            <div className="grid grid-cols-2 gap-2">
+              {(['base', 'wall', 'tall', 'corner'] as const).map(type => (
                 <button
                   key={type}
                   onClick={() => setActiveType(type)}
@@ -173,10 +177,26 @@ export const CabinetTestingPage: React.FC = () => {
             </div>
           </Section>
 
-          {(settings.cabinetType === 'base' || settings.cabinetType === 'tall') && (
+          {(settings.cabinetType === 'base' || settings.cabinetType === 'tall' || settings.cabinetType === 'corner') && (
             <Section>
               <h3 className="text-[11px] font-bold text-amber-500 uppercase tracking-wider mb-3">{settings.cabinetType.toUpperCase()} Options</h3>
               <SettingRow label="Toe Kick Height" value={settings.toeKickHeight} onChange={v => updateSetting('toeKickHeight', v)} step={5} min={0} max={200} />
+              {settings.cabinetType === 'corner' && (
+                <>
+                  <SettingRow label="Blind Width" value={settings.blindPanelWidth} onChange={v => updateSetting('blindPanelWidth', v)} step={10} min={200} max={settings.width / 2} />
+                  <div className="flex items-center justify-between gap-4 py-1.5 px-1">
+                    <span className="text-[11px] text-slate-400 font-medium">Blind Side</span>
+                    <select 
+                      value={settings.blindCornerSide} 
+                      onChange={(e) => updateSetting('blindCornerSide', e.target.value as 'left' | 'right')}
+                      className="bg-slate-900 border border-slate-600 rounded px-1 py-0.5 text-[11px] text-amber-500 font-mono"
+                    >
+                      <option value="left">Left</option>
+                      <option value="right">Right</option>
+                    </select>
+                  </div>
+                </>
+              )}
             </Section>
           )}
 
@@ -525,6 +545,7 @@ export const CabinetTestingPage: React.FC = () => {
                   <option value="backPanel">Back Panel</option>
                   <option value="door">Doors</option>
                   <option value="drawer">Drawers</option>
+                  <option value="blindPanel">Blind Panel</option>
                   <option value="toeKick">Toe Kick</option>
                 </select>
               </div>
@@ -564,6 +585,7 @@ export const CabinetTestingPage: React.FC = () => {
           {settings.cabinetType === 'base' && <BaseCabinetTesting settings={settings} />}
           {settings.cabinetType === 'wall' && <WallCabinetTesting settings={settings} />}
           {settings.cabinetType === 'tall' && <TallCabinetTesting settings={settings} />}
+          {settings.cabinetType === 'corner' && <BaseCornerCabinetTesting settings={settings} />}
           
           <gridHelper args={[4000, 40, '#1e293b', '#0f172a']} rotation={[0, 0, 0]} />
           <OrbitControls 
