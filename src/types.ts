@@ -1,4 +1,6 @@
 
+import type { TestingSettings } from './components/CabinetTestingUtils';
+
 export enum ZoneId {
   WALL_A = 'Wall A',
   WALL_B = 'Wall B',
@@ -81,6 +83,9 @@ export interface ProjectSettings {
 
   // Material allocation settings
   materialSettings?: ProjectMaterialSettings;
+
+  // Advanced Global Settings
+  advancedTestingSettings?: Partial<TestingSettings>;
 }
 
 export interface Obstacle {
@@ -146,6 +151,8 @@ export interface CabinetUnit {
   customConfig?: CustomCabinetConfig; // Custom configuration
   // Material selection
   materials?: CabinetMaterials;
+  // Advanced Config (Testing Cabinets)
+  advancedSettings?: Partial<TestingSettings>;
 }
 
 export interface Zone {

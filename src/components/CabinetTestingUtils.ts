@@ -473,3 +473,77 @@ export const panelColors = {
   drawerBack: new THREE.Color('#d35400'),
   drawerBottom: new THREE.Color('#7f8c8d'),
 };
+
+/**
+ * Utility to merge global project settings and unit-specific advanced settings
+ * into a single TestingSettings object for rendering components.
+ */
+export const getCabinetTestingSettings = (
+  unit: any,
+  globalSettings: any,
+  widthOverride?: number,
+  heightOverride?: number,
+  depthOverride?: number
+): TestingSettings => {
+  const typeStr = unit.type.toLowerCase() as 'base' | 'wall' | 'tall';
+  
+  // 1. Determine base dimensions from global settings if not overridden
+  const initialHeight = heightOverride ?? (typeStr === 'tall' ? globalSettings.tallHeight : typeStr === 'wall' ? globalSettings.wallHeight : globalSettings.baseHeight);
+  const initialDepth = depthOverride ?? (typeStr === 'tall' ? globalSettings.depthTall : typeStr === 'wall' ? globalSettings.depthWall : globalSettings.depthBase);
+  const initialToeKick = typeStr === 'base' ? (globalSettings.toeKickHeight ?? 100) : 0;
+  
+  // 2. Map basic cabinet properties + global defaults to TestingSettings
+  const baseSettings: TestingSettings = {
+    ...DEFAULT_SETTINGS,
+    cabinetType: typeStr,
+    width: widthOverride ?? unit.width,
+    height: initialHeight,
+    depth: initialDepth,
+    toeKickHeight: initialToeKick,
+    panelThickness: globalSettings.thickness || 18,
+    doorOuterGap: globalSettings.doorOuterGap ?? 2,
+    doorInnerGap: globalSettings.doorInnerGap ?? 2,
+    doorToDoorGap: globalSettings.doorToDoorGap ?? 2,
+    doorToPanelGap: globalSettings.doorToPanelGap ?? 2,
+    drawerToDrawerGap: globalSettings.drawerToDrawerGap ?? 2,
+    doorSideClearance: globalSettings.doorSideClearance ?? 2,
+    grooveDepth: globalSettings.grooveDepth ?? 5,
+    backPanelThickness: globalSettings.backPanelThickness ?? 6,
+    doorMaterialThickness: globalSettings.doorMaterialThickness ?? 18,
+    wallBottomRecess: globalSettings.wallBottomRecess ?? 0,
+  };
+
+  // 3. Override with global advancedTestingSettings if present
+  let merged: TestingSettings = { ...baseSettings };
+  if (globalSettings.advancedTestingSettings) {
+    merged = { ...merged, ...globalSettings.advancedTestingSettings };
+    // Ensure width/height/depth/type are preserved from unit context unless explicitly intended
+    merged.width = baseSettings.width;
+    merged.height = baseSettings.height;
+    merged.depth = baseSettings.depth;
+    merged.cabinetType = baseSettings.cabinetType;
+    merged.toeKickHeight = baseSettings.toeKickHeight;
+  }
+
+  // 4. Override with previously saved unit-specific advancedSettings
+  if (unit.advancedSettings) {
+    merged = { ...merged, ...unit.advancedSettings };
+    // Always respect the current width from the layout
+    merged.width = widthOverride ?? unit.width;
+    merged.height = initialHeight;
+    merged.depth = initialDepth;
+  } else {
+    // Default visibility logic for new units
+    if (typeStr === 'wall') {
+      merged.showDrawers = false;
+      merged.showDoors = true;
+      merged.shelfDepth = initialDepth - merged.panelThickness - merged.backPanelThickness;
+    } else if (typeStr === 'tall') {
+      merged.showDrawers = false;
+      merged.showDoors = true;
+      merged.shelfDepth = initialDepth - merged.panelThickness - merged.backPanelThickness;
+    }
+  }
+
+  return merged;
+};

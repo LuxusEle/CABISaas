@@ -12,6 +12,7 @@ interface Props {
   showHardware?: boolean;
   showEmptyWalls?: boolean;
   onWallClick?: (wallId: string) => void;
+  onCabinetClick?: (zoneIndex: number, cabinetIndex: number) => void;
   activeWallId?: string;
   lightTheme?: boolean;
 }
@@ -98,6 +99,7 @@ const Scene = ({
   showEmptyWalls,
   onSceneBounds,
   onWallClick,
+  onCabinetClick,
   activeWallId,
   lightTheme
 }: { 
@@ -107,6 +109,7 @@ const Scene = ({
   showEmptyWalls?: boolean;
   onSceneBounds: (bounds: { center: [number, number, number]; size: { width: number; depth: number; height: number } }) => void;
   onWallClick?: (wallId: string) => void;
+  onCabinetClick?: (zoneIndex: number, cabinetIndex: number) => void;
   activeWallId?: string;
   lightTheme?: boolean;
 }) => {
@@ -120,7 +123,8 @@ const Scene = ({
       zone: Zone; 
       position: [number, number, number]; 
       rotation: number;
-      wallIndex: number;
+      wallIndex: number; // This is the zone index
+      cabinetIndex: number;
       label: string;
     }[] = [];
     
@@ -164,7 +168,7 @@ const Scene = ({
       zone.cabinets.forEach((cab) => {
         let pos: [number, number, number];
         let rotation: number;
-        const cabinetOffset = 50; // Distance from wall
+        const cabinetOffset = 0; // Distance from wall
         
         switch (wallIndex) {
           case 0: // Wall A: XY plane, cabinets face +Z
@@ -209,6 +213,7 @@ const Scene = ({
           position: pos,
           rotation,
           wallIndex,
+          cabinetIndex: zone.cabinets.indexOf(cab),
           label
         });
       });
@@ -385,7 +390,7 @@ const Scene = ({
         />
       ))}
 
-      {layoutData.cabinetPositions.map(({ unit, zone, position, rotation, wallIndex, label }) => (
+      {layoutData.cabinetPositions.map(({ unit, zone, position, rotation, wallIndex, cabinetIndex, label }) => (
         <Cabinet
           key={unit.id}
           unit={unit}
@@ -395,13 +400,22 @@ const Scene = ({
           wallIndex={wallIndex}
           label={label}
           settings={project.settings}
+          onClick={() => onCabinetClick?.(wallIndex, cabinetIndex)}
         />
       ))}
     </>
   );
 };
 
-export const CabinetViewer: React.FC<Props> = ({ project, showHardware = true, showEmptyWalls = false, onWallClick, activeWallId, lightTheme = false }) => {
+export const CabinetViewer: React.FC<Props> = ({ 
+  project, 
+  showHardware = true, 
+  showEmptyWalls = false, 
+  onWallClick, 
+  onCabinetClick,
+  activeWallId, 
+  lightTheme = false 
+}) => {
   const [viewMode, setViewMode] = useState<string>('isometric');
   const [showHW, setShowHW] = useState(showHardware);
   const [sceneBounds, setSceneBounds] = useState<{ 
@@ -526,6 +540,7 @@ export const CabinetViewer: React.FC<Props> = ({ project, showHardware = true, s
             showEmptyWalls={showEmptyWalls}
             onSceneBounds={handleSceneBounds}
             onWallClick={onWallClick}
+            onCabinetClick={onCabinetClick}
             activeWallId={activeWallId}
             lightTheme={lightTheme}
           />

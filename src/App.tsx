@@ -30,6 +30,7 @@ import { SequentialBoxInput } from './components/SequentialBoxInput';
 import { SheetTypeManager } from './components/SheetTypeManager';
 import { CabinetPreviewCard } from './components/CabinetPreviewCard';
 import { CabinetEditModal } from './components/CabinetEditModal';
+import { SingleCabinetEditorModal } from './components/SingleCabinetEditorModal';
 import { WallSetupCard } from './components/WallSetupCard';
 import { WallEditModal } from './components/WallEditModal';
 import { MaterialSelector } from './components/MaterialSelector';
@@ -1052,6 +1053,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
   const resizingRef = useRef(false);
   const dragStartRef = useRef<{ startY: number; startHeight: number } | null>(null);
   const [showCustomEditor, setShowCustomEditor] = useState(false);
+  const [showAdvancedCabinetEditor, setShowAdvancedCabinetEditor] = useState(false);
   const [customCabinets, setCustomCabinets] = useState<any[]>([]);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [mobileTableCollapsed, setMobileTableCollapsed] = useState(true);
@@ -1552,7 +1554,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
               {visualMode === 'elevation' ? (
                 <WallVisualizer zone={currentZone} height={currentZone.wallHeight || 2400} settings={project.settings} onCabinetClick={(i) => openEdit('cabinet', i)} onObstacleClick={(i) => openEdit('obstacle', i)} onCabinetMove={handleCabinetMove} onObstacleMove={handleObstacleMove} onDragEnd={handleDragEnd} onSwapCabinets={handleSwapCabinets} />
               ) : (
-                <CabinetViewer project={project} showHardware={true} />
+                <CabinetViewer project={project} showHardware={true} onCabinetClick={(zIdx, cIdx) => { const zoneId = project.zones[zIdx].id; setActiveTab(zoneId); openEdit("cabinet", cIdx); }} onWallClick={(wallId) => { setActiveTab(wallId); setVisualMode("elevation"); }} activeWallId={activeTab} />
               )}
             </div>
 
@@ -1649,7 +1651,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
               {visualMode === 'elevation' ? (
                 <WallVisualizer zone={currentZone} height={currentZone.wallHeight || 2400} settings={project.settings} onCabinetClick={(i) => openEdit('cabinet', i)} onObstacleClick={(i) => openEdit('obstacle', i)} onCabinetMove={handleCabinetMove} onObstacleMove={handleObstacleMove} onDragEnd={handleDragEnd} onSwapCabinets={handleSwapCabinets} />
               ) : (
-                <CabinetViewer project={project} showHardware={true} />
+                <CabinetViewer project={project} showHardware={true} onCabinetClick={(zIdx, cIdx) => { const zoneId = project.zones[zIdx].id; setActiveTab(zoneId); openEdit("cabinet", cIdx); }} onWallClick={(wallId) => { setActiveTab(wallId); setVisualMode("elevation"); }} activeWallId={activeTab} />
               )}
             </div>
 
@@ -1873,13 +1875,22 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
                   </div>
 
                   {/* Customize Button */}
-                  <button
-                    onClick={() => setShowCustomEditor(true)}
-                    className="w-full py-3 sm:py-2 px-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold rounded-lg transition-all flex items-center justify-center gap-2 min-h-[48px]"
-                  >
-                    <Wand2 size={18} />
-                    <span className="text-sm sm:text-base">Customize This Cabinet</span>
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setShowCustomEditor(true)}
+                      className="flex-1 py-3 sm:py-2 px-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold rounded-lg transition-all flex items-center justify-center gap-2 min-h-[48px]"
+                    >
+                      <Wand2 size={18} />
+                      <span className="text-sm sm:text-base">Customize (Old)</span>
+                    </button>
+                    <button
+                      onClick={() => setShowAdvancedCabinetEditor(true)}
+                      className="flex-1 py-3 sm:py-2 px-4 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold rounded-lg transition-all flex items-center justify-center gap-2 min-h-[48px]"
+                    >
+                      <Settings2 size={18} />
+                      <span className="text-sm sm:text-base">Advanced 3D Editor</span>
+                    </button>
+                  </div>
 
                   {/* Material Selection */}
                   <div className="border-t border-slate-200 dark:border-slate-700 pt-4 mt-2">
@@ -1985,19 +1996,27 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
       {showCustomEditor && (
         <CustomCabinetEditor
           basePreset={tempCabinet.preset}
-          baseType={presetFilter as 'Base' | 'Wall' | 'Tall'}
-          initialName={tempCabinet.customPresetId ? customCabinets.find(c => c.id === tempCabinet.customPresetId)?.name : ''}
-          initialDescription={tempCabinet.customPresetId ? customCabinets.find(c => c.id === tempCabinet.customPresetId)?.description : ''}
+          baseType={tempCabinet.type === CabinetType.BASE ? 'Base' : tempCabinet.type === CabinetType.WALL ? 'Wall' : 'Tall'}
           initialConfig={tempCabinet.customConfig}
           onClose={() => setShowCustomEditor(false)}
-          onSave={async () => {
+          onSave={() => {
             setShowCustomEditor(false);
-            // Reload custom cabinets
-            const { data } = await customCabinetService.getCustomPresets();
-            if (data) setCustomCabinets(data);
           }}
         />
       )}
+
+      {/* Advanced 3D Cabinet Editor */}
+      <SingleCabinetEditorModal
+        isOpen={showAdvancedCabinetEditor}
+        onClose={() => setShowAdvancedCabinetEditor(false)}
+        cabinet={tempCabinet}
+        globalSettings={project.settings}
+        onSave={(newCab) => {
+          setTempCabinet(newCab);
+          setShowAdvancedCabinetEditor(false);
+        }}
+      />
+
     </div>
   );
 };
