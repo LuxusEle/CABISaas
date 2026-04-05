@@ -183,17 +183,24 @@ export const CabinetTestingPage: React.FC = () => {
               <SettingRow label="Toe Kick Height" value={settings.toeKickHeight} onChange={v => updateSetting('toeKickHeight', v)} step={5} min={0} max={200} />
               {settings.cabinetType === 'corner' && (
                 <>
-                  <SettingRow label="Blind Width" value={settings.blindPanelWidth} onChange={v => updateSetting('blindPanelWidth', v)} step={10} min={200} max={settings.width / 2} />
+                  <SettingRow label="Blind Width" value={settings.blindPanelWidth} onChange={v => updateSetting('blindPanelWidth', v)} step={10} min={200} max={settings.width} />
                   <div className="flex items-center justify-between gap-4 py-1.5 px-1">
                     <span className="text-[11px] text-slate-400 font-medium">Blind Side</span>
-                    <select 
-                      value={settings.blindCornerSide} 
-                      onChange={(e) => updateSetting('blindCornerSide', e.target.value as 'left' | 'right')}
-                      className="bg-slate-900 border border-slate-600 rounded px-1 py-0.5 text-[11px] text-amber-500 font-mono"
-                    >
-                      <option value="left">Left</option>
-                      <option value="right">Right</option>
-                    </select>
+                    <div className="flex bg-slate-900 rounded p-0.5 border border-slate-700">
+                      {(['left', 'right'] as const).map(side => (
+                        <button
+                          key={side}
+                          onClick={() => updateSetting('blindCornerSide', side)}
+                          className={`px-3 py-1 text-[10px] font-bold rounded transition-all duration-200 ${
+                            settings.blindCornerSide === side
+                              ? 'bg-amber-500 text-white shadow-sm'
+                              : 'text-slate-400 hover:text-slate-200'
+                          }`}
+                        >
+                          {side.toUpperCase()}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </>
               )}
@@ -219,7 +226,7 @@ export const CabinetTestingPage: React.FC = () => {
             <h3 className="text-[11px] font-bold text-amber-500 uppercase tracking-wider mb-3">Gaps & Clearances</h3>
             <SettingRow label="Door to Door" value={settings.doorToDoorGap} onChange={v => updateSetting('doorToDoorGap', v)} step={0.5} min={0} max={10} />
             <SettingRow label="Door to Panel" value={settings.doorToPanelGap} onChange={v => updateSetting('doorToPanelGap', v)} step={0.5} min={0} max={10} />
-            {activeType !== 'wall' && <SettingRow label="Drawer to Drawer" value={settings.drawerToDrawerGap} onChange={v => updateSetting('drawerToDrawerGap', v)} step={0.5} min={0} max={10} />}
+            {activeType !== 'wall' && activeType !== 'corner' && <SettingRow label="Drawer to Drawer" value={settings.drawerToDrawerGap} onChange={v => updateSetting('drawerToDrawerGap', v)} step={0.5} min={0} max={10} />}
             <SettingRow label="Door Outer Gap" value={settings.doorOuterGap} onChange={v => updateSetting('doorOuterGap', v)} step={0.5} min={0} max={10} />
             <SettingRow label="Door Inner Gap" value={settings.doorInnerGap} onChange={v => updateSetting('doorInnerGap', v)} step={0.5} min={0} max={10} />
             <SettingRow label="Door Side Clear." value={settings.doorSideClearance} onChange={v => updateSetting('doorSideClearance', v)} step={0.5} min={0} max={10} />
@@ -464,8 +471,8 @@ export const CabinetTestingPage: React.FC = () => {
                     <SettingRow label="Hinge V Offset" value={settings.hingeVerticalOffset} onChange={v => updateSetting('hingeVerticalOffset', v)} step={1} min={20} max={200} />
                   </div>
                 )}
-                {activeType !== 'wall' && <CheckboxRow label="Show Drawers" checked={settings.showDrawers} onChange={v => updateSetting('showDrawers', v)} />}
-                {settings.showDrawers && (
+                {activeType !== 'wall' && activeType !== 'corner' && <CheckboxRow label="Show Drawers" checked={settings.showDrawers} onChange={v => updateSetting('showDrawers', v)} />}
+                {settings.showDrawers && activeType !== 'wall' && activeType !== 'corner' && (
                   <div className="mt-2 pl-2 border-l-2 border-amber-500/30 space-y-2">
                     <SettingRow label="Num Drawers" value={settings.numDrawers} onChange={v => updateSetting('numDrawers', v)} step={1} min={1} max={6} />
                     <SettingRow label="Side Clearance" value={settings.drawerSideClearance} onChange={v => updateSetting('drawerSideClearance', v)} step={1} min={0} max={50} />
@@ -544,7 +551,7 @@ export const CabinetTestingPage: React.FC = () => {
                   <option value="topPanel">Top Panel</option>
                   <option value="backPanel">Back Panel</option>
                   <option value="door">Doors</option>
-                  <option value="drawer">Drawers</option>
+                  {settings.cabinetType !== 'corner' && <option value="drawer">Drawers</option>}
                   <option value="blindPanel">Blind Panel</option>
                   <option value="toeKick">Toe Kick</option>
                 </select>

@@ -300,7 +300,7 @@ export const createPanelWithHolesGeo = (
   grooveLocalZMin: number,
   grooveLocalZMax: number,
   grooveDepth: number,
-  grooveFace: 'px' | 'nx' | 'py' | 'ny',
+  grooveFace: 'px' | 'nx' | 'py' | 'ny' | 'pz' | 'nz' | 'none',
   holes: { y: number, z: number, r: number, through?: boolean }[],
   holeDepth: number,
   grooveStartOffset: number = 0,
@@ -453,6 +453,12 @@ export const createPanelWithHolesGeo = (
       positions.setXYZ(i, heightVal, thicknessVal, depthVal);
     } else if (grooveFace === 'ny') {
       positions.setXYZ(i, heightVal, -thicknessVal, depthVal);
+    } else if (grooveFace === 'pz') {
+      positions.setXYZ(i, depthVal, heightVal, thicknessVal);
+    } else if (grooveFace === 'nz') {
+      positions.setXYZ(i, depthVal, heightVal, -thicknessVal);
+    } else if (grooveFace === 'none') {
+      positions.setXYZ(i, depthVal, heightVal, thicknessVal);
     }
   }
   
