@@ -61,7 +61,7 @@ export const CabinetTestingPage: React.FC = () => {
   const [allConfigs, setAllConfigs] = useState<Record<'base' | 'wall' | 'tall', TestingSettings>>({
     base: { ...DEFAULT_SETTINGS, cabinetType: 'base' },
     wall: { ...DEFAULT_SETTINGS, cabinetType: 'wall', height: 720, depth: 300, toeKickHeight: 0, showDrawers: false, showDoors: true, shelfDepth: 300 - 18 - 6 },
-    tall: { ...DEFAULT_SETTINGS, cabinetType: 'tall', height: 2100, depth: 580, toeKickHeight: 0, showDrawers: false, showDoors: true, shelfDepth: 580 - 18 - 6 }
+    tall: { ...DEFAULT_SETTINGS, cabinetType: 'tall', height: 2100, depth: 580, toeKickHeight: 100, showDrawers: false, showDoors: true, shelfDepth: 580 - 18 - 6 }
   });
 
   const settings = allConfigs[activeType];
@@ -173,9 +173,9 @@ export const CabinetTestingPage: React.FC = () => {
             </div>
           </Section>
 
-          {settings.cabinetType === 'base' && (
+          {(settings.cabinetType === 'base' || settings.cabinetType === 'tall') && (
             <Section>
-              <h3 className="text-[11px] font-bold text-amber-500 uppercase tracking-wider mb-3">Base Cabinet</h3>
+              <h3 className="text-[11px] font-bold text-amber-500 uppercase tracking-wider mb-3">{settings.cabinetType.toUpperCase()} Options</h3>
               <SettingRow label="Toe Kick Height" value={settings.toeKickHeight} onChange={v => updateSetting('toeKickHeight', v)} step={5} min={0} max={200} />
             </Section>
           )}

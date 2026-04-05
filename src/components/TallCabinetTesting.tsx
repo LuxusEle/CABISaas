@@ -26,7 +26,7 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
     drawerSideClearance, drawerBoxHeightRatio, drawerBackThickness, drawerBottomThickness,
     tallLowerSectionHeight, tallUpperSectionHeight,
     showLowerShelves, numLowerShelves, showLowerDoors, lowerDoorOpenAngle,
-    lowerSectionDrawerStackHeight,
+    lowerSectionDrawerStackHeight, toeKickHeight,
   } = settings;
 
   const baseColor = new THREE.Color('#d4a574');
@@ -41,7 +41,7 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
   };
 
   const innerWidth = width;
-  const innerHeight = height;
+  const innerHeight = height - toeKickHeight;
   const innerDepth = depth;
 
   const actualNumDoors = width < RUBY_DOOR_THRESHOLD ? 1 : 2;
@@ -61,7 +61,7 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
   const actualDoorHeight = tallUpperSectionHeight - doorOuterGap - (isUpperGolaActive ? settings.doorOverride : 0);
   const doorYOffset_Upper = height / 2 - doorOuterGap - actualDoorHeight / 2;
 
-  const actualLowerDoorHeight = tallLowerSectionHeight - panelThickness - doorOuterGap - (isLowerGolaActive ? settings.doorOverride : 0);
+  const actualLowerDoorHeight = tallLowerSectionHeight - toeKickHeight - panelThickness - doorOuterGap - (isLowerGolaActive ? settings.doorOverride : 0);
   const doorYOffset_Lower = -innerHeight / 2 + panelThickness + doorOuterGap + actualLowerDoorHeight / 2;
 
   const getOffset = (part: string, index: number = 0): [number, number, number] => {
@@ -82,6 +82,7 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
       drawerSide: [0, 0, d * 1.5],
       drawerBack: [0, 0, d * 1.5],
       drawerBottom: [0, 0, d * 1.5],
+      toeKick: [0, -d * 2, d],
     };
     return offsets[part] || [0, 0, 0];
   };
@@ -126,12 +127,12 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
 
     return {
       drawerFrontHeights,
-      drawerYPositions,
-      boxWidth,
-      boxDepth,
-      frontWidth,
-      boxH: boxHeight,
-      gapHeights,
+        drawerYPositions,
+        boxWidth,
+        boxDepth,
+        frontWidth,
+        boxH: boxHeight,
+        gapHeights,
       boxZOffset: (panelThickness + backPanelThickness + settings.drawerBackClearance) / 2
     };
   }, [width, innerHeight, depth, panelThickness, backPanelThickness, doorOuterGap, numDrawers, drawerSideClearance, drawerBoxHeightRatio, settings.drawerBackClearance, innerWidth, drawerHeightEach, drawerBackThickness, drawerBottomThickness, lowerSectionDrawerStackHeight, tallLowerSectionHeight, isLowerGolaActive, golaVerticalGap, golaTopGap]);
@@ -301,6 +302,18 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
         { y: v3, z: zBackHole, r: technicalR, through: true }
       );
     }
+    
+    // Add 3 Toe Kick Nailholes
+    const tk1 = -innerWidth / 2 + innerWidth / 5;
+    const tk2 = 0;
+    const tk3 = innerWidth / 2 - innerWidth / 5;
+    const zToeKick = innerDepth / 2 - 50 - panelThickness / 2;
+    positions.push(
+      { y: tk1, z: zToeKick, r: technicalR, through: true },
+      { y: tk2, z: zToeKick, r: technicalR, through: true },
+      { y: tk3, z: zToeKick, r: technicalR, through: true }
+    );
+
     return positions;
   }, [showNailHoles, innerWidth, innerDepth, panelThickness, nailHoleDiameter, showBackStretchers]);
 
@@ -397,11 +410,13 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
   const shouldShow = (part: string): boolean => {
     if (!partsSeparatedView) return true;
     if (selectedPart === 'all' || selectedPart === part) return true;
+    if (selectedPart === 'drawer' && (part === 'drawerFront' || part === 'drawerSide' || part === 'drawerBack' || part === 'drawerBottom')) return true;
+    if (selectedPart === 'toeKick' && part === 'toeKick') return true;
     return false;
   };
 
   return (
-    <group position={[width / 2, height / 2, depth / 2]}>
+    <group position={[width / 2, innerHeight / 2 + toeKickHeight, depth / 2]}>
       {shouldShow('bottomPanel') && (
         <mesh position={[0 + getOffset('bottomPanel')[0], -innerHeight / 2 + panelThickness / 2 + getOffset('bottomPanel')[1], 0 + getOffset('bottomPanel')[2]]} castShadow receiveShadow visible={!skeletonView}>
           <primitive object={bottomPanelGeo} attach="geometry" />
@@ -424,6 +439,19 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
         <lineSegments position={[0 + getOffset('topPanel')[0], innerHeight / 2 - panelThickness / 2 + getOffset('topPanel')[1], 0 + getOffset('topPanel')[2]]}>
           <edgesGeometry args={[topPanelGeo]} />
           <lineBasicMaterial color={getPanelColor('topPanel')} linewidth={2} />
+        </lineSegments>
+      )}
+
+      {toeKickHeight > 0 && shouldShow('toeKick') && (
+        <mesh position={[0 + getOffset('toeKick')[0], -innerHeight / 2 - toeKickHeight / 2 + getOffset('toeKick')[1], depth / 2 - 50 - panelThickness / 2 + getOffset('toeKick')[2]]} castShadow receiveShadow visible={!skeletonView}>
+          <boxGeometry args={[width, toeKickHeight, panelThickness]} />
+          <meshStandardMaterial color={getPanelColor('toeKick')} roughness={0.8} />
+        </mesh>
+      )}
+      {toeKickHeight > 0 && skeletonView && shouldShow('toeKick') && (
+        <lineSegments position={[0 + getOffset('toeKick')[0], -innerHeight / 2 - toeKickHeight / 2 + getOffset('toeKick')[1], depth / 2 - 50 - panelThickness / 2 + getOffset('toeKick')[2]]}>
+          <edgesGeometry args={[new THREE.BoxGeometry(width, toeKickHeight, panelThickness)]} />
+          <lineBasicMaterial color={getPanelColor('toeKick')} linewidth={2} />
         </lineSegments>
       )}
 
@@ -669,8 +697,8 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
         );
       })}
       {showLowerShelves && numLowerShelves > 0 && Array.from({ length: numLowerShelves }).map((_, i) => {
-        const bottomSectionStart = -height / 2 + panelThickness;
-        const drawerZoneBottom = (-height / 2 + tallLowerSectionHeight) - (showDrawers ? lowerSectionDrawerStackHeight : 0);
+        const bottomSectionStart = -innerHeight / 2 + panelThickness;
+        const drawerZoneBottom = (-innerHeight / 2 + (tallLowerSectionHeight - toeKickHeight)) - (showDrawers ? lowerSectionDrawerStackHeight : 0);
         const bottomSectionEnd = drawerZoneBottom - doorOuterGap;
         const availableHeight = bottomSectionEnd - bottomSectionStart;
         const spacing = availableHeight / (numLowerShelves + 1);
@@ -684,7 +712,7 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
         );
       })}
       {skeletonView && (
-        <lineSegments position={[0 + getOffset('shelf', 99)[0], -height / 2 + tallLowerSectionHeight + panelThickness / 2 + getOffset('shelf', 99)[1], -depth / 2 + panelThickness + backPanelThickness + (depth - panelThickness - backPanelThickness) / 2 + getOffset('shelf', 99)[2]]}>
+        <lineSegments position={[0 + getOffset('shelf', 99)[0], -height / 2 + toeKickHeight + tallLowerSectionHeight + panelThickness / 2 + getOffset('shelf', 99)[1], -depth / 2 + panelThickness + backPanelThickness + (depth - panelThickness - backPanelThickness) / 2 + getOffset('shelf', 99)[2]]}>
           <edgesGeometry args={[new THREE.BoxGeometry(innerWidth - panelThickness * 2, panelThickness, depth - panelThickness - backPanelThickness)]} />
           <lineBasicMaterial color={getPanelColor('shelf')} linewidth={2} />
         </lineSegments>
@@ -705,8 +733,8 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
         );
       })}
       {showLowerShelves && numLowerShelves > 0 && skeletonView && Array.from({ length: numLowerShelves }).map((_, i) => {
-        const bottomSectionStart = -height / 2 + panelThickness;
-        const drawerZoneBottom = (-height / 2 + tallLowerSectionHeight) - (showDrawers ? lowerSectionDrawerStackHeight : 0);
+        const bottomSectionStart = -innerHeight / 2 + panelThickness;
+        const drawerZoneBottom = (-innerHeight / 2 + (tallLowerSectionHeight - toeKickHeight)) - (showDrawers ? lowerSectionDrawerStackHeight : 0);
         const bottomSectionEnd = drawerZoneBottom - doorOuterGap;
         const availableHeight = bottomSectionEnd - bottomSectionStart;
         const spacing = availableHeight / (numLowerShelves + 1);
@@ -937,8 +965,23 @@ export const exportTallCabinetDXF = async (settings: TestingSettings, zip: JSZip
     );
   }
 
+  // Add 3 Toe Kick Nailholes for DXF
+  const tk1 = -innerWidth / 2 + innerWidth / 5;
+  const tk2 = 0;
+  const tk3 = innerWidth / 2 - innerWidth / 5;
+  const zTK = innerDepth / 2 - 50 - panelThickness / 2;
+  bottomNailHoles.push(
+    { z: tk1, y: zTK, r: technicalR, through: true },
+    { z: tk2, y: zTK, r: technicalR, through: true },
+    { z: tk3, y: zTK, r: technicalR, through: true }
+  );
+
   addPanelToZip('Bottom_Panel', innerWidth, innerDepth, bottomNailHoles, { x: panelThickness, y: panelThickness, w: innerWidth - 2 * panelThickness, h: backPanelThickness + 2, depth: grooveDepth });
   addPanelToZip('Top_Panel', innerWidth, innerDepth, bottomNailHoles, { x: panelThickness, y: panelThickness, w: innerWidth - 2 * panelThickness, h: backPanelThickness + 2, depth: grooveDepth });
+
+  if (toeKickHeight > 0) {
+    addPanelToZip('Toe_Kick', width, toeKickHeight);
+  }
 
   if (showBackStretchers) {
     addPanelToZip('Top_Stretcher_Back', innerWidth - panelThickness * 2, 100);

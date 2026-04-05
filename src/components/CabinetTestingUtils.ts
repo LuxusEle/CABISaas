@@ -490,7 +490,7 @@ export const getCabinetTestingSettings = (
   // 1. Determine base dimensions from global settings if not overridden
   const initialHeight = heightOverride ?? (typeStr === 'tall' ? globalSettings.tallHeight : typeStr === 'wall' ? globalSettings.wallHeight : globalSettings.baseHeight);
   const initialDepth = depthOverride ?? (typeStr === 'tall' ? globalSettings.depthTall : typeStr === 'wall' ? globalSettings.depthWall : globalSettings.depthBase);
-  const initialToeKick = typeStr === 'base' ? (globalSettings.toeKickHeight ?? 100) : 0;
+  const initialToeKick = (typeStr === 'base' || typeStr === 'tall') ? (globalSettings.toeKickHeight ?? 100) : 0;
   
   // 2. Map basic cabinet properties + global defaults to TestingSettings
   const baseSettings: TestingSettings = {

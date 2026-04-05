@@ -480,13 +480,13 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
 
       {toeKickHeight > 0 && shouldShow('toeKick') && (
         <mesh position={[0 + getOffset('toeKick')[0], -innerHeight / 2 - toeKickHeight / 2 + getOffset('toeKick')[1], depth / 2 - 50 - panelThickness / 2 + getOffset('toeKick')[2]]} castShadow receiveShadow visible={!skeletonView}>
-          <boxGeometry args={[innerWidth - panelThickness * 2, toeKickHeight, panelThickness]} />
+          <boxGeometry args={[width, toeKickHeight, panelThickness]} />
           <meshStandardMaterial color={getPanelColor('toeKick')} roughness={0.8} />
         </mesh>
       )}
       {toeKickHeight > 0 && skeletonView && shouldShow('toeKick') && (
         <lineSegments position={[0 + getOffset('toeKick')[0], -innerHeight / 2 - toeKickHeight / 2 + getOffset('toeKick')[1], depth / 2 - 50 - panelThickness / 2 + getOffset('toeKick')[2]]}>
-          <edgesGeometry args={[new THREE.BoxGeometry(innerWidth - panelThickness * 2, toeKickHeight, panelThickness)]} />
+          <edgesGeometry args={[new THREE.BoxGeometry(width, toeKickHeight, panelThickness)]} />
           <lineBasicMaterial color={getPanelColor('toeKick')} linewidth={2} />
         </lineSegments>
       )}
@@ -838,7 +838,7 @@ export const exportBaseCabinetDXF = async (settings: TestingSettings, zip: JSZip
   }
 
   if (toeKickHeight > 0) {
-    addPanelToZip('Toe_Kick', innerWidth - panelThickness * 2, toeKickHeight);
+    addPanelToZip('Toe_Kick', width, toeKickHeight);
   }
 
   if (showShelves && numShelves > 0 && !showDrawers) {
