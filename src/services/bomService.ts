@@ -726,7 +726,7 @@ export const createNewProject = (logoUrl?: string): Project => ({
     tallHeight: 2100,  // Ruby: 2100mm
     depthBase: 560,    // Ruby: 560mm
     depthWall: 350,    // Ruby: 350mm
-    depthTall: 600,    // Ruby: 600mm
+    depthTall: 560,    // Ruby: 560mm
     widthBase: 600,   // Default base cabinet width
     widthWall: 600,   // Default wall cabinet width
     widthTall: 450,  // Default tall cabinet width (Ruby standard)

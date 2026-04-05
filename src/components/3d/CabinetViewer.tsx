@@ -290,8 +290,9 @@ const Scene = ({
       layoutData.cabinetPositions.forEach(({ unit, position, wallIndex }) => {
         const isWall = unit.type === CabinetType.WALL;
         const isTall = unit.type === CabinetType.TALL;
-        const cabHeight = isTall ? 2100 : isWall ? 720 : 720;
-        const cabDepth = isWall ? 320 : isTall ? 580 : 560;
+        const settings = project.settings;
+        const cabHeight = unit.advancedSettings?.height || (isTall ? (settings?.tallHeight || 2100) : isWall ? (settings?.wallHeight || 720) : (settings?.baseHeight || 870));
+        const cabDepth = unit.advancedSettings?.depth || (isWall ? (settings?.depthWall || 350) : isTall ? (settings?.depthTall || 560) : (settings?.depthBase || 560));
         
         let x1 = position[0];
         let x2 = position[0];

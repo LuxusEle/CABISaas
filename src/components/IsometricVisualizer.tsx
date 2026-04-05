@@ -141,7 +141,7 @@ export const IsometricVisualizer: React.FC<Props> = ({ project, showHardware = t
 
         const settings = project.settings;
         const w = unit.width;
-        const d = isWall ? (settings.depthWall || 350) : isTall ? (settings.depthTall || 600) : (settings.depthBase || 560);
+        const d = isWall ? (settings.depthWall || 350) : isTall ? (settings.depthTall || 560) : (settings.depthBase || 560);
         const h = isTall ? (settings.tallHeight || 2100) : isWall ? (settings.wallHeight || 720) : (settings.baseHeight || 870);
         const baseHeight = settings?.baseHeight || 870;
         const counterThickness = settings?.counterThickness || 40;

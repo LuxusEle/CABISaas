@@ -758,7 +758,7 @@ export const exportTallCabinetDXF = async (settings: TestingSettings, zip: JSZip
     showBackPanel, showBackStretchers, showDoors, showDrawers, numDrawers, showShelves, numShelves, hingeDiameter, hingeHorizontalOffset, hingeVerticalOffset, nailHoleDiameter,
     tallLowerSectionHeight, tallUpperSectionHeight, drawerSideClearance, drawerBoxHeightRatio, drawerBackThickness, drawerBottomThickness,
     showLowerShelves, numLowerShelves, showLowerDoors,
-    lowerSectionDrawerStackHeight
+    lowerSectionDrawerStackHeight, toeKickHeight
   } = settings;
 
   const innerWidth = width;

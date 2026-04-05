@@ -61,7 +61,7 @@ export const CabinetTestingPage: React.FC = () => {
   const [allConfigs, setAllConfigs] = useState<Record<'base' | 'wall' | 'tall', TestingSettings>>({
     base: { ...DEFAULT_SETTINGS, cabinetType: 'base' },
     wall: { ...DEFAULT_SETTINGS, cabinetType: 'wall', height: 720, depth: 300, toeKickHeight: 0, showDrawers: false, showDoors: true, shelfDepth: 300 - 18 - 6 },
-    tall: { ...DEFAULT_SETTINGS, cabinetType: 'tall', height: 2100, depth: 580, toeKickHeight: 100, showDrawers: false, showDoors: true, shelfDepth: 580 - 18 - 6 }
+    tall: { ...DEFAULT_SETTINGS, cabinetType: 'tall', height: 2100, depth: 560, toeKickHeight: 100, showDrawers: false, showDoors: true, shelfDepth: 560 - 18 - 6 }
   });
 
   const settings = allConfigs[activeType];

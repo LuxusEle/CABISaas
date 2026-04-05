@@ -84,7 +84,7 @@ export const Cabinet: React.FC<Props> = ({
 
   // Use effective dimensions (layout sizes)
   const width = unit.width;
-  const depth = isWall ? (settings?.depthWall || 350) : isTall ? (settings?.depthTall || 600) : (settings?.depthBase || 560);
+  const depth = unit.advancedSettings?.depth || (isWall ? (settings?.depthWall || 350) : isTall ? (settings?.depthTall || 560) : (settings?.depthBase || 560));
   const height = isTall ? (settings?.tallHeight || 2100) : isWall ? (settings?.wallHeight || 720) : (settings?.baseHeight || 870);
   
   const baseHeight = settings?.baseHeight || 870;
