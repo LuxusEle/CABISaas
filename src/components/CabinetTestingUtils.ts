@@ -127,7 +127,7 @@ export const DEFAULT_SETTINGS: TestingSettings = {
   numLowerShelves: 0,
   showLowerDoors: false,
   lowerDoorOpenAngle: 0,
-  lowerSectionDrawerStackHeight: 400,
+  lowerSectionDrawerStackHeight: 800,
   enableTallUpperGola: false
 };
 

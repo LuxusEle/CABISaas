@@ -279,11 +279,16 @@ export const CabinetTestingPage: React.FC = () => {
                     label="Lower Section H" 
                     value={settings.tallLowerSectionHeight} 
                     onChange={v => {
+                      const oldV = settings.tallLowerSectionHeight;
                       updateSetting('tallLowerSectionHeight', v);
                       if (v + settings.tallUpperSectionHeight > settings.height) {
                         updateSetting('tallUpperSectionHeight', settings.height - v);
                       }
-                      if (settings.lowerSectionDrawerStackHeight > v) {
+                      // Sync drawer stack height if it was equal to the old section height (default behavior)
+                      if (settings.lowerSectionDrawerStackHeight === oldV) {
+                        updateSetting('lowerSectionDrawerStackHeight', v);
+                      } else if (settings.lowerSectionDrawerStackHeight > v) {
+                        // Cap it if it's now larger than the section
                         updateSetting('lowerSectionDrawerStackHeight', v);
                       }
                     }} 
