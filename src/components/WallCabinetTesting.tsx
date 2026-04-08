@@ -359,18 +359,6 @@ export const WallCabinetTesting: React.FC<Props> = ({ settings }) => {
         );
       })}
 
-      {showShelves && numShelves > 0 && Array.from({ length: numShelves }).map((_, i) => {
-        const availableHeight = innerHeight - panelThickness * 2;
-        const spacing = availableHeight / (numShelves + 1);
-        const shelfY = -innerHeight / 2 + panelThickness + spacing * (i + 1);
-        const shelfZOffset = -depth / 2 + panelThickness + backPanelThickness + settings.shelfDepth / 2;
-        return (
-          <mesh key={`shelf-${i}`} position={[0 + getOffset('shelf', i)[0], shelfY - panelThickness / 2 + getOffset('shelf', i)[1], shelfZOffset + getOffset('shelf', i)[2]]} castShadow receiveShadow visible={!skeletonView}>
-            <boxGeometry args={[innerWidth - panelThickness * 2 - 2, panelThickness, settings.shelfDepth]} />
-            <meshStandardMaterial color={getPanelColor('shelf')} roughness={0.8} />
-          </mesh>
-        );
-      })}
       {showShelves && numShelves > 0 && skeletonView && Array.from({ length: numShelves }).map((_, i) => {
         const availableHeight = innerHeight - panelThickness * 2;
         const spacing = availableHeight / (numShelves + 1);
@@ -383,6 +371,29 @@ export const WallCabinetTesting: React.FC<Props> = ({ settings }) => {
           </lineSegments>
         );
       })}
+
+      {/* --- Specialized Equipment --- */}
+      
+      {/* 1. COOKER HOOD */}
+      {settings.preset === 'Cooker Hood' && !skeletonView && (
+        <group position={[0, -innerHeight / 2 + 100, 10]}>
+          {/* Main Angled Hood Body */}
+          <mesh castShadow>
+            <cylinderGeometry args={[width * 0.2, width * 0.4, 400, 4, 1, false]} />
+            <meshStandardMaterial color="#475569" metalness={0.8} roughness={0.2} />
+          </mesh>
+          {/* Base Filter Section */}
+          <mesh position={[0, -200, 0]} castShadow>
+            <boxGeometry args={[width * 0.9, 20, depth * 0.9]} />
+            <meshStandardMaterial color="#94a3b8" metalness={0.9} />
+          </mesh>
+          {/* Vent Pipe */}
+          <mesh position={[0, 300, 0]} castShadow>
+             <boxGeometry args={[width * 0.25, 400, width * 0.25]} />
+             <meshStandardMaterial color="#475569" metalness={0.8} />
+          </mesh>
+        </group>
+      )}
     </group>
   );
 };

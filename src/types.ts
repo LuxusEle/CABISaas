@@ -86,6 +86,15 @@ export interface ProjectSettings {
 
   // Advanced Global Settings
   advancedTestingSettings?: Partial<TestingSettings>;
+
+  // Wizard Selections
+  layoutRequirements?: {
+    [key: string]: {
+      base: number;
+      wall: number;
+      tall: number;
+    }
+  };
 }
 
 export interface Obstacle {
@@ -246,6 +255,8 @@ export enum Screen {
   DASHBOARD = 'dashboard',
   PROJECT_SETUP = 'project_setup',
   WALL_EDITOR = 'wall_editor',
+  CABINET_SELECTION = 'cabinet_selection',
+  VIEW_3D = 'view_3d',
   BOM_REPORT = 'bom_report',
   TOOLS = 'tools',
   PRICING = 'pricing',

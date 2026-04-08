@@ -1,9 +1,10 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
+import { Routes, Route, useNavigate, useLocation, Navigate, useParams, useSearchParams } from 'react-router-dom';
 import { Home, Layers, Calculator, Zap, ArrowLeft, ArrowRight, Trash2, Plus, Box, DoorOpen, Wand2, Moon, Sun, Table2, FileSpreadsheet, X, Pencil, Save, List, Settings, Printer, Download, Scissors, LayoutDashboard, DollarSign, Map, LogOut, Menu, Wrench, CreditCard, ChevronDown, ChevronUp, FileText, Ruler, Book, Upload, Image as ImageIcon, Shield, FileCode, Check, Settings2 } from 'lucide-react';
 import { Screen, Project, Zone, ZoneId, PresetType, CabinetType, CabinetUnit, Obstacle, AutoFillOptions } from './types';
 import { createNewProject, generateProjectBOM, autoFillZone, exportToExcel, resolveCollisions, calculateProjectCost, exportProjectToConstructionJSON, buildProjectConstructionData, getIntersectingCabinets, ensureProjectSettings } from './services/bomService';
+import { generateRubyLayout } from './services/layoutSolver';
 import { exportAllSheetsToDXFZip, exportSingleSheetToDXF, exportAllDrillingToZip } from './services/dxfExportService';
 import { generateQuotationPDF } from './services/pdfService';
 import { optimizeCuts } from './services/nestingService';
@@ -20,7 +21,7 @@ import { WallVisualizer } from './components/WallVisualizer';
 import { CutPlanVisualizer } from './components/CutPlanVisualizer';
 import { IsometricVisualizer } from './components/IsometricVisualizer';
 import { CabinetViewer } from './components/3d';
-import { KitchenPlanCanvas } from './components/KitchenPlanCanvas.tsx';
+import { KitchenPlanCanvas } from './components/KitchenPlanCanvas';
 import { AuthModal } from './components/AuthModal';
 import { CustomCabinetEditor } from './components/CustomCabinetEditor';
 import { LandingPage } from './components/LandingPage';
@@ -271,8 +272,11 @@ export default function App() {
             logoUrl={project.settings.logoUrl}
           />
         );
-      case Screen.PROJECT_SETUP: return <ScreenProjectSetup project={project} setProject={setProject} onSave={() => handleSaveProject(project)} />;
-      case Screen.WALL_EDITOR: return <ScreenWallEditor project={project} setProject={setProject} setScreen={setScreen} onSave={() => handleSaveProject(project)} />;
+      case Screen.PROJECT_SETUP: return <ScreenProjectSetup project={project} setProject={setProject} onSave={() => handleSaveProject(project)} onSaveProject={handleSaveProject} />;
+      case Screen.WALL_EDITOR: return <ScreenWallEditor project={project} setProject={setProject} setScreen={setScreen} onSave={() => {
+        const result = generateRubyLayout(project);
+        handleSaveProject(result.project).then(() => navigate('/walls?view=iso'));
+      }} />;
       case Screen.BOM_REPORT: return <ScreenBOMReport project={project} setProject={setProject} />;
       case Screen.PRICING: return <PricingPage onSignIn={() => openAuthModal('login')} onGetStarted={() => openAuthModal('signup')} isDark={isDark} setIsDark={setIsDark} />;
       case Screen.DOCS: return <DocsPage onSignIn={() => openAuthModal('login')} onGetStarted={() => openAuthModal('signup')} isDark={isDark} setIsDark={setIsDark} />;
@@ -376,12 +380,15 @@ export default function App() {
             } />
             <Route path="/setup" element={
               <ProtectedRoute user={user} loading={authLoading}>
-                <ScreenProjectSetup project={project} setProject={setProject} onSave={() => handleSaveProject(project)} />
+                <ScreenProjectSetup project={project} setProject={setProject} onSave={() => handleSaveProject(project)} onSaveProject={handleSaveProject} />
               </ProtectedRoute>
             } />
             <Route path="/walls" element={
               <ProtectedRoute user={user} loading={authLoading}>
-                <ScreenWallEditor project={project} setProject={setProject} setScreen={setScreen} onSave={() => handleSaveProject(project)} />
+                <ScreenWallEditor project={project} setProject={setProject} setScreen={setScreen} onSave={() => {
+                  const result = generateRubyLayout(project);
+                  handleSaveProject(result.project).then(() => navigate('/walls?view=iso'));
+                }} />
               </ProtectedRoute>
             } />
             <Route path="/bom" element={
@@ -668,7 +675,8 @@ const ScreenPlanView = ({ project }: { project: Project }) => {
   );
 };
 
-const ScreenProjectSetup = ({ project, setProject, onSave }: { project: Project, setProject: React.Dispatch<React.SetStateAction<Project>>, onSave: () => void }) => {
+const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject }: { project: Project, setProject: React.Dispatch<React.SetStateAction<Project>>, onSave: () => void, onSaveProject?: (p: Project) => Promise<any> }) => {
+  const navigate = useNavigate();
   // State to track which section is expanded - only one at a time
   const [expandedSection, setExpandedSection] = useState<'projectInfo' | 'sheetTypes' | 'accessories' | 'allocation' | 'costs' | null>('projectInfo');
 
@@ -956,7 +964,14 @@ const ScreenProjectSetup = ({ project, setProject, onSave }: { project: Project,
             onClose={() => setShowWallModal(false)}
             project={project}
             onSave={(newZones) => {
-              setProject({ ...project, zones: newZones });
+              const updatedProject = { ...project, zones: newZones };
+              const result = generateRubyLayout(updatedProject);
+              setProject(result.project);
+              if (onSaveProject) {
+                onSaveProject(result.project).then(() => navigate('/walls?view=iso'));
+              } else {
+                navigate('/walls?view=iso');
+              }
             }}
           />
 
@@ -1165,7 +1180,20 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
   const [tempCabinet, setTempCabinet] = useState<CabinetUnit>({ id: '', preset: PresetType.BASE_DOOR, type: CabinetType.BASE, width: 600, qty: 1, fromLeft: 0 });
   const [tempObstacle, setTempObstacle] = useState<Obstacle>({ id: '', type: 'door', fromLeft: 0, width: 900, height: 2100, elevation: 0, depth: 150 } as any);
   const [presetFilter, setPresetFilter] = useState<'Base' | 'Wall' | 'Tall'>('Base');
-  const [visualMode, setVisualMode] = useState<'elevation' | 'iso'>('elevation');
+  const [searchParams] = useSearchParams();
+  const initialView = searchParams.get('view') === 'iso' ? 'iso' : 'elevation';
+  const [visualMode, setVisualMode] = useState<'elevation' | 'iso'>(initialView);
+  const [isTableVisible, setIsTableVisible] = useState(false);
+
+  // Sync visual mode with URL if needed
+  useEffect(() => {
+    const viewParam = searchParams.get('view');
+    if (viewParam === 'iso' && visualMode !== 'iso') {
+      setVisualMode('iso');
+    } else if (viewParam === 'elevation' && visualMode !== 'elevation') {
+      setVisualMode('elevation');
+    }
+  }, [searchParams]);
 
   const updateZone = (newZoneOrTransform: Zone | ((z: Zone) => Zone), skipHistory = false) => {
     if (!skipHistory) {
@@ -1187,42 +1215,9 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
 
   const handleDragEnd = () => updateZone(z => resolveCollisions(z)); // Shove on drop
 
-  // AUTO FILL & CLEAR
-  const [autoFillOpts, setAutoFillOpts] = useState<AutoFillOptions>({
-    includeSink: true,
-    includeCooker: true,
-    includeTall: false,
-    includeWallCabinets: true,
-    preferDrawers: false
-  });
-
   const handleAutoFill = () => {
-    setModalMode('autofill_options');
-  };
-
-  const executeAutoFill = () => {
-    const requiredWidth =
-      (autoFillOpts.includeSink ? 900 : 0) +
-      (autoFillOpts.includeCooker ? 900 : 0) +
-      (autoFillOpts.includeTall ? 600 : 0);
-
-    if (requiredWidth > currentZone.totalLength) {
-      if (!window.confirm(`Required space (${requiredWidth}mm) exceeds wall length (${currentZone.totalLength}mm). Continue anyway?`)) return;
-    }
-
-    updateZone(z => autoFillZone(z, project.settings, z.id, autoFillOpts));
-    setModalMode('none');
-  };
-
-  // Smart gap fill - uses standard cabinet sizes
-  const handleFillGaps = () => {
-    updateZone(z => autoFillZone(z, project.settings, z.id, {
-      includeSink: false,
-      includeCooker: false,
-      includeTall: z.cabinets.some(c => c.type === CabinetType.TALL),
-      includeWallCabinets: z.cabinets.some(c => c.type === CabinetType.WALL),
-      preferDrawers: false
-    }));
+    const result = generateRubyLayout(project);
+    setProject(result.project);
   };
 
   const clearZone = () => { if (window.confirm(`Clear ${currentZone.id}?`)) updateZone({ ...currentZone, obstacles: [], cabinets: [] }); };
@@ -1421,23 +1416,6 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
             <NumberInput label="Wall Height" value={currentZone.wallHeight} onChange={(e) => updateZone(z => ({ ...z, wallHeight: e }))} step={100} />
           </div>
 
-          {/* Sequential Builder */}
-          <div className="border-t border-slate-200 dark:border-slate-800 pt-4">
-            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Sequential Builder</h3>
-            <SequentialBoxInput
-              zone={{
-                id: currentZone.id,
-                totalLength: currentZone.totalLength,
-                cabinets: currentZone.cabinets,
-                obstacles: currentZone.obstacles
-              }}
-              onAddCabinets={(newCabinets) => {
-                handleSequentialAdd(newCabinets);
-                setMobileSidebarOpen(false);
-              }}
-            />
-          </div>
-
           {/* Calculate BOM */}
           <Button size="xl" variant="primary" className="w-full font-black min-h-[64px] text-xl mb-4" onClick={() => { setMobileSidebarOpen(false); setScreen(Screen.BOM_REPORT); }}>
             CALCULATE BOM
@@ -1452,63 +1430,15 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
       </div>
 
       <div className="flex-1 flex overflow-hidden min-h-0">
-        {/* Desktop SIDEBAR */}
-        <div className="hidden md:flex flex-col w-[280px] lg:w-[300px] bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 h-full min-h-0 overflow-y-auto">
-          <div className="p-4 border-b border-slate-200 dark:border-slate-800">
-            <div className="space-y-3">
-              <NumberInput label="Wall Length" value={currentZone.totalLength} onChange={(e) => updateZone(z => ({ ...z, totalLength: e }))} step={100} />
-              <NumberInput label="Wall Height" value={currentZone.wallHeight} onChange={(e) => updateZone(z => ({ ...z, wallHeight: e }))} step={100} />
-            </div>
-          </div>
-          <div className="p-4 space-y-2 flex-1">
-            <div className="flex justify-between items-center">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Zones</span>
-              <button onClick={addZone} className="text-xs font-bold text-amber-500 hover:underline min-h-[32px] px-2">+ Add</button>
-            </div>
-            {project.zones.map(z => (
-              <div key={z.id} className={`flex items-center justify-between p-3 rounded-lg cursor-pointer min-h-[48px] ${activeTab === z.id ? 'bg-amber-50 dark:bg-slate-800 text-amber-600 border border-amber-500' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`} onClick={() => setActiveTab(z.id)}>
-                <span className="font-medium">{z.id}</span>
-                <button onClick={(e) => { e.stopPropagation(); deleteZone(z.id); }} className="p-2 rounded hover:bg-red-100 dark:hover:bg-red-900/20 min-w-[40px] min-h-[40px] flex items-center justify-center">
-                  <Trash2 size={16} className="text-slate-400 hover:text-red-500" />
-                </button>
-              </div>
-            ))}
-          </div>
-          <div className="p-4 space-y-2 border-t border-slate-200 dark:border-slate-800">
-            <Button size="md" variant="secondary" className="w-full text-sm min-h-[48px]" onClick={handleAutoFill}><Wand2 size={16} className="mr-2" /> Auto Fill</Button>
-            <Button size="md" variant="secondary" className="w-full text-sm min-h-[48px]" onClick={handleFillGaps}><Box size={16} className="mr-2" /> Fill Gaps</Button>
-            <Button size="md" variant="secondary" className="w-full text-sm min-h-[48px]" onClick={clearZone}><Trash2 size={16} className="mr-2" /> Clear Zone</Button>
-            <div className="grid grid-cols-2 gap-2 mt-2">
-              <Button size="lg" onClick={() => openAdd('obstacle')} variant="outline" className="text-xs flex-col h-20 min-h-[80px]"><DoorOpen size={20} />+ Obstacle</Button>
-              <Button size="lg" onClick={() => openAdd('cabinet')} variant="primary" className="text-xs flex-col h-20 min-h-[80px]"><Box size={20} />+ Cabinet</Button>
-            </div>
-          </div>
-          {/* Sequential Box Builder */}
-          <div className="p-4 border-t border-slate-200 dark:border-slate-800">
-            <SequentialBoxInput
-              zone={{
-                id: currentZone.id,
-                totalLength: currentZone.totalLength,
-                cabinets: currentZone.cabinets,
-                obstacles: currentZone.obstacles
-              }}
-              onAddCabinets={handleSequentialAdd}
-            />
-          </div>
-          <div className="p-4 border-t border-slate-200 dark:border-slate-800">
-            <Button size="lg" variant="primary" className="w-full font-black min-h-[48px]" onClick={() => setScreen(Screen.BOM_REPORT)}>CALCULATE BOM</Button>
-          </div>
-        </div>
-
         {/* VISUALIZER */}
         <div
           ref={mainPanelRef}
           className="flex-1 min-w-0 relative min-h-0 flex flex-col"
         >
           {/* Desktop: Grid layout with resizable table */}
-          <div className="hidden md:grid flex-1 min-h-0" style={{ gridTemplateRows: `auto 1fr ${tablePanelHeight}px` }}>
+          <div className="flex-1 flex flex-col min-h-0">
             {/* Tabs Row with Controls */}
-            <div ref={tabsRowRef} className="flex items-center justify-between px-2 pt-2 gap-1 overflow-x-auto bg-slate-100 dark:bg-slate-900 shrink-0 border-b dark:border-slate-800">
+            <div ref={tabsRowRef} className="flex items-center justify-between px-2 py-2 gap-1 overflow-x-auto bg-slate-100 dark:bg-slate-900 shrink-0 border-b dark:border-slate-800">
               {/* Left: Zone Tabs */}
               <div className="flex items-center gap-1">
                 {project.zones.map(z => (
@@ -1520,12 +1450,6 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
                     {z.id}
                   </button>
                 ))}
-                <button
-                  onClick={addZone}
-                  className="px-4 py-2 text-sm font-bold rounded-t-lg bg-slate-200 dark:bg-slate-800 text-slate-500 hover:text-amber-500 transition-colors min-h-[44px]"
-                >
-                  +
-                </button>
               </div>
 
               {/* Center: View Controls */}
@@ -1533,13 +1457,31 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
                 <Button size="xs" variant="secondary" onClick={onSave} className="bg-white hover:bg-amber-50 text-slate-700 border border-slate-300 shadow-sm hover:shadow hover:border-amber-300 dark:bg-slate-800 dark:text-amber-400 dark:border-slate-700 dark:hover:bg-slate-700 dark:hover:border-amber-600 transition-all min-h-[36px]">
                   <Save size={14} className="mr-1.5" /> Save
                 </Button>
-                <div className="w-px h-6 bg-slate-400 dark:bg-slate-600" />
-                <Button size="xs" variant={visualMode === 'elevation' ? 'primary' : 'secondary'} onClick={() => setVisualMode('elevation')} className={`${visualMode === 'elevation' ? 'shadow-md' : 'shadow-sm hover:shadow'} border transition-all min-h-[36px]`}>Elevation</Button>
-                <Button size="xs" variant={visualMode === 'iso' ? 'primary' : 'secondary'} onClick={() => setVisualMode('iso')} className={`${visualMode === 'iso' ? 'shadow-md' : 'shadow-sm hover:shadow'} border transition-all min-h-[36px]`}>3D ISO</Button>
+                <div className="w-px h-6 bg-slate-400 dark:bg-slate-600 md:block hidden" />
+                <div className="flex bg-slate-200 dark:bg-slate-800 p-1 rounded-lg">
+                   <button 
+                     onClick={() => setVisualMode('elevation')}
+                     className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${visualMode === 'elevation' ? 'bg-white dark:bg-slate-700 text-amber-500 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                   >Elevation</button>
+                   <button 
+                     onClick={() => setVisualMode('iso')}
+                     className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${visualMode === 'iso' ? 'bg-white dark:bg-slate-700 text-amber-500 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                   >3D ISO</button>
+                </div>
+                <div className="w-px h-6 bg-slate-400 dark:bg-slate-600 md:block hidden" />
+                <Button 
+                  size="xs" 
+                  variant={isTableVisible ? 'primary' : 'secondary'} 
+                  onClick={() => setIsTableVisible(!isTableVisible)}
+                  className="min-h-[36px]"
+                  leftIcon={<Table2 size={14} />}
+                >
+                  {isTableVisible ? 'Hide Parts' : 'Show Parts'}
+                </Button>
               </div>
 
               {/* Right: Undo/Redo */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 lg:flex hidden">
                 <Button size="xs" variant="secondary" onClick={handleUndo} disabled={!canUndo} className={`bg-white hover:bg-amber-50 text-slate-700 border border-slate-300 shadow-sm hover:shadow hover:border-amber-300 dark:bg-slate-800 dark:text-amber-400 dark:border-slate-700 dark:hover:bg-slate-700 dark:hover:border-amber-600 transition-all min-h-[36px] ${!canUndo ? 'opacity-50' : ''}`}>
                   <ArrowLeft size={14} />
                 </Button>
@@ -1549,60 +1491,55 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
               </div>
             </div>
 
-            {/* Canvas */}
-            <div className="min-h-[240px] bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 relative z-10 transition-all min-h-0">
-              {visualMode === 'elevation' ? (
-                <WallVisualizer zone={currentZone} height={currentZone.wallHeight || 2400} settings={project.settings} onCabinetClick={(i) => openEdit('cabinet', i)} onObstacleClick={(i) => openEdit('obstacle', i)} onCabinetMove={handleCabinetMove} onObstacleMove={handleObstacleMove} onDragEnd={handleDragEnd} onSwapCabinets={handleSwapCabinets} />
-              ) : (
-                <CabinetViewer project={project} showHardware={true} onCabinetClick={(zIdx, cIdx) => { const zoneId = project.zones[zIdx].id; setActiveTab(zoneId); openEdit("cabinet", cIdx); }} onWallClick={(wallId) => { setActiveTab(wallId); setVisualMode("elevation"); }} activeWallId={activeTab} />
-              )}
-            </div>
-
-            {/* Table */}
-            <div className="min-h-0 bg-white dark:bg-slate-950 overflow-hidden flex flex-col">
-              <div
-                onMouseDown={startResize}
-                onTouchStart={startResize}
-                className="h-10 shrink-0 flex items-center justify-center border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-500 text-sm font-bold uppercase tracking-wider cursor-row-resize select-none"
-                title="Drag to resize"
-              >
-                Drag to resize
+            <div className="flex-1 relative min-h-0 flex flex-col">
+              {/* Canvas */}
+              <div className="flex-1 bg-slate-50 dark:bg-slate-900 relative z-10 transition-all min-h-0">
+                {visualMode === 'elevation' ? (
+                  <WallVisualizer zone={currentZone} height={currentZone.wallHeight || 2400} settings={project.settings} onCabinetClick={(i) => openEdit('cabinet', i)} onObstacleClick={(i) => openEdit('obstacle', i)} onCabinetMove={handleCabinetMove} onObstacleMove={handleObstacleMove} onDragEnd={handleDragEnd} onSwapCabinets={handleSwapCabinets} />
+                ) : (
+                  <CabinetViewer project={project} showHardware={true} onCabinetClick={(zIdx, cIdx) => { const zoneId = project.zones[zIdx].id; setActiveTab(zoneId); openEdit("cabinet", cIdx); }} onWallClick={(wallId) => { setActiveTab(wallId); setVisualMode("elevation"); }} activeWallId={activeTab} />
+                )}
               </div>
 
-              <div className="flex-1 min-h-0 overflow-auto">
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[500px] text-left text-sm">
-                    <thead className="bg-slate-100 dark:bg-amber-950/40 text-slate-500 dark:text-amber-500 font-bold text-xs uppercase sticky top-0 z-20 border-b dark:border-amber-500/30">
-                      <tr>
-                        <th className="p-3 whitespace-nowrap">#</th>
-                        <th className="p-3 whitespace-nowrap">Type</th>
-                        <th className="p-3 whitespace-nowrap">Item</th>
-                        <th className="p-3 text-right whitespace-nowrap">Width</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-amber-900/20">
-                      {[...currentZone.obstacles, ...currentZone.cabinets].map((item, i) => {
-                        const isCab = 'preset' in item;
-                        return (
-                          <tr
-                            key={item.id}
-                            onClick={() => openEdit(isCab ? 'cabinet' : 'obstacle', isCab ? i - currentZone.obstacles.length : i)}
-                            className="hover:bg-amber-50 dark:hover:bg-amber-900/20 cursor-pointer transition-colors"
-                          >
-                            <td className="p-3 text-slate-400 font-mono whitespace-nowrap">{isCab ? (item as CabinetUnit).label : i + 1}</td>
-                            <td className="p-3 text-amber-600 font-bold whitespace-nowrap">{isCab ? (item as CabinetUnit).type : 'Obstacle'}</td>
-                            <td className="p-3 font-medium dark:text-amber-100">
-                              <span className="truncate inline-block">{isCab ? (item as CabinetUnit).preset : (item as Obstacle).type}</span>
-                              <span className="text-slate-400 dark:text-amber-500/50 text-xs ml-2 whitespace-nowrap">@{item.fromLeft}mm</span>
-                            </td>
-                            <td className="p-3 text-right font-mono font-bold dark:text-white whitespace-nowrap">{item.width}</td>
+              {/* Table */}
+              {isTableVisible && (
+                <div className="h-1/3 bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col shadow-2xl z-20">
+                  <div className="flex-1 min-h-0 overflow-auto">
+                    <div className="overflow-x-auto">
+                      <table className="w-full min-w-[500px] text-left text-sm">
+                        <thead className="bg-slate-100 dark:bg-amber-950/40 text-slate-500 dark:text-amber-500 font-bold text-xs uppercase sticky top-0 z-20 border-b dark:border-amber-500/30">
+                          <tr>
+                            <th className="p-3 whitespace-nowrap">#</th>
+                            <th className="p-3 whitespace-nowrap">Type</th>
+                            <th className="p-3 whitespace-nowrap">Item</th>
+                            <th className="p-3 text-right whitespace-nowrap">Width</th>
                           </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-amber-900/20">
+                          {[...currentZone.obstacles, ...currentZone.cabinets].map((item, i) => {
+                            const isCab = 'preset' in item;
+                            return (
+                              <tr
+                                key={item.id}
+                                onClick={() => openEdit(isCab ? 'cabinet' : 'obstacle', isCab ? i - currentZone.obstacles.length : i)}
+                                className="hover:bg-amber-50 dark:hover:bg-amber-900/20 cursor-pointer transition-colors"
+                              >
+                                <td className="p-3 text-slate-400 font-mono whitespace-nowrap">{isCab ? (item as CabinetUnit).label : i + 1}</td>
+                                <td className="p-3 text-amber-600 font-bold whitespace-nowrap">{isCab ? (item as CabinetUnit).type : 'Obstacle'}</td>
+                                <td className="p-3 font-medium dark:text-amber-100">
+                                  <span className="truncate inline-block">{isCab ? (item as CabinetUnit).preset : (item as Obstacle).type}</span>
+                                  <span className="text-slate-400 dark:text-amber-500/50 text-xs ml-2 whitespace-nowrap">@{item.fromLeft}mm</span>
+                                </td>
+                                <td className="p-3 text-right font-mono font-bold dark:text-white whitespace-nowrap">{item.width}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
 
@@ -1661,11 +1598,11 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
                 <Button size="sm" variant="secondary" onClick={() => setMobileSidebarOpen(true)} className="min-h-[52px] text-xs flex flex-col items-center justify-center gap-0.5">
                   <Menu size={18} /><span>Menu</span>
                 </Button>
-                <Button size="sm" variant="secondary" onClick={handleAutoFill} className="min-h-[52px] text-xs flex flex-col items-center justify-center gap-0.5">
+                <Button size="sm" variant="secondary" onClick={() => {
+                  const result = generateRubyLayout(project);
+                  setProject(result.project);
+                }} className="min-h-[52px] text-xs flex flex-col items-center justify-center gap-0.5">
                   <Wand2 size={18} /><span>Auto</span>
-                </Button>
-                <Button size="sm" variant="secondary" onClick={handleFillGaps} className="min-h-[52px] text-xs flex flex-col items-center justify-center gap-0.5">
-                  <Box size={18} /><span>Fill</span>
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => openAdd('obstacle')} className="min-h-[52px] text-xs flex flex-col items-center justify-center gap-0.5">
                   <DoorOpen size={18} /><span>Obs</span>
@@ -1737,72 +1674,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
               </button>
             </div>
             <div className="space-y-4 overflow-y-auto flex-1 pr-1">
-              {modalMode === 'autofill_options' ? (
-                <div className="space-y-6 py-2">
-                  <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-xl border border-amber-200 dark:border-amber-800">
-                    <div className="flex justify-between text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 mb-1">
-                      <span>Available Space</span>
-                      <span>{currentZone.totalLength}mm</span>
-                    </div>
-                    <div className="h-2 bg-amber-200 dark:bg-amber-950 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-amber-500 transition-all duration-500"
-                        style={{ width: `${Math.min(100, ((autoFillOpts.includeSink ? 900 : 0) + (autoFillOpts.includeCooker ? 900 : 0) + (autoFillOpts.includeTall ? 600 : 0)) / currentZone.totalLength * 100)}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <p className="text-sm text-slate-500 italic">Configure intelligent layout options. This will preserve your manual cabinets but replace auto-filled ones.</p>
-
-                  <div className="space-y-4">
-                    <label className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors">
-                      <input type="checkbox" checked={autoFillOpts.includeSink} onChange={e => setAutoFillOpts({ ...autoFillOpts, includeSink: e.target.checked })} className="w-5 h-5 accent-amber-500" />
-                      <div>
-                        <div className="font-bold text-sm">Include Sink</div>
-                        <div className="text-xs text-slate-400">Placed under a window if available</div>
-                      </div>
-                    </label>
-
-                    <label className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors">
-                      <input type="checkbox" checked={autoFillOpts.includeCooker} onChange={e => setAutoFillOpts({ ...autoFillOpts, includeCooker: e.target.checked })} className="w-5 h-5 accent-amber-500" />
-                      <div>
-                        <div className="font-bold text-sm">Include Cooker & Hood</div>
-                        <div className="text-xs text-slate-400">3-Drawer unit with aligned wall hood</div>
-                      </div>
-                    </label>
-
-                    <label className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors">
-                      <input type="checkbox" checked={autoFillOpts.includeTall} onChange={e => setAutoFillOpts({ ...autoFillOpts, includeTall: e.target.checked })} className="w-5 h-5 accent-amber-500" />
-                      <div>
-                        <div className="font-bold text-sm">Include Tall Units</div>
-                        <div className="text-xs text-slate-400">Utility / Pantry storage</div>
-                      </div>
-                    </label>
-
-                    <label className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors">
-                      <input type="checkbox" checked={autoFillOpts.includeWallCabinets} onChange={e => setAutoFillOpts({ ...autoFillOpts, includeWallCabinets: e.target.checked })} className="w-5 h-5 accent-amber-500" />
-                      <div>
-                        <div className="font-bold text-sm">Include Wall Cabinets</div>
-                        <div className="text-xs text-slate-400">Upper storage units</div>
-                      </div>
-                    </label>
-
-                    <label className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors">
-                      <input type="checkbox" checked={autoFillOpts.preferDrawers} onChange={e => setAutoFillOpts({ ...autoFillOpts, preferDrawers: e.target.checked })} className="w-5 h-5 accent-amber-500" />
-                      <div>
-                        <div className="font-bold text-sm">Prefer Drawers</div>
-                        <div className="text-xs text-slate-400">Use drawer banks instead of door units</div>
-                      </div>
-                    </label>
-                  </div>
-
-                  <div className="pt-4">
-                    <Button variant="primary" size="xl" className="w-full font-black text-lg min-h-[64px]" onClick={executeAutoFill}>
-                      GENERATE LAYOUT
-                    </Button>
-                  </div>
-                </div>
-              ) : modalMode.includes('cabinet') ? (
+              {modalMode.includes('cabinet') ? (
                 <>
                   {/* PRESET FILTER TABS */}
                   <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">

@@ -4,8 +4,11 @@ import * as THREE from 'three';
 import { CabinetUnit, CabinetType, ProjectSettings } from '../../types';
 import { getCabinetTestingSettings } from '../CabinetTestingUtils';
 import { BaseCabinetTesting } from '../BaseCabinetTesting';
+import { BaseCornerCabinetTesting } from '../BaseCornerCabinetTesting';
 import { WallCabinetTesting } from '../WallCabinetTesting';
+import { WallCornerCabinetTesting } from '../WallCornerCabinetTesting';
 import { TallCabinetTesting } from '../TallCabinetTesting';
+import { PresetType } from '../../types';
 
 interface Props {
   unit: CabinetUnit;
@@ -121,11 +124,19 @@ export const Cabinet: React.FC<Props> = ({
           We just need to handle the vertical baseline (zBase) for wall cabinets.
       */}
       {isBase && (
-        <BaseCabinetTesting settings={testingSettings} />
+        unit.preset === PresetType.BASE_CORNER ? (
+          <BaseCornerCabinetTesting settings={testingSettings} />
+        ) : (
+          <BaseCabinetTesting settings={testingSettings} />
+        )
       )}
       {isWall && (
         <group position={[0, zBase, 0]}>
-          <WallCabinetTesting settings={testingSettings} />
+          {unit.preset === PresetType.WALL_CORNER ? (
+            <WallCornerCabinetTesting settings={testingSettings} />
+          ) : (
+            <WallCabinetTesting settings={testingSettings} />
+          )}
         </group>
       )}
       {isTall && (

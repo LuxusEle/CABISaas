@@ -601,18 +601,6 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
         );
       })}
 
-      {showShelves && numShelves > 0 && !showDrawers && Array.from({ length: numShelves }).map((_, i) => {
-        const availableHeight = innerHeight - panelThickness * 2;
-        const spacing = availableHeight / (numShelves + 1);
-        const shelfY = -innerHeight / 2 + panelThickness + spacing * (i + 1);
-        const shelfZOffset = -depth / 2 + panelThickness + backPanelThickness + settings.shelfDepth / 2;
-        return (
-          <mesh key={`shelf-${i}`} position={[0 + getOffset('shelf', i)[0], shelfY - panelThickness / 2 + getOffset('shelf', i)[1], shelfZOffset + getOffset('shelf', i)[2]]} castShadow receiveShadow visible={!skeletonView}>
-            <boxGeometry args={[innerWidth - panelThickness * 2 - 2, panelThickness, settings.shelfDepth]} />
-            <meshStandardMaterial color={getPanelColor('shelf')} roughness={0.8} />
-          </mesh>
-        );
-      })}
       {showShelves && numShelves > 0 && !showDrawers && skeletonView && Array.from({ length: numShelves }).map((_, i) => {
         const availableHeight = innerHeight - panelThickness * 2;
         const spacing = availableHeight / (numShelves + 1);
@@ -625,6 +613,51 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
           </lineSegments>
         );
       })}
+
+      {/* --- Specialized Equipment --- */}
+      
+      {/* 1. SINK UNIT BASIN */}
+      {settings.preset === 'Sink Unit' && !skeletonView && (
+        <group position={[0, innerHeight / 2 - 100, 0]}>
+          {/* Main Basin (Stainless Steel Look) */}
+          <mesh castShadow>
+            <boxGeometry args={[width * 0.8, 200, depth * 0.7]} />
+            <meshStandardMaterial color="#cbd5e1" metalness={0.9} roughness={0.1} />
+          </mesh>
+          {/* Sink Rim */}
+          <mesh position={[0, 100, 0]} castShadow>
+            <boxGeometry args={[width * 0.85, 5, depth * 0.75]} />
+            <meshStandardMaterial color="#94a3b8" metalness={1} roughness={0} />
+          </mesh>
+          {/* Faucet */}
+          <mesh position={[0, 105, -depth * 0.3]} castShadow>
+             <cylinderGeometry args={[10, 10, 150, 16]} />
+             <meshStandardMaterial color="#64748b" metalness={1} roughness={0} />
+          </mesh>
+          <mesh position={[0, 180, -depth * 0.15]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+             <cylinderGeometry args={[8, 8, 100, 16]} />
+             <meshStandardMaterial color="#64748b" metalness={1} roughness={0} />
+          </mesh>
+        </group>
+      )}
+
+      {/* 2. COOKER HOB */}
+      {settings.preset === 'Base 3-Drawer' && width >= 800 && !skeletonView && (
+        <group position={[0, innerHeight / 2 + 5, 0]}>
+          {/* Glass Top */}
+          <mesh castShadow receiveShadow>
+            <boxGeometry args={[width * 0.8, 10, depth * 0.8]} />
+            <meshStandardMaterial color="#0f172a" roughness={0.05} metalness={0.8} />
+          </mesh>
+          {/* Burners */}
+          {[[-1, -1], [1, -1], [-1, 1], [1, 1]].map(([sx, sz], i) => (
+             <mesh key={i} position={[sx * width * 0.2, 8, sz * depth * 0.2]} castShadow>
+                <cylinderGeometry args={[40, 45, 10, 32]} />
+                <meshStandardMaterial color="#334155" metalness={1} />
+             </mesh>
+          ))}
+        </group>
+      )}
     </group>
   );
 };

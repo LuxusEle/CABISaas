@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Plus, Trash2, AlertTriangle } from 'lucide-react';
+import { X, Save, Plus, Trash2, AlertTriangle, Wand2 } from 'lucide-react';
 import { Project, Zone, Obstacle } from '../types';
 import { CabinetViewer } from './3d';
 import { v4 as uuid } from 'uuid';
@@ -106,7 +106,7 @@ export const WallEditModal: React.FC<WallEditModalProps> = ({
       fromLeft: 500,
       width: type === 'window' ? 1200 : type === 'door' ? 900 : 100,
       height: type === 'door' ? 2100 : type === 'window' ? 1200 : 2400,
-      sillHeight: type === 'window' ? 900 : undefined,
+      sillHeight: type === 'window' ? 1050 : undefined,
       elevation: type === 'pipe' ? 1500 : undefined,
       depth: type === 'column' ? 100 : undefined,
     };
@@ -448,10 +448,10 @@ export const WallEditModal: React.FC<WallEditModalProps> = ({
             </button>
             <button
               onClick={handleSave}
-              className="flex items-center gap-2 px-6 py-2 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-lg font-medium hover:bg-slate-800 dark:hover:bg-slate-200 transition-colors"
+              className="flex items-center gap-2 px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-bold shadow-md hover:shadow-lg transition-all"
             >
-              <Save size={18} />
-              Save Walls
+              <Wand2 size={18} />
+              Generate 3D Layout
             </button>
           </div>
         </div>

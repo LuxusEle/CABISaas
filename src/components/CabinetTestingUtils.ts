@@ -66,6 +66,7 @@ export interface TestingSettings {
   lowerDoorOpenAngle: number;
   lowerSectionDrawerStackHeight: number;
   enableTallUpperGola: boolean;
+  preset?: string;
 }
 
 export const DEFAULT_SETTINGS: TestingSettings = {
@@ -556,5 +557,6 @@ export const getCabinetTestingSettings = (
     }
   }
 
+  merged.preset = unit.preset;
   return merged;
 };
