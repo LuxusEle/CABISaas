@@ -12,6 +12,7 @@ import { BaseCabinetTesting, exportBaseCabinetDXF } from './BaseCabinetTesting';
 import { WallCabinetTesting, exportWallCabinetDXF } from './WallCabinetTesting';
 import { TallCabinetTesting, exportTallCabinetDXF } from './TallCabinetTesting';
 import { BaseCornerCabinetTesting, exportBaseCornerCabinetDXF } from './BaseCornerCabinetTesting';
+import { WallCornerCabinetTesting, exportWallCornerCabinetDXF } from './WallCornerCabinetTesting';
 
 const Section: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div className="bg-slate-700/50 p-3 rounded-lg border border-slate-600/50 mb-3 last:mb-0">
@@ -58,12 +59,13 @@ const CheckboxRow: React.FC<{ label: string; checked: boolean; onChange: (v: boo
 );
 
 export const CabinetTestingPage: React.FC = () => {
-  const [activeType, setActiveType] = useState<'base' | 'wall' | 'tall' | 'corner'>('base');
-  const [allConfigs, setAllConfigs] = useState<Record<'base' | 'wall' | 'tall' | 'corner', TestingSettings>>({
+  const [activeType, setActiveType] = useState<'base' | 'wall' | 'tall' | 'corner' | 'wall_corner'>('base');
+  const [allConfigs, setAllConfigs] = useState<Record<'base' | 'wall' | 'tall' | 'corner' | 'wall_corner', TestingSettings>>({
     base: { ...DEFAULT_SETTINGS, cabinetType: 'base' },
     wall: { ...DEFAULT_SETTINGS, cabinetType: 'wall', height: 720, depth: 300, toeKickHeight: 0, showDrawers: false, showDoors: true, shelfDepth: 300 - 18 - 6 },
     tall: { ...DEFAULT_SETTINGS, cabinetType: 'tall', height: 2100, depth: 560, toeKickHeight: 100, showDrawers: false, showDoors: true, shelfDepth: 560 - 18 - 6 },
-    corner: { ...DEFAULT_SETTINGS, cabinetType: 'corner', width: 1000, height: 870, depth: 560, blindPanelWidth: 400, blindCornerSide: 'left' }
+    corner: { ...DEFAULT_SETTINGS, cabinetType: 'corner', width: 1000, height: 870, depth: 560, blindPanelWidth: 400, blindCornerSide: 'left' },
+    wall_corner: { ...DEFAULT_SETTINGS, cabinetType: 'wall_corner', width: 1000, height: 720, depth: 300, blindPanelWidth: 400, blindCornerSide: 'left', toeKickHeight: 0, showDrawers: false }
   });
 
   const settings = allConfigs[activeType];
@@ -122,6 +124,8 @@ export const CabinetTestingPage: React.FC = () => {
       await exportTallCabinetDXF(settings, zip);
     } else if (settings.cabinetType === 'corner') {
       await exportBaseCornerCabinetDXF(settings, zip);
+    } else if (settings.cabinetType === 'wall_corner') {
+      await exportWallCornerCabinetDXF(settings, zip);
     }
     const content = await zip.generateAsync({ type: 'blob' });
     const url = URL.createObjectURL(content);
@@ -161,7 +165,7 @@ export const CabinetTestingPage: React.FC = () => {
           <Section>
             <h3 className="text-[11px] font-bold text-amber-500 uppercase tracking-wider mb-3">Cabinet Type</h3>
             <div className="grid grid-cols-2 gap-2">
-              {(['base', 'wall', 'tall', 'corner'] as const).map(type => (
+              {(['base', 'wall', 'tall', 'corner', 'wall_corner'] as const).map(type => (
                 <button
                   key={type}
                   onClick={() => setActiveType(type)}
@@ -177,11 +181,13 @@ export const CabinetTestingPage: React.FC = () => {
             </div>
           </Section>
 
-          {(settings.cabinetType === 'base' || settings.cabinetType === 'tall' || settings.cabinetType === 'corner') && (
+          {(settings.cabinetType === 'base' || settings.cabinetType === 'tall' || settings.cabinetType === 'corner' || settings.cabinetType === 'wall_corner') && (
             <Section>
-              <h3 className="text-[11px] font-bold text-amber-500 uppercase tracking-wider mb-3">{settings.cabinetType.toUpperCase()} Options</h3>
-              <SettingRow label="Toe Kick Height" value={settings.toeKickHeight} onChange={v => updateSetting('toeKickHeight', v)} step={5} min={0} max={200} />
-              {settings.cabinetType === 'corner' && (
+              <h3 className="text-[11px] font-bold text-amber-500 uppercase tracking-wider mb-3">{settings.cabinetType.toUpperCase().replace('_', ' ')} Options</h3>
+              {(settings.cabinetType === 'base' || settings.cabinetType === 'tall' || settings.cabinetType === 'corner') && (
+                <SettingRow label="Toe Kick Height" value={settings.toeKickHeight} onChange={v => updateSetting('toeKickHeight', v)} step={5} min={0} max={200} />
+              )}
+              {(settings.cabinetType === 'corner' || settings.cabinetType === 'wall_corner') && (
                 <>
                   <SettingRow label="Blind Width" value={settings.blindPanelWidth} onChange={v => updateSetting('blindPanelWidth', v)} step={10} min={200} max={settings.width} />
                   <div className="flex items-center justify-between gap-4 py-1.5 px-1">
@@ -226,7 +232,7 @@ export const CabinetTestingPage: React.FC = () => {
             <h3 className="text-[11px] font-bold text-amber-500 uppercase tracking-wider mb-3">Gaps & Clearances</h3>
             <SettingRow label="Door to Door" value={settings.doorToDoorGap} onChange={v => updateSetting('doorToDoorGap', v)} step={0.5} min={0} max={10} />
             <SettingRow label="Door to Panel" value={settings.doorToPanelGap} onChange={v => updateSetting('doorToPanelGap', v)} step={0.5} min={0} max={10} />
-            {activeType !== 'wall' && activeType !== 'corner' && <SettingRow label="Drawer to Drawer" value={settings.drawerToDrawerGap} onChange={v => updateSetting('drawerToDrawerGap', v)} step={0.5} min={0} max={10} />}
+            {activeType !== 'wall' && activeType !== 'corner' && activeType !== 'wall_corner' && <SettingRow label="Drawer to Drawer" value={settings.drawerToDrawerGap} onChange={v => updateSetting('drawerToDrawerGap', v)} step={0.5} min={0} max={10} />}
             <SettingRow label="Door Outer Gap" value={settings.doorOuterGap} onChange={v => updateSetting('doorOuterGap', v)} step={0.5} min={0} max={10} />
             <SettingRow label="Door Inner Gap" value={settings.doorInnerGap} onChange={v => updateSetting('doorInnerGap', v)} step={0.5} min={0} max={10} />
             <SettingRow label="Door Side Clear." value={settings.doorSideClearance} onChange={v => updateSetting('doorSideClearance', v)} step={0.5} min={0} max={10} />
@@ -240,7 +246,7 @@ export const CabinetTestingPage: React.FC = () => {
               <SettingRow label="L-Gola Depth" value={settings.golaLCutoutDepth} onChange={v => updateSetting('golaLCutoutDepth', v)} step={1} min={10} max={60} />
               <SettingRow label="C-Gola Height" value={settings.golaCCutoutHeight} onChange={v => updateSetting('golaCCutoutHeight', v)} step={1} min={20} max={100} />
               <SettingRow label="C-Gola Depth" value={settings.golaCutoutDepth} onChange={v => updateSetting('golaCutoutDepth', v)} step={1} min={10} max={60} />
-              {activeType !== 'wall' && <SettingRow label="Gola Top Gap" value={settings.golaTopGap} onChange={v => updateSetting('golaTopGap', v)} step={1} min={0} max={60} />}
+              {activeType !== 'wall' && activeType !== 'wall_corner' && <SettingRow label="Gola Top Gap" value={settings.golaTopGap} onChange={v => updateSetting('golaTopGap', v)} step={1} min={0} max={60} />}
             </Section>
           )}
 
@@ -471,8 +477,8 @@ export const CabinetTestingPage: React.FC = () => {
                     <SettingRow label="Hinge V Offset" value={settings.hingeVerticalOffset} onChange={v => updateSetting('hingeVerticalOffset', v)} step={1} min={20} max={200} />
                   </div>
                 )}
-                {activeType !== 'wall' && activeType !== 'corner' && <CheckboxRow label="Show Drawers" checked={settings.showDrawers} onChange={v => updateSetting('showDrawers', v)} />}
-                {settings.showDrawers && activeType !== 'wall' && activeType !== 'corner' && (
+                {activeType !== 'wall' && activeType !== 'corner' && activeType !== 'wall_corner' && <CheckboxRow label="Show Drawers" checked={settings.showDrawers} onChange={v => updateSetting('showDrawers', v)} />}
+                {settings.showDrawers && activeType !== 'wall' && activeType !== 'corner' && activeType !== 'wall_corner' && (
                   <div className="mt-2 pl-2 border-l-2 border-amber-500/30 space-y-2">
                     <SettingRow label="Num Drawers" value={settings.numDrawers} onChange={v => updateSetting('numDrawers', v)} step={1} min={1} max={6} />
                     <SettingRow label="Side Clearance" value={settings.drawerSideClearance} onChange={v => updateSetting('drawerSideClearance', v)} step={1} min={0} max={50} />
@@ -514,7 +520,7 @@ export const CabinetTestingPage: React.FC = () => {
             )}
           </Section>
 
-          {(settings.cabinetType === 'base' || settings.cabinetType === 'wall') && (settings.showDoors || settings.showDrawers) && (
+          {(settings.cabinetType === 'base' || settings.cabinetType === 'wall' || settings.cabinetType === 'wall_corner') && (settings.showDoors || settings.showDrawers) && (
            <Section>
              <h3 className="text-[11px] font-bold text-amber-500 uppercase tracking-wider mb-3">Gola System</h3>
              <CheckboxRow label="Enable Gola" checked={settings.enableGola} onChange={v => updateSetting('enableGola', v)} />
@@ -551,7 +557,7 @@ export const CabinetTestingPage: React.FC = () => {
                   <option value="topPanel">Top Panel</option>
                   <option value="backPanel">Back Panel</option>
                   <option value="door">Doors</option>
-                  {settings.cabinetType !== 'corner' && <option value="drawer">Drawers</option>}
+                  {settings.cabinetType !== 'corner' && settings.cabinetType !== 'wall_corner' && <option value="drawer">Drawers</option>}
                   <option value="blindPanel">Blind Panel</option>
                   <option value="toeKick">Toe Kick</option>
                 </select>
@@ -593,6 +599,7 @@ export const CabinetTestingPage: React.FC = () => {
           {settings.cabinetType === 'wall' && <WallCabinetTesting settings={settings} />}
           {settings.cabinetType === 'tall' && <TallCabinetTesting settings={settings} />}
           {settings.cabinetType === 'corner' && <BaseCornerCabinetTesting settings={settings} />}
+          {settings.cabinetType === 'wall_corner' && <WallCornerCabinetTesting settings={settings} />}
           
           <gridHelper args={[4000, 40, '#1e293b', '#0f172a']} rotation={[0, 0, 0]} />
           <OrbitControls 
