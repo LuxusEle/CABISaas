@@ -246,7 +246,7 @@ export const CabinetTestingPage: React.FC = () => {
               <SettingRow label="L-Gola Depth" value={settings.golaLCutoutDepth} onChange={v => updateSetting('golaLCutoutDepth', v)} step={1} min={10} max={60} />
               <SettingRow label="C-Gola Height" value={settings.golaCCutoutHeight} onChange={v => updateSetting('golaCCutoutHeight', v)} step={1} min={20} max={100} />
               <SettingRow label="C-Gola Depth" value={settings.golaCutoutDepth} onChange={v => updateSetting('golaCutoutDepth', v)} step={1} min={10} max={60} />
-              {activeType !== 'wall' && activeType !== 'wall_corner' && <SettingRow label="Gola Top Gap" value={settings.golaTopGap} onChange={v => updateSetting('golaTopGap', v)} step={1} min={0} max={60} />}
+              {activeType !== 'wall' && activeType !== 'wall_corner' && activeType !== 'corner' && <SettingRow label="Gola Top Gap" value={settings.golaTopGap} onChange={v => updateSetting('golaTopGap', v)} step={1} min={0} max={60} />}
             </Section>
           )}
 
@@ -520,7 +520,7 @@ export const CabinetTestingPage: React.FC = () => {
             )}
           </Section>
 
-          {(settings.cabinetType === 'base' || settings.cabinetType === 'wall' || settings.cabinetType === 'wall_corner') && (settings.showDoors || settings.showDrawers) && (
+          {(settings.cabinetType === 'base' || settings.cabinetType === 'wall' || settings.cabinetType === 'wall_corner' || settings.cabinetType === 'corner') && (settings.showDoors || settings.showDrawers) && (
            <Section>
              <h3 className="text-[11px] font-bold text-amber-500 uppercase tracking-wider mb-3">Gola System</h3>
              <CheckboxRow label="Enable Gola" checked={settings.enableGola} onChange={v => updateSetting('enableGola', v)} />

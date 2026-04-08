@@ -36,6 +36,10 @@ export const BaseCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
   const innerHeight = height - toeKickHeight;
   const innerDepth = depth;
 
+  const isGolaActive = settings.enableGola && showDoors;
+  const isDoorOnLeft = blindCornerSide === 'right';
+  const isDoorOnRight = blindCornerSide === 'left';
+
   const getOffset = (part: string): [number, number, number] => {
     if (!partsSeparatedView || selectedPart !== 'all' && selectedPart !== part) return [0, 0, 0];
     const d = 200;
@@ -63,15 +67,11 @@ export const BaseCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
     const technicalR = nailHoleDiameter / 2;
     const shelfR = shelfHoleDiameter / 2;
     
-    // Top Stretchers
-    const zFront1 = depth / 2 - (topStretcherWidth / 4);
-    const zFront2 = depth / 2 - (topStretcherWidth * 3 / 4);
+    // Top Stretchers Back
     const zBack1 = -depth / 2 + (topStretcherWidth / 4);
     const zBack2 = -depth / 2 + (topStretcherWidth * 3 / 4);
 
     const positions: { y: number, z: number, r: number, through?: boolean }[] = [
-      { y, z: zFront1, r: technicalR, through: true },
-      { y, z: zFront2, r: technicalR, through: true },
       { y, z: zBack1, r: technicalR, through: true },
       { y, z: zBack2, r: technicalR, through: true }
     ];
@@ -136,17 +136,55 @@ export const BaseCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
   }, [showNailHoles, nailHoleDiameter, uprightX, topStretcherWidth]);
 
   // Side Panels (Separate geometries for inward-facing grooves)
-  const leftPanelGeo = useMemo(() => createPanelWithHolesGeo(
-    panelThickness, innerHeight - panelThickness, depth,
-    -depth / 2 + panelThickness, -depth / 2 + panelThickness + backPanelThickness,
-    grooveDepth, 'px', sideHoles, nailHoleDepth, panelThickness - grooveDepth, 0
-  ), [panelThickness, innerHeight, depth, backPanelThickness, grooveDepth, sideHoles, nailHoleDepth]);
+  const leftPanelGeo = useMemo(() => {
+    const sidePanelHeight = innerHeight - panelThickness;
+    const notches: any[] = [];
+    let golaLDepthOffset = 0;
+    if (isGolaActive && isDoorOnLeft) {
+      golaLDepthOffset = settings.golaLCutoutDepth;
+      notches.push({ u: depth / 2, v: sidePanelHeight / 2, width: settings.golaLCutoutDepth, height: settings.golaLCutoutHeight, alignV: 'top' });
+    }
+    const panelHoles = [...sideHoles];
+    if (showNailHoles) {
+      const yStr = sidePanelHeight / 2 - panelThickness / 2;
+      const rebatedWidth = topStretcherWidth - golaLDepthOffset;
+      const zF1 = depth / 2 - golaLDepthOffset - (rebatedWidth / 4);
+      const zF2 = depth / 2 - golaLDepthOffset - (rebatedWidth * 3 / 4);
+      panelHoles.push({ y: yStr, z: zF1, r: nailHoleDiameter / 2, through: true });
+      panelHoles.push({ y: yStr, z: zF2, r: nailHoleDiameter / 2, through: true });
+    }
+    return createPanelWithHolesGeo(
+      panelThickness, sidePanelHeight, depth,
+      -depth / 2 + panelThickness, -depth / 2 + panelThickness + backPanelThickness,
+      grooveDepth, 'px', panelHoles, nailHoleDepth, panelThickness - grooveDepth, 0,
+      notches
+    );
+  }, [panelThickness, innerHeight, depth, backPanelThickness, grooveDepth, sideHoles, nailHoleDepth, isGolaActive, isDoorOnLeft, settings.golaLCutoutDepth, settings.golaLCutoutHeight, showNailHoles, topStretcherWidth, nailHoleDiameter]);
 
-  const rightPanelGeo = useMemo(() => createPanelWithHolesGeo(
-    panelThickness, innerHeight - panelThickness, depth,
-    -depth / 2 + panelThickness, -depth / 2 + panelThickness + backPanelThickness,
-    grooveDepth, 'nx', sideHoles, nailHoleDepth, panelThickness - grooveDepth, 0
-  ), [panelThickness, innerHeight, depth, backPanelThickness, grooveDepth, sideHoles, nailHoleDepth]);
+  const rightPanelGeo = useMemo(() => {
+    const sidePanelHeight = innerHeight - panelThickness;
+    const notches: any[] = [];
+    let golaLDepthOffset = 0;
+    if (isGolaActive && isDoorOnRight) {
+      golaLDepthOffset = settings.golaLCutoutDepth;
+      notches.push({ u: depth / 2, v: sidePanelHeight / 2, width: settings.golaLCutoutDepth, height: settings.golaLCutoutHeight, alignV: 'top' });
+    }
+    const panelHoles = [...sideHoles];
+    if (showNailHoles) {
+      const yStr = sidePanelHeight / 2 - panelThickness / 2;
+      const rebatedWidth = topStretcherWidth - golaLDepthOffset;
+      const zF1 = depth / 2 - golaLDepthOffset - (rebatedWidth / 4);
+      const zF2 = depth / 2 - golaLDepthOffset - (rebatedWidth * 3 / 4);
+      panelHoles.push({ y: yStr, z: zF1, r: nailHoleDiameter / 2, through: true });
+      panelHoles.push({ y: yStr, z: zF2, r: nailHoleDiameter / 2, through: true });
+    }
+    return createPanelWithHolesGeo(
+      panelThickness, sidePanelHeight, depth,
+      -depth / 2 + panelThickness, -depth / 2 + panelThickness + backPanelThickness,
+      grooveDepth, 'nx', panelHoles, nailHoleDepth, panelThickness - grooveDepth, 0,
+      notches
+    );
+  }, [panelThickness, innerHeight, depth, backPanelThickness, grooveDepth, sideHoles, nailHoleDepth, isGolaActive, isDoorOnRight, settings.golaLCutoutDepth, settings.golaLCutoutHeight, showNailHoles, topStretcherWidth, nailHoleDiameter]);
 
   // Top Back Stretcher (Horizontal with groove)
   const topStretcherBackGeo = useMemo(() => createPanelWithHolesGeo(
@@ -155,11 +193,31 @@ export const BaseCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
     grooveDepth, 'ny', topStretcherBackHoles, nailHoleDepth, 0, 0
   ), [width, panelThickness, topStretcherWidth, backPanelThickness, grooveDepth, topStretcherBackHoles, nailHoleDepth]);
 
+  const blindWidthFront = blindPanelWidth - doorOuterGap * 2;
+  const doorWidth = width - blindPanelWidth - doorOuterGap * 2;
+
   // Top Front Stretcher (Horizontal)
-  const topStretcherFrontGeo = useMemo(() => createPanelWithHolesGeo(
-    panelThickness, innerWidth - panelThickness * 2, topStretcherWidth,
-    0, 0, 0, 'py', topStretcherFrontHoles, nailHoleDepth, 0, 0
-  ), [innerWidth, panelThickness, topStretcherWidth, topStretcherFrontHoles, nailHoleDepth]);
+  const topStretcherFrontGeo = useMemo(() => {
+    const stretcherXSize = innerWidth - panelThickness * 2;
+    const notches: any[] = [];
+    // Calculate full door coverage for the stretcher notch, leaving the vertical support panel covered
+    const doorCoverageLength = innerWidth - blindPanelWidth - panelThickness * 2;
+    
+    if (isGolaActive) {
+      notches.push({
+        u: topStretcherWidth / 2, 
+        v: isDoorOnLeft ? -stretcherXSize / 2 : stretcherXSize / 2,
+        width: settings.golaLCutoutDepth, 
+        height: doorCoverageLength, 
+        alignV: isDoorOnLeft ? 'bottom' : 'top'
+      });
+    }
+    return createPanelWithHolesGeo(
+      panelThickness, stretcherXSize, topStretcherWidth,
+      0, 0, 0, 'py', topStretcherFrontHoles, nailHoleDepth, 0, 0,
+      notches
+    );
+  }, [innerWidth, panelThickness, topStretcherWidth, topStretcherFrontHoles, nailHoleDepth, isGolaActive, settings.golaLCutoutDepth, doorWidth, doorOuterGap, isDoorOnLeft]);
 
   const bottomPanelHoles = useMemo(() => {
     if (!showNailHoles) return [];
@@ -206,9 +264,13 @@ export const BaseCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
     grooveDepth, 'py', bottomPanelHoles, nailHoleDepth, panelThickness, panelThickness
   ), [innerWidth, panelThickness, innerDepth, backPanelThickness, grooveDepth, bottomPanelHoles, nailHoleDepth]);
 
-  const blindWidthFront = blindPanelWidth - doorOuterGap * 2;
-  const doorWidth = width - blindPanelWidth - doorOuterGap * 2;
-  const doorHeight = innerHeight;
+  const blindPanelHeight = innerHeight - doorOuterGap;
+  let doorHeight = innerHeight - doorOuterGap;
+  let doorYOffset = 0;
+  if (isGolaActive) {
+    doorHeight -= settings.doorOverride;
+    doorYOffset = -settings.doorOverride / 2;
+  }
 
   const blindPanelHoles = useMemo(() => {
     if (!showNailHoles) return [];
@@ -233,12 +295,12 @@ export const BaseCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
       ? panelThickness / 2 - blindPanelWidth / 2 
       : blindPanelWidth / 2 - panelThickness / 2;
       
-    holes.push({ y: -doorHeight / 2 + doorHeight / 5, z: sidePanelLocalX, r: technicalR, through: true });
+    holes.push({ y: -blindPanelHeight / 2 + blindPanelHeight / 5, z: sidePanelLocalX, r: technicalR, through: true });
     holes.push({ y: 0, z: sidePanelLocalX, r: technicalR, through: true });
-    holes.push({ y: doorHeight / 2 - doorHeight / 5, z: sidePanelLocalX, r: technicalR, through: true });
+    holes.push({ y: blindPanelHeight / 2 - blindPanelHeight / 5, z: sidePanelLocalX, r: technicalR, through: true });
 
     return holes;
-  }, [showNailHoles, nailHoleDiameter, innerHeight, panelThickness, blindWidthFront, blindCornerSide, blindPanelWidth, doorHeight]);
+  }, [showNailHoles, nailHoleDiameter, innerHeight, panelThickness, blindWidthFront, blindCornerSide, blindPanelWidth, blindPanelHeight]);
 
   const isLeftDoor = blindCornerSide === 'left'; // If blind is left, door is left hinged (on the upright)
   const rotationDirection = isLeftDoor ? -1 : 1;
@@ -254,9 +316,9 @@ export const BaseCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
 
   // Front Blind Panel (Overlay)
   const blindPanelFrontGeo = useMemo(() => createPanelWithHolesGeo(
-    doorMaterialThickness, doorHeight, blindWidthFront,  
+    doorMaterialThickness, blindPanelHeight, blindWidthFront,  
     0, 0, 0, 'pz', blindPanelHoles, doorMaterialThickness
-  ), [doorMaterialThickness, doorHeight, blindWidthFront, blindPanelHoles]);
+  ), [doorMaterialThickness, blindPanelHeight, blindWidthFront, blindPanelHoles]);
 
   // Door
   const doorGeo = useMemo(() => {
@@ -346,7 +408,7 @@ export const BaseCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
 
       {/* Door */}
       {showDoors && shouldShow('door') && (
-        <group position={[doorX + getOffset('door')[0], 0 + getOffset('door')[1], doorZ + getOffset('door')[2]]}>
+        <group position={[doorX + getOffset('door')[0], doorYOffset + getOffset('door')[1], doorZ + getOffset('door')[2]]}>
           <group position={[doorPivotX, 0, 0]} rotation={[0, rotationDirection * doorAngleRad, 0]}>
             <mesh position={[-doorPivotX, 0, 0]} castShadow receiveShadow visible={!skeletonView}>
               <primitive object={doorGeo} attach="geometry" />
