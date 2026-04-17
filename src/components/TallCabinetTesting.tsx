@@ -691,7 +691,7 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
         const shelfZOffset = -depth / 2 + panelThickness + backPanelThickness + settings.shelfDepth / 2;
         return (
           <mesh key={`shelf-upper-${i}`} position={[0 + getOffset('shelf', i)[0], sy - panelThickness / 2 + getOffset('shelf', i)[1], shelfZOffset + getOffset('shelf', i)[2]]} castShadow receiveShadow visible={!skeletonView}>
-            <boxGeometry args={[innerWidth - panelThickness * 2 - 2, panelThickness, settings.shelfDepth]} />
+            <primitive object={shelfGeo.clone()} attach="geometry" />
             <meshStandardMaterial color={getPanelColor('shelf')} roughness={0.8} />
           </mesh>
         );
@@ -706,7 +706,7 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
         const shelfZOffset = -depth / 2 + panelThickness + backPanelThickness + settings.shelfDepth / 2;
         return (
           <mesh key={`shelf-lower-${i}`} position={[0 + getOffset('shelf', i)[0], shelfY - panelThickness / 2 + getOffset('shelf', i)[1], shelfZOffset + getOffset('shelf', i)[2]]} castShadow receiveShadow visible={!skeletonView}>
-            <boxGeometry args={[innerWidth - panelThickness * 2 - 2, panelThickness, settings.shelfDepth]} />
+            <primitive object={shelfGeo.clone()} attach="geometry" />
             <meshStandardMaterial color={getPanelColor('shelf')} roughness={0.8} />
           </mesh>
         );

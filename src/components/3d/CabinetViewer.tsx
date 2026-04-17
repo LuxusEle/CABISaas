@@ -101,7 +101,9 @@ const Scene = ({
   onWallClick,
   onCabinetClick,
   activeWallId,
-  lightTheme
+  lightTheme,
+  doorOpenAngle,
+  forceGola
 }: { 
   project: Project; 
   showHardware: boolean; 
@@ -112,6 +114,8 @@ const Scene = ({
   onCabinetClick?: (zoneIndex: number, cabinetIndex: number) => void;
   activeWallId?: string;
   lightTheme?: boolean;
+  doorOpenAngle?: number;
+  forceGola?: boolean;
 }) => {
   const activeZones = showEmptyWalls 
     ? project.zones.filter(z => z.active)
@@ -402,6 +406,8 @@ const Scene = ({
           label={label}
           settings={project.settings}
           onClick={() => onCabinetClick?.(wallIndex, cabinetIndex)}
+          doorOpenAngle={doorOpenAngle}
+          forceGola={forceGola}
         />
       ))}
     </>
@@ -419,6 +425,8 @@ export const CabinetViewer: React.FC<Props> = ({
 }) => {
   const [viewMode, setViewMode] = useState<string>('isometric');
   const [showHW, setShowHW] = useState(showHardware);
+  const [doorOpenAngle, setDoorOpenAngle] = useState(0);
+  const [forceGola, setForceGola] = useState(false);
   const [sceneBounds, setSceneBounds] = useState<{ 
     center: [number, number, number]; 
     size: { width: number; depth: number; height: number } 
@@ -484,6 +492,39 @@ export const CabinetViewer: React.FC<Props> = ({
                   Hardware
                 </label>
               </div>
+
+              <div className="mt-3 pt-3 border-t border-slate-700/50 flex flex-col gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                      Doors Open
+                    </label>
+                    <span className="text-[10px] text-amber-500 font-mono">{doorOpenAngle}°</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="120"
+                    step="1"
+                    value={doorOpenAngle}
+                    onChange={(e) => setDoorOpenAngle(parseInt(e.target.value))}
+                    className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-500"
+                  />
+                </div>
+
+                <label className="flex items-center justify-between gap-2 text-[10px] text-slate-400 font-bold uppercase tracking-wider cursor-pointer hover:text-slate-300 transition-colors">
+                  <span>Global Gola Mode</span>
+                  <div className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={forceGola}
+                      onChange={(e) => setForceGola(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-7 h-4 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-amber-500"></div>
+                  </div>
+                </label>
+              </div>
             </div>
             
             {showHW && (
@@ -544,6 +585,8 @@ export const CabinetViewer: React.FC<Props> = ({
             onCabinetClick={onCabinetClick}
             activeWallId={activeWallId}
             lightTheme={lightTheme}
+            doorOpenAngle={doorOpenAngle}
+            forceGola={forceGola}
           />
         </Suspense>
       </Canvas>

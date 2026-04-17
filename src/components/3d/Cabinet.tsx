@@ -24,6 +24,8 @@ interface Props {
   previewMode?: boolean;
   editingDimension?: string | null;
   onClick?: () => void;
+  doorOpenAngle?: number;
+  forceGola?: boolean;
 }
 
 const DimensionLine: React.FC<{
@@ -72,7 +74,9 @@ export const Cabinet: React.FC<Props> = ({
   showCountertop = false,
   previewMode = false,
   editingDimension = null,
-  onClick
+  onClick,
+  doorOpenAngle,
+  forceGola
 }) => {
   const [hovered, setHovered] = React.useState(false);
 
@@ -102,8 +106,11 @@ export const Cabinet: React.FC<Props> = ({
 
   // Merge legacy project settings and advanced testing settings
   const testingSettings = useMemo(() => {
-    return getCabinetTestingSettings(unit, settings || {}, width, height, depth);
-  }, [unit, settings, width, height, depth]);
+    const s = getCabinetTestingSettings(unit, settings || {}, width, height, depth);
+    if (doorOpenAngle !== undefined) s.doorOpenAngle = doorOpenAngle;
+    if (forceGola !== undefined) s.enableGola = forceGola;
+    return s;
+  }, [unit, settings, width, height, depth, doorOpenAngle, forceGola]);
 
   return (
     <group 

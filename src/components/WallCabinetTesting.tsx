@@ -372,6 +372,24 @@ export const WallCabinetTesting: React.FC<Props> = ({ settings }) => {
         );
       })}
 
+      {showShelves && numShelves > 0 && !skeletonView && Array.from({ length: numShelves }).map((_, i) => {
+        const availableHeight = innerHeight - panelThickness * 2;
+        const spacing = availableHeight / (numShelves + 1);
+        const shelfY = -innerHeight / 2 + panelThickness + spacing * (i + 1);
+        const shelfZOffset = -depth / 2 + panelThickness + backPanelThickness + settings.shelfDepth / 2;
+        return (
+          <mesh 
+            key={`shelf-${i}`} 
+            position={[0 + getOffset('shelf', i)[0], shelfY - panelThickness / 2 + getOffset('shelf', i)[1], shelfZOffset + getOffset('shelf', i)[2]]}
+            castShadow 
+            receiveShadow
+          >
+            <primitive object={shelfGeo.clone()} attach="geometry" />
+            <meshStandardMaterial color={getPanelColor('shelf')} roughness={0.8} />
+          </mesh>
+        );
+      })}
+
       {/* --- Specialized Equipment --- */}
       
       {/* 1. COOKER HOOD */}

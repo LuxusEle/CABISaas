@@ -1319,6 +1319,20 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
     else { setTempObstacle({ ...currentZone.obstacles[idx] }); setModalMode('edit_obstacle'); }
   };
 
+  const updateAdvancedSetting = (key: string, value: any) => {
+    if (!tempCabinet) return;
+    setTempCabinet(prev => {
+      const advanced = prev.advancedSettings || {};
+      return {
+        ...prev,
+        advancedSettings: {
+          ...advanced,
+          [key]: value
+        }
+      };
+    });
+  };
+
   const saveItem = () => {
     if (modalMode.includes('cabinet')) {
       const intersecting = getIntersectingCabinets(currentZone, tempCabinet);
@@ -1331,11 +1345,23 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
         }
 
         if (modalMode === 'add_cabinet') {
-          items.push({ ...tempCabinet, id: Math.random().toString(), isAutoFilled: false });
+          // Add mode: Use current tempCabinet (it should have a unique ID already from openAdd)
+          items.push({ ...tempCabinet, isAutoFilled: false });
         } else {
-          const idx = items.findIndex(c => c.id === tempCabinet.id);
-          if (idx !== -1) items[idx] = { ...tempCabinet, isAutoFilled: false };
-          else items.push({ ...tempCabinet, id: Math.random().toString(), isAutoFilled: false });
+          // Edit mode: Find the original cabinet by ID, or fallback to the editIndex
+          let targetIdx = items.findIndex(c => c.id === tempCabinet.id);
+          
+          // If ID not found (could happen if layout regenerated), fallback to stored index
+          if (targetIdx === -1 && editIndex !== -1 && editIndex < items.length) {
+            targetIdx = editIndex;
+          }
+
+          if (targetIdx !== -1) {
+            items[targetIdx] = { ...tempCabinet, isAutoFilled: false };
+          } else {
+            // Last resort: if we can't find it at all, add it as new
+            items.push({ ...tempCabinet, id: tempCabinet.id || Math.random().toString(), isAutoFilled: false });
+          }
         }
 
         if (shouldDelete) {
@@ -1776,6 +1802,25 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
 
                   <NumberInput label="Width" value={tempCabinet.width} onChange={v => setTempCabinet({ ...tempCabinet, width: v })} step={50} />
                   <NumberInput label="Position (Left)" value={tempCabinet.fromLeft} onChange={v => setTempCabinet({ ...tempCabinet, fromLeft: v })} step={50} />
+                  
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    <NumberInput 
+                      label="Shelves" 
+                      value={tempCabinet.advancedSettings?.numShelves ?? 0} 
+                      onChange={v => {
+                        updateAdvancedSetting('numShelves', v);
+                        updateAdvancedSetting('showShelves', v > 0);
+                      }} 
+                      min={0}
+                      max={10}
+                    />
+                    <NumberInput 
+                      label="Quantity" 
+                      value={tempCabinet.qty || 1} 
+                      onChange={v => setTempCabinet({ ...tempCabinet, qty: Math.max(1, v) })} 
+                      min={1}
+                    />
+                  </div>
                 </>
               ) : (
                 <>
