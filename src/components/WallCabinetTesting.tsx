@@ -195,7 +195,7 @@ export const WallCabinetTesting: React.FC<Props> = ({ settings }) => {
       geos.push(createDoorWithHingeHoles(
         doorWidth, doorHeight, doorMaterialThickness,
         hingeXOffset, hingeDiameter / 2, hingeDepth, 
-        hingeVerticalOffset, hingeVerticalOffset
+        hingeVerticalOffset, hingeVerticalOffset + (isGolaActive ? settings.doorOverride : 0)
       ));
     }
     return geos;
@@ -342,7 +342,7 @@ export const WallCabinetTesting: React.FC<Props> = ({ settings }) => {
                     <cylinderGeometry args={[hingeDiameter / 2, hingeDiameter / 2, hingeDepth, 16]} />
                     <meshStandardMaterial color="#333333" metalness={0.9} roughness={0.1} />
                   </mesh>
-                  <mesh position={[hingeXOffset - pivotX, -doorHeight / 2 + hingeVerticalOffset, -hingeDepth / 2]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+                  <mesh position={[hingeXOffset - pivotX, -doorHeight / 2 + hingeVerticalOffset + (isGolaActive ? settings.doorOverride : 0), -hingeDepth / 2]} rotation={[Math.PI / 2, 0, 0]} castShadow>
                     <cylinderGeometry args={[hingeDiameter / 2, hingeDiameter / 2, hingeDepth, 16]} />
                     <meshStandardMaterial color="#333333" metalness={0.9} roughness={0.1} />
                   </mesh>
@@ -559,7 +559,10 @@ export const exportWallCabinetDXF = async (settings: TestingSettings, zip: JSZip
   if (showDoors) {
     for (let i = 0; i < actualNumDoors; i++) {
       const hX = actualNumDoors === 1 ? -doorWidth / 2 + hingeHorizontalOffset : (i === 0 ? -doorWidth / 2 + hingeHorizontalOffset : doorWidth / 2 - hingeHorizontalOffset);
-      const hingeHoles = [{ y: doorHeight / 2 - hingeVerticalOffset, z: hX, r: hingeDiameter / 2 }, { y: -doorHeight / 2 + hingeVerticalOffset, z: hX, r: hingeDiameter / 2 }];
+      const hingeHoles = [
+        { y: doorHeight / 2 - hingeVerticalOffset, z: hX, r: hingeDiameter / 2 }, 
+        { y: -doorHeight / 2 + hingeVerticalOffset + (isGolaActive ? settings.doorOverride : 0), z: hX, r: hingeDiameter / 2 }
+      ];
       addPanelToZip(`Door_${i + 1}`, doorWidth, doorHeight, hingeHoles);
     }
   }

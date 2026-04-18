@@ -327,6 +327,7 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
 
   const doorGeos = useMemo(() => {
     const geos = [];
+    const isUpperGolaActive = settings.enableTallUpperGola && settings.showDoors;
     for (let i = 0; i < actualNumDoors; i++) {
       const hingeXOffset = actualNumDoors === 1 
         ? -doorWidth / 2 + hingeHorizontalOffset 
@@ -334,11 +335,11 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
       geos.push(createDoorWithHingeHoles(
         doorWidth, actualDoorHeight, doorMaterialThickness,
         hingeXOffset, hingeDiameter / 2, hingeDepth, 
-        hingeVerticalOffset, hingeVerticalOffset
+        hingeVerticalOffset, hingeVerticalOffset + (isUpperGolaActive ? settings.doorOverride : 0)
       ));
     }
     return geos;
-  }, [actualNumDoors, doorWidth, actualDoorHeight, doorMaterialThickness, hingeHorizontalOffset, hingeDiameter, hingeDepth, hingeVerticalOffset]);
+  }, [actualNumDoors, doorWidth, actualDoorHeight, doorMaterialThickness, hingeHorizontalOffset, hingeDiameter, hingeDepth, hingeVerticalOffset, settings.enableTallUpperGola, settings.showDoors, settings.doorOverride]);
 
   const lowerDoorGeos = useMemo(() => {
     const geos = [];
@@ -546,7 +547,7 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
                     <cylinderGeometry args={[hingeDiameter / 2, hingeDiameter / 2, hingeDepth, 16]} />
                     <meshStandardMaterial color="#333333" metalness={0.9} roughness={0.1} />
                   </mesh>
-                  <mesh position={[hingeXOffset - pivotX, -actualDoorHeight / 2 + hingeVerticalOffset, -hingeDepth / 2]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+                  <mesh position={[hingeXOffset - pivotX, -actualDoorHeight / 2 + hingeVerticalOffset + (isUpperGolaActive ? settings.doorOverride : 0), -hingeDepth / 2]} rotation={[Math.PI / 2, 0, 0]} castShadow>
                     <cylinderGeometry args={[hingeDiameter / 2, hingeDiameter / 2, hingeDepth, 16]} />
                     <meshStandardMaterial color="#333333" metalness={0.9} roughness={0.1} />
                   </mesh>
@@ -984,7 +985,10 @@ export const exportTallCabinetDXF = async (settings: TestingSettings, zip: JSZip
   if (showDoors) {
     for (let i = 0; i < actualNumDoors; i++) {
       const hX = actualNumDoors === 1 ? -doorWidth / 2 + hingeHorizontalOffset : (i === 0 ? -doorWidth / 2 + hingeHorizontalOffset : doorWidth / 2 - hingeHorizontalOffset);
-      const hingeHoles = [{ y: actualDoorHeight / 2 - hingeVerticalOffset, z: hX, r: hingeDiameter / 2 }, { y: -actualDoorHeight / 2 + hingeVerticalOffset, z: hX, r: hingeDiameter / 2 }];
+      const hingeHoles = [
+        { y: actualDoorHeight / 2 - hingeVerticalOffset, z: hX, r: hingeDiameter / 2 }, 
+        { y: -actualDoorHeight / 2 + hingeVerticalOffset + (isUpperGolaActive_DXF ? settings.doorOverride : 0), z: hX, r: hingeDiameter / 2 }
+      ];
       addPanelToZip(`Door_Upper_${i + 1}`, doorWidth, actualDoorHeight, hingeHoles);
     }
   }

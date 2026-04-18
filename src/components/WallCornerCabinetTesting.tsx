@@ -258,9 +258,9 @@ export const WallCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
     return createDoorWithHingeHoles(
       doorWidth, doorHeight, doorMaterialThickness,
       hingeXOffset, hingeDiameter / 2, hingeDepth,
-      topHingeVerticalOffset, bottomHingeVerticalOffset
+      topHingeVerticalOffset, bottomHingeVerticalOffset + (isGolaActive ? settings.doorOverride : 0)
     );
-  }, [doorWidth, doorHeight, doorMaterialThickness, hingeXOffset, hingeDiameter, hingeDepth, topHingeVerticalOffset, bottomHingeVerticalOffset]);
+  }, [doorWidth, doorHeight, doorMaterialThickness, hingeXOffset, hingeDiameter, hingeDepth, topHingeVerticalOffset, bottomHingeVerticalOffset, isGolaActive, settings.doorOverride]);
 
   // Internal Upright (The divider)
   const uprightGeo = useMemo(() => {
@@ -373,7 +373,7 @@ export const WallCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
                   <cylinderGeometry args={[hingeDiameter / 2, hingeDiameter / 2, hingeDepth, 16]} />
                   <meshStandardMaterial color="#888888" metalness={0.8} roughness={0.2} />
                 </mesh>
-                <mesh position={[hingeXOffset, -doorHeight / 2 + bottomHingeVerticalOffset, -hingeDepth / 2]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+                <mesh position={[hingeXOffset, -doorHeight / 2 + bottomHingeVerticalOffset + (isGolaActive ? settings.doorOverride : 0), -hingeDepth / 2]} rotation={[Math.PI / 2, 0, 0]} castShadow>
                   <cylinderGeometry args={[hingeDiameter / 2, hingeDiameter / 2, hingeDepth, 16]} />
                   <meshStandardMaterial color="#888888" metalness={0.8} roughness={0.2} />
                 </mesh>
@@ -550,7 +550,10 @@ export const exportWallCornerCabinetDXF = async (settings: TestingSettings, zip:
   addPanelToZip('Top_Panel', width, depth);
   addPanelToZip('Front_Blind_Panel', blindPanelWidth - doorOuterGap * 2, innerHeight);
   
-  const hingeHoles = [{ y: doorHeight / 2 - settings.hingeVerticalOffset, z: hingeXOffset, r: settings.hingeDiameter / 2 }, { y: -doorHeight / 2 + settings.hingeVerticalOffset, z: hingeXOffset, r: settings.hingeDiameter / 2 }];
+  const hingeHoles = [
+    { y: doorHeight / 2 - settings.hingeVerticalOffset, z: hingeXOffset, r: settings.hingeDiameter / 2 }, 
+    { y: -doorHeight / 2 + settings.hingeVerticalOffset + (isGolaActive_DXF ? settings.doorOverride : 0), z: hingeXOffset, r: settings.hingeDiameter / 2 }
+  ];
   addPanelToZip('Front_Door', doorWidth, doorHeight, undefined, hingeHoles);
   
   const supportH = sidePanelHeight;
