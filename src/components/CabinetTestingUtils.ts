@@ -83,7 +83,7 @@ export const DEFAULT_SETTINGS: TestingSettings = {
   doorOuterGap: 2.0,
   doorInnerGap: 2.0,
   doorSideClearance: 2.0,
-  doorOverride: 0,
+  doorOverride: 25,
   toeKickHeight: 100,
   backStretcherHeight: 100,
   topStretcherWidth: 100,

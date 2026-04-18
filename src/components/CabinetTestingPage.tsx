@@ -76,10 +76,12 @@ export const CabinetTestingPage: React.FC = () => {
       const next = { ...current, [key]: value };
 
       // Gola auto-sync logic
-      if (key === 'enableGola' && value === true) {
-        next.doorOverride = 20;
-      } else if (key === 'enableGola' && value === false) {
-        next.doorOverride = 0;
+      if ((key === 'enableGola' || key === 'enableTallUpperGola') && value === true) {
+        next.doorOverride = 25;
+      } else if ((key === 'enableGola' || key === 'enableTallUpperGola') && value === false) {
+        if (!next.enableGola && !next.enableTallUpperGola) {
+          next.doorOverride = 0;
+        }
       }
       
       // Gola mode auto-disable

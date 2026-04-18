@@ -108,9 +108,6 @@ export const WallCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
   // Side Panels (Separate geometries for inward-facing grooves)
   const leftPanelGeo = useMemo(() => {
     const notches: any[] = [];
-    if (isGolaActive && isDoorOnLeft) {
-      notches.push({ u: depth / 2, v: -sidePanelHeight / 2, width: settings.golaLCutoutDepth, height: settings.golaLCutoutHeight, alignV: 'bottom' });
-    }
     return createPanelWithHolesGeo(
       panelThickness, sidePanelHeight, depth,
       -depth / 2 + panelThickness, -depth / 2 + panelThickness + backPanelThickness,
@@ -121,9 +118,6 @@ export const WallCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
 
   const rightPanelGeo = useMemo(() => {
     const notches: any[] = [];
-    if (isGolaActive && isDoorOnRight) {
-      notches.push({ u: depth / 2, v: -sidePanelHeight / 2, width: settings.golaLCutoutDepth, height: settings.golaLCutoutHeight, alignV: 'bottom' });
-    }
     return createPanelWithHolesGeo(
       panelThickness, sidePanelHeight, depth,
       -depth / 2 + panelThickness, -depth / 2 + panelThickness + backPanelThickness,
@@ -208,12 +202,8 @@ export const WallCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
   const doorWidth = width - blindPanelWidth - doorOuterGap * 2;
   
   const blindPanelHeight = innerHeight;
-  let doorHeight = innerHeight;
-  let doorYOffset = 0;
-  if (isGolaActive) {
-    doorHeight -= settings.doorOverride;
-    doorYOffset = settings.doorOverride / 2;
-  }
+  let doorHeight = innerHeight + (isGolaActive ? settings.doorOverride : 0);
+  let doorYOffset = isGolaActive ? -settings.doorOverride / 2 : 0;
 
   const blindPanelHoles = useMemo(() => {
     if (!showNailHoles) return [];
@@ -511,7 +501,8 @@ export const exportWallCornerCabinetDXF = async (settings: TestingSettings, zip:
   const innerDepth = depth;
 
   const doorWidth = width - blindPanelWidth - doorOuterGap * 2;
-  const doorHeight = innerHeight;
+  const isGolaActive_DXF = settings.enableGola && settings.showDoors;
+  const doorHeight = innerHeight + (isGolaActive_DXF ? settings.doorOverride : 0);
   const isLeftDoor = blindCornerSide === 'left';
   const hingeXOffset = isLeftDoor 
     ? -doorWidth / 2 + settings.hingeHorizontalOffset 

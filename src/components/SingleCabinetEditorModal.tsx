@@ -109,8 +109,12 @@ export const SingleCabinetEditorModal: React.FC<Props> = ({ isOpen, cabinet, glo
     setSettings(prev => {
       const next = { ...prev, [key]: value };
 
-      if (key === 'enableGola' && value === true) { next.doorOverride = 20; }
-      else if (key === 'enableGola' && value === false) { next.doorOverride = 0; }
+      if ((key === 'enableGola' || key === 'enableTallUpperGola') && value === true) { next.doorOverride = 25; }
+      else if ((key === 'enableGola' || key === 'enableTallUpperGola') && value === false) {
+        if (!next.enableGola && !next.enableTallUpperGola) {
+          next.doorOverride = 0;
+        }
+      }
       
       if (next.cabinetType === 'base' && next.enableGola && !next.showDoors && !next.showDrawers) {
         next.enableGola = false;

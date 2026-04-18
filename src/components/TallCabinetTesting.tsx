@@ -58,8 +58,8 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
   const golaVerticalGap = isLowerGolaActive ? 13 : doorOuterGap;
   const golaTopGap = isLowerGolaActive ? settings.golaTopGap : doorOuterGap;
 
-  const actualDoorHeight = tallUpperSectionHeight - doorOuterGap - (isUpperGolaActive ? settings.doorOverride : 0);
-  const doorYOffset_Upper = innerHeight / 2 - doorOuterGap - actualDoorHeight / 2;
+  const actualDoorHeight = tallUpperSectionHeight - doorOuterGap + (isUpperGolaActive ? settings.doorOverride : 0);
+  const doorYOffset_Upper = innerHeight / 2 - doorOuterGap - (tallUpperSectionHeight - doorOuterGap) / 2 - (isUpperGolaActive ? settings.doorOverride / 2 : 0);
 
   const actualLowerDoorHeight = tallLowerSectionHeight - panelThickness - doorOuterGap - (isLowerGolaActive ? settings.doorOverride : 0);
   const doorYOffset_Lower = -innerHeight / 2 + panelThickness + doorOuterGap + actualLowerDoorHeight / 2;
@@ -233,10 +233,6 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
         });
       }
     }
-    if (isUpperGolaActive) {
-      const upperDoorBottomY = innerHeight / 2 - tallUpperSectionHeight + settings.doorOuterGap + settings.doorOverride;
-      notches.push({ u: depth / 2, v: upperDoorBottomY, width: settings.golaLCutoutDepth, height: settings.golaLCutoutHeight, alignV: 'center' });
-    }
     return createPanelWithHolesGeo(
       panelThickness, sidePanelHeight, depth,
       -depth / 2 + panelThickness, -depth / 2 + panelThickness + backPanelThickness,
@@ -258,10 +254,6 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
           notches.push({ u: depth / 2, v: gh, width: settings.golaCutoutDepth, height: settings.golaCCutoutHeight, alignV: 'center' });
         });
       }
-    }
-    if (isUpperGolaActive) {
-      const upperDoorBottomY = innerHeight / 2 - tallUpperSectionHeight + settings.doorOuterGap + settings.doorOverride;
-      notches.push({ u: depth / 2, v: upperDoorBottomY, width: settings.golaLCutoutDepth, height: settings.golaLCutoutHeight, alignV: 'center' });
     }
     return createPanelWithHolesGeo(
       panelThickness, sidePanelHeight, depth,
@@ -772,7 +764,7 @@ export const exportTallCabinetDXF = async (settings: TestingSettings, zip: JSZip
     : 0;
 
   const isUpperGolaActive_DXF = settings.enableTallUpperGola && showDoors;
-  const actualDoorHeight = tallUpperSectionHeight - doorOuterGap - (isUpperGolaActive_DXF ? settings.doorOverride : 0);
+  const actualDoorHeight = tallUpperSectionHeight - doorOuterGap + (isUpperGolaActive_DXF ? settings.doorOverride : 0);
 
   const addPanelToZip = (name: string, width: number, height: number, holesInput: { y: number, z: number, r: number, through?: boolean }[] = [], grooveInput?: { x: number, y: number, w: number, h: number, depth: number }, mirrorX: boolean = false, golaCutouts?: { x: number, y: number, w: number, h: number }[]) => {
     const writer = new DxfWriter();
