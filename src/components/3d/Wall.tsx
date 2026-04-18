@@ -16,8 +16,8 @@ export const Wall: React.FC<Props> = ({ position, width, height, rotation, obsta
   const wallThickness = 50;
   const wallDepth = wallThickness;
 
-  const activeColor = isActive ? '#f59e0b' : '#94a3b8';
-  const activeOpacity = isActive ? 0.8 : 0.5;
+  const activeColor = '#94a3b8';
+  const activeOpacity = 0.3;
 
   const openings = obstacles.filter(o => o.type === 'window' || o.type === 'door');
   const protrudingObstacles = obstacles.filter(o => o.type === 'column' || o.type === 'pipe');
