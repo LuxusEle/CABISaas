@@ -1,7 +1,7 @@
 /// <reference types="@react-three/fiber" />
 import React, { Suspense, useRef, useState, useMemo, useEffect } from 'react';
 import { Canvas, useThree, useLoader } from '@react-three/fiber';
-import { OrbitControls, Grid, Html, useProgress, PerspectiveCamera } from '@react-three/drei';
+import { OrbitControls, Grid, Html, useProgress, PerspectiveCamera, Environment, ContactShadows } from '@react-three/drei';
 import * as THREE from 'three';
 import { Project, CabinetType, CabinetUnit, Zone, Obstacle } from '../../types';
 import { Cabinet } from './Cabinet';
@@ -86,8 +86,8 @@ const CameraController = ({
       maxDistance={maxDim * 5}
       maxPolarAngle={Math.PI / 2.1}
       target={sceneCenter}
-      enableZoom={!lightTheme}
-      enablePan={!lightTheme}
+      enableZoom={true}
+      enablePan={true}
     />
   );
 };
@@ -359,6 +359,7 @@ const Scene = ({
       />
       
       <ambientLight intensity={0.5} />
+      <Environment preset="city" />
       <directionalLight
         position={[sceneBounds.center[0] + 1000, 2000, sceneBounds.center[2] + 1000]}
         intensity={1}
@@ -367,6 +368,14 @@ const Scene = ({
       <directionalLight
         position={[sceneBounds.center[0] - 500, 1000, sceneBounds.center[2] - 500]}
         intensity={0.5}
+      />
+      
+      <ContactShadows 
+        position={[0, -0.1, 0]} 
+        opacity={0.4} 
+        scale={10000} 
+        blur={2} 
+        far={4} 
       />
       
       <Grid
@@ -392,6 +401,7 @@ const Scene = ({
           wallIndex={index}
           isActive={activeWallId === zone.id}
           onClick={() => onWallClick?.(zone.id)}
+          lightTheme={lightTheme}
         />
       ))}
 
@@ -446,10 +456,10 @@ export const CabinetViewer: React.FC<Props> = ({
 
   if (!hasContent) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900">
+      <div className={`w-full h-full flex items-center justify-center bg-gradient-to-br ${lightTheme ? 'from-slate-50 to-slate-100' : 'from-slate-800 to-slate-900'}`}>
         <div className="text-center">
-          <div className="text-amber-400 text-lg font-bold mb-2">3D ISO View</div>
-          <div className="text-slate-400 text-sm">Add cabinets to see 3D preview</div>
+          <div className={`${lightTheme ? 'text-amber-600' : 'text-amber-400'} text-lg font-bold mb-2`}>3D ISO View</div>
+          <div className={`${lightTheme ? 'text-slate-500' : 'text-slate-400'} text-sm`}>Add cabinets to see 3D preview</div>
         </div>
       </div>
     );
@@ -457,10 +467,9 @@ export const CabinetViewer: React.FC<Props> = ({
 
   return (
     <div className={`w-full h-full relative overflow-hidden ${lightTheme ? 'bg-gradient-to-br from-slate-100 to-slate-200' : ''}`}>
-      {!lightTheme && (
         <>
           <div className="absolute top-2 left-2 z-10 flex flex-col gap-1.5">
-            <div className="bg-slate-900/95 backdrop-blur-sm rounded-lg p-2 border border-slate-700 shadow-lg">
+            <div className={`${lightTheme ? 'bg-white/90 border-slate-200' : 'bg-slate-900/95 border-slate-700'} backdrop-blur-sm rounded-lg p-2 border shadow-lg`}>
               <div className="text-amber-400 font-bold text-xs uppercase tracking-wider mb-2">
                 3D View
               </div>
@@ -473,7 +482,7 @@ export const CabinetViewer: React.FC<Props> = ({
                     className={`px-2 py-1 text-xs font-bold rounded transition-all ${
                       viewMode === view
                         ? 'bg-amber-500 text-white shadow-md'
-                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                        : `${lightTheme ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`
                     }`}
                   >
                     {view.charAt(0).toUpperCase() + view.slice(1)}
@@ -482,7 +491,7 @@ export const CabinetViewer: React.FC<Props> = ({
               </div>
               
               <div className="flex flex-col gap-1">
-                <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                <label className={`flex items-center gap-2 text-xs ${lightTheme ? 'text-slate-600' : 'text-slate-300'} cursor-pointer`}>
                   <input
                     type="checkbox"
                     checked={showHW}
@@ -496,7 +505,7 @@ export const CabinetViewer: React.FC<Props> = ({
               <div className="mt-3 pt-3 border-t border-slate-700/50 flex flex-col gap-3">
                 <div className="flex flex-col gap-1.5">
                   <div className="flex justify-between items-center">
-                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                    <label className={`text-[10px] ${lightTheme ? 'text-slate-500' : 'text-slate-400'} font-bold uppercase tracking-wider`}>
                       Doors Open
                     </label>
                     <span className="text-[10px] text-amber-500 font-mono">{doorOpenAngle}°</span>
@@ -508,11 +517,11 @@ export const CabinetViewer: React.FC<Props> = ({
                     step="1"
                     value={doorOpenAngle}
                     onChange={(e) => setDoorOpenAngle(parseInt(e.target.value))}
-                    className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-500"
+                    className={`w-full h-1.5 ${lightTheme ? 'bg-slate-200' : 'bg-slate-700'} rounded-lg appearance-none cursor-pointer accent-amber-500`}
                   />
                 </div>
 
-                <label className="flex items-center justify-between gap-2 text-[10px] text-slate-400 font-bold uppercase tracking-wider cursor-pointer hover:text-slate-300 transition-colors">
+                <label className={`flex items-center justify-between gap-2 text-[10px] ${lightTheme ? 'text-slate-500 hover:text-slate-700' : 'text-slate-400 hover:text-slate-300'} font-bold uppercase tracking-wider cursor-pointer transition-colors`}>
                   <span>Global Gola Mode</span>
                   <div className="relative inline-flex items-center cursor-pointer">
                     <input
@@ -521,47 +530,46 @@ export const CabinetViewer: React.FC<Props> = ({
                       onChange={(e) => setForceGola(e.target.checked)}
                       className="sr-only peer"
                     />
-                    <div className="w-7 h-4 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-amber-500"></div>
+                    <div className={`w-7 h-4 ${lightTheme ? 'bg-slate-200' : 'bg-slate-700'} peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-amber-500`}></div>
                   </div>
                 </label>
               </div>
             </div>
             
             {showHW && (
-              <div className="bg-slate-900/95 backdrop-blur-sm rounded-lg p-2 border border-slate-700 shadow-lg">
+              <div className={`${lightTheme ? 'bg-white/90 border-slate-200' : 'bg-slate-900/95 border-slate-700'} backdrop-blur-sm rounded-lg p-2 border shadow-lg`}>
                 <div className="text-slate-400 font-bold text-[10px] uppercase tracking-wider mb-1.5">
                   Legend
                 </div>
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center gap-1.5">
                     <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
-                    <span className="text-slate-400 text-[10px]">Hinge</span>
+                    <span className={`text-[10px] ${lightTheme ? 'text-slate-500' : 'text-slate-400'}`}>Hinge</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <div className="w-2.5 h-2.5 rounded bg-red-500" />
-                    <span className="text-slate-400 text-[10px]">Cam-Lock</span>
+                    <span className={`text-[10px] ${lightTheme ? 'text-slate-500' : 'text-slate-400'}`}>Cam-Lock</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <div className="w-2.5 h-2.5 rounded bg-yellow-500" />
-                    <span className="text-slate-400 text-[10px]">Confirmat</span>
+                    <span className={`text-[10px] ${lightTheme ? 'text-slate-500' : 'text-slate-400'}`}>Confirmat</span>
                   </div>
                 </div>
               </div>
             )}
           </div>
 
-          <div className="absolute bottom-2 left-2 z-10 bg-slate-900/80 backdrop-blur-sm rounded px-2 py-1 border border-slate-700">
-            <div className="text-slate-400 text-[10px]">
+          <div className={`absolute bottom-2 left-2 z-10 ${lightTheme ? 'bg-white/80 border-slate-200' : 'bg-slate-900/80 border-slate-700'} backdrop-blur-sm rounded px-2 py-1 border`}>
+            <div className={`${lightTheme ? 'text-slate-500' : 'text-slate-400'} text-[10px]`}>
               Left: Rotate | Right: Pan | Scroll: Zoom
             </div>
           </div>
         </>
-      )}
 
       <Canvas
         shadows
         camera={{ fov: 50 }}
-        style={{ background: lightTheme ? 'linear-gradient(180deg, #e5e7eb 0%, #d1d5db 100%)' : 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)' }}
+        style={{ background: lightTheme ? '#f3f4f6' : '#1e293b' }}
       >
         <PerspectiveCamera 
           makeDefault 

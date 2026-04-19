@@ -558,5 +558,13 @@ export const getCabinetTestingSettings = (
   }
 
   merged.preset = unit.preset;
+
+  // 5. Hardcode Sink Unit defaults for all views
+  if (unit.preset === 'Sink Unit') {
+    merged.showBackPanel = false;
+    merged.showShelves = false;
+    merged.showDrawers = false;
+  }
+
   return merged;
 };

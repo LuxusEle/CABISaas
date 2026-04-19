@@ -7,6 +7,7 @@ import { getHingeYPositions, getCamLockPositions, HINGE_SPECS, BOARD_THICKNESS }
 interface Props {
     project: Project;
     showHardware?: boolean;
+    lightTheme?: boolean;
 }
 
 // Ruby CBX door threshold: < 599.5mm = single door, >= 600mm = double doors
@@ -34,7 +35,7 @@ const getNumHingesPerDoor = (doorHeight: number): number => {
     return 2;
 };
 
-export const IsometricVisualizer: React.FC<Props> = ({ project, showHardware = true }) => {
+export const IsometricVisualizer: React.FC<Props> = ({ project, showHardware = true, lightTheme = false }) => {
     const isoX = (x: number, y: number) => (x - y) * Math.cos(Math.PI / 6);
     const isoY = (x: number, y: number, z: number) => (x + y) * Math.sin(Math.PI / 6) - z;
 
@@ -344,36 +345,36 @@ export const IsometricVisualizer: React.FC<Props> = ({ project, showHardware = t
     });
 
     return (
-        <div className="w-full h-full bg-gradient-to-br from-slate-800 to-slate-900 overflow-hidden relative border border-slate-700 rounded-xl">
+        <div className={`w-full h-full ${lightTheme ? 'bg-gradient-to-br from-slate-50 to-slate-100' : 'bg-gradient-to-br from-slate-800 to-slate-900'} overflow-hidden relative border ${lightTheme ? 'border-slate-200' : 'border-slate-700'} rounded-xl`}>
             {/* Lighting effect overlay */}
             <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent pointer-events-none" />
             
-            <div className="absolute top-4 left-4 text-amber-400 font-black text-xs uppercase tracking-widest z-10">
+            <div className={`absolute top-4 left-4 ${lightTheme ? 'text-amber-600' : 'text-amber-400'} font-black text-xs uppercase tracking-widest z-10`}>
                 3D ISO VIEW
             </div>
             
             {/* Hardware Legend */}
             {showHardware && (
-                <div className="absolute bottom-4 left-4 bg-slate-900/80 backdrop-blur-sm rounded-lg p-3 text-xs z-10 border border-slate-700">
-                    <div className="text-slate-400 font-bold mb-2 uppercase tracking-wider">Hardware</div>
+                <div className={`absolute bottom-4 left-4 ${lightTheme ? 'bg-white/80 border-slate-200' : 'bg-slate-900/80 border-slate-700'} backdrop-blur-sm rounded-lg p-3 text-xs z-10 border shadow-sm`}>
+                    <div className={`${lightTheme ? 'text-slate-500' : 'text-slate-400'} font-bold mb-2 uppercase tracking-wider`}>Hardware</div>
                     <div className="flex flex-col gap-1.5">
                         <div className="flex items-center gap-2">
                             <div className="w-4 h-4 rounded-full bg-blue-500 border-2 border-blue-700" />
-                            <span className="text-slate-300">Hinge Cup (35mm)</span>
+                            <span className={lightTheme ? 'text-slate-600' : 'text-slate-300'}>Hinge Cup (35mm)</span>
                         </div>
                         <div className="flex items-center gap-2">
                             <div className="w-4 h-4 rounded-sm bg-red-500 border border-red-700" />
-                            <span className="text-slate-300">Cam-Lock (15mm)</span>
+                            <span className={lightTheme ? 'text-slate-600' : 'text-slate-300'}>Cam-Lock (15mm)</span>
                         </div>
                     </div>
                 </div>
             )}
             
             {/* Floor grid */}
-            <div className="absolute inset-0 opacity-20" style={{
+            <div className={`absolute inset-0 ${lightTheme ? 'opacity-10' : 'opacity-20'}`} style={{
                 backgroundImage: `
-                    linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-                    linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)
+                    linear-gradient(${lightTheme ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'} 1px, transparent 1px),
+                    linear-gradient(90deg, ${lightTheme ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'} 1px, transparent 1px)
                 `,
                 backgroundSize: '100px 100px'
             }} />

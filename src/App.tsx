@@ -273,7 +273,7 @@ export default function App() {
           />
         );
       case Screen.PROJECT_SETUP: return <ScreenProjectSetup project={project} setProject={setProject} onSave={() => handleSaveProject(project)} onSaveProject={handleSaveProject} />;
-      case Screen.WALL_EDITOR: return <ScreenWallEditor project={project} setProject={setProject} setScreen={setScreen} onSave={() => {
+      case Screen.WALL_EDITOR: return <ScreenWallEditor project={project} setProject={setProject} setScreen={setScreen} isDark={isDark} onSave={() => {
         const result = generateRubyLayout(project);
         handleSaveProject(result.project).then(() => navigate('/walls?view=iso'));
       }} />;
@@ -385,7 +385,7 @@ export default function App() {
             } />
             <Route path="/walls" element={
               <ProtectedRoute user={user} loading={authLoading}>
-                <ScreenWallEditor project={project} setProject={setProject} setScreen={setScreen} onSave={() => {
+                <ScreenWallEditor project={project} setProject={setProject} setScreen={setScreen} isDark={isDark} onSave={() => {
                   const result = generateRubyLayout(project);
                   handleSaveProject(result.project).then(() => navigate('/walls?view=iso'));
                 }} />
@@ -405,7 +405,7 @@ export default function App() {
               />
             } />
             <Route path="/testing" element={
-              <CabinetTestingPage />
+              <CabinetTestingPage isDark={isDark} />
             } />
             <Route path="*" element={
               <LandingPage
@@ -1056,7 +1056,7 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject }: { pr
   );
 };
 
-const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project: Project, setProject: React.Dispatch<React.SetStateAction<Project>>, setScreen: (s: Screen) => void, onSave: () => void }) => {
+const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark }: { project: Project, setProject: React.Dispatch<React.SetStateAction<Project>>, setScreen: (s: Screen) => void, onSave: () => void, isDark: boolean }) => {
   const [activeTab, setActiveTab] = useState<string>(project.zones[0]?.id || 'Wall A');
   const currentZoneIndex = project.zones.findIndex(z => z.id === activeTab);
   const currentZone = project.zones[currentZoneIndex];
@@ -1523,7 +1523,21 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
                 {visualMode === 'elevation' ? (
                   <WallVisualizer zone={currentZone} height={currentZone.wallHeight || 2400} settings={project.settings} onCabinetClick={(i) => openEdit('cabinet', i)} onObstacleClick={(i) => openEdit('obstacle', i)} onCabinetMove={handleCabinetMove} onObstacleMove={handleObstacleMove} onDragEnd={handleDragEnd} onSwapCabinets={handleSwapCabinets} />
                 ) : (
-                  <CabinetViewer project={project} showHardware={true} onCabinetClick={(zIdx, cIdx) => { const zoneId = project.zones[zIdx].id; setActiveTab(zoneId); openEdit("cabinet", cIdx); }} onWallClick={(wallId) => { setActiveTab(wallId); setVisualMode("elevation"); }} activeWallId={activeTab} />
+                  <CabinetViewer 
+                    project={project} 
+                    showHardware={true} 
+                    lightTheme={!isDark}
+                    onCabinetClick={(zIdx, cIdx) => { 
+                      const zoneId = project.zones[zIdx].id; 
+                      setActiveTab(zoneId); 
+                      openEdit("cabinet", cIdx); 
+                    }} 
+                    onWallClick={(wallId) => { 
+                      setActiveTab(wallId); 
+                      setVisualMode("elevation"); 
+                    }} 
+                    activeWallId={activeTab} 
+                  />
                 )}
               </div>
 
@@ -1614,7 +1628,21 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
               {visualMode === 'elevation' ? (
                 <WallVisualizer zone={currentZone} height={currentZone.wallHeight || 2400} settings={project.settings} onCabinetClick={(i) => openEdit('cabinet', i)} onObstacleClick={(i) => openEdit('obstacle', i)} onCabinetMove={handleCabinetMove} onObstacleMove={handleObstacleMove} onDragEnd={handleDragEnd} onSwapCabinets={handleSwapCabinets} />
               ) : (
-                <CabinetViewer project={project} showHardware={true} onCabinetClick={(zIdx, cIdx) => { const zoneId = project.zones[zIdx].id; setActiveTab(zoneId); openEdit("cabinet", cIdx); }} onWallClick={(wallId) => { setActiveTab(wallId); setVisualMode("elevation"); }} activeWallId={activeTab} />
+                <CabinetViewer 
+                  project={project} 
+                  showHardware={true} 
+                  lightTheme={!isDark}
+                  onCabinetClick={(zIdx, cIdx) => { 
+                    const zoneId = project.zones[zIdx].id; 
+                    setActiveTab(zoneId); 
+                    openEdit("cabinet", cIdx); 
+                  }} 
+                  onWallClick={(wallId) => { 
+                    setActiveTab(wallId); 
+                    setVisualMode("elevation"); 
+                  }} 
+                  activeWallId={activeTab} 
+                />
               )}
             </div>
 

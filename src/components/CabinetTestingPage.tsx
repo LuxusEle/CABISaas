@@ -58,7 +58,7 @@ const CheckboxRow: React.FC<{ label: string; checked: boolean; onChange: (v: boo
   </label>
 );
 
-export const CabinetTestingPage: React.FC = () => {
+export const CabinetTestingPage: React.FC<{ isDark?: boolean }> = ({ isDark = true }) => {
   const [activeType, setActiveType] = useState<'base' | 'sink' | 'wall' | 'tall' | 'corner' | 'wall_corner'>('base');
   const [allConfigs, setAllConfigs] = useState<Record<'base' | 'sink' | 'wall' | 'tall' | 'corner' | 'wall_corner', TestingSettings>>({
     base: { ...DEFAULT_SETTINGS, cabinetType: 'base' },
@@ -587,13 +587,13 @@ export const CabinetTestingPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex-1 relative bg-slate-900">
+      <div className={`flex-1 relative ${isDark ? 'bg-slate-900' : 'bg-slate-50'}`}>
         <Canvas 
           shadows 
           camera={{ position: [900, 600, 900], fov: 40, near: 1, far: 10000 }}
           gl={{ antialias: true }}
         >
-          <color attach="background" args={['#1e293b']} />
+          <color attach="background" args={[isDark ? '#1e293b' : '#f8fafc']} />
           <Environment preset="city" />
           <ambientLight intensity={0.5} />
           <spotLight position={[1000, 1000, 1000]} angle={0.15} penumbra={1} intensity={1} castShadow />
@@ -613,7 +613,10 @@ export const CabinetTestingPage: React.FC = () => {
           {settings.cabinetType === 'corner' && <BaseCornerCabinetTesting settings={settings} />}
           {settings.cabinetType === 'wall_corner' && <WallCornerCabinetTesting settings={settings} />}
           
-          <gridHelper args={[4000, 40, '#1e293b', '#0f172a']} rotation={[0, 0, 0]} />
+          <gridHelper 
+            args={[4000, 40, isDark ? '#1e293b' : '#cbd5e1', isDark ? '#0f172a' : '#e2e8f0']} 
+            rotation={[0, 0, 0]} 
+          />
           <OrbitControls 
             makeDefault 
             minDistance={100} 

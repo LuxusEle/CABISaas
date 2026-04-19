@@ -202,7 +202,7 @@ export const SingleCabinetViewer: React.FC<SingleCabinetViewerProps> = ({
       <Canvas
         shadows
         gl={{ antialias: true, alpha: true }}
-        style={{ background: 'linear-gradient(180deg, #e5e7eb 0%, #d1d5db 100%)' }}
+        style={{ background: 'transparent' }}
       >
         <PerspectiveCamera makeDefault fov={35} />
         <Suspense fallback={<LoadingFallback />}>

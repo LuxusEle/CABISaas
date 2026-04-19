@@ -10,14 +10,15 @@ interface Props {
   wallIndex?: number;
   isActive?: boolean;
   onClick?: () => void;
+  lightTheme?: boolean;
 }
 
-export const Wall: React.FC<Props> = ({ position, width, height, rotation, obstacles = [], wallIndex = 0, isActive = false, onClick }) => {
+export const Wall: React.FC<Props> = ({ position, width, height, rotation, obstacles = [], wallIndex = 0, isActive = false, onClick, lightTheme = false }) => {
   const wallThickness = 50;
   const wallDepth = wallThickness;
 
-  const activeColor = '#94a3b8';
-  const activeOpacity = 0.3;
+  const activeColor = lightTheme ? '#cbd5e1' : '#94a3b8';
+  const activeOpacity = lightTheme ? 0.8 : 0.3;
 
   const openings = obstacles.filter(o => o.type === 'window' || o.type === 'door');
   const protrudingObstacles = obstacles.filter(o => (o.type === 'column' || o.type === 'pipe') && !o.id.startsWith('corner_'));
@@ -144,7 +145,7 @@ export const Wall: React.FC<Props> = ({ position, width, height, rotation, obsta
             <group key={`opening-${index}`}>
               <mesh position={[opening.fromLeft + openingWidth / 2, openingY, -wallDepth / 2]}>
                 <boxGeometry args={[openingWidth + 8, openingHeight + 8, wallDepth + 4]} />
-                <meshStandardMaterial color="#374151" roughness={0.8} />
+                <meshStandardMaterial color={lightTheme ? '#64748b' : '#020617'} roughness={0.8} />
               </mesh>
               <mesh position={[opening.fromLeft + openingWidth / 2, openingY, -wallDepth / 2]}>
                 <boxGeometry args={[openingWidth - 4, openingHeight - 4, wallDepth - 4]} />
@@ -165,11 +166,11 @@ export const Wall: React.FC<Props> = ({ position, width, height, rotation, obsta
             <group key={`opening-${index}`}>
               <mesh position={[opening.fromLeft + openingWidth / 2, openingY, -wallDepth / 2]}>
                 <boxGeometry args={[openingWidth + 8, openingHeight + 8, wallDepth + 4]} />
-                <meshStandardMaterial color="#374151" roughness={0.8} />
+                <meshStandardMaterial color={lightTheme ? '#64748b' : '#020617'} roughness={0.8} />
               </mesh>
               <mesh position={[opening.fromLeft + openingWidth / 2, openingY, -wallDepth / 2]}>
                 <boxGeometry args={[openingWidth - 4, openingHeight - 4, wallDepth - 4]} />
-                <meshStandardMaterial color="#1f2937" roughness={0.9} />
+                <meshStandardMaterial color={lightTheme ? '#cbd5e1' : '#0f172a'} roughness={0.9} />
               </mesh>
             </group>
           );
@@ -180,7 +181,7 @@ export const Wall: React.FC<Props> = ({ position, width, height, rotation, obsta
       
       <mesh position={[width / 2, height / 2, 0]}>
         <planeGeometry args={[width, height]} />
-        <meshStandardMaterial color="#e2e8f0" roughness={0.8} transparent opacity={0.2} side={2} />
+        <meshStandardMaterial color={lightTheme ? '#f1f5f9' : '#e2e8f0'} roughness={0.8} transparent opacity={lightTheme ? 0.5 : 0.2} side={2} />
       </mesh>
 
       {sortedProtruding.map((obstacle, index) => {
@@ -199,7 +200,9 @@ export const Wall: React.FC<Props> = ({ position, width, height, rotation, obsta
           >
             <boxGeometry args={[obsWidth, obsHeight, obsDepth]} />
             <meshStandardMaterial 
-              color={obstacle.type === 'column' ? '#6b7280' : '#78716c'} 
+              color={obstacle.type === 'column' 
+                ? (lightTheme ? '#94a3b8' : '#0f172a') 
+                : (lightTheme ? '#a8a29e' : '#1c1917')} 
               roughness={0.7} 
             />
           </mesh>
