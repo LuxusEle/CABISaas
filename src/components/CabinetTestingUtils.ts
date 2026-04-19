@@ -31,7 +31,7 @@ export interface TestingSettings {
   numDrawers: number;
   numShelves: number;
   showShelves: boolean;
-  cabinetType: 'base' | 'wall' | 'tall' | 'corner' | 'wall_corner';
+  cabinetType: 'base' | 'sink' | 'wall' | 'tall' | 'corner' | 'wall_corner';
   blindPanelWidth: number;
   blindCornerSide: 'left' | 'right';
   hingeDiameter: number;

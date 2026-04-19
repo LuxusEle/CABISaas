@@ -10,10 +10,13 @@ import {
   panelColors,
   RUBY_DOOR_THRESHOLD
 } from './CabinetTestingUtils';
+import { RealisticSink } from './3d/RealisticSink';
 
 interface Props {
   settings: TestingSettings;
 }
+
+
 
 export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
   const {
@@ -636,26 +639,8 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
       
       {/* 1. SINK UNIT BASIN */}
       {settings.preset === 'Sink Unit' && !skeletonView && (
-        <group position={[0, innerHeight / 2 - 100, 0]}>
-          {/* Main Basin (Stainless Steel Look) */}
-          <mesh castShadow>
-            <boxGeometry args={[width * 0.8, 200, depth * 0.7]} />
-            <meshStandardMaterial color="#cbd5e1" metalness={0.9} roughness={0.1} />
-          </mesh>
-          {/* Sink Rim */}
-          <mesh position={[0, 100, 0]} castShadow>
-            <boxGeometry args={[width * 0.85, 5, depth * 0.75]} />
-            <meshStandardMaterial color="#94a3b8" metalness={1} roughness={0} />
-          </mesh>
-          {/* Faucet */}
-          <mesh position={[0, 105, -depth * 0.3]} castShadow>
-             <cylinderGeometry args={[10, 10, 150, 16]} />
-             <meshStandardMaterial color="#64748b" metalness={1} roughness={0} />
-          </mesh>
-          <mesh position={[0, 180, -depth * 0.15]} rotation={[Math.PI / 2, 0, 0]} castShadow>
-             <cylinderGeometry args={[8, 8, 100, 16]} />
-             <meshStandardMaterial color="#64748b" metalness={1} roughness={0} />
-          </mesh>
+        <group position={[0, innerHeight / 2 + 1, 0]}>
+          <RealisticSink width={width} depth={depth} cabinetHeight={innerHeight} />
         </group>
       )}
 

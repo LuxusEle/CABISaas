@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Download } from 'lucide-react';
 import JSZip from 'jszip';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
+import { OrbitControls, Environment, ContactShadows } from '@react-three/drei';
 import { 
   TestingSettings, 
   DEFAULT_SETTINGS, 
@@ -59,9 +59,10 @@ const CheckboxRow: React.FC<{ label: string; checked: boolean; onChange: (v: boo
 );
 
 export const CabinetTestingPage: React.FC = () => {
-  const [activeType, setActiveType] = useState<'base' | 'wall' | 'tall' | 'corner' | 'wall_corner'>('base');
-  const [allConfigs, setAllConfigs] = useState<Record<'base' | 'wall' | 'tall' | 'corner' | 'wall_corner', TestingSettings>>({
+  const [activeType, setActiveType] = useState<'base' | 'sink' | 'wall' | 'tall' | 'corner' | 'wall_corner'>('base');
+  const [allConfigs, setAllConfigs] = useState<Record<'base' | 'sink' | 'wall' | 'tall' | 'corner' | 'wall_corner', TestingSettings>>({
     base: { ...DEFAULT_SETTINGS, cabinetType: 'base' },
+    sink: { ...DEFAULT_SETTINGS, cabinetType: 'sink', showBackPanel: false, showShelves: false, showDrawers: false, preset: 'Sink Unit' },
     wall: { ...DEFAULT_SETTINGS, cabinetType: 'wall', height: 720, depth: 300, toeKickHeight: 0, showDrawers: false, showDoors: true, shelfDepth: 300 - 18 - 6 },
     tall: { ...DEFAULT_SETTINGS, cabinetType: 'tall', height: 2100, depth: 560, toeKickHeight: 100, showDrawers: false, showDoors: true, shelfDepth: 560 - 18 - 6 },
     corner: { ...DEFAULT_SETTINGS, cabinetType: 'corner', width: 1000, height: 870, depth: 560, blindPanelWidth: 400, blindCornerSide: 'left' },
@@ -118,7 +119,7 @@ export const CabinetTestingPage: React.FC = () => {
 
   const handleExportDXF = async () => {
     const zip = new JSZip();
-    if (settings.cabinetType === 'base') {
+    if (settings.cabinetType === 'base' || settings.cabinetType === 'sink') {
       await exportBaseCabinetDXF(settings, zip);
     } else if (settings.cabinetType === 'wall') {
       await exportWallCabinetDXF(settings, zip);
@@ -141,7 +142,7 @@ export const CabinetTestingPage: React.FC = () => {
   };
 
   const CalculatedStats = useMemo(() => {
-    const isBase = settings.cabinetType === 'base';
+    const isBase = settings.cabinetType === 'base' || settings.cabinetType === 'sink';
     const innerHeight = isBase ? settings.height - settings.toeKickHeight : settings.height;
     const actualNumDoors = settings.width < RUBY_DOOR_THRESHOLD ? 1 : 2;
     const doorWidth = actualNumDoors === 1 
@@ -167,7 +168,7 @@ export const CabinetTestingPage: React.FC = () => {
           <Section>
             <h3 className="text-[11px] font-bold text-amber-500 uppercase tracking-wider mb-3">Cabinet Type</h3>
             <div className="grid grid-cols-2 gap-2">
-              {(['base', 'wall', 'tall', 'corner', 'wall_corner'] as const).map(type => (
+              {(['base', 'sink', 'wall', 'tall', 'corner', 'wall_corner'] as const).map(type => (
                 <button
                   key={type}
                   onClick={() => setActiveType(type)}
@@ -183,10 +184,10 @@ export const CabinetTestingPage: React.FC = () => {
             </div>
           </Section>
 
-          {(settings.cabinetType === 'base' || settings.cabinetType === 'tall' || settings.cabinetType === 'corner' || settings.cabinetType === 'wall_corner') && (
+          {(settings.cabinetType === 'base' || settings.cabinetType === 'sink' || settings.cabinetType === 'tall' || settings.cabinetType === 'corner' || settings.cabinetType === 'wall_corner') && (
             <Section>
               <h3 className="text-[11px] font-bold text-amber-500 uppercase tracking-wider mb-3">{settings.cabinetType.toUpperCase().replace('_', ' ')} Options</h3>
-              {(settings.cabinetType === 'base' || settings.cabinetType === 'tall' || settings.cabinetType === 'corner') && (
+              {(settings.cabinetType === 'base' || settings.cabinetType === 'sink' || settings.cabinetType === 'tall' || settings.cabinetType === 'corner') && (
                 <SettingRow label="Toe Kick Height" value={settings.toeKickHeight} onChange={v => updateSetting('toeKickHeight', v)} step={5} min={0} max={200} />
               )}
               {(settings.cabinetType === 'corner' || settings.cabinetType === 'wall_corner') && (
@@ -479,7 +480,7 @@ export const CabinetTestingPage: React.FC = () => {
                     <SettingRow label="Hinge V Offset" value={settings.hingeVerticalOffset} onChange={v => updateSetting('hingeVerticalOffset', v)} step={1} min={20} max={200} />
                   </div>
                 )}
-                {activeType !== 'wall' && activeType !== 'corner' && activeType !== 'wall_corner' && <CheckboxRow label="Show Drawers" checked={settings.showDrawers} onChange={v => updateSetting('showDrawers', v)} />}
+                {activeType !== 'wall' && activeType !== 'corner' && activeType !== 'sink' && activeType !== 'wall_corner' && <CheckboxRow label="Show Drawers" checked={settings.showDrawers} onChange={v => updateSetting('showDrawers', v)} />}
                 {settings.showDrawers && activeType !== 'wall' && activeType !== 'corner' && activeType !== 'wall_corner' && (
                   <div className="mt-2 pl-2 border-l-2 border-amber-500/30 space-y-2">
                     <SettingRow label="Num Drawers" value={settings.numDrawers} onChange={v => updateSetting('numDrawers', v)} step={1} min={1} max={6} />
@@ -490,7 +491,7 @@ export const CabinetTestingPage: React.FC = () => {
                     <SettingRow label="Back Clearance" value={settings.drawerBackClearance} onChange={v => updateSetting('drawerBackClearance', v)} step={1} min={0} max={100} />
                   </div>
                 )}
-                <CheckboxRow label="Show Shelves" checked={settings.showShelves} onChange={v => updateSetting('showShelves', v)} />
+                {activeType !== 'sink' && <CheckboxRow label="Show Shelves" checked={settings.showShelves} onChange={v => updateSetting('showShelves', v)} />}
                 {settings.showShelves && (
                   <div className="mt-2 pl-2 border-l-2 border-amber-500/30 space-y-2">
                     <SettingRow label="Num Shelves" value={settings.numShelves} onChange={v => updateSetting('numShelves', v)} step={1} min={0} max={10} />
@@ -522,7 +523,7 @@ export const CabinetTestingPage: React.FC = () => {
             )}
           </Section>
 
-          {(settings.cabinetType === 'base' || settings.cabinetType === 'wall' || settings.cabinetType === 'wall_corner' || settings.cabinetType === 'corner') && (settings.showDoors || settings.showDrawers) && (
+          {(settings.cabinetType === 'base' || settings.cabinetType === 'sink' || settings.cabinetType === 'wall' || settings.cabinetType === 'wall_corner' || settings.cabinetType === 'corner') && (settings.showDoors || settings.showDrawers) && (
            <Section>
              <h3 className="text-[11px] font-bold text-amber-500 uppercase tracking-wider mb-3">Gola System</h3>
              <CheckboxRow label="Enable Gola" checked={settings.enableGola} onChange={v => updateSetting('enableGola', v)} />
@@ -592,12 +593,21 @@ export const CabinetTestingPage: React.FC = () => {
           camera={{ position: [900, 600, 900], fov: 40, near: 1, far: 10000 }}
           gl={{ antialias: true }}
         >
-          <color attach="background" args={['#0f172a']} />
+          <color attach="background" args={['#1e293b']} />
+          <Environment preset="city" />
           <ambientLight intensity={0.5} />
           <spotLight position={[1000, 1000, 1000]} angle={0.15} penumbra={1} intensity={1} castShadow />
           <directionalLight position={[-400, 400, -400]} intensity={0.5} />
           
-          {settings.cabinetType === 'base' && <BaseCabinetTesting settings={settings} />}
+          <ContactShadows 
+            position={[0, -1, 0]} 
+            opacity={0.4} 
+            scale={2000} 
+            blur={2} 
+            far={4} 
+          />
+          
+          {(settings.cabinetType === 'base' || settings.cabinetType === 'sink') && <BaseCabinetTesting settings={settings} />}
           {settings.cabinetType === 'wall' && <WallCabinetTesting settings={settings} />}
           {settings.cabinetType === 'tall' && <TallCabinetTesting settings={settings} />}
           {settings.cabinetType === 'corner' && <BaseCornerCabinetTesting settings={settings} />}
