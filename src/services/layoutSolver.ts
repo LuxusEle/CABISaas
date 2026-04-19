@@ -31,11 +31,51 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
     }
   }
 
-  // 3. Anchor Units - Global Search (Sink, Cooker)
+  // 3. Anchor Units - Global Search (Tall, Sink, Cooker)
+  let tallPlaced = false;
   let sinkPlaced = false;
   let cookerPlaced = false;
 
-  // Search for Windows for Sinks
+  const tallWidth = settings.widthTall || 600;
+
+  // 3.1 Tall Cabinet (High Priority Anchor)
+  // Ruby Rules:
+  // - In Right Corner mode: Tall unit is placed at X = 0.
+  // - In Left Corner mode: Tall unit is placed at X = WallLength - Width.
+  for (const zone of zones) {
+    if (tallPlaced) break;
+    
+    // Try X = 0 first (Right Corner mode or Standard)
+    if (canPlace(zone, 0, tallWidth, CabinetType.TALL, settings)) {
+      placeUnit(zone, { 
+        id: uuid(), 
+        preset: PresetType.TALL_UTILITY, 
+        type: CabinetType.TALL, 
+        width: tallWidth, 
+        qty: 1, 
+        fromLeft: 0, 
+        isAutoFilled: true, 
+        label: 'TALL' 
+      });
+      tallPlaced = true;
+    } 
+    // Then try X = WallLength - TallWidth (Left Corner mode)
+    else if (canPlace(zone, zone.totalLength - tallWidth, tallWidth, CabinetType.TALL, settings)) {
+      placeUnit(zone, { 
+        id: uuid(), 
+        preset: PresetType.TALL_UTILITY, 
+        type: CabinetType.TALL, 
+        width: tallWidth, 
+        qty: 1, 
+        fromLeft: zone.totalLength - tallWidth, 
+        isAutoFilled: true, 
+        label: 'TALL' 
+      });
+      tallPlaced = true;
+    }
+  }
+
+  // 3.2 Sink Unit (Centered under windows)
   for (const zone of zones) {
     if (sinkPlaced) break;
     const window = zone.obstacles.find(o => o.type === 'window');
@@ -49,7 +89,7 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
     }
   }
 
-  // Search for Cooker Span
+  // 3.3 Cooker Unit
   for (const zone of zones) {
     if (cookerPlaced) break;
     const cookerWidth = 900;
@@ -69,13 +109,6 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
 
   // 4. Fill Remaining Space
   for (const zone of zones) {
-    if (zone.id === 'Wall A') {
-      const tallWidth = settings.widthTall || 450;
-      const gaps = findGaps(zone, CabinetType.TALL, settings);
-      if (gaps.length > 0 && gaps[0].start === 0 && gaps[0].length >= tallWidth) {
-        placeUnit(zone, { id: uuid(), preset: PresetType.TALL_UTILITY, type: CabinetType.TALL, width: tallWidth, qty: 1, fromLeft: 0, isAutoFilled: true, label: 'TALL' });
-      }
-    }
     fillRemaining(zone, CabinetType.BASE, settings);
     fillRemaining(zone, CabinetType.WALL, settings);
     zone.cabinets.sort((a,b) => a.fromLeft - b.fromLeft);
