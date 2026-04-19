@@ -12,6 +12,7 @@ interface SingleCabinetViewerProps {
   onDimensionClick?: (dimension: string) => void;
   showDimensionLabels?: boolean;
   editingDimension?: string | null;
+  lightTheme?: boolean;
 }
 
 const LoadingFallback = () => {
@@ -30,7 +31,8 @@ const SceneContent: React.FC<{
   showDimensionLabels: boolean;
   onDimensionClick?: (dimension: string) => void;
   editingDimension?: string | null;
-}> = ({ cabinetType, preset, settings, showDimensionLabels, onDimensionClick, editingDimension }) => {
+  lightTheme: boolean;
+}> = ({ cabinetType, preset, settings, showDimensionLabels, onDimensionClick, editingDimension, lightTheme }) => {
   const { camera, gl } = useThree();
   const controlsRef = useRef<any>(null);
 
@@ -157,7 +159,7 @@ const SceneContent: React.FC<{
 
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1, 0]} receiveShadow>
         <planeGeometry args={[maxDimension * 4, maxDimension * 4]} />
-        <meshStandardMaterial color="#d1d5db" />
+        <meshStandardMaterial color={lightTheme ? '#f1f5f9' : '#1e293b'} />
       </mesh>
 
       <Cabinet
@@ -195,7 +197,8 @@ export const SingleCabinetViewer: React.FC<SingleCabinetViewerProps> = ({
   settings,
   onDimensionClick,
   showDimensionLabels = true,
-  editingDimension = null
+  editingDimension = null,
+  lightTheme = false
 }) => {
   return (
     <div className="w-full h-full min-h-[350px] bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 rounded-lg overflow-hidden">
@@ -213,6 +216,7 @@ export const SingleCabinetViewer: React.FC<SingleCabinetViewerProps> = ({
             showDimensionLabels={showDimensionLabels}
             onDimensionClick={onDimensionClick}
             editingDimension={editingDimension}
+            lightTheme={lightTheme}
           />
         </Suspense>
       </Canvas>

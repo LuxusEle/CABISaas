@@ -18,6 +18,7 @@ interface Props {
   globalSettings: ProjectSettings;
   onClose: () => void;
   onSave: (updatedCabinet: CabinetUnit) => void;
+  isDark?: boolean;
 }
 
 const Section: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -54,7 +55,7 @@ const CheckboxRow: React.FC<{ label: string; checked: boolean; onChange: (v: boo
   </label>
 );
 
-export const SingleCabinetEditorModal: React.FC<Props> = ({ isOpen, cabinet, globalSettings, onClose, onSave }) => {
+export const SingleCabinetEditorModal: React.FC<Props> = ({ isOpen, cabinet, globalSettings, onClose, onSave, isDark = true }) => {
   const [settings, setSettings] = useState<TestingSettings>(DEFAULT_SETTINGS);
 
   useEffect(() => {
@@ -144,28 +145,28 @@ export const SingleCabinetEditorModal: React.FC<Props> = ({ isOpen, cabinet, glo
   const activeType = settings.cabinetType;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-slate-900/80 backdrop-blur-sm">
-      <div className="bg-slate-800 w-full max-w-[1400px] h-full max-h-[90vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col ring-1 ring-slate-700">
+    <div className={`fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 ${isDark ? 'bg-slate-900/80' : 'bg-slate-200/80'} backdrop-blur-sm`}>
+      <div className={`${isDark ? 'bg-slate-800 ring-slate-700' : 'bg-white ring-slate-200'} w-full max-w-[1400px] h-full max-h-[90vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col ring-1`}>
         
         {/* Header */}
-        <div className="flex justify-between items-center px-6 py-4 border-b border-slate-700 bg-slate-800/50">
+        <div className={`flex justify-between items-center px-6 py-4 border-b ${isDark ? 'border-slate-700 bg-slate-800/50' : 'border-slate-100 bg-slate-50/50'}`}>
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center shadow-lg shadow-amber-500/20">
               <span className="font-bold text-white text-lg">E</span>
             </div>
             <div>
-              <h3 className="font-bold text-lg text-white leading-tight">Advanced Edit: {cabinet.label || cabinet.preset}</h3>
+              <h3 className={`font-bold text-lg ${isDark ? 'text-white' : 'text-slate-900'} leading-tight`}>Advanced Edit: {cabinet.label || cabinet.preset}</h3>
               <div className="text-xs text-slate-400">Configure parameters, gola, clearances, and manufacturing rules</div>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors">
+          <button onClick={onClose} className={`p-2 ${isDark ? 'text-slate-400 hover:text-white hover:bg-slate-700' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'} rounded-lg transition-colors`}>
             <X size={24} />
           </button>
         </div>
 
         <div className="flex-1 flex overflow-hidden">
           {/* Sidebar */}
-          <div className="w-96 shrink-0 overflow-y-auto p-4 border-r border-slate-700 bg-slate-800 scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent">
+          <div className={`w-96 shrink-0 overflow-y-auto p-4 border-r ${isDark ? 'border-slate-700 bg-slate-800' : 'border-slate-100 bg-white'} scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent`}>
             {(activeType === 'base' || activeType === 'tall') && (
               <Section>
                 <h3 className="text-[11px] font-bold text-amber-500 uppercase tracking-wider mb-3">
@@ -331,13 +332,13 @@ export const SingleCabinetEditorModal: React.FC<Props> = ({ isOpen, cabinet, glo
           </div>
 
           {/* 3D Canvas */}
-          <div className="flex-1 relative bg-slate-900">
+          <div className={`flex-1 relative ${isDark ? 'bg-slate-900' : 'bg-slate-100'}`}>
             <Canvas 
               shadows 
               camera={{ position: [900, 600, 900], fov: 40, near: 1, far: 10000 }}
               gl={{ antialias: true }}
             >
-              <color attach="background" args={['#0f172a']} />
+              <color attach="background" args={[isDark ? '#0f172a' : '#f1f5f9']} />
               <ambientLight intensity={0.5} />
               <spotLight position={[1000, 1000, 1000]} angle={0.15} penumbra={1} intensity={1} castShadow />
               <directionalLight position={[-400, 400, -400]} intensity={0.5} />
@@ -346,7 +347,7 @@ export const SingleCabinetEditorModal: React.FC<Props> = ({ isOpen, cabinet, glo
               {settings.cabinetType === 'wall' && <WallCabinetTesting settings={settings} />}
               {settings.cabinetType === 'tall' && <TallCabinetTesting settings={settings} />}
               
-              <gridHelper args={[4000, 40, '#1e293b', '#0f172a']} rotation={[0, 0, 0]} />
+              <gridHelper args={[4000, 40, isDark ? '#1e293b' : '#cbd5e1', isDark ? '#0f172a' : '#e2e8f0']} rotation={[0, 0, 0]} />
               <OrbitControls 
                 makeDefault 
                 minDistance={100} 
@@ -359,10 +360,10 @@ export const SingleCabinetEditorModal: React.FC<Props> = ({ isOpen, cabinet, glo
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-slate-700 bg-slate-800/50 flex justify-end gap-3 flex-shrink-0">
+        <div className={`px-6 py-4 border-t ${isDark ? 'border-slate-700 bg-slate-800/50' : 'border-slate-100 bg-slate-50/50'} flex justify-end gap-3 flex-shrink-0`}>
           <button 
             onClick={onClose}
-            className="px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-lg transition-colors border border-slate-600"
+            className={`px-6 py-2 ${isDark ? 'bg-slate-700 hover:bg-slate-600 text-white border-slate-600' : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'} font-medium rounded-lg transition-colors border`}
           >
             Cancel
           </button>

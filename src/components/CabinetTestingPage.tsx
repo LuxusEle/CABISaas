@@ -15,7 +15,7 @@ import { BaseCornerCabinetTesting, exportBaseCornerCabinetDXF } from './BaseCorn
 import { WallCornerCabinetTesting, exportWallCornerCabinetDXF } from './WallCornerCabinetTesting';
 
 const Section: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="bg-slate-700/50 p-3 rounded-lg border border-slate-600/50 mb-3 last:mb-0">
+  <div className="bg-slate-100 dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700/50 mb-3 last:mb-0">
     {children}
   </div>
 );
@@ -37,7 +37,7 @@ const SettingRow: React.FC<{ label: string; value: number; onChange: (v: number)
         type="number"
         value={value}
         onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
-        className="w-14 px-1 py-0.5 text-[11px] bg-slate-900 border border-slate-600 rounded text-amber-500 font-mono text-center"
+        className="w-14 px-1 py-0.5 text-[11px] bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-600 rounded text-amber-600 dark:text-amber-500 font-mono text-center"
       />
     </div>
   </div>
@@ -152,14 +152,14 @@ export const CabinetTestingPage: React.FC<{ isDark?: boolean }> = ({ isDark = tr
   }, [settings]);
 
   return (
-    <div className="flex h-full bg-slate-900 text-white font-sans overflow-hidden">
-      <div className="w-96 shrink-0 overflow-y-auto p-4 border-r border-slate-700 bg-slate-800 scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent">
+    <div className={`flex h-full ${isDark ? 'bg-slate-950 text-white' : 'bg-slate-50 text-slate-900'} font-sans overflow-hidden`}>
+      <div className={`w-96 shrink-0 overflow-y-auto p-4 border-r ${isDark ? 'border-slate-700 bg-slate-900' : 'border-slate-200 bg-white'} scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent`}>
         <div className="flex items-center gap-2 mb-6">
           <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center shadow-lg shadow-amber-500/20">
             <span className="font-bold text-white text-lg">C</span>
           </div>
           <div>
-            <h2 className="text-sm font-bold text-slate-100 leading-none">Cabinet Testing</h2>
+            <h2 className={`text-sm font-bold ${isDark ? 'text-slate-100' : 'text-slate-800'} leading-none`}>Cabinet Testing</h2>
             <span className="text-[10px] text-slate-400 font-medium">Configurator v2.1</span>
           </div>
         </div>
@@ -195,7 +195,7 @@ export const CabinetTestingPage: React.FC<{ isDark?: boolean }> = ({ isDark = tr
                   <SettingRow label="Blind Width" value={settings.blindPanelWidth} onChange={v => updateSetting('blindPanelWidth', v)} step={10} min={200} max={settings.width} />
                   <div className="flex items-center justify-between gap-4 py-1.5 px-1">
                     <span className="text-[11px] text-slate-400 font-medium">Blind Side</span>
-                    <div className="flex bg-slate-900 rounded p-0.5 border border-slate-700">
+                    <div className={`flex ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-slate-100 border-slate-200'} rounded p-0.5 border`}>
                       {(['left', 'right'] as const).map(side => (
                         <button
                           key={side}
@@ -551,7 +551,7 @@ export const CabinetTestingPage: React.FC<{ isDark?: boolean }> = ({ isDark = tr
                 <select 
                   value={settings.selectedPart} 
                   onChange={(e) => updateSetting('selectedPart', e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1.5 text-[11px] text-amber-500 font-medium"
+                  className={`w-full ${isDark ? 'bg-slate-950 border-slate-600' : 'bg-white border-slate-300'} border rounded px-2 py-1.5 text-[11px] text-amber-500 font-medium`}
                 >
                   <option value="all">View All Parts</option>
                   <option value="leftPanel">Left Panel</option>
@@ -627,7 +627,7 @@ export const CabinetTestingPage: React.FC<{ isDark?: boolean }> = ({ isDark = tr
         </Canvas>
 
         <div className="absolute top-6 left-6 flex flex-col gap-2">
-          <div className="bg-slate-800/80 backdrop-blur-md px-3 py-2 rounded-lg border border-slate-700/50 shadow-xl">
+          <div className={`${isDark ? 'bg-slate-800/80 border-slate-700/50' : 'bg-white/80 border-slate-200'} backdrop-blur-md px-3 py-2 rounded-lg border shadow-xl`}>
              <div className="text-[10px] uppercase tracking-wider text-amber-500 font-bold mb-1">Live Stats</div>
              <div className="text-[11px] text-slate-300 font-mono">
                DIM: {settings.width}x{settings.height}x{settings.depth}<br/>
@@ -638,7 +638,7 @@ export const CabinetTestingPage: React.FC<{ isDark?: boolean }> = ({ isDark = tr
         </div>
 
         <div className="absolute bottom-6 right-6 flex gap-2">
-          <div className="bg-slate-800/80 backdrop-blur-md px-3 py-2 rounded-lg border border-slate-700/50 text-[10px] text-slate-400">
+          <div className={`${isDark ? 'bg-slate-800/80 border-slate-700/50 text-slate-400' : 'bg-white/80 border-slate-200 text-slate-500'} backdrop-blur-md px-3 py-2 rounded-lg border text-[10px]`}>
             <span className="text-amber-500 font-bold uppercase">Pro Tip:</span> Hold SHIFT + Right Click to PAN
           </div>
         </div>

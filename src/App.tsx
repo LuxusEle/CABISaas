@@ -272,7 +272,7 @@ export default function App() {
             logoUrl={project.settings.logoUrl}
           />
         );
-      case Screen.PROJECT_SETUP: return <ScreenProjectSetup project={project} setProject={setProject} onSave={() => handleSaveProject(project)} onSaveProject={handleSaveProject} />;
+      case Screen.PROJECT_SETUP: return <ScreenProjectSetup project={project} setProject={setProject} onSave={() => handleSaveProject(project)} onSaveProject={handleSaveProject} isDark={isDark} />;
       case Screen.WALL_EDITOR: return <ScreenWallEditor project={project} setProject={setProject} setScreen={setScreen} isDark={isDark} onSave={() => {
         const result = generateRubyLayout(project);
         handleSaveProject(result.project).then(() => navigate('/walls?view=iso'));
@@ -305,7 +305,7 @@ export default function App() {
       <div className="flex-1 flex overflow-hidden md:pb-0 pb-16">
         {/* DESKTOP SIDEBAR - Hidden on landing page */}
         {(location.pathname !== '/' && location.pathname !== '/terms' && location.pathname !== '/testing' && (location.pathname !== '/docs' || user)) && (
-          <aside className="hidden md:flex w-20 flex-col items-center py-6 bg-slate-900 border-r border-slate-800 shrink-0 z-50 print:hidden">
+          <aside className="hidden md:flex w-20 flex-col items-center py-6 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 shrink-0 z-50 print:hidden">
             <div className="mb-8 text-amber-500"><LayoutDashboard size={28} /></div>
             <nav className="flex flex-col gap-6 w-full px-2">
               <NavButton active={location.pathname === '/dashboard'} path="/dashboard" icon={<Home size={24} />} label="Home" />
@@ -320,7 +320,7 @@ export default function App() {
               {user ? (
                 <button
                   onClick={() => setShowAuthModal(true)}
-                  className="p-3 rounded-xl bg-slate-800 text-amber-500 hover:bg-slate-700 transition-colors"
+                  className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-amber-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
                   title={user.email}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
@@ -328,13 +328,13 @@ export default function App() {
               ) : (
                 <button
                   onClick={() => setShowAuthModal(true)}
-                  className="p-3 rounded-xl bg-slate-800 text-slate-400 hover:bg-slate-700 transition-colors"
+                  className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
                   title="Login"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
                 </button>
               )}
-              <button onClick={toggleTheme} className="p-3 rounded-xl bg-slate-800 text-amber-500 hover:bg-slate-700 transition-colors">{isDark ? <Sun size={20} /> : <Moon size={20} />}</button>
+              <button onClick={toggleTheme} className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-amber-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">{isDark ? <Sun size={20} /> : <Moon size={20} />}</button>
             </div>
           </aside>
         )}
@@ -380,7 +380,7 @@ export default function App() {
             } />
             <Route path="/setup" element={
               <ProtectedRoute user={user} loading={authLoading}>
-                <ScreenProjectSetup project={project} setProject={setProject} onSave={() => handleSaveProject(project)} onSaveProject={handleSaveProject} />
+                <ScreenProjectSetup project={project} setProject={setProject} onSave={() => handleSaveProject(project)} onSaveProject={handleSaveProject} isDark={isDark} />
               </ProtectedRoute>
             } />
             <Route path="/walls" element={
@@ -506,7 +506,7 @@ const NavButton = ({ active, onClick, icon, label, path }: any) => {
   return (
     <button
       onClick={handleClick}
-      className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all w-full ${active ? 'bg-amber-600 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-800'}`}
+      className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all w-full ${active ? 'bg-amber-600 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
       title={label}
     >
       {icon}
@@ -675,7 +675,7 @@ const ScreenPlanView = ({ project }: { project: Project }) => {
   );
 };
 
-const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject }: { project: Project, setProject: React.Dispatch<React.SetStateAction<Project>>, onSave: () => void, onSaveProject?: (p: Project) => Promise<any> }) => {
+const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark }: { project: Project, setProject: React.Dispatch<React.SetStateAction<Project>>, onSave: () => void, onSaveProject?: (p: Project) => Promise<any>, isDark: boolean }) => {
   const navigate = useNavigate();
   // State to track which section is expanded - only one at a time
   const [expandedSection, setExpandedSection] = useState<'projectInfo' | 'sheetTypes' | 'accessories' | 'allocation' | 'costs' | null>('projectInfo');
@@ -963,6 +963,7 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject }: { pr
             isOpen={showWallModal}
             onClose={() => setShowWallModal(false)}
             project={project}
+            isDark={isDark}
             onSave={(newZones) => {
               const updatedProject = { ...project, zones: newZones };
               const result = generateRubyLayout(updatedProject);
@@ -981,6 +982,7 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject }: { pr
             onClose={() => setShowCabinetModal(false)}
             cabinetType={editingCabinetType}
             settings={project.settings}
+            isDark={isDark}
             onSave={(newSettings) => {
               setProject({ ...project, settings: newSettings });
             }}
@@ -1956,6 +1958,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark }: { 
         onClose={() => setShowAdvancedCabinetEditor(false)}
         cabinet={tempCabinet}
         globalSettings={project.settings}
+        isDark={isDark}
         onSave={(newCab) => {
           setTempCabinet(newCab);
           setShowAdvancedCabinetEditor(false);
