@@ -92,7 +92,7 @@ export const resolveCollisions = (zone: Zone): Zone => {
 
 // --- AUTO FILL ---
 
-const STD_WIDTHS = [900, 800, 600, 500, 450, 400, 300, 150];
+const STD_WIDTHS = [900, 800, 600, 500, 450, 400, 300, 250];
 
 export const getIntersectingCabinets = (zone: Zone, cabinet: CabinetUnit): CabinetUnit[] => {
   return zone.cabinets.filter(c => {
@@ -235,8 +235,11 @@ export const autoFillZone = (
         while (x + gapWidth < totalLength && !isOccupied(x + gapWidth, 1, type)) {
           gapWidth++;
         }
-        if (gapWidth >= 20) {
-          newCabinets.push({ id: uuid(), preset: PresetType.FILLER, type, width: gapWidth, qty: 1, isAutoFilled: true, fromLeft: x });
+        if (gapWidth >= 250) {
+          const preset = type === CabinetType.BASE
+            ? (options.preferDrawers ? PresetType.BASE_DRAWER_3 : PresetType.BASE_DOOR)
+            : (type === CabinetType.WALL ? PresetType.WALL_STD : PresetType.TALL_UTILITY);
+          newCabinets.push({ id: uuid(), preset, type, width: gapWidth, qty: 1, isAutoFilled: true, fromLeft: x });
           x += gapWidth;
         } else {
           x += 25;

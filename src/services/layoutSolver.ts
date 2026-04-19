@@ -36,7 +36,7 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
   let sinkPlaced = false;
   let cookerPlaced = false;
 
-  const tallWidth = settings.widthTall || 600;
+  const tallWidth = Math.max(250, settings.widthTall || 600);
 
   // 3.1 Tall Cabinet (High Priority Anchor)
   // Ruby Rules:
@@ -111,33 +111,81 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
   for (const zone of zones) {
     fillRemaining(zone, CabinetType.BASE, settings);
     fillRemaining(zone, CabinetType.WALL, settings);
+    absorbRemainder(zone, settings); // Ruby Rule: Absorb small gaps into corners
     zone.cabinets.sort((a,b) => a.fromLeft - b.fromLeft);
   }
 
   return { project: newProject, warnings };
 };
 
-
+// --- Ruby Design Rules Constants ---
+const STANDARD_WIDTHS = [900, 600, 450, 300, 250];
+const BASE_CORNER_WIDTH = 1050;
+const WALL_CORNER_WIDTH = 750;
+const BASE_CORNER_OFFSET = 625;
+const MIN_FILL_WIDTH = 250;
 
 // --- Helper Functions ---
 
 function injectCorners(current: Zone, next: Zone, settings: ProjectSettings) {
   const depth = settings.depthBase;
-  const cornerWidth = 1000;
-  
-  current.cabinets.push({
-    id: uuid(), preset: PresetType.BASE_CORNER, type: CabinetType.BASE, width: cornerWidth, qty: 1, fromLeft: current.totalLength - cornerWidth, isAutoFilled: true, label: 'BC',
-    advancedSettings: { blindPanelWidth: depth, blindCornerSide: 'right', cabinetType: 'corner' }
-  });
-  next.obstacles.push({ id: 'corner_base_offset', type: 'column', fromLeft: 0, width: depth, height: settings.baseHeight + (settings.toeKickHeight || 100), depth });
-
   const wDepth = settings.depthWall;
-  const wCornerWidth = 600;
+  
+  // Base Corner
   current.cabinets.push({
-    id: uuid(), preset: PresetType.WALL_CORNER, type: CabinetType.WALL, width: wCornerWidth, qty: 1, fromLeft: current.totalLength - wCornerWidth, isAutoFilled: true, label: 'WC',
-    advancedSettings: { blindPanelWidth: wDepth, blindCornerSide: 'right', cabinetType: 'wall_corner' }
+    id: uuid(), 
+    preset: PresetType.BASE_CORNER, 
+    type: CabinetType.BASE, 
+    width: BASE_CORNER_WIDTH, 
+    qty: 1, 
+    fromLeft: current.totalLength - BASE_CORNER_WIDTH, 
+    isAutoFilled: true, 
+    label: 'BC',
+    advancedSettings: { 
+      blindPanelWidth: BASE_CORNER_OFFSET, 
+      blindCornerSide: 'right', 
+      cabinetType: 'corner' 
+    }
   });
-  next.obstacles.push({ id: 'corner_wall_offset', type: 'column', fromLeft: 0, width: wDepth, height: settings.wallHeight, elevation: settings.baseHeight + (settings.toeKickHeight || 100) + (settings.counterThickness || 40) + settings.wallCabinetElevation, depth: wDepth });
+  
+  // Base Offset for next wall
+  next.obstacles.push({ 
+    id: 'corner_base_offset', 
+    type: 'column', 
+    fromLeft: 0, 
+    width: BASE_CORNER_OFFSET, 
+    height: settings.baseHeight + (settings.toeKickHeight || 100), 
+    depth 
+  });
+
+  // Wall Corner
+  const wallCornerOffset = wDepth + 25;
+  current.cabinets.push({
+    id: uuid(), 
+    preset: PresetType.WALL_CORNER, 
+    type: CabinetType.WALL, 
+    width: WALL_CORNER_WIDTH, 
+    qty: 1, 
+    fromLeft: current.totalLength - WALL_CORNER_WIDTH, 
+    isAutoFilled: true, 
+    label: 'WC',
+    advancedSettings: { 
+      blindPanelWidth: wallCornerOffset, 
+      blindCornerSide: 'right', 
+      cabinetType: 'wall_corner' 
+    }
+  });
+
+  // Wall Offset for next wall
+  next.obstacles.push({ 
+    id: 'corner_wall_offset', 
+    type: 'column', 
+    fromLeft: 0, 
+    width: wallCornerOffset, 
+    height: settings.wallHeight, 
+    elevation: settings.baseHeight + (settings.toeKickHeight || 100) + (settings.counterThickness || 40) + settings.wallCabinetElevation, 
+    depth: wDepth 
+  });
 }
 
 function findGaps(zone: Zone, type: CabinetType, settings: ProjectSettings) {
@@ -146,6 +194,11 @@ function findGaps(zone: Zone, type: CabinetType, settings: ProjectSettings) {
   zone.obstacles.forEach(o => {
     const baseTop = settings.baseHeight + (settings.counterThickness || 0);
     let blocks = (o.type === 'column' || o.type === 'door' || o.type === 'pipe');
+    
+    // Ruby Rule: Wall cabinets should only be blocked by wall corner offsets, not base corner offsets
+    if (o.id === 'corner_base_offset' && type === CabinetType.WALL) blocks = false;
+    if (o.id === 'corner_wall_offset' && type === CabinetType.BASE) blocks = false;
+
     if (o.type === 'window' && (type === CabinetType.TALL || type === CabinetType.WALL)) blocks = true;
     if (o.type === 'window' && type === CabinetType.BASE && (o.sillHeight || 0) < settings.baseHeight) blocks = true;
     if (blocks) blocked.push({ start: o.fromLeft, end: o.fromLeft + o.width });
@@ -185,23 +238,86 @@ function placeUnit(zone: Zone, unit: CabinetUnit) {
 
 function fillRemaining(zone: Zone, type: CabinetType, settings: ProjectSettings) {
   const gaps = findGaps(zone, type, settings);
-  const defWidth = type === CabinetType.BASE ? (settings.widthBase || 600) : (settings.widthWall || 600);
   const preset = type === CabinetType.BASE ? PresetType.BASE_DOOR : PresetType.WALL_STD;
-  const MIN_FILLER = 200; // minimum width to bother placing a filler unit
 
   for (const gap of gaps) {
-    const count = Math.floor(gap.length / defWidth);
-    for (let i = 0; i < count; i++) {
-      const x = gap.start + (i * defWidth);
-      placeUnit(zone, { id: uuid(), preset, type, width: defWidth, qty: 1, fromLeft: x, isAutoFilled: true, label: `${type.charAt(0)}${zone.cabinets.length + 1}` });
-    }
-    // Fill leftover remainder with an exact-width filler cabinet
-    const remainder = gap.length - count * defWidth;
-    if (remainder >= MIN_FILLER) {
-      const fillerX = gap.start + count * defWidth;
-      placeUnit(zone, { id: uuid(), preset, type, width: remainder, qty: 1, fromLeft: fillerX, isAutoFilled: true, label: `${type.charAt(0)}${zone.cabinets.length + 1}` });
+    let currentX = gap.start;
+    let remainingLength = gap.length;
+
+    // Use standard widths in descending order
+    while (remainingLength >= MIN_FILL_WIDTH) {
+      const width = STANDARD_WIDTHS.find(w => w <= remainingLength);
+      if (width) {
+        placeUnit(zone, { 
+          id: uuid(), 
+          preset, 
+          type, 
+          width: width, 
+          qty: 1, 
+          fromLeft: currentX, 
+          isAutoFilled: true, 
+          label: `${type.charAt(0)}${zone.cabinets.length + 1}` 
+        });
+        currentX += width;
+        remainingLength -= width;
+      } else {
+        break;
+      }
     }
   }
+}
+
+function absorbRemainder(zone: Zone, settings: ProjectSettings) {
+  const types = [CabinetType.BASE, CabinetType.WALL];
+  
+  for (const type of types) {
+    let absorbedInPass = true;
+    while (absorbedInPass) {
+      absorbedInPass = false;
+      const gaps = findGaps(zone, type, settings);
+      
+      for (const gap of gaps) {
+        if (gap.length > 0 && gap.length < MIN_FILL_WIDTH) {
+          // Priority 1: Corner Cabinet
+          const cornerPreset = type === CabinetType.BASE ? PresetType.BASE_CORNER : PresetType.WALL_CORNER;
+          let target = findAdjacent(zone, type, gap, c => c.preset === cornerPreset);
+          
+          // Priority 2: Standard Cabinet (Avoid resizing Cooker/Sink)
+          if (!target) {
+            target = findAdjacent(zone, type, gap, c => 
+              c.preset !== PresetType.SINK_UNIT && 
+              c.preset !== PresetType.BASE_DRAWER_3 && 
+              c.preset !== PresetType.HOOD_UNIT
+            );
+          }
+          
+          // Priority 3: Any Cabinet (Final resort)
+          if (!target) {
+            target = findAdjacent(zone, type, gap, () => true);
+          }
+
+          if (target) {
+            if (Math.abs(target.fromLeft - (gap.start + gap.length)) < 2) {
+              target.width += gap.length;
+              target.fromLeft -= gap.length;
+            } else {
+              target.width += gap.length;
+            }
+            absorbedInPass = true;
+            break; // Re-calculate gaps after modification
+          }
+        }
+      }
+    }
+  }
+}
+
+function findAdjacent(zone: Zone, type: CabinetType, gap: {start: number, end: number, length: number}, predicate: (c: CabinetUnit) => boolean) {
+  return zone.cabinets.find(c => 
+    c.type === type && 
+    predicate(c) &&
+    (Math.abs(c.fromLeft - (gap.start + gap.length)) < 2 || Math.abs((c.fromLeft + c.width) - gap.start) < 2)
+  );
 }
 
 
