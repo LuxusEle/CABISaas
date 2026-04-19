@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Book, ChevronRight, LayoutDashboard, Settings, Box, Table2, Map, CreditCard, FileText, Lightbulb, HelpCircle, CheckCircle } from 'lucide-react';
+import { LandingHeader } from './LandingHeader';
 
 interface DocSection {
   id: string;
@@ -8,13 +9,41 @@ interface DocSection {
   content: React.ReactNode;
 }
 
-export const DocsPage: React.FC = () => {
+interface DocsPageProps {
+  onSignIn: () => void;
+  onGetStarted: () => void;
+  isDark: boolean;
+  setIsDark: (isDark: boolean) => void;
+}
+
+export const DocsPage: React.FC<DocsPageProps> = ({
+  onSignIn,
+  onGetStarted,
+  isDark,
+  setIsDark
+}) => {
+  const [activeSection, setActiveSection] = useState('overview');
+
   const scrollToSection = (id: string) => {
+    setActiveSection(id);
     const element = document.getElementById(id);
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
+
+  useEffect(() => {
+    const hash = window.location.hash.replace('#', '');
+    if (hash) {
+      setActiveSection(hash);
+      setTimeout(() => {
+        const element = document.getElementById(hash);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    }
+  }, []);
 
   const sections: DocSection[] = [
     {
@@ -35,7 +64,7 @@ export const DocsPage: React.FC = () => {
             <li>Manage material types, hardware, and pricing</li>
             <li>Export data to Excel and PDF formats</li>
           </ul>
-          
+
           <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mt-4">
             <h4 className="font-bold text-amber-800 dark:text-amber-400 flex items-center gap-2">
               <Lightbulb className="w-4 h-4" />
@@ -55,7 +84,7 @@ export const DocsPage: React.FC = () => {
       content: (
         <div className="space-y-6">
           <h3 className="text-xl font-bold text-slate-900 dark:text-white">Step-by-Step Guide to Complete a Project</h3>
-          
+
           <div className="space-y-6">
             <div className="border-l-4 border-amber-500 pl-4">
               <h4 className="font-bold text-slate-900 dark:text-white text-lg">Step 1: Project Setup</h4>
@@ -139,7 +168,7 @@ export const DocsPage: React.FC = () => {
       content: (
         <div className="space-y-6">
           <h3 className="text-xl font-bold text-slate-900 dark:text-white">Understanding Setup Options</h3>
-          
+
           <div className="space-y-4">
             <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
               <h4 className="font-bold text-slate-900 dark:text-white mb-2">Project Information</h4>
@@ -212,7 +241,7 @@ export const DocsPage: React.FC = () => {
       content: (
         <div className="space-y-6">
           <h3 className="text-xl font-bold text-slate-900 dark:text-white">Designing Your Cabinets</h3>
-          
+
           <div className="space-y-4">
             <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
               <h4 className="font-bold text-slate-900 dark:text-white mb-2">Wall Zones</h4>
@@ -279,7 +308,7 @@ export const DocsPage: React.FC = () => {
       content: (
         <div className="space-y-6">
           <h3 className="text-xl font-bold text-slate-900 dark:text-white">Understanding Your BOM</h3>
-          
+
           <div className="space-y-4">
             <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
               <h4 className="font-bold text-slate-900 dark:text-white mb-2">Cost Estimate Card</h4>
@@ -348,7 +377,7 @@ export const DocsPage: React.FC = () => {
       content: (
         <div className="space-y-6">
           <h3 className="text-xl font-bold text-slate-900 dark:text-white">Kitchen Plan View</h3>
-          
+
           <div className="space-y-4">
             <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
               <h4 className="font-bold text-slate-900 dark:text-white mb-2">Overview</h4>
@@ -377,7 +406,7 @@ export const DocsPage: React.FC = () => {
       content: (
         <div className="space-y-6">
           <h3 className="text-xl font-bold text-slate-900 dark:text-white">Subscription Plans</h3>
-          
+
           <div className="space-y-4">
             <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
               <h4 className="font-bold text-slate-900 dark:text-white mb-2">Free Plan</h4>
@@ -411,7 +440,7 @@ export const DocsPage: React.FC = () => {
       content: (
         <div className="space-y-6">
           <h3 className="text-xl font-bold text-slate-900 dark:text-white">Frequently Asked Questions</h3>
-          
+
           <div className="space-y-4">
             <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
               <h4 className="font-bold text-slate-900 dark:text-white mb-2">Q: How do I change the currency?</h4>
@@ -461,49 +490,54 @@ export const DocsPage: React.FC = () => {
   ];
 
   return (
-    <div className="flex flex-col h-full w-full overflow-hidden bg-slate-50 dark:bg-slate-950">
-      {/* Header */}
-      <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-4 shrink-0">
-        <h1 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-          <FileText className="w-6 h-6 text-amber-500" />
-          Documentation
-        </h1>
-        <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-          Complete guide to using CabEngine Pro
-        </p>
-      </div>
+    <div className="h-full overflow-y-auto bg-slate-50 dark:bg-slate-950">
+      <LandingHeader
+        onSignIn={onSignIn}
+        onGetStarted={onGetStarted}
+        isDark={isDark}
+        setIsDark={setIsDark}
+      />
 
       {/* Content */}
-      <div className="flex-1 overflow-hidden flex">
+      <div className="max-w-6xl mx-auto flex pt-14 sm:pt-16">
         {/* Sidebar Navigation */}
-        <aside className="hidden md:block w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 overflow-y-auto">
-          <nav className="p-4 space-y-1">
+        <aside className="hidden md:block w-64 shrink-0 border-r border-slate-200 dark:border-slate-800 sticky top-14 sm:top-16 h-[calc(100vh-4rem)] overflow-y-auto p-4 bg-white dark:bg-slate-900">
+          <nav className="space-y-1">
             {sections.map((section) => (
               <button
                 key={section.id}
                 onClick={() => scrollToSection(section.id)}
-                className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors text-left"
+                className={`w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors text-left ${activeSection === section.id
+                    ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  }`}
               >
-                {section.icon}
-                <span className="flex-1">{section.title}</span>
-                <ChevronRight className="w-4 h-4 opacity-50" />
+                <div className="shrink-0">
+                  {section.icon}
+                </div>
+                <span className="flex-1 truncate">{section.title}</span>
+                <ChevronRight className={`w-4 h-4 transition-transform ${activeSection === section.id ? 'rotate-90 opacity-100' : 'opacity-30'}`} />
               </button>
             ))}
           </nav>
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-8">
+        <main className="flex-1 p-4 md:p-8">
           <div className="max-w-4xl mx-auto space-y-8">
             {sections.map((section) => (
               <section
                 key={section.id}
                 id={section.id}
-                className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden"
+                className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden scroll-mt-20"
               >
-                <div className="bg-slate-50 dark:bg-slate-800/50 px-6 py-4 border-b border-slate-200 dark:border-slate-800">
-                  <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <div className={`px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2 transition-colors ${activeSection === section.id ? 'bg-amber-50 dark:bg-amber-900/10' : 'bg-slate-50 dark:bg-slate-800/50'
+                  }`}>
+                  <div className={activeSection === section.id ? 'text-amber-700 dark:text-amber-400' : 'text-slate-500 dark:text-slate-400'}>
                     {section.icon}
+                  </div>
+                  <h2 className={`text-lg font-bold transition-colors ${activeSection === section.id ? 'text-amber-900 dark:text-amber-100' : 'text-slate-900 dark:text-white'
+                    }`}>
                     {section.title}
                   </h2>
                 </div>
@@ -514,9 +548,9 @@ export const DocsPage: React.FC = () => {
             ))}
 
             {/* Footer */}
-            <div className="text-center py-8 text-slate-400 dark:text-slate-600">
+            <div className="text-center py-12 text-slate-400 dark:text-slate-600 border-t border-slate-200 dark:border-slate-800">
               <p className="text-sm">
-                Need more help? Contact support at support@cabengine.pro
+                Need more help? Contact support at support@protradee.com
               </p>
             </div>
           </div>

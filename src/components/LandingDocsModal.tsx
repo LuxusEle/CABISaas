@@ -95,7 +95,7 @@ export const LandingDocsModal: React.FC<DocsModalProps> = ({ isOpen, onClose, on
                   {
                     icon: <FileText className="w-6 h-6" />,
                     title: 'Professional Quotes',
-                    desc: 'Create polished quotes and invoices instantly',
+                    desc: 'Create polished quotes and quotations instantly',
                     color: 'blue'
                   },
                   {
@@ -145,7 +145,7 @@ export const LandingDocsModal: React.FC<DocsModalProps> = ({ isOpen, onClose, on
                     { step: '02', label: 'Calculate', active: true },
                     { step: '03', label: 'Validate', active: true },
                     { step: '04', label: 'Quote', active: true },
-                    { step: '05', label: 'Invoice', active: true },
+                    { step: '05', label: 'Quotation', active: true },
                     { step: '06', label: 'Close', active: false, highlight: true }
                   ].map((item, idx) => (
                     <div key={idx} className="relative flex flex-col items-center text-center">

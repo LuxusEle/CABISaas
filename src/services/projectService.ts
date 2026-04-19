@@ -73,13 +73,20 @@ export const projectService = {
 
     if (error) return { data: null, error };
 
+    // Ensure quotationStatus exists in settings (for older projects)
+    const settings = {
+      ...data.settings,
+      quotationStatus: data.settings?.quotationStatus || 'quotation',
+      quotationApprovedDate: data.settings?.quotationApprovedDate || undefined
+    };
+
     return {
       data: {
         id: data.id,
         name: data.name,
         designer: data.designer || '',
         company: data.company || '',
-        settings: data.settings,
+        settings,
         zones: data.zones,
       },
       error: null,

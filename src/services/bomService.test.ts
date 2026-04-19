@@ -336,7 +336,7 @@ describe('bomService', () => {
       expect(result.materialCost).toBeGreaterThanOrEqual(0);
       expect(result.hardwareCost).toBeGreaterThanOrEqual(0);
       expect(result.laborCost).toBeGreaterThanOrEqual(0);
-      expect(result.subtotal).toBe(result.materialCost + result.hardwareCost + result.laborCost);
+      expect(result.subtotal).toBe(result.materialCost + result.hardwareCost + result.laborCost + result.transportCost);
       expect(result.totalPrice).toBe(result.subtotal + result.margin);
     });
   });

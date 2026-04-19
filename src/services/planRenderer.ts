@@ -657,7 +657,7 @@ export type CanvasPdfExportOptions = {
   orientation?: 'portrait' | 'landscape';
 };
 
-// legacy exportCanvasToPDF removed — use exportBOMToPDF or exportInvoiceToPDF
+// legacy exportCanvasToPDF removed — use exportBOMToPDF or exportQuotationToPDF
   // BOM PDF Export: A2 Landscape
   export function exportBOMToPDF(canvas: HTMLCanvasElement, options: CanvasPdfExportOptions) {
     const {
@@ -693,11 +693,11 @@ export type CanvasPdfExportOptions = {
     pdf.save(filename);
   }
 
-  // Invoice PDF Export: A4 Portrait (for future use, if needed)
-  export function exportInvoiceToPDF(canvas: HTMLCanvasElement, options: CanvasPdfExportOptions) {
+  // Quotation PDF Export: A4 Portrait (for future use, if needed)
+  export function exportQuotationToPDF(canvas: HTMLCanvasElement, options: CanvasPdfExportOptions) {
     const {
       jsPDF,
-      filename = 'invoice.pdf',
+      filename = 'Quotation.pdf',
       marginMm = 10,
       format = 'a4',
       orientation = 'portrait',

@@ -1,5 +1,6 @@
 
 import { Project, Zone, CabinetUnit, BOMGroup, BOMItem, CabinetType, PresetType, ProjectSettings, OptimizationResult, Obstacle, AutoFillOptions } from '../types';
+import { SheetType } from './sheetTypeService';
 import type { ConstructionPlanJSON } from '../types/construction';
 
 // Helper to generate unique IDs
@@ -19,6 +20,38 @@ const HW = {
 
 // Nails per hinge
 const NAILS_PER_HINGE = 4;
+
+// Ruby CBX Door Calculation Helper
+// Returns door configuration based on cabinet width and settings
+// Ruby rules: Single door if width < 599.5mm, Double doors if width >= 600mm
+const calculateDoors = (cabinetWidth: number, doorHeight: number, settings: ProjectSettings) => {
+  const threshold = 599.5; // Ruby threshold in mm
+  const outerGap = settings.doorOuterGap || 3;
+  const innerGap = settings.doorInnerGap || 3;
+  
+  const isDoubleDoor = cabinetWidth >= threshold;
+  
+  if (isDoubleDoor) {
+    const doorOpening = cabinetWidth - 2 * outerGap - innerGap;
+    const doorWidth = doorOpening / 2;
+    return {
+      qty: 2,
+      width: doorWidth,
+      length: doorHeight,
+      hinges: 4,
+      handles: 2
+    };
+  } else {
+    const doorWidth = cabinetWidth - 2 * outerGap;
+    return {
+      qty: 1,
+      width: doorWidth,
+      length: doorHeight,
+      hinges: 2,
+      handles: 1
+    };
+  }
+};
 
 // --- COLLISION LOGIC ---
 
@@ -59,7 +92,7 @@ export const resolveCollisions = (zone: Zone): Zone => {
 
 // --- AUTO FILL ---
 
-const STD_WIDTHS = [900, 800, 600, 500, 450, 400, 300, 150];
+const STD_WIDTHS = [900, 800, 600, 500, 450, 400, 300, 250];
 
 export const getIntersectingCabinets = (zone: Zone, cabinet: CabinetUnit): CabinetUnit[] => {
   return zone.cabinets.filter(c => {
@@ -202,8 +235,11 @@ export const autoFillZone = (
         while (x + gapWidth < totalLength && !isOccupied(x + gapWidth, 1, type)) {
           gapWidth++;
         }
-        if (gapWidth >= 20) {
-          newCabinets.push({ id: uuid(), preset: PresetType.FILLER, type, width: gapWidth, qty: 1, isAutoFilled: true, fromLeft: x });
+        if (gapWidth >= 250) {
+          const preset = type === CabinetType.BASE
+            ? (options.preferDrawers ? PresetType.BASE_DRAWER_3 : PresetType.BASE_DOOR)
+            : (type === CabinetType.WALL ? PresetType.WALL_STD : PresetType.TALL_UTILITY);
+          newCabinets.push({ id: uuid(), preset, type, width: gapWidth, qty: 1, isAutoFilled: true, fromLeft: x });
           x += gapWidth;
         } else {
           x += 25;
@@ -218,7 +254,7 @@ export const autoFillZone = (
 
   // 6. Sequential Numbering (preserve existing labels, assign new ones as needed)
   const finalCabs = [...newCabinets, ...manualCabs].sort((a, b) => a.fromLeft - b.fromLeft);
-  
+
   // Get existing labels to avoid conflicts
   const getExistingLabels = (type: CabinetType) => {
     const existingLabels = manualCabs
@@ -228,14 +264,14 @@ export const autoFillZone = (
         return match ? parseInt(match[2]) : 0;
       })
       .filter(num => num > 0);
-    
+
     return Math.max(0, ...existingLabels);
   };
-  
+
   let bIdx = getExistingLabels(CabinetType.BASE) + 1;
   let wIdx = getExistingLabels(CabinetType.WALL) + 1;
   let tIdx = getExistingLabels(CabinetType.TALL) + 1;
-  
+
   const numbered = finalCabs.map(c => {
     let label = c.label; // Preserve existing labels
     if (!label) {
@@ -255,7 +291,7 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
   const parts: BOMItem[] = [];
   const { thickness } = settings;
   const labelPrefix = unit.label ? `${unit.label} ${unit.preset}` : `#${cabIndex + 1} ${unit.preset}`;
-  
+
   // Get materials from cabinet or use project defaults
   const materials = unit.materials || {};
   const projectMaterials = settings.materialSettings || {
@@ -265,7 +301,7 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
     backMaterial: '6mm MDF',
     shelfMaterial: `${thickness}mm White`
   };
-  
+
   // Resolve materials with fallbacks
   const carcassMaterial = materials.carcassMaterial || projectMaterials.carcassMaterial || `${thickness}mm White`;
   const doorMaterial = materials.doorMaterial || projectMaterials.doorMaterial || `${thickness}mm White`;
@@ -280,13 +316,13 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
   else if (unit.type === CabinetType.TALL) { height = settings.tallHeight; depth = settings.depthTall; }
 
   if (unit.preset === PresetType.FILLER) {
-    parts.push({ 
-      id: uuid(), 
-      name: 'Filler Panel', 
-      qty: 1, 
-      width: unit.width, 
-      length: height, 
-      material: carcassMaterial, 
+    parts.push({
+      id: uuid(),
+      name: 'Filler Panel',
+      qty: 1,
+      width: unit.width,
+      length: height,
+      material: carcassMaterial,
       category: 'carcass',
       label: labelPrefix,
       cabinetId: unit.id,
@@ -297,29 +333,29 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
 
   // CARASS PARTS (Box construction)
   const horizWidth = unit.width - (2 * thickness);
-  
+
   // Side Panels (Left & Right)
-  parts.push({ 
-    id: uuid(), 
-    name: 'Side Panel', 
-    qty: 2, 
-    width: depth, 
-    length: height, 
-    material: carcassMaterial, 
+  parts.push({
+    id: uuid(),
+    name: 'Side Panel',
+    qty: 2,
+    width: depth,
+    length: height,
+    material: carcassMaterial,
     category: 'side',
     label: labelPrefix,
     cabinetId: unit.id,
     cabinetLabel: unit.label
   });
-  
+
   // Bottom Panel
-  parts.push({ 
-    id: uuid(), 
-    name: 'Bottom Panel', 
-    qty: 1, 
-    width: depth, 
-    length: horizWidth, 
-    material: carcassMaterial, 
+  parts.push({
+    id: uuid(),
+    name: 'Bottom Panel',
+    qty: 1,
+    width: depth,
+    length: horizWidth,
+    material: carcassMaterial,
     category: 'bottom',
     label: labelPrefix,
     cabinetId: unit.id,
@@ -328,26 +364,26 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
 
   // Top Panel or Rails
   if (unit.type === CabinetType.BASE) {
-    parts.push({ 
-      id: uuid(), 
-      name: 'Top Rail', 
-      qty: 2, 
-      width: 100, 
-      length: horizWidth, 
-      material: carcassMaterial, 
+    parts.push({
+      id: uuid(),
+      name: 'Top Rail',
+      qty: 2,
+      width: 100,
+      length: horizWidth,
+      material: carcassMaterial,
       category: 'carcass',
       label: labelPrefix,
       cabinetId: unit.id,
       cabinetLabel: unit.label
     });
   } else {
-    parts.push({ 
-      id: uuid(), 
-      name: 'Top Panel', 
-      qty: 1, 
-      width: depth, 
-      length: horizWidth, 
-      material: carcassMaterial, 
+    parts.push({
+      id: uuid(),
+      name: 'Top Panel',
+      qty: 1,
+      width: depth,
+      length: horizWidth,
+      material: carcassMaterial,
       category: 'carcass',
       label: labelPrefix,
       cabinetId: unit.id,
@@ -356,13 +392,13 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
   }
 
   // Back Panel
-  parts.push({ 
-    id: uuid(), 
-    name: 'Back Panel', 
-    qty: 1, 
-    width: unit.width - 2, 
-    length: height - 2, 
-    material: backMaterial, 
+  parts.push({
+    id: uuid(),
+    name: 'Back Panel',
+    qty: 1,
+    width: unit.width - 2,
+    length: height - 2,
+    material: backMaterial,
     category: 'back',
     label: labelPrefix,
     cabinetId: unit.id,
@@ -384,8 +420,9 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
       parts.push({ id: uuid(), name: 'Drawer Side', qty: config.num_drawers * 2, width: depth - 10, length: 150, material: drawerMaterial, category: 'drawer', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label });
     }
 
-    // Add custom hardware
-    const hinges = config.hinges ?? (config.num_doors > 0 ? (unit.width > 400 ? config.num_doors * 2 : config.num_doors) : 0);
+    // Add custom hardware (using Ruby CBX door threshold: >= 600mm = double door)
+    const isDoubleDoor = unit.width >= 599.5;
+    const hinges = config.hinges ?? (config.num_doors > 0 ? (isDoubleDoor ? config.num_doors * 2 : config.num_doors) : 0);
     const slides = config.slides ?? config.num_drawers;
     const handles = config.handles ?? (config.num_doors + config.num_drawers);
 
@@ -404,11 +441,14 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
   }
 
   // Preset Hardware
+  // Calculate door dimensions using Ruby CBX rules
+  const doorConfig = calculateDoors(unit.width, height - 4, settings);
+  
   if (unit.preset === PresetType.BASE_DOOR) {
-    parts.push({ id: uuid(), name: 'Door', qty: unit.width > 400 ? 2 : 1, width: unit.width > 400 ? (unit.width / 2) - 2 : unit.width - 4, length: height - 4, material: doorMaterial, category: 'door', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label });
+    parts.push({ id: uuid(), name: 'Door', qty: doorConfig.qty, width: doorConfig.width, length: doorConfig.length, material: doorMaterial, category: 'door', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label });
     parts.push({ id: uuid(), name: 'Shelf', qty: 1, width: depth - 20, length: horizWidth, material: shelfMaterial, category: 'shelf', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label });
-    parts.push({ id: uuid(), name: HW.HINGE, qty: unit.width > 400 ? 4 : 2, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
-    parts.push({ id: uuid(), name: HW.HANDLE, qty: unit.width > 400 ? 2 : 1, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
+    parts.push({ id: uuid(), name: HW.HINGE, qty: doorConfig.hinges, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
+    parts.push({ id: uuid(), name: HW.HANDLE, qty: doorConfig.handles, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
     parts.push({ id: uuid(), name: HW.LEG, qty: 4, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
   }
   if (unit.preset === PresetType.BASE_DRAWER_3) {
@@ -420,10 +460,10 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
     parts.push({ id: uuid(), name: HW.LEG, qty: 4, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
   }
   if (unit.preset === PresetType.WALL_STD) {
-    parts.push({ id: uuid(), name: 'Door', qty: unit.width > 400 ? 2 : 1, width: unit.width > 400 ? (unit.width / 2) - 2 : unit.width - 4, length: height - 4, material: doorMaterial, category: 'door', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label });
+    parts.push({ id: uuid(), name: 'Door', qty: doorConfig.qty, width: doorConfig.width, length: doorConfig.length, material: doorMaterial, category: 'door', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label });
     parts.push({ id: uuid(), name: 'Shelf', qty: 2, width: depth - 20, length: horizWidth, material: shelfMaterial, category: 'shelf', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label });
-    parts.push({ id: uuid(), name: HW.HINGE, qty: unit.width > 400 ? 4 : 2, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
-    parts.push({ id: uuid(), name: HW.HANDLE, qty: unit.width > 400 ? 2 : 1, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
+    parts.push({ id: uuid(), name: HW.HINGE, qty: doorConfig.hinges, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
+    parts.push({ id: uuid(), name: HW.HANDLE, qty: doorConfig.handles, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
     parts.push({ id: uuid(), name: HW.HANGER, qty: 1, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
   }
   if (unit.preset === PresetType.TALL_OVEN) {
@@ -460,7 +500,7 @@ export const generateProjectBOM = (project: Project): { groups: BOMGroup[], hard
     zone.cabinets.forEach((unit, index) => {
       // Only skip filler panels, include other auto-filled cabinets (boxes)
       if (unit.isAutoFilled && unit.preset === PresetType.FILLER) return;
-      
+
       cabinetCount++;
       if (unit.type !== CabinetType.WALL) zoneLen += unit.width;
 
@@ -516,7 +556,7 @@ export const getMaterialRequirements = (
   project: Project
 ): MaterialBreakdown[] => {
   const allParts: BOMItem[] = [];
-  
+
   // Collect all parts from all cabinets
   project.zones
     .filter(z => z.active)
@@ -545,16 +585,16 @@ export const getMaterialRequirements = (
         (sum, p) => sum + (p.width * p.length * p.qty) / 1000000,
         0
       );
-      
+
       // Estimate sheets needed (rough calculation)
       const sheetArea = (project.settings.sheetWidth * project.settings.sheetLength) / 1000000;
       const estimatedSheets = Math.ceil(totalArea / (sheetArea * 0.85)); // 85% efficiency
-      
+
       // Get thickness from first part or default
-      const thickness = parts[0]?.material?.match(/(\d+)mm/)?.[1] 
+      const thickness = parts[0]?.material?.match(/(\d+)mm/)?.[1]
         ? parseInt(parts[0].material.match(/(\d+)mm/)![1])
         : project.settings.thickness;
-      
+
       // Calculate cost
       const pricePerSheet = project.settings.costs?.pricePerSheet || 85;
       const cost = estimatedSheets * pricePerSheet;
@@ -578,6 +618,7 @@ export interface CostBreakdown {
   materialCost: number;
   hardwareCost: number;
   laborCost: number;
+  transportCost: number;
   subtotal: number;
   margin: number;
   totalPrice: number;
@@ -587,12 +628,32 @@ export const calculateProjectCost = (
   bomData: ReturnType<typeof generateProjectBOM>,
   nestingData: OptimizationResult,
   settings: ProjectSettings,
-  calculatedHardwareCost?: number
+  calculatedHardwareCost?: number,
+  sheetTypes: SheetType[] = []
 ): CostBreakdown => {
   const { costs } = settings;
 
-  // 1. Material (Sheets) - Uses nested result for accuracy
-  const materialCost = nestingData.totalSheets * costs.pricePerSheet;
+  // Helper to find price for a material
+  const findSheetPrice = (materialName: string): number => {
+    const matched = sheetTypes.find(st =>
+      materialName.toLowerCase().includes(st.name.toLowerCase()) ||
+      st.name.toLowerCase().includes(materialName.toLowerCase())
+    );
+    if (matched && matched.price_per_sheet > 0) {
+      return matched.price_per_sheet;
+    }
+    return costs.pricePerSheet;
+  };
+
+  // 1. Material (Sheets) - Calculate per material type using individual prices
+  const materialCostMap: Record<string, number> = {};
+  nestingData.sheets.forEach(sheet => {
+    if (!materialCostMap[sheet.material]) {
+      materialCostMap[sheet.material] = 0;
+    }
+    materialCostMap[sheet.material] += findSheetPrice(sheet.material);
+  });
+  const materialCost = Object.values(materialCostMap).reduce((sum, price) => sum + price, 0);
 
   // 2. Hardware - Use calculated total if provided, otherwise fall back to flat rate
   let hardwareCost: number;
@@ -603,20 +664,54 @@ export const calculateProjectCost = (
     hardwareCost = totalHardwareItems * costs.pricePerHardwareUnit;
   }
 
-  // 3. Labor
-  const totalHours = bomData.cabinetCount * costs.laborHoursPerCabinet;
-  const laborCost = totalHours * costs.laborRatePerHour;
+  // 3. Labor (flat cost from settings)
+  const laborCost = costs.laborCost || 0;
 
-  const subtotal = materialCost + hardwareCost + laborCost;
+  // 4. Transport
+  const transportCost = costs.transportCost || 0;
+
+  const subtotal = materialCost + hardwareCost + laborCost + transportCost;
   const margin = subtotal * (costs.marginPercent / 100);
 
   return {
     materialCost,
     hardwareCost,
     laborCost,
+    transportCost,
     subtotal,
     margin,
     totalPrice: subtotal + margin
+  };
+};
+
+/**
+ * Ensures all required project settings exist, merging with defaults if necessary.
+ * This prevents crashes when loading older projects with missing configuration fields.
+ */
+export const ensureProjectSettings = (project: Project): Project => {
+  const defaults = createNewProject();
+
+  return {
+    ...project,
+    settings: {
+      ...defaults.settings,
+      ...project.settings,
+      costs: {
+        ...defaults.settings.costs,
+        ...(project.settings?.costs || {})
+      },
+      materialSettings: {
+        ...defaults.settings.materialSettings,
+        ...(project.settings?.materialSettings || {})
+      }
+    },
+    zones: (project.zones || []).map(zone => ({
+      ...zone,
+      cabinets: (zone.cabinets || []).map(cab => ({
+        ...cab,
+        materials: cab.materials || {}
+      }))
+    }))
   };
 };
 
@@ -628,24 +723,39 @@ export const createNewProject = (logoUrl?: string): Project => ({
   settings: {
     currency: 'LKR',
     logoUrl: logoUrl,
-    baseHeight: 720,
-    wallHeight: 720,
-    tallHeight: 2100,
-    depthBase: 560,
-    depthWall: 320,
-    depthTall: 580,
-    thickness: 16,
+    // Dimensions - Updated to match Ruby CBX defaults
+    baseHeight: 870,    // Ruby: 870mm (includes plinth)
+    wallHeight: 720,    // Ruby: 720mm
+    tallHeight: 2100,  // Ruby: 2100mm
+    depthBase: 560,    // Ruby: 560mm
+    depthWall: 350,    // Ruby: 350mm
+    depthTall: 560,    // Ruby: 560mm
+    widthBase: 600,   // Default base cabinet width
+    widthWall: 600,   // Default wall cabinet width
+    widthTall: 450,  // Default tall cabinet width (Ruby standard)
+    thickness: 18,     // Ruby: 18mm
     counterThickness: 40,
-    toeKickHeight: 150,
+    toeKickHeight: 100, // Ruby: 100mm plinth
     sheetWidth: 1220,
     sheetLength: 2440,
     kerf: 4,
+    // Ruby CBX Design Rules - Gap & Clearance Settings
+    doorToDoorGap: 2.0,      // Ruby: 2.0mm
+    doorToPanelGap: 2.0,     // Ruby: 2.0mm
+    drawerToDrawerGap: 2.0,  // Ruby: 2.0mm
+    doorOuterGap: 3.0,        // Ruby: 3.0mm
+    doorInnerGap: 3.0,        // Ruby: 3.0mm
+    doorSideClearance: 3.0,   // Ruby: 3.0mm
+    grooveDepth: 5,           // Ruby: 5mm
+    backPanelThickness: 6,    // Ruby: 6mm
+    doorMaterialThickness: 18, // Ruby: 18mm
+    wallCabinetElevation: 450, // Gap from counter top to wall cabinet bottom - default: 450mm
     costs: {
       pricePerSheet: 85.00,
       pricePerHardwareUnit: 5.00,
-      laborRatePerHour: 60.00,
-      laborHoursPerCabinet: 1.5,
-      marginPercent: 50
+      laborCost: 0,
+      marginPercent: 50,
+      transportCost: 1000
     },
     materialSettings: {
       carcassMaterial: '',
@@ -654,7 +764,9 @@ export const createNewProject = (logoUrl?: string): Project => ({
       backMaterial: '',
       shelfMaterial: '',
       sheetSpecs: {}
-    }
+    },
+    quotationStatus: 'quotation' as const,
+    quotationApprovedDate: undefined
   },
   zones: [
     { id: 'Wall A', active: true, totalLength: 3000, wallHeight: 2400, obstacles: [], cabinets: [] }
@@ -805,7 +917,6 @@ export const buildProjectConstructionData = (project: Project): ConstructionPlan
     },
     units: {
       lengthUnit: "m",
-      angleUnit: "deg",
       axisConvention: {
         x: "right", y: "up", z: "forward",
         planViewPlane: "XZ",

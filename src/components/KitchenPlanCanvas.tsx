@@ -1,7 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { jsPDF } from 'jspdf';
-import { Button } from './Button';
-import { exportBOMToPDF, renderKitchenPlanToCanvas } from '../services/planRenderer';
+import { renderKitchenPlanToCanvas } from '../services/planRenderer';
 import type { ConstructionPlanJSON } from '../types/construction';
 
 type Props = {
@@ -87,39 +85,6 @@ const KitchenPlanViewer: React.FC<SingleProps> = ({ data, scalePxPerMeter }) => 
     });
   }, [renderData, scalePxPerMeter, size.width, size.height, viewMode]);
 
-  const handleGeneratePDF = () => {
-    // A2 landscape: 594mm x 420mm
-    const pageWidthMm = 594;
-    const pageHeightMm = 420;
-    const dpi = 96;
-    const mmToPx = mm => Math.round((mm / 25.4) * dpi);
-    const canvasWidth = mmToPx(pageWidthMm);
-    const canvasHeight = mmToPx(pageHeightMm);
-    const offScreenCanvas = document.createElement('canvas');
-    offScreenCanvas.width = canvasWidth;
-    offScreenCanvas.height = canvasHeight;
-
-    renderKitchenPlanToCanvas(offScreenCanvas, renderData, {
-      width: canvasWidth,
-      height: canvasHeight,
-      paddingPx: 0,
-      scalePxPerMeter: 400,
-      background: '#ffffff',
-      forceFill: true,
-      dprOverride: 1,
-      viewMode,
-    });
-
-    const baseName = activeTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-    exportBOMToPDF(offScreenCanvas, {
-      jsPDF,
-      filename: `${baseName}_elevation.pdf`,
-      marginMm: 0,
-      format: 'a2',
-      orientation: 'landscape',
-    });
-  };
-
   return (
     <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800 p-4 md:p-8 space-y-6">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -145,10 +110,6 @@ const KitchenPlanViewer: React.FC<SingleProps> = ({ data, scalePxPerMeter }) => 
               ))}
             </div>
           )}
-
-          <Button variant="primary" size="lg" onClick={handleGeneratePDF} className="shadow-lg shadow-amber-500/10">
-            PDF
-          </Button>
         </div>
       </div>
 

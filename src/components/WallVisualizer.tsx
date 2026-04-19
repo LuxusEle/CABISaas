@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Zone, CabinetUnit, Obstacle, PresetType, CabinetType } from '../types';
+import { Zone, CabinetUnit, Obstacle, PresetType, CabinetType, ProjectSettings } from '../types';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { getActiveColor, isOpenCabinet } from '../services/cabinetColors';
 
 interface Props {
   zone: Zone;
   height: number;
+  settings?: ProjectSettings;
   onCabinetClick?: (index: number) => void;
   onObstacleClick?: (index: number) => void;
   onCabinetMove?: (index: number, newX: number) => void;
@@ -16,7 +17,7 @@ interface Props {
 }
 
 export const WallVisualizer: React.FC<Props> = ({
-  zone, height,
+  zone, height, settings,
   onCabinetClick, onObstacleClick,
   onCabinetMove, onObstacleMove, onDragEnd,
   onSwapCabinets,
@@ -211,11 +212,24 @@ export const WallVisualizer: React.FC<Props> = ({
   const renderCabinetDetail = (unit: CabinetUnit, index: number) => {
     const isTall = unit.type === CabinetType.TALL;
     const isWall = unit.type === CabinetType.WALL;
-    let h = 720;
-    let y = height - 150 - 720;
+    
+    // Use project settings with fallbacks
+    const baseHeight = settings?.baseHeight || 870;
+    const wallHeight = settings?.wallHeight || 720;
+    const tallHeight = settings?.tallHeight || 2100;
+    const toeKick = settings?.toeKickHeight || 100;
+    const counterThickness = settings?.counterThickness || 40;
+    
+    let h = baseHeight;
+    let y = height - toeKick - baseHeight;
 
-    if (isTall) { h = 2100; y = height - 150 - 2100; }
-    else if (isWall) { h = 720; y = height - 150 - 2100; }
+    if (isTall) { h = tallHeight; y = height - toeKick - tallHeight; }
+    else if (isWall) { 
+      h = wallHeight; 
+      // Wall cabinet sits above counter top using settings
+      const wallElevation = settings?.wallCabinetElevation || 450;
+      y = height - toeKick - baseHeight - counterThickness - wallElevation - wallHeight;
+    }
 
     const x = unit.fromLeft;
     const w = unit.width;
@@ -453,29 +467,66 @@ export const WallVisualizer: React.FC<Props> = ({
         {zone.cabinets
           .map((c, idx) => ({ c, idx, x: c.fromLeft }))
           .filter(({ c }) => c.type === CabinetType.BASE)
-          .map(({ c, x }) => (
+          .map(({ c, x }) => {
+            const baseH = settings?.baseHeight || 870;
+            const tk = settings?.toeKickHeight || 100;
+            const ct = settings?.counterThickness || 40;
+            return (
             <g key={'ct' + c.id}>
-              <rect x={x} y={height - 150 - 720 - 40} width={c.width} height={40} fill="#475569" className="print:fill-slate-200" />
+              <rect x={x} y={height - tk - baseH - ct} width={c.width} height={ct} fill="#475569" className="Print:fill-slate-200" />
               {c.preset === PresetType.BASE_DRAWER_3 && (
                 <g>
-                  <rect x={x + 50} y={height - 150 - 720 - 45} width={c.width - 100} height={5} fill="#1e293b" rx="2" />
-                  <text x={x + c.width / 2} y={height - 150 - 720 - 55} textAnchor="middle" fontSize="12" fill="#475569" className="font-bold print:fill-black">HOB / COOKER</text>
+                  <rect x={x + 50} y={height - tk - baseH - ct - 5} width={c.width - 100} height={5} fill="#1e293b" rx="2" />
+                  <text x={x + c.width / 2} y={height - tk - baseH - ct - 10} textAnchor="middle" fontSize="12" fill="#475569" className="font-bold print:fill-black">HOB / COOKER</text>
                 </g>
               )}
             </g>
-          ))}
+          );
+          })}
 
         <line x1="-100" y1={height} x2={zone.totalLength + 100} y2={height} stroke="var(--wall-border)" strokeWidth="4" className="print:stroke-black" />
-        {zone.obstacles.map((obs, idx) => {
+        {zone.obstacles.filter(obs => !obs.id.startsWith('corner_')).map((obs, idx) => {
           const x = obs.fromLeft;
           return (
             <g key={obs.id}
               onClick={(e) => { e.stopPropagation(); onObstacleClick?.(idx); }}
               className="cursor-pointer hover:opacity-80 transition-opacity"
             >
-              <rect x={x} y={height - (obs.elevation || 0) - (obs.height || 2100)} width={obs.width} height={obs.height || 2100} fill="var(--obs-fill)" stroke="var(--obs-stroke)" strokeWidth="2" fillOpacity="0.8" className="print:stroke-black print:fill-slate-200" />
-              {obs.type === 'window' && obs.elevation && <text x={x + obs.width / 2} y={height - 20} textAnchor="middle" fontSize="40" fill="var(--obs-stroke)" className="print:fill-black">ELEV: {obs.elevation}</text>}
-              <text x={x + obs.width / 2} y={height - (obs.elevation || 0) - (obs.height || 2100) / 2} fill="var(--obs-stroke)" fontSize="100" textAnchor="middle" dominantBaseline="middle" style={{ textTransform: 'uppercase', opacity: 0.5, pointerEvents: 'none' }} className="print:fill-black print:opacity-100">{obs.type}</text>
+              <rect 
+                x={x} 
+                y={height - (obs.type === 'window' && obs.sillHeight !== undefined ? obs.sillHeight : (obs.elevation || 0)) - (obs.height || 2100)} 
+                width={obs.width} 
+                height={obs.height || 2100} 
+                fill="var(--obs-fill)" 
+                stroke="var(--obs-stroke)" 
+                strokeWidth="2" 
+                fillOpacity="0.8" 
+                className="print:stroke-black print:fill-slate-200" 
+              />
+              {obs.type === 'window' && (obs.sillHeight !== undefined || obs.elevation) && (
+                <text 
+                  x={x + obs.width / 2} 
+                  y={height - 20} 
+                  textAnchor="middle" 
+                  fontSize="40" 
+                  fill="var(--obs-stroke)" 
+                  className="print:fill-black"
+                >
+                  {obs.sillHeight !== undefined ? `SILL: ${obs.sillHeight}` : `ELEV: ${obs.elevation}`}
+                </text>
+              )}
+              <text 
+                x={x + obs.width / 2} 
+                y={height - (obs.type === 'window' && obs.sillHeight !== undefined ? obs.sillHeight : (obs.elevation || 0)) - (obs.height || 2100) / 2} 
+                fill="var(--obs-stroke)" 
+                fontSize="100" 
+                textAnchor="middle" 
+                dominantBaseline="middle" 
+                style={{ textTransform: 'uppercase', opacity: 0.5, pointerEvents: 'none' }} 
+                className="print:fill-black print:opacity-100"
+              >
+                {obs.type}
+              </text>
             </g>
           );
         })}

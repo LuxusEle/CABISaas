@@ -12,9 +12,13 @@ export interface ExpenseTemplate {
 
 export const expenseTemplateService = {
   async getTemplates(): Promise<ExpenseTemplate[]> {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) return [];
+
     const { data, error } = await supabase
       .from('expense_templates')
       .select('*')
+      .eq('user_id', userData.user.id)
       .order('sort_order', { ascending: true })
       .order('created_at', { ascending: true });
 
@@ -30,10 +34,11 @@ export const expenseTemplateService = {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) return null;
 
-    // Get current count for sort_order
+    // Get current count for sort_order (filtered by user)
     const { count } = await supabase
       .from('expense_templates')
-      .select('*', { count: 'exact', head: true });
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userData.user.id);
 
     const { data, error } = await supabase
       .from('expense_templates')

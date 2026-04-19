@@ -1,4 +1,6 @@
 
+import type { TestingSettings } from './components/CabinetTestingUtils';
+
 export enum ZoneId {
   WALL_A = 'Wall A',
   WALL_B = 'Wall B',
@@ -17,6 +19,7 @@ export enum PresetType {
   BASE_DRAWER_3 = 'Base 3-Drawer',
   BASE_CORNER = 'Base Corner',
   WALL_STD = 'Wall Standard',
+  WALL_CORNER = 'Wall Corner',  // Ruby: Top Corner cabinet (blind corner)
   TALL_OVEN = 'Tall Oven/Micro',
   TALL_UTILITY = 'Tall Utility',
   SINK_UNIT = 'Sink Unit',
@@ -29,9 +32,9 @@ export enum PresetType {
 export interface CostSettings {
   pricePerSheet: number;
   pricePerHardwareUnit: number;
-  laborRatePerHour: number;
-  laborHoursPerCabinet: number;
+  laborCost: number;
   marginPercent: number;
+  transportCost: number;
 }
 
 // Global Project Settings
@@ -47,6 +50,9 @@ export interface ProjectSettings {
   depthBase: number;
   depthWall: number;
   depthTall: number;
+  widthBase: number;   // Default width for base cabinets
+  widthWall: number;   // Default width for wall cabinets
+  widthTall: number;  // Default width for tall cabinets
   thickness: 16 | 18 | 19;
   counterThickness: number;
   toeKickHeight: number;
@@ -56,11 +62,39 @@ export interface ProjectSettings {
   sheetLength: number;
   kerf: number;
 
+  // Ruby CBX Design Rules - Gap & Clearance Settings
+  doorToDoorGap: number;      // Door-to-door gap (between two doors in same cabinet) - default: 2mm
+  doorToPanelGap: number;     // Door to cabinet side/end panel gap - default: 2mm
+  drawerToDrawerGap: number;  // Drawer front to drawer front gap - default: 2mm
+  doorOuterGap: number;        // Door outer gap (from cabinet edge) - default: 3mm
+  doorInnerGap: number;        // Door inner gap (between double doors) - default: 3mm
+  doorSideClearance: number;   // Door side clearance - default: 3mm
+  grooveDepth: number;         // Groove depth for back panels - default: 5mm
+  backPanelThickness: number;  // Back panel thickness - default: 6mm
+  doorMaterialThickness: number; // Door material thickness - default: 18mm
+  wallCabinetElevation: number; // Gap from counter top to wall cabinet bottom - default: 450mm
+
   // Costing
   costs: CostSettings;
-  
+
+  // Quotation Status
+  quotationStatus?: 'quotation' | 'invoice';
+  quotationApprovedDate?: string;
+
   // Material allocation settings
   materialSettings?: ProjectMaterialSettings;
+
+  // Advanced Global Settings
+  advancedTestingSettings?: Partial<TestingSettings>;
+
+  // Wizard Selections
+  layoutRequirements?: {
+    [key: string]: {
+      base: number;
+      wall: number;
+      tall: number;
+    }
+  };
 }
 
 export interface Obstacle {
@@ -70,6 +104,7 @@ export interface Obstacle {
   width: number;
   height: number;
   sillHeight?: number; // Distance from floor to bottom of window
+  elevation?: number; // Distance from floor (alias or used for other types)
   depth?: number;
 }
 
@@ -81,6 +116,9 @@ export interface CustomCabinetConfig {
   hinges?: number;
   slides?: number;
   handles?: number;
+  // Ruby CBX Tall Side Panels configuration
+  // Options: 'none' | 'both' | 'left_100mm' | 'right_100mm' | 'left_only' | 'right_only'
+  tallSidePanels?: 'none' | 'both' | 'left_100mm' | 'right_100mm' | 'left_only' | 'right_only';
 }
 
 export interface CabinetMaterials {
@@ -98,7 +136,7 @@ export interface ProjectMaterialSettings {
   drawerMaterial: string;
   backMaterial: string;
   shelfMaterial: string;
-  
+
   // Sheet specifications per material
   sheetSpecs: Record<string, {
     width: number;
@@ -122,6 +160,8 @@ export interface CabinetUnit {
   customConfig?: CustomCabinetConfig; // Custom configuration
   // Material selection
   materials?: CabinetMaterials;
+  // Advanced Config (Testing Cabinets)
+  advancedSettings?: Partial<TestingSettings>;
 }
 
 export interface Zone {
@@ -215,10 +255,13 @@ export enum Screen {
   DASHBOARD = 'dashboard',
   PROJECT_SETUP = 'project_setup',
   WALL_EDITOR = 'wall_editor',
+  CABINET_SELECTION = 'cabinet_selection',
+  VIEW_3D = 'view_3d',
   BOM_REPORT = 'bom_report',
   TOOLS = 'tools',
   PRICING = 'pricing',
   DOCS = 'docs',
+  TERMS = 'terms',
   POLICY = 'policy'
 }
 
@@ -241,17 +284,21 @@ export interface SubscriptionPlan {
   maxProjects: number;
   maxUsers?: number;
   twocheckoutProductId: string | null;
+  paypalPlanId: string | null;
 }
 
 export interface UserSubscription {
   id?: string;
   user_id: string;
   plan_id: string;
-  status: 'active' | 'cancelled' | 'past_due' | 'unpaid';
+  status: 'active' | 'cancelled' | 'past_due' | 'unpaid' | 'suspended';
   current_period_start: string;
   current_period_end: string;
   cancel_at_period_end: boolean;
   twocheckout_subscription_id?: string;
+  paypal_subscription_id?: string;
+  paypal_order_id?: string;
+  paypal_payer_id?: string;
   created_at?: string;
   updated_at?: string;
 }

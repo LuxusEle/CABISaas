@@ -18,10 +18,10 @@ export const MaterialAllocationPanel: React.FC<MaterialAllocationPanelProps> = (
   const [sheetTypes, setSheetTypes] = useState<SheetType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [internalExpanded, setInternalExpanded] = useState(false);
-  
+
   // Use external state if provided, otherwise use internal
   const isExpanded = externalExpanded !== undefined ? externalExpanded : internalExpanded;
-  
+
   const [allocation, setAllocation] = useState({
     carcassMaterial: settings.materialSettings?.carcassMaterial || '',
     doorMaterial: settings.materialSettings?.doorMaterial || '',
@@ -44,7 +44,7 @@ export const MaterialAllocationPanel: React.FC<MaterialAllocationPanelProps> = (
   const handleChange = (field: keyof typeof allocation, value: string) => {
     const newAllocation = { ...allocation, [field]: value };
     setAllocation(newAllocation);
-    
+
     onUpdate({
       materialSettings: {
         ...settings.materialSettings,
@@ -54,25 +54,12 @@ export const MaterialAllocationPanel: React.FC<MaterialAllocationPanelProps> = (
     });
   };
 
-  if (isLoading) {
-    return (
-      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-        <div className="flex justify-between items-center p-4">
-          <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2 uppercase tracking-tight">
-            <Settings2 className="text-purple-500" /> Material Allocation by Part Type
-          </h3>
-          <button className="p-2 text-slate-400">
-            <ChevronDown size={20} />
-          </button>
-        </div>
-      </div>
-    );
-  }
+
 
   return (
     <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
       {/* Header - Always visible */}
-      <div 
+      <div
         className="flex justify-between items-center p-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
         onClick={() => {
           if (onToggle) {
@@ -223,7 +210,7 @@ export const MaterialAllocationPanel: React.FC<MaterialAllocationPanelProps> = (
                       className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm"
                     >
                       <option value="">Select material...</option>
-                      <option value="{allocation.carcassMaterial}">Same as Carcass ({allocation.carcassMaterial || 'Not set'})</option>
+                      <option value="">Same as Carcass ({allocation.carcassMaterial || 'Not set'})</option>
                       {sheetTypes.map((type) => (
                         <option key={type.id} value={type.name}>
                           {type.name} ({type.thickness}mm)

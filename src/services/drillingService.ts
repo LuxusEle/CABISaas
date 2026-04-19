@@ -47,7 +47,8 @@ const getNumDoors = (unit: CabinetUnit): number => {
   switch (unit.preset) {
     case PresetType.BASE_DOOR:
     case PresetType.WALL_STD:
-      return unit.width > 400 ? 2 : 1;
+      // Ruby CBX door threshold: < 599.5mm = single door, >= 600mm = double doors
+      return unit.width >= 599.5 ? 2 : 1;
     case PresetType.TALL_OVEN:
     case PresetType.TALL_UTILITY:
       return 1;

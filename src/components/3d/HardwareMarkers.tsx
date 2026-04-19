@@ -10,6 +10,9 @@ interface Props {
   zBase: number;
 }
 
+// Ruby CBX door threshold: < 599.5mm = single door, >= 600mm = double doors
+const RUBY_DOOR_THRESHOLD = 599.5;
+
 const getNumDoors = (unit: CabinetUnit): number => {
   if (unit.customConfig?.num_doors !== undefined) {
     return unit.customConfig.num_doors;
@@ -17,7 +20,7 @@ const getNumDoors = (unit: CabinetUnit): number => {
   switch (unit.preset) {
     case PresetType.BASE_DOOR:
     case PresetType.WALL_STD:
-      return unit.width > 400 ? 2 : 1;
+      return unit.width >= RUBY_DOOR_THRESHOLD ? 2 : 1;
     case PresetType.TALL_OVEN:
     case PresetType.TALL_UTILITY:
       return 1;

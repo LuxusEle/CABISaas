@@ -13,9 +13,13 @@ export interface SheetType {
 
 export const sheetTypeService = {
   async getSheetTypes(): Promise<SheetType[]> {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) return [];
+
     const { data, error } = await supabase
       .from('sheet_types')
       .select('*')
+      .eq('user_id', userData.user.id)
       .order('is_default', { ascending: false })
       .order('created_at', { ascending: true });
 

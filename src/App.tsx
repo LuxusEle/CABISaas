@@ -1,13 +1,16 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Home, Layers, Calculator, Zap, ArrowLeft, ArrowRight, Trash2, Plus, Box, DoorOpen, Wand2, Moon, Sun, Table2, FileSpreadsheet, X, Pencil, Save, List, Settings, Printer, Download, Scissors, LayoutDashboard, DollarSign, Map, LogOut, Menu, Wrench, CreditCard, ChevronDown, ChevronUp, FileText, Ruler, Book, Upload, Image as ImageIcon, Shield, FileCode } from 'lucide-react';
+import { Routes, Route, useNavigate, useLocation, Navigate, useParams, useSearchParams } from 'react-router-dom';
+import { Home, Layers, Calculator, Zap, ArrowLeft, ArrowRight, Trash2, Plus, Box, DoorOpen, Wand2, Moon, Sun, Table2, FileSpreadsheet, X, Pencil, Save, List, Settings, Printer, Download, Scissors, LayoutDashboard, DollarSign, Map, LogOut, Menu, Wrench, CreditCard, ChevronDown, ChevronUp, FileText, Ruler, Book, Upload, Image as ImageIcon, Shield, FileCode, Check, Settings2 } from 'lucide-react';
 import { Screen, Project, Zone, ZoneId, PresetType, CabinetType, CabinetUnit, Obstacle, AutoFillOptions } from './types';
-import { createNewProject, generateProjectBOM, autoFillZone, exportToExcel, resolveCollisions, calculateProjectCost, exportProjectToConstructionJSON, buildProjectConstructionData, getIntersectingCabinets } from './services/bomService';
+import { createNewProject, generateProjectBOM, autoFillZone, exportToExcel, resolveCollisions, calculateProjectCost, exportProjectToConstructionJSON, buildProjectConstructionData, getIntersectingCabinets, ensureProjectSettings } from './services/bomService';
+import { generateRubyLayout } from './services/layoutSolver';
 import { exportAllSheetsToDXFZip, exportSingleSheetToDXF, exportAllDrillingToZip } from './services/dxfExportService';
-import { generateInvoicePDF } from './services/pdfService';
+import { generateQuotationPDF } from './services/pdfService';
 import { optimizeCuts } from './services/nestingService';
 import { authService } from './services/authService';
 import { expenseTemplateService, ExpenseTemplate } from './services/expenseTemplateService';
+import { sheetTypeService, SheetType } from './services/sheetTypeService';
 import { supabase } from './services/supabaseClient';
 import type { User } from '@supabase/supabase-js';
 
@@ -18,7 +21,7 @@ import { WallVisualizer } from './components/WallVisualizer';
 import { CutPlanVisualizer } from './components/CutPlanVisualizer';
 import { IsometricVisualizer } from './components/IsometricVisualizer';
 import { CabinetViewer } from './components/3d';
-import { KitchenPlanCanvas } from './components/KitchenPlanCanvas.tsx';
+import { KitchenPlanCanvas } from './components/KitchenPlanCanvas';
 import { AuthModal } from './components/AuthModal';
 import { CustomCabinetEditor } from './components/CustomCabinetEditor';
 import { LandingPage } from './components/LandingPage';
@@ -26,6 +29,11 @@ import { customCabinetService } from './services/customCabinetService';
 import { projectService } from './services/projectService';
 import { SequentialBoxInput } from './components/SequentialBoxInput';
 import { SheetTypeManager } from './components/SheetTypeManager';
+import { CabinetPreviewCard } from './components/CabinetPreviewCard';
+import { CabinetEditModal } from './components/CabinetEditModal';
+import { SingleCabinetEditorModal } from './components/SingleCabinetEditorModal';
+import { WallSetupCard } from './components/WallSetupCard';
+import { WallEditModal } from './components/WallEditModal';
 import { MaterialSelector } from './components/MaterialSelector';
 import { MaterialAllocationPanel } from './components/MaterialAllocationPanel';
 import { PricingPage } from './components/PricingPage';
@@ -33,6 +41,8 @@ import { HelpButton } from './components/HelpButton';
 import { DocsPage } from './components/DocsPage';
 import { PolicyModal } from './components/PolicyModal';
 import { logoService } from './services/logoService';
+import TermsPage from './pages/TermsPage';
+import { CabinetTestingPage } from './components/CabinetTestingPage';
 
 // --- PRINT TITLE BLOCK ---
 const TitleBlock = ({ project, pageTitle }: { project: Project, pageTitle: string }) => (
@@ -62,9 +72,42 @@ const TitleBlock = ({ project, pageTitle }: { project: Project, pageTitle: strin
   </div>
 );
 
+// --- PROTECTED ROUTE COMPONENT ---
+const ProtectedRoute = ({ user, loading, children }: { user: User | null, loading: boolean, children: React.ReactNode }) => {
+  const location = useLocation();
+
+  if (loading) {
+    return (
+      <div className="fixed inset-0 bg-slate-900 flex items-center justify-center z-50">
+        <div className="text-center">
+          <div className="font-black text-3xl mb-4">CAB<span className="text-amber-500">ENGINE</span></div>
+          <div className="text-slate-400">Verifying session...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    // Redirect to landing page but save the attempt location
+    return <Navigate to="/" state={{ from: location }} replace />;
+  }
+
+  return <>{children}</>;
+};
+
 // --- MAIN APP COMPONENT ---
 
 export default function App() {
+  const [isDark, setIsDark] = useState(() => {
+    try { return localStorage.getItem('app-theme') !== 'false'; } catch { return true; }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('app-theme', String(isDark));
+    if (isDark) document.documentElement.classList.add('dark');
+    else document.documentElement.classList.remove('dark');
+  }, [isDark]);
+
   const [screen, setScreen] = useState<Screen>(Screen.LANDING);
   const [project, setProject] = useState<Project>(createNewProject());
   const [user, setUser] = useState<User | null>(null);
@@ -72,9 +115,9 @@ export default function App() {
   const [authModalMode, setAuthModalMode] = useState<'login' | 'signup'>('login');
   const [showPolicyModal, setShowPolicyModal] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
-  const [isDark, setIsDark] = useState(() => {
-    try { return localStorage.getItem('app-theme') !== 'false'; } catch { return true; }
-  });
+
+  const navigate = useNavigate();
+  const location = useLocation();
 
   // Check authentication on mount and load saved logo
   useEffect(() => {
@@ -95,8 +138,9 @@ export default function App() {
 
       setAuthLoading(false);
       // If user is logged in and we're on landing page, go to dashboard
-      if (user && screen === Screen.LANDING) {
-        setScreen(Screen.DASHBOARD);
+      const isPublicPath = ['/', '/docs', '/terms'].includes(location.pathname);
+      if (user && isPublicPath && location.pathname === '/') {
+        navigate('/dashboard');
       }
     };
     checkAuth();
@@ -104,31 +148,25 @@ export default function App() {
     // Listen to auth changes
     const subscription = authService.onAuthStateChange((user) => {
       setUser(user);
-      // If user logged out and not on landing page, redirect to landing
-      if (!user && screen !== Screen.LANDING) {
-        setScreen(Screen.LANDING);
+      // If user logged out and on a protected page, redirect to landing
+      const protectedPaths = ['/dashboard', '/setup', '/walls', '/bom'];
+      if (!user && protectedPaths.includes(location.pathname)) {
+        navigate('/');
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [screen]);
+  }, [location.pathname]);
 
   // Function to require authentication before action
   const requireAuth = (action: () => void) => {
     if (!user) {
-      setScreen(Screen.LANDING);
       setAuthModalMode('login');
       setShowAuthModal(true);
     } else {
       action();
     }
   };
-
-  useEffect(() => {
-    localStorage.setItem('app-theme', String(isDark));
-    if (isDark) document.documentElement.classList.add('dark');
-    else document.documentElement.classList.remove('dark');
-  }, [isDark]);
 
   // Auto-save project to localStorage
   useEffect(() => {
@@ -138,6 +176,14 @@ export default function App() {
       console.warn('Failed to save project:', e);
     }
   }, [project]);
+
+  useEffect(() => {
+    // Reset state-based screen when navigating to a URL-based route
+    const routePaths = ['/dashboard', '/setup', '/walls', '/bom', '/docs', '/terms', '/pricing', '/'];
+    if (routePaths.includes(location.pathname) && (screen as any) === Screen.PRICING) {
+      setScreen(Screen.LANDING);
+    }
+  }, [location.pathname]);
 
   const toggleTheme = () => setIsDark(!isDark);
 
@@ -162,8 +208,9 @@ export default function App() {
       console.error("Save error:", error);
       alert("Saving failed. Please try again.");
     } else if (data) {
-      setProject(data);
-      return data;
+      const fixedData = ensureProjectSettings(data);
+      setProject(fixedData);
+      return fixedData;
     }
     return null;
   };
@@ -179,7 +226,7 @@ export default function App() {
       const savedProj = await handleSaveProject(newProj);
       if (savedProj) {
         setProject(savedProj);
-        setScreen(Screen.PROJECT_SETUP);
+        navigate('/setup');
       }
     });
   };
@@ -191,13 +238,15 @@ export default function App() {
 
   const renderContent = () => {
     // Check authentication for protected screens
-    const protectedScreens = [Screen.DASHBOARD, Screen.PROJECT_SETUP, Screen.WALL_EDITOR, Screen.BOM_REPORT, Screen.TOOLS];
+    const protectedScreens = [Screen.DASHBOARD, Screen.PROJECT_SETUP, Screen.WALL_EDITOR, Screen.BOM_REPORT];
     if (!user && protectedScreens.includes(screen)) {
       // Redirect to landing page if not authenticated
       return (
         <LandingPage
           onGetStarted={() => openAuthModal('signup')}
           onSignIn={() => openAuthModal('login')}
+          isDark={isDark}
+          setIsDark={setIsDark}
         />
       );
     }
@@ -208,6 +257,8 @@ export default function App() {
           <LandingPage
             onGetStarted={() => openAuthModal('signup')}
             onSignIn={() => openAuthModal('login')}
+            isDark={isDark}
+            setIsDark={setIsDark}
           />
         );
       case Screen.DASHBOARD:
@@ -216,18 +267,21 @@ export default function App() {
             onNewProject={handleStartProject}
             onLoadProject={(p) => {
               setProject(p);
-              setScreen(Screen.WALL_EDITOR);
+              navigate('/walls');
             }}
             logoUrl={project.settings.logoUrl}
           />
         );
-      case Screen.PROJECT_SETUP: return <ScreenProjectSetup project={project} setProject={setProject} />;
-      case Screen.WALL_EDITOR: return <ScreenWallEditor project={project} setProject={setProject} setScreen={setScreen} onSave={() => handleSaveProject(project)} />;
+      case Screen.PROJECT_SETUP: return <ScreenProjectSetup project={project} setProject={setProject} onSave={() => handleSaveProject(project)} onSaveProject={handleSaveProject} />;
+      case Screen.WALL_EDITOR: return <ScreenWallEditor project={project} setProject={setProject} setScreen={setScreen} onSave={() => {
+        const result = generateRubyLayout(project);
+        handleSaveProject(result.project).then(() => navigate('/walls?view=iso'));
+      }} />;
       case Screen.BOM_REPORT: return <ScreenBOMReport project={project} setProject={setProject} />;
-      case Screen.TOOLS: return <ScreenPlanView project={project} />;
-      case Screen.PRICING: return <PricingPage />;
-      case Screen.DOCS: return <DocsPage />;
-      default: return <LandingPage onGetStarted={() => openAuthModal('signup')} onSignIn={() => openAuthModal('login')} />;
+      case Screen.PRICING: return <PricingPage onSignIn={() => openAuthModal('login')} onGetStarted={() => openAuthModal('signup')} isDark={isDark} setIsDark={setIsDark} />;
+      case Screen.DOCS: return <DocsPage onSignIn={() => openAuthModal('login')} onGetStarted={() => openAuthModal('signup')} isDark={isDark} setIsDark={setIsDark} />;
+      case Screen.TERMS: return <TermsPage onSignIn={() => openAuthModal('login')} onGetStarted={() => openAuthModal('signup')} isDark={isDark} setIsDark={setIsDark} />;
+      default: return <LandingPage onGetStarted={() => openAuthModal('signup')} onSignIn={() => openAuthModal('login')} isDark={isDark} setIsDark={setIsDark} />;
     }
   };
 
@@ -235,7 +289,7 @@ export default function App() {
     <div className="h-full w-full flex flex-col font-sans transition-colors duration-200 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
       {/* MOBILE HEADER */}
       <div className="md:hidden h-14 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 shrink-0 z-40 print:hidden">
-        <div className="font-black text-lg">CAB<span className="text-amber-500">ENGINE</span></div>
+        <img src="/landing.png" alt="CabEngine Logo" className="h-8 w-auto object-contain dark:invert-0 invert" />
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowAuthModal(true)}
@@ -244,23 +298,23 @@ export default function App() {
           >
             <svg xmlns="http://www.w3.org/2000/svg" width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
           </button>
-          <button onClick={toggleTheme} className="p-2 rounded-full bg-slate-100 dark:bg-slate-800">{isDark ? <Sun size={18} /> : <Moon size={18} />}</button>
+          <button onClick={() => setIsDark(!isDark)} className="p-2 rounded-full bg-slate-100 dark:bg-slate-800">{isDark ? <Sun size={18} /> : <Moon size={18} />}</button>
         </div>
       </div>
 
       <div className="flex-1 flex overflow-hidden md:pb-0 pb-16">
         {/* DESKTOP SIDEBAR - Hidden on landing page */}
-        {screen !== Screen.LANDING && (
+        {(location.pathname !== '/' && location.pathname !== '/terms' && location.pathname !== '/testing' && (location.pathname !== '/docs' || user)) && (
           <aside className="hidden md:flex w-20 flex-col items-center py-6 bg-slate-900 border-r border-slate-800 shrink-0 z-50 print:hidden">
             <div className="mb-8 text-amber-500"><LayoutDashboard size={28} /></div>
             <nav className="flex flex-col gap-6 w-full px-2">
-              <NavButton active={screen === Screen.DASHBOARD} onClick={() => setScreen(Screen.DASHBOARD)} icon={<Home size={24} />} label="Home" />
-              <NavButton active={screen === Screen.PROJECT_SETUP} onClick={() => requireAuth(() => setScreen(Screen.PROJECT_SETUP))} icon={<Settings size={24} />} label="Setup" />
-              <NavButton active={screen === Screen.WALL_EDITOR} onClick={() => requireAuth(() => setScreen(Screen.WALL_EDITOR))} icon={<Box size={24} />} label="Walls" />
-              <NavButton active={screen === Screen.BOM_REPORT} onClick={() => requireAuth(() => setScreen(Screen.BOM_REPORT))} icon={<Table2 size={24} />} label="BOM" />
-              <NavButton active={screen === Screen.TOOLS} onClick={() => requireAuth(() => setScreen(Screen.TOOLS))} icon={<Map size={24} />} label="Plan" />
-              <NavButton active={screen === Screen.PRICING} onClick={() => requireAuth(() => setScreen(Screen.PRICING))} icon={<CreditCard size={24} />} label="Pricing" />
-              <NavButton active={screen === Screen.DOCS} onClick={() => setScreen(Screen.DOCS)} icon={<Book size={24} />} label="Docs" />
+              <NavButton active={location.pathname === '/dashboard'} path="/dashboard" icon={<Home size={24} />} label="Home" />
+              <NavButton active={location.pathname === '/setup'} path="/setup" icon={<Settings size={24} />} label="Setup" />
+              <NavButton active={location.pathname === '/walls'} path="/walls" icon={<Box size={24} />} label="Walls" />
+              <NavButton active={location.pathname === '/bom'} path="/bom" icon={<Table2 size={24} />} label="BOM" />
+              <NavButton active={location.pathname === '/pricing'} path="/pricing" icon={<CreditCard size={24} />} label="Pricing" />
+              <NavButton active={location.pathname === '/testing'} path="/testing" icon={<Wrench size={24} />} label="Testing" />
+              <NavButton active={location.pathname === '/docs'} path="/docs" icon={<Book size={24} />} label="Docs" />
             </nav>
             <div className="mt-auto flex flex-col gap-2">
               {user ? (
@@ -287,19 +341,93 @@ export default function App() {
 
         {/* MAIN */}
         <main className="flex-1 flex flex-col overflow-hidden relative" id="main-content">
-          {renderContent()}
+          <Routes>
+            <Route path="/" element={
+              <LandingPage
+                onGetStarted={() => openAuthModal('signup')}
+                onSignIn={() => openAuthModal('login')}
+                isDark={isDark}
+                setIsDark={setIsDark}
+              />
+            } />
+            <Route path="/terms" element={
+              <TermsPage
+                onSignIn={() => openAuthModal('login')}
+                onGetStarted={() => openAuthModal('signup')}
+                isDark={isDark}
+                setIsDark={setIsDark}
+              />
+            } />
+            <Route path="/docs" element={
+              <DocsPage
+                onSignIn={() => openAuthModal('login')}
+                onGetStarted={() => openAuthModal('signup')}
+                isDark={isDark}
+                setIsDark={setIsDark}
+              />
+            } />
+            <Route path="/dashboard" element={
+              <ProtectedRoute user={user} loading={authLoading}>
+                <ScreenHome
+                  onNewProject={handleStartProject}
+                  onLoadProject={(p) => {
+                    setProject(ensureProjectSettings(p));
+                    navigate('/walls');
+                  }}
+                  logoUrl={project.settings.logoUrl}
+                />
+              </ProtectedRoute>
+            } />
+            <Route path="/setup" element={
+              <ProtectedRoute user={user} loading={authLoading}>
+                <ScreenProjectSetup project={project} setProject={setProject} onSave={() => handleSaveProject(project)} onSaveProject={handleSaveProject} />
+              </ProtectedRoute>
+            } />
+            <Route path="/walls" element={
+              <ProtectedRoute user={user} loading={authLoading}>
+                <ScreenWallEditor project={project} setProject={setProject} setScreen={setScreen} onSave={() => {
+                  const result = generateRubyLayout(project);
+                  handleSaveProject(result.project).then(() => navigate('/walls?view=iso'));
+                }} />
+              </ProtectedRoute>
+            } />
+            <Route path="/bom" element={
+              <ProtectedRoute user={user} loading={authLoading}>
+                <ScreenBOMReport project={project} setProject={setProject} />
+              </ProtectedRoute>
+            } />
+            <Route path="/pricing" element={
+              <PricingPage
+                onSignIn={() => openAuthModal('login')}
+                onGetStarted={() => openAuthModal('signup')}
+                isDark={isDark}
+                setIsDark={setIsDark}
+              />
+            } />
+            <Route path="/testing" element={
+              <CabinetTestingPage />
+            } />
+            <Route path="*" element={
+              <LandingPage
+                onGetStarted={() => openAuthModal('signup')}
+                onSignIn={() => openAuthModal('login')}
+                isDark={isDark}
+                setIsDark={setIsDark}
+              />
+            } />
+          </Routes>
         </main>
       </div>
 
       {/* MOBILE NAV */}
-      {(screen !== Screen.LANDING && screen !== Screen.DASHBOARD) && (
+      {location.pathname !== '/' && location.pathname !== '/terms' && location.pathname !== '/testing' && (
         <div className="md:hidden h-16 mobile-nav bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex items-stretch justify-around z-[100] shrink-0 print:hidden safe-area-bottom" style={{ position: 'fixed', bottom: 0, left: 0, right: 0 }}>
-          <MobileNavButton active={screen === Screen.DASHBOARD} onClick={() => setScreen(Screen.DASHBOARD)} icon={<Home size={20} />} label="Home" />
-          <MobileNavButton active={screen === Screen.PROJECT_SETUP} onClick={() => setScreen(Screen.PROJECT_SETUP)} icon={<Settings size={20} />} label="Setup" />
-          <MobileNavButton active={screen === Screen.WALL_EDITOR} onClick={() => setScreen(Screen.WALL_EDITOR)} icon={<Box size={20} />} label="Editor" />
-          <MobileNavButton active={screen === Screen.BOM_REPORT} onClick={() => setScreen(Screen.BOM_REPORT)} icon={<Table2 size={20} />} label="BOM" />
-          <MobileNavButton active={screen === Screen.TOOLS} onClick={() => setScreen(Screen.TOOLS)} icon={<Map size={20} />} label="Plan" />
-          <MobileNavButton active={screen === Screen.DOCS} onClick={() => setScreen(Screen.DOCS)} icon={<Book size={20} />} label="Docs" />
+          <MobileNavButton active={location.pathname === '/dashboard'} path="/dashboard" icon={<Home size={20} />} label="Home" />
+          <MobileNavButton active={location.pathname === '/setup'} path="/setup" icon={<Settings size={20} />} label="Setup" />
+          <MobileNavButton active={location.pathname === '/walls'} path="/walls" icon={<Box size={20} />} label="Editor" />
+          <MobileNavButton active={location.pathname === '/bom'} path="/bom" icon={<Table2 size={20} />} label="BOM" />
+          <MobileNavButton active={location.pathname === '/testing'} path="/testing" icon={<Wrench size={20} />} label="Test" />
+          <MobileNavButton active={location.pathname === '/docs'} path="/docs" icon={<Book size={20} />} label="Docs" />
         </div>
       )}
 
@@ -332,14 +460,14 @@ export default function App() {
           onClose={() => setShowAuthModal(false)}
           onSuccess={() => {
             setShowAuthModal(false);
-            // After successful login/signup from landing page, go to dashboard
-            if (screen === Screen.LANDING) {
-              setScreen(Screen.DASHBOARD);
+            // After successful login/signup, go to dashboard
+            if (location.pathname === '/') {
+              navigate('/dashboard');
             }
           }}
           onLogout={() => {
             setShowAuthModal(false);
-            setScreen(Screen.LANDING);
+            navigate('/');
           }}
           onNavigateToPolicy={() => {
             setShowPolicyModal(true);
@@ -369,12 +497,39 @@ export default function App() {
   );
 }
 
-const NavButton = ({ active, onClick, icon, label }: any) => (
-  <button onClick={onClick} className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all w-full ${active ? 'bg-amber-600 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-800'}`} title={label}>{icon}</button>
-);
-const MobileNavButton = ({ active, onClick, icon, label }: any) => (
-  <button onClick={onClick} className={`flex-1 flex flex-col items-center justify-center gap-1 ${active ? 'text-amber-600 dark:text-amber-500' : 'text-slate-400'}`}>{icon}<span className="text-[10px] font-bold">{label}</span></button>
-);
+const NavButton = ({ active, onClick, icon, label, path }: any) => {
+  const navigate = useNavigate();
+  const handleClick = () => {
+    if (path) navigate(path);
+    if (onClick) onClick();
+  };
+  return (
+    <button
+      onClick={handleClick}
+      className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all w-full ${active ? 'bg-amber-600 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-800'}`}
+      title={label}
+    >
+      {icon}
+    </button>
+  );
+};
+
+const MobileNavButton = ({ active, onClick, icon, label, path }: any) => {
+  const navigate = useNavigate();
+  const handleClick = () => {
+    if (path) navigate(path);
+    if (onClick) onClick();
+  };
+  return (
+    <button
+      onClick={handleClick}
+      className={`flex-1 flex flex-col items-center justify-center gap-1 ${active ? 'text-amber-600 dark:text-amber-500' : 'text-slate-400'}`}
+    >
+      {icon}
+      <span className="text-[10px] font-bold">{label}</span>
+    </button>
+  );
+};
 
 // --- SCREENS ---
 
@@ -394,8 +549,8 @@ const ScreenHome = ({ onNewProject, onLoadProject, logoUrl }: { onNewProject: ()
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 items-center justify-start max-w-6xl mx-auto w-full overflow-y-auto p-4 sm:p-6">
       <div className="w-full flex justify-between items-start mb-6 sm:mb-8">
-        <div className="text-center space-y-2 flex-1">
-          <h1 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight text-slate-900 dark:text-white">CAB<span className="text-amber-600 dark:text-amber-500">ENGINE</span></h1>
+        <div className="text-center space-y-2 flex-1 flex flex-col items-center">
+          <img src="/landing.png" alt="CabEngine Logo" className="h-10 sm:h-16 md:h-20 w-auto object-contain mb-2 dark:invert-0 invert" />
           <p className="text-slate-500 dark:text-slate-400 font-medium italic text-sm sm:text-base">Professional Cabinet Engineering Suite</p>
         </div>
         {logoUrl && (
@@ -477,15 +632,15 @@ const ScreenPlanView = ({ project }: { project: Project }) => {
 
       <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-50 dark:bg-slate-950 print:bg-white print:p-0">
         <div className="max-w-6xl mx-auto space-y-8 print:space-y-4">
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border dark:border-slate-800 print:border-none print:shadow-none print:p-0">
+          <div className="bg-slate-50 dark:bg-slate-900 p-6 rounded-3xl shadow-sm border dark:border-slate-800 print:border-none print:shadow-none print:p-0">
             <KitchenPlanCanvas data={buildProjectConstructionData(project)} scalePxPerMeter={120} />
           </div>
 
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border dark:border-slate-800 print:border-4 print:border-black print:p-4 print:rounded-none print:break-before-page">
+          <div className="bg-slate-50 dark:bg-slate-950 p-6 rounded-3xl shadow-sm border dark:border-slate-800 print:border-4 print:border-black print:p-4 print:rounded-none print:break-before-page">
             <h3 className="text-xl font-black mb-6 uppercase tracking-widest border-b-2 pb-2 print:border-b-4 print:border-black">Project BOM (Bill of Materials)</h3>
             <div className="grid md:grid-cols-2 gap-6 print:grid-cols-2 print:gap-4">
               {bomData.groups.map((group, i) => (
-                <div key={i} className="border-2 border-slate-100 dark:border-slate-800 p-4 rounded-xl print:border-2 print:border-black print:rounded-none print:break-inside-avoid">
+                <div key={i} className="bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 p-4 rounded-xl print:border-2 print:border-black print:rounded-none print:break-inside-avoid">
                   <div className="font-bold text-amber-600 mb-2 text-sm uppercase">{group.cabinetName}</div>
                   <table className="w-full text-xs italic">
                     <tbody>
@@ -520,9 +675,20 @@ const ScreenPlanView = ({ project }: { project: Project }) => {
   );
 };
 
-const ScreenProjectSetup = ({ project, setProject }: { project: Project, setProject: React.Dispatch<React.SetStateAction<Project>> }) => {
+const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject }: { project: Project, setProject: React.Dispatch<React.SetStateAction<Project>>, onSave: () => void, onSaveProject?: (p: Project) => Promise<any> }) => {
+  const navigate = useNavigate();
   // State to track which section is expanded - only one at a time
-  const [expandedSection, setExpandedSection] = useState<'projectInfo' | 'sheetTypes' | 'accessories' | 'allocation' | null>('projectInfo');
+  const [expandedSection, setExpandedSection] = useState<'projectInfo' | 'sheetTypes' | 'accessories' | 'allocation' | 'costs' | null>('projectInfo');
+
+  // CBX Advanced Settings Modal
+  const [showCbxModal, setShowCbxModal] = useState(false);
+
+  // Cabinet Edit Modal
+  const [showCabinetModal, setShowCabinetModal] = useState(false);
+  const [editingCabinetType, setEditingCabinetType] = useState<'base' | 'wall' | 'tall'>('base');
+
+  // Wall Edit Modal
+  const [showWallModal, setShowWallModal] = useState(false);
 
   // Logo upload state
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
@@ -603,7 +769,7 @@ const ScreenProjectSetup = ({ project, setProject }: { project: Project, setProj
     }
   };
 
-  const toggleSection = (section: 'projectInfo' | 'sheetTypes' | 'accessories' | 'allocation') => {
+  const toggleSection = (section: 'projectInfo' | 'sheetTypes' | 'accessories' | 'allocation' | 'costs') => {
     setExpandedSection(prev => prev === section ? null : section);
   };
 
@@ -613,13 +779,18 @@ const ScreenProjectSetup = ({ project, setProject }: { project: Project, setProj
         <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8">
           <div className="flex justify-between items-center mb-2 sm:mb-4">
             <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">Project Setup</h2>
-            {logoPreview && (
-              <img
-                src={logoPreview}
-                alt="Company Logo"
-                className="h-10 sm:h-12 w-auto object-contain"
-              />
-            )}
+            <div className="flex items-center gap-3">
+              {logoPreview && (
+                <img
+                  src={logoPreview}
+                  alt="Company Logo"
+                  className="h-10 sm:h-12 w-auto object-contain"
+                />
+              )}
+              <Button variant="primary" size="sm" onClick={onSave} className="min-h-[40px]">
+                <Save size={16} className="mr-2" /> Save
+              </Button>
+            </div>
           </div>
 
           {/* Project Info & Dimensions - Combined Collapsible Menu */}
@@ -695,18 +866,125 @@ const ScreenProjectSetup = ({ project, setProject }: { project: Project, setProj
 
                 {/* Dimensions & Nesting Section */}
                 <div className="space-y-4">
+                  <WallSetupCard 
+                    project={project}
+                    onClick={() => setShowWallModal(true)}
+                  />
+
                   <h4 className="text-slate-500 font-bold uppercase text-xs tracking-wider flex items-center gap-2">
-                    <Ruler size={14} /> Dimensions & Nesting
+                    <Ruler size={14} /> Cabinet Dimensions
                   </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                    <NumberInput label="Base Height" value={project.settings.baseHeight} onChange={(v) => setProject({ ...project, settings: { ...project.settings, baseHeight: v } })} step={10} />
-                    <NumberInput label="Sheet Length" value={project.settings.sheetLength} onChange={(v) => setProject({ ...project, settings: { ...project.settings, sheetLength: v } })} step={100} />
-                    <NumberInput label="Sheet Width" value={project.settings.sheetWidth} onChange={(v) => setProject({ ...project, settings: { ...project.settings, sheetWidth: v } })} step={100} />
+                  
+                  {/* Cabinet Preview Cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <CabinetPreviewCard
+                      type="base"
+                      settings={project.settings}
+                      onClick={() => { setEditingCabinetType('base'); setShowCabinetModal(true); }}
+                    />
+                    <CabinetPreviewCard
+                      type="wall"
+                      settings={project.settings}
+                      onClick={() => { setEditingCabinetType('wall'); setShowCabinetModal(true); }}
+                    />
+                    <CabinetPreviewCard
+                      type="tall"
+                      settings={project.settings}
+                      onClick={() => { setEditingCabinetType('tall'); setShowCabinetModal(true); }}
+                    />
+                  </div>
+
+                  {/* Additional Settings */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+                    <NumberInput label="Sheet Length (mm)" value={project.settings.sheetLength} onChange={(v) => setProject({ ...project, settings: { ...project.settings, sheetLength: v } })} step={100} />
+                    <NumberInput label="Sheet Width (mm)" value={project.settings.sheetWidth} onChange={(v) => setProject({ ...project, settings: { ...project.settings, sheetWidth: v } })} step={100} />
+                    <NumberInput label="Kerf (mm)" value={project.settings.kerf} onChange={(v) => setProject({ ...project, settings: { ...project.settings, kerf: v } })} step={1} />
+                    <NumberInput label="Counter Thickness (mm)" value={project.settings.counterThickness} onChange={(v) => setProject({ ...project, settings: { ...project.settings, counterThickness: v } })} step={5} />
+                  </div>
+
+                  {/* Ruby CBX Advanced Settings Button */}
+                  <div className="mt-4">
+                    <button
+                      onClick={() => setShowCbxModal(true)}
+                      className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg text-sm font-medium transition-colors"
+                    >
+                      <Settings2 size={16} />
+                      Ruby CBX Design Rules (Advanced)
+                    </button>
                   </div>
                 </div>
               </div>
             </div>
           </div>
+
+          {/* CBX Design Rules Modal */}
+          {showCbxModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+                <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
+                  <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                    <Settings2 size={20} /> Ruby CBX Design Rules
+                  </h3>
+                  <button
+                    onClick={() => setShowCbxModal(false)}
+                    className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
+                  >
+                    <X size={20} className="text-slate-500" />
+                  </button>
+                </div>
+                <div className="p-4 overflow-y-auto max-h-[calc(90vh-80px)]">
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">Gap and clearance settings matching Ruby CBX Shotgun plugin defaults.</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    <NumberInput label="Door-to-Door Gap (mm)" value={project.settings.doorToDoorGap} onChange={(v) => setProject({ ...project, settings: { ...project.settings, doorToDoorGap: v } })} step={0.5} />
+                    <NumberInput label="Door-to-Panel Gap (mm)" value={project.settings.doorToPanelGap} onChange={(v) => setProject({ ...project, settings: { ...project.settings, doorToPanelGap: v } })} step={0.5} />
+                    <NumberInput label="Drawer-to-Drawer Gap (mm)" value={project.settings.drawerToDrawerGap} onChange={(v) => setProject({ ...project, settings: { ...project.settings, drawerToDrawerGap: v } })} step={0.5} />
+                    <NumberInput label="Door Outer Gap (mm)" value={project.settings.doorOuterGap} onChange={(v) => setProject({ ...project, settings: { ...project.settings, doorOuterGap: v } })} step={0.5} />
+                    <NumberInput label="Door Inner Gap (mm)" value={project.settings.doorInnerGap} onChange={(v) => setProject({ ...project, settings: { ...project.settings, doorInnerGap: v } })} step={0.5} />
+                    <NumberInput label="Door Side Clearance (mm)" value={project.settings.doorSideClearance} onChange={(v) => setProject({ ...project, settings: { ...project.settings, doorSideClearance: v } })} step={0.5} />
+                    <NumberInput label="Groove Depth (mm)" value={project.settings.grooveDepth} onChange={(v) => setProject({ ...project, settings: { ...project.settings, grooveDepth: v } })} step={1} />
+                    <NumberInput label="Back Panel Thickness (mm)" value={project.settings.backPanelThickness} onChange={(v) => setProject({ ...project, settings: { ...project.settings, backPanelThickness: v } })} step={1} />
+                    <NumberInput label="Door Material Thickness (mm)" value={project.settings.doorMaterialThickness} onChange={(v) => setProject({ ...project, settings: { ...project.settings, doorMaterialThickness: v } })} step={1} />
+                  </div>
+                  <div className="mt-6 flex justify-end">
+                    <button
+                      onClick={() => setShowCbxModal(false)}
+                      className="px-6 py-2 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-lg font-medium hover:bg-slate-800 dark:hover:bg-slate-200 transition-colors"
+                    >
+                      Done
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Wall Edit Modal */}
+          <WallEditModal
+            isOpen={showWallModal}
+            onClose={() => setShowWallModal(false)}
+            project={project}
+            onSave={(newZones) => {
+              const updatedProject = { ...project, zones: newZones };
+              const result = generateRubyLayout(updatedProject);
+              setProject(result.project);
+              if (onSaveProject) {
+                onSaveProject(result.project).then(() => navigate('/walls?view=iso'));
+              } else {
+                navigate('/walls?view=iso');
+              }
+            }}
+          />
+
+          {/* Cabinet Edit Modal */}
+          <CabinetEditModal
+            isOpen={showCabinetModal}
+            onClose={() => setShowCabinetModal(false)}
+            cabinetType={editingCabinetType}
+            settings={project.settings}
+            onSave={(newSettings) => {
+              setProject({ ...project, settings: newSettings });
+            }}
+          />
 
           {/* Sheet Types Manager */}
           <SheetTypeManager
@@ -716,6 +994,54 @@ const ScreenProjectSetup = ({ project, setProject }: { project: Project, setProj
             onToggleSheetTypes={() => toggleSection('sheetTypes')}
             onToggleAccessories={() => toggleSection('accessories')}
           />
+
+          {/* Cost Settings */}
+          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+            <div
+              className="flex justify-between items-center p-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+              onClick={() => toggleSection('costs')}
+            >
+              <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2 uppercase tracking-tight">
+                <DollarSign className="text-green-500" /> Cost Settings
+              </h3>
+              <button className={`p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-transform duration-300 ${expandedSection === 'costs' ? 'rotate-180' : ''}`}>
+                <ChevronDown size={20} />
+              </button>
+            </div>
+            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${expandedSection === 'costs' ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}>
+              <div className="p-4 pt-0 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Labor Cost (LKR)</label>
+                    <input
+                      type="number"
+                      value={project.settings.costs?.laborCost ?? 0}
+                      onChange={e => setProject({ ...project, settings: { ...project.settings, costs: { ...project.settings.costs, laborCost: Number(e.target.value) } } })}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Transport Cost (LKR)</label>
+                    <input
+                      type="number"
+                      value={project.settings.costs?.transportCost ?? 0}
+                      onChange={e => setProject({ ...project, settings: { ...project.settings, costs: { ...project.settings.costs, transportCost: Number(e.target.value) } } })}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Profit Margin (%)</label>
+                    <input
+                      type="number"
+                      value={project.settings.costs?.marginPercent ?? 50}
+                      onChange={e => setProject({ ...project, settings: { ...project.settings, costs: { ...project.settings.costs, marginPercent: Number(e.target.value) } } })}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
 
           {/* Material Allocation */}
           <MaterialAllocationPanel
@@ -742,6 +1068,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
   const resizingRef = useRef(false);
   const dragStartRef = useRef<{ startY: number; startHeight: number } | null>(null);
   const [showCustomEditor, setShowCustomEditor] = useState(false);
+  const [showAdvancedCabinetEditor, setShowAdvancedCabinetEditor] = useState(false);
   const [customCabinets, setCustomCabinets] = useState<any[]>([]);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [mobileTableCollapsed, setMobileTableCollapsed] = useState(true);
@@ -851,9 +1178,22 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
   const [modalMode, setModalMode] = useState<'none' | 'add_obstacle' | 'add_cabinet' | 'edit_obstacle' | 'edit_cabinet' | 'autofill_options'>('none');
   const [editIndex, setEditIndex] = useState<number>(-1);
   const [tempCabinet, setTempCabinet] = useState<CabinetUnit>({ id: '', preset: PresetType.BASE_DOOR, type: CabinetType.BASE, width: 600, qty: 1, fromLeft: 0 });
-  const [tempObstacle, setTempObstacle] = useState<Obstacle>({ id: '', type: 'door', fromLeft: 0, width: 900, height: 2100, elevation: 0, depth: 150 });
+  const [tempObstacle, setTempObstacle] = useState<Obstacle>({ id: '', type: 'door', fromLeft: 0, width: 900, height: 2100, elevation: 0, depth: 150 } as any);
   const [presetFilter, setPresetFilter] = useState<'Base' | 'Wall' | 'Tall'>('Base');
-  const [visualMode, setVisualMode] = useState<'elevation' | 'iso'>('elevation');
+  const [searchParams] = useSearchParams();
+  const initialView = searchParams.get('view') === 'iso' ? 'iso' : 'elevation';
+  const [visualMode, setVisualMode] = useState<'elevation' | 'iso'>(initialView);
+  const [isTableVisible, setIsTableVisible] = useState(false);
+
+  // Sync visual mode with URL if needed
+  useEffect(() => {
+    const viewParam = searchParams.get('view');
+    if (viewParam === 'iso' && visualMode !== 'iso') {
+      setVisualMode('iso');
+    } else if (viewParam === 'elevation' && visualMode !== 'elevation') {
+      setVisualMode('elevation');
+    }
+  }, [searchParams]);
 
   const updateZone = (newZoneOrTransform: Zone | ((z: Zone) => Zone), skipHistory = false) => {
     if (!skipHistory) {
@@ -875,42 +1215,9 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
 
   const handleDragEnd = () => updateZone(z => resolveCollisions(z)); // Shove on drop
 
-  // AUTO FILL & CLEAR
-  const [autoFillOpts, setAutoFillOpts] = useState<AutoFillOptions>({
-    includeSink: true,
-    includeCooker: true,
-    includeTall: false,
-    includeWallCabinets: true,
-    preferDrawers: false
-  });
-
   const handleAutoFill = () => {
-    setModalMode('autofill_options');
-  };
-
-  const executeAutoFill = () => {
-    const requiredWidth =
-      (autoFillOpts.includeSink ? 900 : 0) +
-      (autoFillOpts.includeCooker ? 900 : 0) +
-      (autoFillOpts.includeTall ? 600 : 0);
-
-    if (requiredWidth > currentZone.totalLength) {
-      if (!window.confirm(`Required space (${requiredWidth}mm) exceeds wall length (${currentZone.totalLength}mm). Continue anyway?`)) return;
-    }
-
-    updateZone(z => autoFillZone(z, project.settings, z.id, autoFillOpts));
-    setModalMode('none');
-  };
-
-  // Smart gap fill - uses standard cabinet sizes
-  const handleFillGaps = () => {
-    updateZone(z => autoFillZone(z, project.settings, z.id, {
-      includeSink: false,
-      includeCooker: false,
-      includeTall: z.cabinets.some(c => c.type === CabinetType.TALL),
-      includeWallCabinets: z.cabinets.some(c => c.type === CabinetType.WALL),
-      preferDrawers: false
-    }));
+    const result = generateRubyLayout(project);
+    setProject(result.project);
   };
 
   const clearZone = () => { if (window.confirm(`Clear ${currentZone.id}?`)) updateZone({ ...currentZone, obstacles: [], cabinets: [] }); };
@@ -997,7 +1304,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
       setPresetFilter('Base');
       setModalMode('add_cabinet');
     }
-    else { setTempObstacle({ id: Math.random().toString(), type: 'door', fromLeft: 0, width: 900, height: 2100, elevation: 0, depth: 150 }); setModalMode('add_obstacle'); }
+    else { setTempObstacle({ id: Math.random().toString(), type: 'door', fromLeft: 0, width: 900, height: 2100, elevation: 0, depth: 150 } as any); setModalMode('add_obstacle'); }
   };
   const openEdit = (type: 'cabinet' | 'obstacle', idx: number) => {
     setEditIndex(idx);
@@ -1012,6 +1319,20 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
     else { setTempObstacle({ ...currentZone.obstacles[idx] }); setModalMode('edit_obstacle'); }
   };
 
+  const updateAdvancedSetting = (key: string, value: any) => {
+    if (!tempCabinet) return;
+    setTempCabinet(prev => {
+      const advanced = prev.advancedSettings || {};
+      return {
+        ...prev,
+        advancedSettings: {
+          ...advanced,
+          [key]: value
+        }
+      };
+    });
+  };
+
   const saveItem = () => {
     if (modalMode.includes('cabinet')) {
       const intersecting = getIntersectingCabinets(currentZone, tempCabinet);
@@ -1024,11 +1345,23 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
         }
 
         if (modalMode === 'add_cabinet') {
-          items.push({ ...tempCabinet, id: Math.random().toString(), isAutoFilled: false });
+          // Add mode: Use current tempCabinet (it should have a unique ID already from openAdd)
+          items.push({ ...tempCabinet, isAutoFilled: false });
         } else {
-          const idx = items.findIndex(c => c.id === tempCabinet.id);
-          if (idx !== -1) items[idx] = { ...tempCabinet, isAutoFilled: false };
-          else items.push({ ...tempCabinet, id: Math.random().toString(), isAutoFilled: false });
+          // Edit mode: Find the original cabinet by ID, or fallback to the editIndex
+          let targetIdx = items.findIndex(c => c.id === tempCabinet.id);
+          
+          // If ID not found (could happen if layout regenerated), fallback to stored index
+          if (targetIdx === -1 && editIndex !== -1 && editIndex < items.length) {
+            targetIdx = editIndex;
+          }
+
+          if (targetIdx !== -1) {
+            items[targetIdx] = { ...tempCabinet, isAutoFilled: false };
+          } else {
+            // Last resort: if we can't find it at all, add it as new
+            items.push({ ...tempCabinet, id: tempCabinet.id || Math.random().toString(), isAutoFilled: false });
+          }
         }
 
         if (shouldDelete) {
@@ -1109,23 +1442,6 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
             <NumberInput label="Wall Height" value={currentZone.wallHeight} onChange={(e) => updateZone(z => ({ ...z, wallHeight: e }))} step={100} />
           </div>
 
-          {/* Sequential Builder */}
-          <div className="border-t border-slate-200 dark:border-slate-800 pt-4">
-            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Sequential Builder</h3>
-            <SequentialBoxInput
-              zone={{
-                id: currentZone.id,
-                totalLength: currentZone.totalLength,
-                cabinets: currentZone.cabinets,
-                obstacles: currentZone.obstacles
-              }}
-              onAddCabinets={(newCabinets) => {
-                handleSequentialAdd(newCabinets);
-                setMobileSidebarOpen(false);
-              }}
-            />
-          </div>
-
           {/* Calculate BOM */}
           <Button size="xl" variant="primary" className="w-full font-black min-h-[64px] text-xl mb-4" onClick={() => { setMobileSidebarOpen(false); setScreen(Screen.BOM_REPORT); }}>
             CALCULATE BOM
@@ -1140,63 +1456,15 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
       </div>
 
       <div className="flex-1 flex overflow-hidden min-h-0">
-        {/* Desktop SIDEBAR */}
-        <div className="hidden md:flex flex-col w-[280px] lg:w-[300px] bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 h-full min-h-0 overflow-y-auto">
-          <div className="p-4 border-b border-slate-200 dark:border-slate-800">
-            <div className="space-y-3">
-              <NumberInput label="Wall Length" value={currentZone.totalLength} onChange={(e) => updateZone(z => ({ ...z, totalLength: e }))} step={100} />
-              <NumberInput label="Wall Height" value={currentZone.wallHeight} onChange={(e) => updateZone(z => ({ ...z, wallHeight: e }))} step={100} />
-            </div>
-          </div>
-          <div className="p-4 space-y-2 flex-1">
-            <div className="flex justify-between items-center">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Zones</span>
-              <button onClick={addZone} className="text-xs font-bold text-amber-500 hover:underline min-h-[32px] px-2">+ Add</button>
-            </div>
-            {project.zones.map(z => (
-              <div key={z.id} className={`flex items-center justify-between p-3 rounded-lg cursor-pointer min-h-[48px] ${activeTab === z.id ? 'bg-amber-50 dark:bg-slate-800 text-amber-600 border border-amber-500' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`} onClick={() => setActiveTab(z.id)}>
-                <span className="font-medium">{z.id}</span>
-                <button onClick={(e) => { e.stopPropagation(); deleteZone(z.id); }} className="p-2 rounded hover:bg-red-100 dark:hover:bg-red-900/20 min-w-[40px] min-h-[40px] flex items-center justify-center">
-                  <Trash2 size={16} className="text-slate-400 hover:text-red-500" />
-                </button>
-              </div>
-            ))}
-          </div>
-          <div className="p-4 space-y-2 border-t border-slate-200 dark:border-slate-800">
-            <Button size="md" variant="secondary" className="w-full text-sm min-h-[48px]" onClick={handleAutoFill}><Wand2 size={16} className="mr-2" /> Auto Fill</Button>
-            <Button size="md" variant="secondary" className="w-full text-sm min-h-[48px]" onClick={handleFillGaps}><Box size={16} className="mr-2" /> Fill Gaps</Button>
-            <Button size="md" variant="secondary" className="w-full text-sm min-h-[48px]" onClick={clearZone}><Trash2 size={16} className="mr-2" /> Clear Zone</Button>
-            <div className="grid grid-cols-2 gap-2 mt-2">
-              <Button size="lg" onClick={() => openAdd('obstacle')} variant="outline" className="text-xs flex-col h-20 min-h-[80px]"><DoorOpen size={20} />+ Obstacle</Button>
-              <Button size="lg" onClick={() => openAdd('cabinet')} variant="primary" className="text-xs flex-col h-20 min-h-[80px]"><Box size={20} />+ Cabinet</Button>
-            </div>
-          </div>
-          {/* Sequential Box Builder */}
-          <div className="p-4 border-t border-slate-200 dark:border-slate-800">
-            <SequentialBoxInput
-              zone={{
-                id: currentZone.id,
-                totalLength: currentZone.totalLength,
-                cabinets: currentZone.cabinets,
-                obstacles: currentZone.obstacles
-              }}
-              onAddCabinets={handleSequentialAdd}
-            />
-          </div>
-          <div className="p-4 border-t border-slate-200 dark:border-slate-800">
-            <Button size="lg" variant="primary" className="w-full font-black min-h-[48px]" onClick={() => setScreen(Screen.BOM_REPORT)}>CALCULATE BOM</Button>
-          </div>
-        </div>
-
         {/* VISUALIZER */}
         <div
           ref={mainPanelRef}
           className="flex-1 min-w-0 relative min-h-0 flex flex-col"
         >
           {/* Desktop: Grid layout with resizable table */}
-          <div className="hidden md:grid flex-1 min-h-0" style={{ gridTemplateRows: `auto 1fr ${tablePanelHeight}px` }}>
+          <div className="flex-1 flex flex-col min-h-0">
             {/* Tabs Row with Controls */}
-            <div ref={tabsRowRef} className="flex items-center justify-between px-2 pt-2 gap-1 overflow-x-auto bg-slate-100 dark:bg-slate-900 shrink-0 border-b dark:border-slate-800">
+            <div ref={tabsRowRef} className="flex items-center justify-between px-2 py-2 gap-1 overflow-x-auto bg-slate-100 dark:bg-slate-900 shrink-0 border-b dark:border-slate-800">
               {/* Left: Zone Tabs */}
               <div className="flex items-center gap-1">
                 {project.zones.map(z => (
@@ -1208,12 +1476,6 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
                     {z.id}
                   </button>
                 ))}
-                <button
-                  onClick={addZone}
-                  className="px-4 py-2 text-sm font-bold rounded-t-lg bg-slate-200 dark:bg-slate-800 text-slate-500 hover:text-amber-500 transition-colors min-h-[44px]"
-                >
-                  +
-                </button>
               </div>
 
               {/* Center: View Controls */}
@@ -1221,13 +1483,31 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
                 <Button size="xs" variant="secondary" onClick={onSave} className="bg-white hover:bg-amber-50 text-slate-700 border border-slate-300 shadow-sm hover:shadow hover:border-amber-300 dark:bg-slate-800 dark:text-amber-400 dark:border-slate-700 dark:hover:bg-slate-700 dark:hover:border-amber-600 transition-all min-h-[36px]">
                   <Save size={14} className="mr-1.5" /> Save
                 </Button>
-                <div className="w-px h-6 bg-slate-400 dark:bg-slate-600" />
-                <Button size="xs" variant={visualMode === 'elevation' ? 'primary' : 'secondary'} onClick={() => setVisualMode('elevation')} className={`${visualMode === 'elevation' ? 'shadow-md' : 'shadow-sm hover:shadow'} border transition-all min-h-[36px]`}>Elevation</Button>
-                <Button size="xs" variant={visualMode === 'iso' ? 'primary' : 'secondary'} onClick={() => setVisualMode('iso')} className={`${visualMode === 'iso' ? 'shadow-md' : 'shadow-sm hover:shadow'} border transition-all min-h-[36px]`}>3D ISO</Button>
+                <div className="w-px h-6 bg-slate-400 dark:bg-slate-600 md:block hidden" />
+                <div className="flex bg-slate-200 dark:bg-slate-800 p-1 rounded-lg">
+                   <button 
+                     onClick={() => setVisualMode('elevation')}
+                     className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${visualMode === 'elevation' ? 'bg-white dark:bg-slate-700 text-amber-500 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                   >Elevation</button>
+                   <button 
+                     onClick={() => setVisualMode('iso')}
+                     className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${visualMode === 'iso' ? 'bg-white dark:bg-slate-700 text-amber-500 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                   >3D ISO</button>
+                </div>
+                <div className="w-px h-6 bg-slate-400 dark:bg-slate-600 md:block hidden" />
+                <Button 
+                  size="xs" 
+                  variant={isTableVisible ? 'primary' : 'secondary'} 
+                  onClick={() => setIsTableVisible(!isTableVisible)}
+                  className="min-h-[36px]"
+                  leftIcon={<Table2 size={14} />}
+                >
+                  {isTableVisible ? 'Hide Parts' : 'Show Parts'}
+                </Button>
               </div>
 
               {/* Right: Undo/Redo */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 lg:flex hidden">
                 <Button size="xs" variant="secondary" onClick={handleUndo} disabled={!canUndo} className={`bg-white hover:bg-amber-50 text-slate-700 border border-slate-300 shadow-sm hover:shadow hover:border-amber-300 dark:bg-slate-800 dark:text-amber-400 dark:border-slate-700 dark:hover:bg-slate-700 dark:hover:border-amber-600 transition-all min-h-[36px] ${!canUndo ? 'opacity-50' : ''}`}>
                   <ArrowLeft size={14} />
                 </Button>
@@ -1237,60 +1517,55 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
               </div>
             </div>
 
-            {/* Canvas */}
-            <div className="min-h-[240px] bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 relative z-10 transition-all min-h-0">
-              {visualMode === 'elevation' ? (
-                <WallVisualizer zone={currentZone} height={project.settings.tallHeight + 300} onCabinetClick={(i) => openEdit('cabinet', i)} onObstacleClick={(i) => openEdit('obstacle', i)} onCabinetMove={handleCabinetMove} onObstacleMove={handleObstacleMove} onDragEnd={handleDragEnd} onSwapCabinets={handleSwapCabinets} />
-              ) : (
-                <CabinetViewer project={project} showHardware={true} />
-              )}
-            </div>
-
-            {/* Table */}
-            <div className="min-h-0 bg-white dark:bg-slate-950 overflow-hidden flex flex-col">
-              <div
-                onMouseDown={startResize}
-                onTouchStart={startResize}
-                className="h-10 shrink-0 flex items-center justify-center border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-500 text-sm font-bold uppercase tracking-wider cursor-row-resize select-none"
-                title="Drag to resize"
-              >
-                Drag to resize
+            <div className="flex-1 relative min-h-0 flex flex-col">
+              {/* Canvas */}
+              <div className="flex-1 bg-slate-50 dark:bg-slate-900 relative z-10 transition-all min-h-0">
+                {visualMode === 'elevation' ? (
+                  <WallVisualizer zone={currentZone} height={currentZone.wallHeight || 2400} settings={project.settings} onCabinetClick={(i) => openEdit('cabinet', i)} onObstacleClick={(i) => openEdit('obstacle', i)} onCabinetMove={handleCabinetMove} onObstacleMove={handleObstacleMove} onDragEnd={handleDragEnd} onSwapCabinets={handleSwapCabinets} />
+                ) : (
+                  <CabinetViewer project={project} showHardware={true} onCabinetClick={(zIdx, cIdx) => { const zoneId = project.zones[zIdx].id; setActiveTab(zoneId); openEdit("cabinet", cIdx); }} onWallClick={(wallId) => { setActiveTab(wallId); setVisualMode("elevation"); }} activeWallId={activeTab} />
+                )}
               </div>
 
-              <div className="flex-1 min-h-0 overflow-auto">
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[500px] text-left text-sm">
-                    <thead className="bg-slate-100 dark:bg-amber-950/40 text-slate-500 dark:text-amber-500 font-bold text-xs uppercase sticky top-0 z-20 border-b dark:border-amber-500/30">
-                      <tr>
-                        <th className="p-3 whitespace-nowrap">#</th>
-                        <th className="p-3 whitespace-nowrap">Type</th>
-                        <th className="p-3 whitespace-nowrap">Item</th>
-                        <th className="p-3 text-right whitespace-nowrap">Width</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-amber-900/20">
-                      {[...currentZone.obstacles, ...currentZone.cabinets].map((item, i) => {
-                        const isCab = 'preset' in item;
-                        return (
-                          <tr
-                            key={item.id}
-                            onClick={() => openEdit(isCab ? 'cabinet' : 'obstacle', isCab ? i - currentZone.obstacles.length : i)}
-                            className="hover:bg-amber-50 dark:hover:bg-amber-900/20 cursor-pointer transition-colors"
-                          >
-                            <td className="p-3 text-slate-400 font-mono whitespace-nowrap">{isCab ? (item as CabinetUnit).label : i + 1}</td>
-                            <td className="p-3 text-amber-600 font-bold whitespace-nowrap">{isCab ? (item as CabinetUnit).type : 'Obstacle'}</td>
-                            <td className="p-3 font-medium dark:text-amber-100">
-                              <span className="truncate inline-block">{isCab ? (item as CabinetUnit).preset : (item as Obstacle).type}</span>
-                              <span className="text-slate-400 dark:text-amber-500/50 text-xs ml-2 whitespace-nowrap">@{item.fromLeft}mm</span>
-                            </td>
-                            <td className="p-3 text-right font-mono font-bold dark:text-white whitespace-nowrap">{item.width}</td>
+              {/* Table */}
+              {isTableVisible && (
+                <div className="h-1/3 bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col shadow-2xl z-20">
+                  <div className="flex-1 min-h-0 overflow-auto">
+                    <div className="overflow-x-auto">
+                      <table className="w-full min-w-[500px] text-left text-sm">
+                        <thead className="bg-slate-100 dark:bg-amber-950/40 text-slate-500 dark:text-amber-500 font-bold text-xs uppercase sticky top-0 z-20 border-b dark:border-amber-500/30">
+                          <tr>
+                            <th className="p-3 whitespace-nowrap">#</th>
+                            <th className="p-3 whitespace-nowrap">Type</th>
+                            <th className="p-3 whitespace-nowrap">Item</th>
+                            <th className="p-3 text-right whitespace-nowrap">Width</th>
                           </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-amber-900/20">
+                          {[...currentZone.obstacles, ...currentZone.cabinets].map((item, i) => {
+                            const isCab = 'preset' in item;
+                            return (
+                              <tr
+                                key={item.id}
+                                onClick={() => openEdit(isCab ? 'cabinet' : 'obstacle', isCab ? i - currentZone.obstacles.length : i)}
+                                className="hover:bg-amber-50 dark:hover:bg-amber-900/20 cursor-pointer transition-colors"
+                              >
+                                <td className="p-3 text-slate-400 font-mono whitespace-nowrap">{isCab ? (item as CabinetUnit).label : i + 1}</td>
+                                <td className="p-3 text-amber-600 font-bold whitespace-nowrap">{isCab ? (item as CabinetUnit).type : 'Obstacle'}</td>
+                                <td className="p-3 font-medium dark:text-amber-100">
+                                  <span className="truncate inline-block">{isCab ? (item as CabinetUnit).preset : (item as Obstacle).type}</span>
+                                  <span className="text-slate-400 dark:text-amber-500/50 text-xs ml-2 whitespace-nowrap">@{item.fromLeft}mm</span>
+                                </td>
+                                <td className="p-3 text-right font-mono font-bold dark:text-white whitespace-nowrap">{item.width}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
 
@@ -1337,9 +1612,9 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
             {/* Canvas */}
             <div className="flex-1 min-h-0 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 relative">
               {visualMode === 'elevation' ? (
-                <WallVisualizer zone={currentZone} height={project.settings.tallHeight + 300} onCabinetClick={(i) => openEdit('cabinet', i)} onObstacleClick={(i) => openEdit('obstacle', i)} onCabinetMove={handleCabinetMove} onObstacleMove={handleObstacleMove} onDragEnd={handleDragEnd} onSwapCabinets={handleSwapCabinets} />
+                <WallVisualizer zone={currentZone} height={currentZone.wallHeight || 2400} settings={project.settings} onCabinetClick={(i) => openEdit('cabinet', i)} onObstacleClick={(i) => openEdit('obstacle', i)} onCabinetMove={handleCabinetMove} onObstacleMove={handleObstacleMove} onDragEnd={handleDragEnd} onSwapCabinets={handleSwapCabinets} />
               ) : (
-                <CabinetViewer project={project} showHardware={true} />
+                <CabinetViewer project={project} showHardware={true} onCabinetClick={(zIdx, cIdx) => { const zoneId = project.zones[zIdx].id; setActiveTab(zoneId); openEdit("cabinet", cIdx); }} onWallClick={(wallId) => { setActiveTab(wallId); setVisualMode("elevation"); }} activeWallId={activeTab} />
               )}
             </div>
 
@@ -1349,11 +1624,11 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
                 <Button size="sm" variant="secondary" onClick={() => setMobileSidebarOpen(true)} className="min-h-[52px] text-xs flex flex-col items-center justify-center gap-0.5">
                   <Menu size={18} /><span>Menu</span>
                 </Button>
-                <Button size="sm" variant="secondary" onClick={handleAutoFill} className="min-h-[52px] text-xs flex flex-col items-center justify-center gap-0.5">
+                <Button size="sm" variant="secondary" onClick={() => {
+                  const result = generateRubyLayout(project);
+                  setProject(result.project);
+                }} className="min-h-[52px] text-xs flex flex-col items-center justify-center gap-0.5">
                   <Wand2 size={18} /><span>Auto</span>
-                </Button>
-                <Button size="sm" variant="secondary" onClick={handleFillGaps} className="min-h-[52px] text-xs flex flex-col items-center justify-center gap-0.5">
-                  <Box size={18} /><span>Fill</span>
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => openAdd('obstacle')} className="min-h-[52px] text-xs flex flex-col items-center justify-center gap-0.5">
                   <DoorOpen size={18} /><span>Obs</span>
@@ -1425,72 +1700,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
               </button>
             </div>
             <div className="space-y-4 overflow-y-auto flex-1 pr-1">
-              {modalMode === 'autofill_options' ? (
-                <div className="space-y-6 py-2">
-                  <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-xl border border-amber-200 dark:border-amber-800">
-                    <div className="flex justify-between text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 mb-1">
-                      <span>Available Space</span>
-                      <span>{currentZone.totalLength}mm</span>
-                    </div>
-                    <div className="h-2 bg-amber-200 dark:bg-amber-950 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-amber-500 transition-all duration-500"
-                        style={{ width: `${Math.min(100, ((autoFillOpts.includeSink ? 900 : 0) + (autoFillOpts.includeCooker ? 900 : 0) + (autoFillOpts.includeTall ? 600 : 0)) / currentZone.totalLength * 100)}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <p className="text-sm text-slate-500 italic">Configure intelligent layout options. This will preserve your manual cabinets but replace auto-filled ones.</p>
-
-                  <div className="space-y-4">
-                    <label className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors">
-                      <input type="checkbox" checked={autoFillOpts.includeSink} onChange={e => setAutoFillOpts({ ...autoFillOpts, includeSink: e.target.checked })} className="w-5 h-5 accent-amber-500" />
-                      <div>
-                        <div className="font-bold text-sm">Include Sink</div>
-                        <div className="text-xs text-slate-400">Placed under a window if available</div>
-                      </div>
-                    </label>
-
-                    <label className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors">
-                      <input type="checkbox" checked={autoFillOpts.includeCooker} onChange={e => setAutoFillOpts({ ...autoFillOpts, includeCooker: e.target.checked })} className="w-5 h-5 accent-amber-500" />
-                      <div>
-                        <div className="font-bold text-sm">Include Cooker & Hood</div>
-                        <div className="text-xs text-slate-400">3-Drawer unit with aligned wall hood</div>
-                      </div>
-                    </label>
-
-                    <label className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors">
-                      <input type="checkbox" checked={autoFillOpts.includeTall} onChange={e => setAutoFillOpts({ ...autoFillOpts, includeTall: e.target.checked })} className="w-5 h-5 accent-amber-500" />
-                      <div>
-                        <div className="font-bold text-sm">Include Tall Units</div>
-                        <div className="text-xs text-slate-400">Utility / Pantry storage</div>
-                      </div>
-                    </label>
-
-                    <label className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors">
-                      <input type="checkbox" checked={autoFillOpts.includeWallCabinets} onChange={e => setAutoFillOpts({ ...autoFillOpts, includeWallCabinets: e.target.checked })} className="w-5 h-5 accent-amber-500" />
-                      <div>
-                        <div className="font-bold text-sm">Include Wall Cabinets</div>
-                        <div className="text-xs text-slate-400">Upper storage units</div>
-                      </div>
-                    </label>
-
-                    <label className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors">
-                      <input type="checkbox" checked={autoFillOpts.preferDrawers} onChange={e => setAutoFillOpts({ ...autoFillOpts, preferDrawers: e.target.checked })} className="w-5 h-5 accent-amber-500" />
-                      <div>
-                        <div className="font-bold text-sm">Prefer Drawers</div>
-                        <div className="text-xs text-slate-400">Use drawer banks instead of door units</div>
-                      </div>
-                    </label>
-                  </div>
-
-                  <div className="pt-4">
-                    <Button variant="primary" size="xl" className="w-full font-black text-lg min-h-[64px]" onClick={executeAutoFill}>
-                      GENERATE LAYOUT
-                    </Button>
-                  </div>
-                </div>
-              ) : modalMode.includes('cabinet') ? (
+              {modalMode.includes('cabinet') ? (
                 <>
                   {/* PRESET FILTER TABS */}
                   <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
@@ -1563,13 +1773,22 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
                   </div>
 
                   {/* Customize Button */}
-                  <button
-                    onClick={() => setShowCustomEditor(true)}
-                    className="w-full py-3 sm:py-2 px-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold rounded-lg transition-all flex items-center justify-center gap-2 min-h-[48px]"
-                  >
-                    <Wand2 size={18} />
-                    <span className="text-sm sm:text-base">Customize This Cabinet</span>
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setShowCustomEditor(true)}
+                      className="flex-1 py-3 sm:py-2 px-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold rounded-lg transition-all flex items-center justify-center gap-2 min-h-[48px]"
+                    >
+                      <Wand2 size={18} />
+                      <span className="text-sm sm:text-base">Customize (Old)</span>
+                    </button>
+                    <button
+                      onClick={() => setShowAdvancedCabinetEditor(true)}
+                      className="flex-1 py-3 sm:py-2 px-4 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold rounded-lg transition-all flex items-center justify-center gap-2 min-h-[48px]"
+                    >
+                      <Settings2 size={18} />
+                      <span className="text-sm sm:text-base">Advanced 3D Editor</span>
+                    </button>
+                  </div>
 
                   {/* Material Selection */}
                   <div className="border-t border-slate-200 dark:border-slate-700 pt-4 mt-2">
@@ -1583,6 +1802,25 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
 
                   <NumberInput label="Width" value={tempCabinet.width} onChange={v => setTempCabinet({ ...tempCabinet, width: v })} step={50} />
                   <NumberInput label="Position (Left)" value={tempCabinet.fromLeft} onChange={v => setTempCabinet({ ...tempCabinet, fromLeft: v })} step={50} />
+                  
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    <NumberInput 
+                      label="Shelves" 
+                      value={tempCabinet.advancedSettings?.numShelves ?? 0} 
+                      onChange={v => {
+                        updateAdvancedSetting('numShelves', v);
+                        updateAdvancedSetting('showShelves', v > 0);
+                      }} 
+                      min={0}
+                      max={10}
+                    />
+                    <NumberInput 
+                      label="Quantity" 
+                      value={tempCabinet.qty || 1} 
+                      onChange={v => setTempCabinet({ ...tempCabinet, qty: Math.max(1, v) })} 
+                      min={1}
+                    />
+                  </div>
                 </>
               ) : (
                 <>
@@ -1598,6 +1836,68 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
                   </div>
                   <NumberInput label="Width" value={tempObstacle.width} onChange={v => setTempObstacle({ ...tempObstacle, width: v })} step={50} />
                   <NumberInput label="Position (Left)" value={tempObstacle.fromLeft} onChange={v => setTempObstacle({ ...tempObstacle, fromLeft: v })} step={50} />
+
+                  {/* Window-specific fields */}
+                  {tempObstacle.type === 'window' && (
+                    <>
+                      <NumberInput
+                        label="Window Height"
+                        value={tempObstacle.height || 1200}
+                        onChange={v => setTempObstacle({ ...tempObstacle, height: v })}
+                        step={50}
+                        min={300}
+                        max={1800}
+                      />
+                      <NumberInput
+                        label="Sill Height (from floor)"
+                        value={tempObstacle.sillHeight || 900}
+                        onChange={v => setTempObstacle({ ...tempObstacle, sillHeight: v })}
+                        step={50}
+                        min={300}
+                        max={2000}
+                      />
+                      <div className="text-xs text-slate-500 bg-slate-50 dark:bg-slate-800 p-2 rounded-lg">
+                        <strong>Tip:</strong> Typical window sill height is 900-1200mm from floor.
+                        Standard window height is 1200-1500mm.
+                      </div>
+                    </>
+                  )}
+
+                  {/* Door-specific fields */}
+                  {tempObstacle.type === 'door' && (
+                    <NumberInput
+                      label="Door Height"
+                      value={tempObstacle.height || 2100}
+                      onChange={v => setTempObstacle({ ...tempObstacle, height: v })}
+                      step={50}
+                      min={1800}
+                      max={2400}
+                    />
+                  )}
+
+                  {/* Column/Pipe height */}
+                  {(tempObstacle.type === 'column' || tempObstacle.type === 'pipe') && (
+                    <NumberInput
+                      label="Height"
+                      value={tempObstacle.height || 2100}
+                      onChange={v => setTempObstacle({ ...tempObstacle, height: v })}
+                      step={50}
+                      min={300}
+                      max={3000}
+                    />
+                  )}
+
+                  {/* Depth control for columns and pipes only */}
+                  {(tempObstacle.type === 'column' || tempObstacle.type === 'pipe') && (
+                    <NumberInput
+                      label="Depth"
+                      value={tempObstacle.depth || 150}
+                      onChange={v => setTempObstacle({ ...tempObstacle, depth: v })}
+                      step={25}
+                      min={50}
+                      max={300}
+                    />
+                  )}
                 </>
               )}
               <div className="flex gap-2 pt-4 pb-2">
@@ -1613,19 +1913,27 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
       {showCustomEditor && (
         <CustomCabinetEditor
           basePreset={tempCabinet.preset}
-          baseType={presetFilter as 'Base' | 'Wall' | 'Tall'}
-          initialName={tempCabinet.customPresetId ? customCabinets.find(c => c.id === tempCabinet.customPresetId)?.name : ''}
-          initialDescription={tempCabinet.customPresetId ? customCabinets.find(c => c.id === tempCabinet.customPresetId)?.description : ''}
+          baseType={tempCabinet.type === CabinetType.BASE ? 'Base' : tempCabinet.type === CabinetType.WALL ? 'Wall' : 'Tall'}
           initialConfig={tempCabinet.customConfig}
           onClose={() => setShowCustomEditor(false)}
-          onSave={async () => {
+          onSave={() => {
             setShowCustomEditor(false);
-            // Reload custom cabinets
-            const { data } = await customCabinetService.getCustomPresets();
-            if (data) setCustomCabinets(data);
           }}
         />
       )}
+
+      {/* Advanced 3D Cabinet Editor */}
+      <SingleCabinetEditorModal
+        isOpen={showAdvancedCabinetEditor}
+        onClose={() => setShowAdvancedCabinetEditor(false)}
+        cabinet={tempCabinet}
+        globalSettings={project.settings}
+        onSave={(newCab) => {
+          setTempCabinet(newCab);
+          setShowAdvancedCabinetEditor(false);
+        }}
+      />
+
     </div>
   );
 };
@@ -1633,7 +1941,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
 const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject: React.Dispatch<React.SetStateAction<Project>> }) => {
   // Use more specific dependencies to prevent unnecessary recalculations
   const data = useMemo(() => generateProjectBOM(project), [project.id, project.zones, project.settings]);
-  const [activeView, setActiveView] = useState<'list' | 'cutplan' | 'wallplan' | 'invoice'>('list');
+  const [activeView, setActiveView] = useState<'list' | 'cutplan' | 'wallplan' | 'quotation'>('list');
   const cutPlan = useMemo(() => optimizeCuts(data.groups.flatMap(g => g.items), project.settings), [data.groups, project.settings.sheetLength, project.settings.sheetWidth, project.settings.kerf]);
   const currency = project.settings.currency || '$';
 
@@ -1647,18 +1955,30 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
     loadAccessories();
   }, []);
 
+  // Load sheet types from database for pricing
+  const [sheetTypes, setSheetTypes] = useState<SheetType[]>([]);
+  useEffect(() => {
+    const loadSheetTypes = async () => {
+      const types = await sheetTypeService.getSheetTypes();
+      setSheetTypes(types);
+    };
+    loadSheetTypes();
+  }, []);
+
   // Calculate total doors for hinge calculation
+  // Ruby CBX door threshold: < 599.5mm = single door, >= 600mm = double doors
+  const RUBY_DOOR_THRESHOLD = 599.5;
   const totalDoors = useMemo(() => {
     let doors = 0;
     project.zones.forEach(zone => {
       zone.cabinets.forEach(cab => {
         // Count doors: base door cabinets have 1 or 2 doors depending on width
         if (cab.preset === PresetType.BASE_DOOR) {
-          doors += cab.width > 400 ? 2 : 1;
+          doors += cab.width >= RUBY_DOOR_THRESHOLD ? 2 : 1;
         }
         // Wall cabinets also have doors
         if (cab.type === CabinetType.WALL && cab.preset !== PresetType.OPEN_BOX) {
-          doors += cab.width > 400 ? 2 : 1;
+          doors += cab.width >= RUBY_DOOR_THRESHOLD ? 2 : 1;
         }
         // Tall cabinets
         if (cab.type === CabinetType.TALL) {
@@ -1671,6 +1991,35 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
 
   // Calculate hinge quantity (2 per door)
   const hingeQuantity = totalDoors * 2;
+
+  // Calculate installation nails (6 per hinge)
+  const totalNails = hingeQuantity * 6;
+
+  // Calculate adjustable legs (4 per BASE or TALL cabinet)
+  const totalLegs = useMemo(() => {
+    let legs = 0;
+    project.zones.forEach(zone => {
+      zone.cabinets.forEach(cab => {
+        if (cab.type === CabinetType.BASE || cab.type === CabinetType.TALL) {
+          legs += 4;
+        }
+      });
+    });
+    return legs;
+  }, [project.zones]);
+
+  // Calculate wall hangers (1 per WALL cabinet)
+  const totalHangers = useMemo(() => {
+    let hangers = 0;
+    project.zones.forEach(zone => {
+      zone.cabinets.forEach(cab => {
+        if (cab.type === CabinetType.WALL) {
+          hangers += 1;
+        }
+      });
+    });
+    return hangers;
+  }, [project.zones]);
 
   // Get hinge cost from accessories
   const hingeAccessory = accessories.find(acc =>
@@ -1712,21 +2061,28 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
   const drawerSlideUnitCost = drawerSlideAccessory?.default_amount || 15.00;
   const drawerSlideTotalCost = drawerSlideQuantity * drawerSlideUnitCost;
 
-  // Calculate total hardware cost from all individual items
+  // Calculate total hardware cost from all individual items (only those actually used in project)
   const otherAccessoriesCost = accessories
-    .filter(acc =>
-      !acc.name.toLowerCase().includes('hinge') &&
-      !acc.name.toLowerCase().includes('handle') &&
-      !acc.name.toLowerCase().includes('knob') &&
-      !acc.name.toLowerCase().includes('drawer slide') &&
-      !acc.name.toLowerCase().includes('slide')
-    )
-    .reduce((sum, acc) => sum + acc.default_amount, 0);
+    .filter(acc => {
+      // Skip items already calculated separately
+      const isExcluded =
+        acc.name.toLowerCase().includes('hinge') ||
+        acc.name.toLowerCase().includes('handle') ||
+        acc.name.toLowerCase().includes('knob') ||
+        acc.name.toLowerCase().includes('drawer slide') ||
+        acc.name.toLowerCase().includes('slide');
+      return !isExcluded;
+    })
+    .reduce((sum, acc) => {
+      // Get actual quantity from BOM, default to 0 if not found
+      const qty = data.hardwareSummary[acc.name] || 0;
+      return sum + (qty * acc.default_amount);
+    }, 0);
 
   const totalHardwareCost = hingeTotalCost + handleTotalCost + drawerSlideTotalCost + otherAccessoriesCost;
 
   // Calculate base costs with proper hardware total
-  const baseCosts = useMemo(() => calculateProjectCost(data, cutPlan, project.settings, totalHardwareCost), [data, cutPlan, project.settings.costs, totalHardwareCost]);
+  const baseCosts = useMemo(() => calculateProjectCost(data, cutPlan, project.settings, totalHardwareCost, sheetTypes), [data, cutPlan, project.settings.costs, totalHardwareCost, sheetTypes]);
 
   // Use base costs directly (no additional expenses)
   const costs = baseCosts;
@@ -1739,16 +2095,30 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
       summary[s.material].sheets++;
       summary[s.material].waste += s.waste;
     });
+
+    // Helper to find price for a material from database
+    const findSheetPrice = (materialName: string): number => {
+      const matched = sheetTypes.find(st =>
+        materialName.toLowerCase().includes(st.name.toLowerCase()) ||
+        st.name.toLowerCase().includes(materialName.toLowerCase())
+      );
+      if (matched && matched.price_per_sheet > 0) {
+        return matched.price_per_sheet;
+      }
+      return project.settings.costs?.pricePerSheet ?? 85.00;
+    };
+
     return Object.entries(summary).map(([mat, data]) => ({
       material: mat,
       sheets: data.sheets,
       waste: Math.round(data.waste / data.sheets),
-      dims: `${project.settings.sheetLength} x ${project.settings.sheetWidth}`
+      dims: `${project.settings.sheetLength} x ${project.settings.sheetWidth}`,
+      cost: data.sheets * findSheetPrice(mat)
     }));
-  }, [cutPlan, project.settings]);
+  }, [cutPlan, project.settings, sheetTypes]);
 
-  // Calculate Invoice Specifications with Filters
-  const invoiceSpecifications = useMemo(() => {
+  // Calculate Quotation Specifications with Filters
+  const quotationSpecifications = useMemo(() => {
     const specs: string[] = [];
 
     // 1. Materials
@@ -1787,8 +2157,8 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
     setTimeout(() => window.print(), 100);
   };
 
-  const handlePrintInvoice = () => {
-    generateInvoicePDF(project, invoiceSpecifications, costs, currency, {
+  const handlePrintQuotation = () => {
+    generateQuotationPDF(project, quotationSpecifications, costs, currency, {
       companyAddress: ['Katuwawala Road', 'Borelesgamuwa', 'Western Province', 'Sri Lanka'],
       phone: '0777163564',
       email: 'luxuselemente@gmail.com',
@@ -1797,11 +2167,11 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
     });
   };
 
-  // Calculate invoice data
-  const invoiceDate = new Date();
-  const dueDate = new Date(invoiceDate);
+  // Calculate quotation data
+  const quotationDate = new Date();
+  const dueDate = new Date(quotationDate);
   dueDate.setDate(dueDate.getDate() + 30);
-  const invoiceNumber = `QT-${Date.now().toString().slice(-6)}`;
+  const quotationNumber = `QT-${Date.now().toString().slice(-6)}`;
 
   // Format currency helper
   const formatCurrency = (amount: number) => {
@@ -1812,13 +2182,13 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
     <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 w-full overflow-hidden">
       <div className="p-3 sm:p-4 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex flex-col gap-3 shrink-0 print:hidden">
         <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg self-start overflow-x-auto w-full">
-          {['list', 'cutplan', 'wallplan', 'invoice'].map((v) => (
+          {['list', 'cutplan', 'wallplan', 'quotation'].map((v) => (
             <button
               key={v}
               onClick={() => setActiveView(v as any)}
               className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 text-xs sm:text-sm font-bold rounded-md capitalize whitespace-nowrap min-h-[40px] ${activeView === v ? 'bg-white dark:bg-slate-700 shadow text-slate-900 dark:text-white' : 'text-slate-500'}`}
             >
-              {v === 'list' ? 'Material List' : v === 'cutplan' ? 'Cut Plan' : v === 'wallplan' ? 'Wall Plans' : 'Invoice Review'}
+              {v === 'list' ? 'Material List' : v === 'cutplan' ? 'Cut Plan' : v === 'wallplan' ? 'Wall Plans' : (project.settings.quotationStatus === 'invoice' ? 'Invoice Review' : 'Quotation Review')}
             </button>
           ))}
         </div>
@@ -1838,122 +2208,148 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
           }} className="flex-1 sm:flex-none min-h-[40px] text-xs sm:text-sm">
             <Wrench size={16} className="mr-1 sm:mr-2" /> Drilling DXF
           </Button>
-          <Button variant={activeView === 'invoice' ? 'primary' : 'secondary'} size="sm" onClick={() => setActiveView('invoice')} className="flex-1 sm:flex-none min-h-[40px] text-xs sm:text-sm">
-            <CreditCard size={16} className="mr-1 sm:mr-2" /> Invoice
+          <Button variant={activeView === 'quotation' ? 'primary' : 'secondary'} size="sm" onClick={() => setActiveView('quotation')} className="flex-1 sm:flex-none min-h-[40px] text-xs sm:text-sm">
+            <CreditCard size={16} className="mr-1 sm:mr-2" /> {project.settings.quotationStatus === 'invoice' ? 'Invoice' : 'Quotation'}
           </Button>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-8 space-y-6 sm:space-y-8 bg-white dark:bg-slate-950 print:p-4 print:pb-24 print:overflow-visible h-full">
         {/* BOM CONTENT */}
-        <div className={activeView !== 'invoice' ? 'block' : 'hidden print:block'}>
-          <div className="border-b border-slate-200 dark:border-slate-800 pb-4 sm:pb-6 flex flex-col sm:flex-row justify-between items-start gap-4">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">{project.company || "Cabinet Project"}</h1>
-              <p className="text-slate-500 text-sm sm:text-base">Project: {project.name}</p>
-            </div>
-            {project.settings.logoUrl && <img src={project.settings.logoUrl} alt="Logo" className="h-10 sm:h-12 object-contain max-w-[120px]" />}
-          </div>
+        <div className={`${activeView !== 'quotation' ? 'flex' : 'hidden print:flex'} flex-col gap-10 sm:gap-14`}>
 
-          {/* COSTING CARD (Print Safe) */}
-          <div className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl print:bg-white print:text-black print:border-2 print:border-black print:break-inside-avoid shadow-xl print:shadow-none">
-            <h3 className="text-amber-600 dark:text-amber-500 font-bold mb-3 sm:mb-4 flex items-center gap-2 print:text-black text-base sm:text-lg"><DollarSign size={18} /> Cost Estimate</h3>
-            <div className="grid grid-cols-3 gap-3 sm:gap-6">
-              <div><div className="text-slate-500 dark:text-slate-400 text-xs uppercase print:text-black">Material</div><div className="text-lg sm:text-xl font-bold">{currency}{baseCosts.materialCost.toFixed(2)}</div></div>
-              <div><div className="text-slate-500 dark:text-slate-400 text-xs uppercase print:text-black">Hardware</div><div className="text-lg sm:text-xl font-bold">{currency}{baseCosts.hardwareCost.toFixed(2)}</div></div>
-              <div><div className="text-slate-500 dark:text-slate-400 text-xs uppercase print:text-black">Labor</div><div className="text-lg sm:text-xl font-bold">{currency}{baseCosts.laborCost.toFixed(2)}</div></div>
-            </div>
-            <div className="grid grid-cols-2 gap-3 sm:gap-6 mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 print:border-black">
-              <div>
-                <div className="text-slate-500 dark:text-slate-400 text-xs uppercase print:text-black">Total</div>
-                <div className="text-xl sm:text-2xl font-bold">{currency}{baseCosts.subtotal.toFixed(2)}</div>
+          {/* COSTING CARD - Only show in List view */}
+          {activeView === 'list' && (
+            <div className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl print:bg-white print:text-black print:border-2 print:border-black print:break-inside-avoid shadow-xl print:shadow-none">
+              <h3 className="text-amber-600 dark:text-amber-500 font-bold mb-3 sm:mb-4 flex items-center gap-2 print:text-black text-base sm:text-lg"><DollarSign size={18} /> Cost Estimate</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-6">
+                <div><div className="text-slate-500 dark:text-slate-400 text-xs uppercase print:text-black">Material</div><div className="text-lg sm:text-xl font-bold">{currency}{baseCosts.materialCost.toFixed(2)}</div></div>
+                <div><div className="text-slate-500 dark:text-slate-400 text-xs uppercase print:text-black">Hardware</div><div className="text-lg sm:text-xl font-bold">{currency}{baseCosts.hardwareCost.toFixed(2)}</div></div>
+                <div><div className="text-slate-500 dark:text-slate-400 text-xs uppercase print:text-black">Labor</div><div className="text-lg sm:text-xl font-bold">{currency}{baseCosts.laborCost.toFixed(2)}</div></div>
+                <div><div className="text-slate-500 dark:text-slate-400 text-xs uppercase print:text-black">Transport</div><div className="text-lg sm:text-xl font-bold">{currency}{baseCosts.transportCost.toFixed(2)}</div></div>
               </div>
-              <div className="text-right">
-                <div className="text-amber-600 dark:text-amber-500 text-xs uppercase print:text-black">Sub Total ({project.settings.costs.marginPercent}% margin)</div>
-                <div className="text-2xl sm:text-3xl font-black">{currency}{costs.totalPrice.toFixed(2)}</div>
+              <div className="grid grid-cols-2 gap-3 sm:gap-6 mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 print:border-black">
+                <div>
+                  <div className="text-slate-500 dark:text-slate-400 text-xs uppercase print:text-black">Total</div>
+                  <div className="text-xl sm:text-2xl font-bold">{currency}{baseCosts.subtotal.toFixed(2)}</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-amber-600 dark:text-amber-500 text-xs uppercase print:text-black">Sub Total ({(project.settings.costs?.marginPercent ?? 50)}% margin)</div>
+                  <div className="text-2xl sm:text-3xl font-black">{currency}{costs.totalPrice.toFixed(2)}</div>
+                </div>
               </div>
-            </div>
-            {/* Edit Cost Settings (Simple) */}
-            <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 flex flex-wrap gap-3 sm:gap-4 print:hidden">
-              <div className="flex items-center gap-2"><span className="text-xs text-slate-500 dark:text-slate-400">Sheet:</span><input type="number" className="bg-slate-100 dark:bg-slate-800 w-16 sm:w-20 rounded px-2 py-1 text-sm text-slate-900 dark:text-white" value={project.settings.costs.pricePerSheet} onChange={e => setProject({ ...project, settings: { ...project.settings, costs: { ...project.settings.costs, pricePerSheet: Number(e.target.value) } } })} /></div>
-              <div className="flex items-center gap-2"><span className="text-xs text-slate-500 dark:text-slate-400">Labor:</span><input type="number" className="bg-slate-100 dark:bg-slate-800 w-16 sm:w-20 rounded px-2 py-1 text-sm text-slate-900 dark:text-white" value={project.settings.costs.laborRatePerHour} onChange={e => setProject({ ...project, settings: { ...project.settings, costs: { ...project.settings.costs, laborRatePerHour: Number(e.target.value) } } })} /></div>
-              <div className="flex items-center gap-2"><span className="text-xs text-slate-500 dark:text-slate-400">Margin (%):</span><input type="number" className="bg-slate-100 dark:bg-slate-800 w-16 sm:w-20 rounded px-2 py-1 text-sm text-slate-900 dark:text-white" value={project.settings.costs.marginPercent} onChange={e => setProject({ ...project, settings: { ...project.settings, costs: { ...project.settings.costs, marginPercent: Number(e.target.value) } } })} /></div>
-            </div>
-          </div>
 
-          {/* MATERIAL SUMMARY TABLE (Always Visible in List/Cut Plan) */}
-          <div className="break-inside-avoid overflow-x-auto">
-            <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 flex items-center gap-2"><Layers size={18} /> Materials & Hardware</h3>
-            <table className="w-full min-w-[400px] text-xs sm:text-sm text-left border-collapse border border-slate-200 dark:border-slate-700 print:border-black">
-              <thead className="bg-slate-100 dark:bg-slate-800 print:!bg-slate-200 print:!text-black">
-                <tr>
-                  <th className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:text-black">Material</th>
-                  <th className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:text-black">Size</th>
-                  <th className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:text-black">Qty</th>
-                  <th className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:text-black">Cost</th>
-                  <th className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:text-black print:hidden">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {materialSummary.map((m) => (
-                  <tr key={m.material}>
-                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">{m.material}</td>
-                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">{m.dims}</td>
-                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">{m.sheets}</td>
-                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">{currency}{(m.sheets * project.settings.costs.pricePerSheet).toFixed(2)}</td>
-                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
-                  </tr>
-                ))}
-                {/* Soft-Close Hinges - calculated: 2 per door */}
-                {hingeQuantity > 0 && (
+            </div>
+          )}
+
+          {/* MATERIAL SUMMARY TABLE - Only show in List view */}
+          {activeView === 'list' && (
+            <div className="break-inside-avoid overflow-x-auto">
+              <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 flex items-center gap-2"><Layers size={18} /> Materials & Hardware</h3>
+              <table className="w-full min-w-[400px] text-xs sm:text-sm text-left border-collapse border border-slate-200 dark:border-slate-700 print:border-black">
+                <thead className="bg-slate-100 dark:bg-slate-800 print:!bg-slate-200 print:!text-black">
                   <tr>
-                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">Soft-Close Hinges (2 per door)</td>
-                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">-</td>
-                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">{hingeQuantity}</td>
-                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">{currency}{hingeTotalCost.toFixed(2)}</td>
-                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
+                    <th className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:text-black">Material</th>
+                    <th className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:text-black">Size</th>
+                    <th className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:text-black">Qty</th>
+                    <th className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:text-black">Cost</th>
+                    <th className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:text-black print:hidden">Action</th>
                   </tr>
-                )}
-                {/* Handle/Knob - calculated: doors + drawers */}
-                {handleQuantity > 0 && (
-                  <tr>
-                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">Handle/Knob ({totalDoors} doors + {totalDrawers} drawers)</td>
-                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">-</td>
-                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">{handleQuantity}</td>
-                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">{currency}{handleTotalCost.toFixed(2)}</td>
-                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
-                  </tr>
-                )}
-                {/* Drawer Slide (Pair) - calculated: number of drawers */}
-                {drawerSlideQuantity > 0 && (
-                  <tr>
-                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">Drawer Slide (Pair) ({totalDrawers} drawers)</td>
-                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">-</td>
-                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">{drawerSlideQuantity}</td>
-                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">{currency}{drawerSlideTotalCost.toFixed(2)}</td>
-                    <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
-                  </tr>
-                )}
-                {accessories
-                  .filter(acc =>
-                    !acc.name.toLowerCase().includes('hinge') &&
-                    !acc.name.toLowerCase().includes('handle') &&
-                    !acc.name.toLowerCase().includes('knob') &&
-                    !acc.name.toLowerCase().includes('drawer slide') &&
-                    !acc.name.toLowerCase().includes('slide')
-                  )
-                  .map((acc) => (
-                    <tr key={acc.id}>
-                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">{acc.name}</td>
-                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">-</td>
-                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">1</td>
-                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">{currency}{acc.default_amount.toFixed(2)}</td>
+                </thead>
+                <tbody>
+                  {materialSummary.map((m) => (
+                    <tr key={m.material}>
+                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">{m.material}</td>
+                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">{m.dims}</td>
+                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">{m.sheets}</td>
+                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">{currency}{m.cost.toFixed(2)}</td>
                       <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
                     </tr>
                   ))}
-              </tbody>
-            </table>
-          </div>
+                  {/* Soft-Close Hinges - calculated: 2 per door */}
+                  {hingeQuantity > 0 && (
+                    <tr>
+                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">Soft-Close Hinges (2 per door)</td>
+                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">-</td>
+                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">{hingeQuantity}</td>
+                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">{currency}{hingeTotalCost.toFixed(2)}</td>
+                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
+                    </tr>
+                  )}
+                  {/* Handle/Knob - calculated: doors + drawers */}
+                  {handleQuantity > 0 && (
+                    <tr>
+                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">Handle/Knob ({totalDoors} doors + {totalDrawers} drawers)</td>
+                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">-</td>
+                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">{handleQuantity}</td>
+                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">{currency}{handleTotalCost.toFixed(2)}</td>
+                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
+                    </tr>
+                  )}
+                  {/* Drawer Slide (Pair) - calculated: number of drawers */}
+                  {drawerSlideQuantity > 0 && (
+                    <tr>
+                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">Drawer Slide (Pair) ({totalDrawers} drawers)</td>
+                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">-</td>
+                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">{drawerSlideQuantity}</td>
+                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">{currency}{drawerSlideTotalCost.toFixed(2)}</td>
+                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
+                    </tr>
+                  )}
+                  {/* Adjustable Leg - calculated: 4 per BASE/TALL cabinet */}
+                  {totalLegs > 0 && (
+                    <tr>
+                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">Adjustable Leg</td>
+                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">-</td>
+                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">{totalLegs}</td>
+                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">{currency}{(totalLegs * (accessories.find(a => a.name.toLowerCase().includes('adjustable leg'))?.default_amount || 2)).toFixed(2)}</td>
+                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
+                    </tr>
+                  )}
+                  {/* Wall Hanger - calculated: 1 per WALL cabinet */}
+                  {totalHangers > 0 && (
+                    <tr>
+                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">Wall Hanger (Pair)</td>
+                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">-</td>
+                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">{totalHangers}</td>
+                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">{currency}{(totalHangers * (accessories.find(a => a.name.toLowerCase().includes('wall hanger'))?.default_amount || 6)).toFixed(2)}</td>
+                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
+                    </tr>
+                  )}
+                  {/* Installation Nail - calculated: 6 per hinge */}
+                  {totalNails > 0 && (
+                    <tr>
+                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">Installation Nail</td>
+                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">-</td>
+                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">{totalNails}</td>
+                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">{currency}{(totalNails * (accessories.find(a => a.name.toLowerCase().includes('installation nail'))?.default_amount || 0.10)).toFixed(2)}</td>
+                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
+                    </tr>
+                  )}
+                  {accessories
+                    .filter(acc =>
+                      !acc.name.toLowerCase().includes('hinge') &&
+                      !acc.name.toLowerCase().includes('handle') &&
+                      !acc.name.toLowerCase().includes('knob') &&
+                      !acc.name.toLowerCase().includes('drawer slide') &&
+                      !acc.name.toLowerCase().includes('slide') &&
+                      !acc.name.toLowerCase().includes('adjustable leg') &&
+                      !acc.name.toLowerCase().includes('wall hanger') &&
+                      !acc.name.toLowerCase().includes('installation nail')
+                    )
+                    .map((acc) => (
+                      <tr key={acc.id}>
+                        <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">{acc.name}</td>
+                        <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">-</td>
+                        <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">1</td>
+                        <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">{currency}{acc.default_amount.toFixed(2)}</td>
+                        <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           {/* LIST VIEW */}
           <div className={activeView === 'list' ? 'block' : 'hidden print:block'}>
@@ -1984,29 +2380,31 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
           <div className={activeView === 'cutplan' ? 'block' : 'hidden print:block print:break-before-page'}>
             <div className="flex flex-wrap items-center justify-between gap-3 mb-3 sm:mb-4 print:hidden">
               <h3 className="text-lg sm:text-xl font-bold flex items-center gap-2"><Scissors size={18} /> Cut Optimization</h3>
-              <Button 
-                variant="secondary" 
-                size="sm" 
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={() => exportAllSheetsToDXFZip(cutPlan.sheets, project.settings, project.name)}
                 className="min-h-[40px]"
               >
                 <FileCode size={16} className="mr-2" /> Export All DXF (ZIP)
               </Button>
             </div>
-            {/* Screen view - vertical stack */}
-            <div className="space-y-6 sm:space-y-8 print:hidden">{cutPlan.sheets.map((sheet, i) => (
-              <div key={i} className="relative">
-                <CutPlanVisualizer sheet={sheet} index={i} settings={project.settings} />
-                <Button 
-                  variant="secondary" 
-                  size="sm" 
-                  onClick={() => exportSingleSheetToDXF(sheet, project.settings, i, project.name)}
-                  className="absolute top-2 right-2 print:hidden"
-                >
-                  <FileCode size={14} className="mr-1" /> DXF
-                </Button>
-              </div>
-            ))}</div>
+            {/* Screen view - grid layout */}
+            <div className="max-w-6xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">{cutPlan.sheets.map((sheet, i) => (
+                <div key={i} className="relative border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
+                  <CutPlanVisualizer sheet={sheet} index={i} settings={project.settings} />
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => exportSingleSheetToDXF(sheet, project.settings, i, project.name)}
+                    className="absolute top-2 right-2 print:hidden"
+                  >
+                    <FileCode size={14} className="mr-1" /> DXF
+                  </Button>
+                </div>
+              ))}</div>
+            </div>
             {/* Print view - 2 per page in landscape */}
             <div className="hidden print:block">
               {Array.from({ length: Math.ceil(cutPlan.sheets.length / 2) }).map((_, pageIndex) => (
@@ -2024,97 +2422,69 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
 
           {/* WALL PLAN VIEW */}
           <div className={activeView === 'wallplan' ? 'block' : 'hidden print:block print:break-before-page'}>
-            <h2 className="text-2xl sm:text-4xl font-black uppercase mb-4 sm:mb-8 tracking-tighter print:hidden">III. Wall Elevations</h2>
-            <div className="space-y-12 print:space-y-0">
-              {project.zones.filter(z => z.active).map((zone, zoneIndex) => (
-                <div key={zone.id} className={`${zoneIndex > 0 ? 'print:break-before-page' : ''}`}>
-                  {/* PRINT VIEW: Table first, then visualization */}
-                  <div className="hidden print:block">
-                    {/* Page 1: Unit Schedule Table */}
-                    <div className="border-4 border-black p-4 bg-white min-h-[calc(100vh-80px)]">
-                      <h3 className="text-xl font-black uppercase mb-4 border-b-2 border-black pb-2 tracking-widest">{zone.id} - Unit Schedule</h3>
-                      <div>
-                        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Unit Schedule</h4>
-                        <table className="w-full text-sm text-left uppercase font-bold border-collapse">
-                          <thead>
-                            <tr className="border-b-2 border-black text-slate-500">
-                              <th className="pb-2">POS</th>
-                              <th className="pb-2">Description</th>
-                              <th className="pb-2 text-right">Width</th>
-                              <th className="pb-2 text-right">Type</th>
-                              <th className="pb-2 text-right">Qty</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-black/10">
-                            {zone.cabinets.sort((a, b) => (a.label || '').localeCompare(b.label || '')).map((cab, idx) => (
-                              <tr key={idx}>
-                                <td className="py-3 text-amber-600 font-black italic">{cab.label}</td>
-                                <td className="py-3 font-black tracking-tight">{cab.preset}</td>
-                                <td className="py-3 text-right font-mono">{cab.width}mm</td>
-                                <td className="py-3 text-right text-xs opacity-60">{cab.type}</td>
-                                <td className="py-3 text-right">1</td>
+            <div className="max-w-4xl mx-auto">
+              <div className="space-y-12 print:space-y-0">
+                {project.zones.filter(z => z.active).map((zone, zoneIndex) => (
+                  <div key={zone.id} className={`${zoneIndex > 0 ? 'print:break-before-page' : ''}`}>
+                    {/* PRINT VIEW: Table first, then visualization */}
+                    <div className="hidden print:block">
+                      {/* Page 1: Unit Schedule Table */}
+                      <div className="border-4 border-black p-4 bg-white min-h-[calc(100vh-80px)]">
+                        <h3 className="text-xl font-black uppercase mb-4 border-b-2 border-black pb-2 tracking-widest">{zone.id} - Unit Schedule</h3>
+                        <div>
+                          <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Unit Schedule</h4>
+                          <table className="w-full text-sm text-left uppercase font-bold border-collapse">
+                            <thead>
+                              <tr className="border-b-2 border-black text-slate-500">
+                                <th className="pb-2">POS</th>
+                                <th className="pb-2">Description</th>
+                                <th className="pb-2 text-right">Width</th>
+                                <th className="pb-2 text-right">Type</th>
+                                <th className="pb-2 text-right">Qty</th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                            </thead>
+                            <tbody className="divide-y divide-black/10">
+                              {zone.cabinets.sort((a, b) => (a.label || '').localeCompare(b.label || '')).map((cab, idx) => (
+                                <tr key={idx}>
+                                  <td className="py-3 text-amber-600 font-black italic">{cab.label}</td>
+                                  <td className="py-3 font-black tracking-tight">{cab.preset}</td>
+                                  <td className="py-3 text-right font-mono">{cab.width}mm</td>
+                                  <td className="py-3 text-right text-xs opacity-60">{cab.type}</td>
+                                  <td className="py-3 text-right">1</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+
+                      {/* Page 2: Wall Visualization - full page, no title */}
+                      <div className="bg-white w-full h-[calc(100vh-80px)] flex flex-col items-center justify-start">
+                        <div className="w-full flex items-center justify-center pt-8" style={{ transform: 'scale(0.85)', transformOrigin: 'top center' }}>
+                          <WallVisualizer zone={zone} height={zone.wallHeight || 2400} settings={project.settings} hideArrows={true} />
+                        </div>
                       </div>
                     </div>
 
-                    {/* Page 2: Wall Visualization - full page, no title */}
-                    <div className="bg-white w-full h-[calc(100vh-80px)] flex flex-col items-center justify-start">
-                      <div className="w-full flex items-center justify-center pt-8" style={{ transform: 'scale(0.85)', transformOrigin: 'top center' }}>
-                        <WallVisualizer zone={zone} height={project.settings.tallHeight + 200} hideArrows={true} />
-                      </div>
+                    {/* SCREEN VIEW: Kitchen Plan Canvas - Same as Plan Page */}
+                    <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border dark:border-slate-800 print:border-none print:shadow-none print:p-0">
+                      <KitchenPlanCanvas data={buildProjectConstructionData(project)} scalePxPerMeter={120} />
                     </div>
                   </div>
-
-                  {/* SCREEN VIEW: Original layout */}
-                  <div className="border-4 sm:border-8 border-black p-3 sm:p-4 bg-white flex flex-col print:hidden">
-                    <h3 className="text-base sm:text-xl font-black uppercase mb-2 sm:mb-3 border-b-2 border-black pb-1 tracking-widest">{zone.id}</h3>
-                    <div className="h-[260px] sm:h-[380px] mb-4 border-2 border-slate-100 bg-slate-50 print:bg-white print:border-black shrink-0 overflow-hidden">
-                      <WallVisualizer zone={zone} height={project.settings.tallHeight + 100} hideArrows={true} />
-                    </div>
-                    {/* Legend Table */}
-                    <div className="flex-1 overflow-hidden">
-                      <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Unit Schedule</h4>
-                      <table className="w-full text-[9px] text-left uppercase font-bold border-collapse">
-                        <thead>
-                          <tr className="border-b-2 border-black text-slate-500">
-                            <th className="pb-1">POS</th>
-                            <th className="pb-1">Description</th>
-                            <th className="pb-1 text-right">Width</th>
-                            <th className="pb-1 text-right">Type</th>
-                            <th className="pb-1 text-right">Qty</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-black/10">
-                          {zone.cabinets.sort((a, b) => (a.label || '').localeCompare(b.label || '')).map((cab, idx) => (
-                            <tr key={idx}>
-                              <td className="py-2 text-amber-600 font-black italic text-xs">{cab.label}</td>
-                              <td className="py-2 font-black tracking-tight">{cab.preset}</td>
-                              <td className="py-2 text-right font-mono">{cab.width}mm</td>
-                              <td className="py-2 text-right text-[7px] opacity-60">{cab.type}</td>
-                              <td className="py-2 text-right">1</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
         </div>
 
-        {/* INVOICE PREVIEW */}
-        {activeView === 'invoice' && (
+        {/* QUOTATION PREVIEW */}
+        {activeView === 'quotation' && (
           <div className="max-w-4xl mx-auto bg-white dark:bg-slate-900 shadow-2xl rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden text-black animate-in fade-in slide-in-from-bottom-4 duration-500 print:shadow-none print:border-0 print:m-0 print:bg-white print:text-black">
-            {/* Invoice Header (Matching PDF Layout) */}
+            {/* Quotation Header (Matching PDF Layout) */}
             <div className="bg-slate-800 dark:bg-black text-white p-8 sm:p-12 flex flex-col sm:flex-row justify-between items-center text-center sm:text-left gap-6 print:bg-slate-800 print:text-white">
               <div>
-                <h1 className="text-4xl sm:text-5xl font-light tracking-[0.2em] uppercase mb-2">Invoice</h1>
-                <p className="text-slate-400 text-xs tracking-widest uppercase">Quotation / Bill of Quantities</p>
+                <h1 className="text-4xl sm:text-5xl font-light tracking-[0.2em] uppercase mb-2">{project.settings.quotationStatus === 'invoice' ? 'Invoice' : 'Quotation'}</h1>
+                <p className="text-slate-400 text-xs tracking-widest uppercase">{project.settings.quotationStatus === 'invoice' ? 'Invoice / Bill' : 'Quotation / Bill of Quantities'}</p>
               </div>
               <div className="text-center sm:text-right">
                 <div className="font-black text-lg uppercase mb-1 tracking-tight">{project.company || "Company Name"}</div>
@@ -2144,12 +2514,12 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
                 </div>
                 <div className="space-y-2">
                   <div className="flex justify-between sm:justify-end gap-6 text-xs">
-                    <span className="text-slate-400 uppercase font-bold tracking-widest">Invoice#</span>
-                    <span className="font-bold text-slate-800">{invoiceNumber}</span>
+                    <span className="text-slate-400 uppercase font-bold tracking-widest">Quotation#</span>
+                    <span className="font-bold text-slate-800">{quotationNumber}</span>
                   </div>
                   <div className="flex justify-between sm:justify-end gap-6 text-xs">
-                    <span className="text-slate-400 uppercase font-bold tracking-widest">Invoice Date</span>
-                    <span className="text-slate-800">{invoiceDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                    <span className="text-slate-400 uppercase font-bold tracking-widest">Quotation Date</span>
+                    <span className="text-slate-800">{quotationDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
                   </div>
                   <div className="flex justify-between sm:justify-end gap-6 text-xs">
                     <span className="text-slate-400 uppercase font-bold tracking-widest">Due Date</span>
@@ -2174,7 +2544,7 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
                       <td className="py-6 align-top">
                         <div className="font-black text-slate-800 uppercase tracking-tight mb-2">{(project.name || 'Cabinet Project') + ' Specifications'}</div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1 text-[10px] text-slate-500 font-medium">
-                          {invoiceSpecifications.map((spec, idx) => (
+                          {quotationSpecifications.map((spec, idx) => (
                             <div key={idx} className="flex gap-2">
                               <span className="text-amber-500">{(idx + 1).toString().padStart(2, '0')}.</span>
                               <span>{spec}</span>
@@ -2243,8 +2613,17 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
 
               {/* Actions Box */}
               <div className="pt-12 flex flex-col items-center gap-4 print:hidden border-t border-slate-100">
-                <Button variant="primary" size="lg" onClick={handlePrintInvoice} className="gap-3 px-12 py-6 rounded-full shadow-2xl shadow-amber-500/20 hover:scale-105 transition-transform">
-                  <Download size={24} /> Download Invoice PDF
+                {project.settings.quotationStatus !== 'invoice' ? (
+                  <Button variant="secondary" size="lg" onClick={async () => { const updated = { ...project, settings: { ...project.settings, quotationStatus: 'invoice' as const, quotationApprovedDate: new Date().toISOString() } }; setProject(updated); await projectService.updateProject(project.id, updated); }} className="gap-3 px-12 py-6 rounded-full shadow-lg hover:scale-105 transition-transform">
+                    <Check size={24} /> Mark as Approved (Convert to Invoice)
+                  </Button>
+                ) : (
+                  <div className="flex items-center gap-2 text-green-600 font-bold">
+                    <Check size={20} /> Invoice Approved on {new Date(project.settings.quotationApprovedDate || '').toLocaleDateString('en-GB')}
+                  </div>
+                )}
+                <Button variant="primary" size="lg" onClick={handlePrintQuotation} className="gap-3 px-12 py-6 rounded-full shadow-2xl shadow-amber-500/20 hover:scale-105 transition-transform">
+                  <Download size={24} /> {project.settings.quotationStatus === 'invoice' ? 'Download Invoice PDF' : 'Download Quotation PDF'}
                 </Button>
                 <button onClick={() => setActiveView('list')} className="text-slate-400 hover:text-slate-600 text-xs font-bold uppercase tracking-widest">Back to Report</button>
               </div>
