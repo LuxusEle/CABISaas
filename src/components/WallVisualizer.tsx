@@ -485,7 +485,7 @@ export const WallVisualizer: React.FC<Props> = ({
           })}
 
         <line x1="-100" y1={height} x2={zone.totalLength + 100} y2={height} stroke="var(--wall-border)" strokeWidth="4" className="print:stroke-black" />
-        {zone.obstacles.map((obs, idx) => {
+        {zone.obstacles.filter(obs => !obs.id.startsWith('corner_')).map((obs, idx) => {
           const x = obs.fromLeft;
           return (
             <g key={obs.id}

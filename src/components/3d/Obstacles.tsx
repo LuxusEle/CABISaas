@@ -67,7 +67,7 @@ export const Obstacles: React.FC<Props> = ({ obstacles, zone, wallIndex, wallAEn
 
   return (
     <>
-      {obstacles.map((obstacle, index) => {
+      {obstacles.filter(o => !o.id.startsWith('corner_')).map((obstacle, index) => {
         const position = getObstaclePosition(obstacle, wallIndex, wallAEnd, wallBEnd, wallCEnd);
         const color = getObstacleColor(obstacle.type);
         const isTransparent = obstacle.type === 'window';

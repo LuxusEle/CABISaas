@@ -122,7 +122,6 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
 const STANDARD_WIDTHS = [900, 600, 450, 300, 250];
 const BASE_CORNER_WIDTH = 1050;
 const WALL_CORNER_WIDTH = 750;
-const BASE_CORNER_OFFSET = 625;
 const MIN_FILL_WIDTH = 250;
 
 // --- Helper Functions ---
@@ -132,6 +131,7 @@ function injectCorners(current: Zone, next: Zone, settings: ProjectSettings) {
   const wDepth = settings.depthWall;
   
   // Base Corner
+  const baseCornerOffset = settings.depthBase + (settings.doorMaterialThickness || 18) + 25;
   current.cabinets.push({
     id: uuid(), 
     preset: PresetType.BASE_CORNER, 
@@ -142,7 +142,7 @@ function injectCorners(current: Zone, next: Zone, settings: ProjectSettings) {
     isAutoFilled: true, 
     label: 'BC',
     advancedSettings: { 
-      blindPanelWidth: BASE_CORNER_OFFSET, 
+      blindPanelWidth: baseCornerOffset, 
       blindCornerSide: 'right', 
       cabinetType: 'corner' 
     }
@@ -153,8 +153,8 @@ function injectCorners(current: Zone, next: Zone, settings: ProjectSettings) {
     id: 'corner_base_offset', 
     type: 'column', 
     fromLeft: 0, 
-    width: BASE_CORNER_OFFSET, 
-    height: settings.baseHeight + (settings.toeKickHeight || 100), 
+    width: baseCornerOffset, 
+    height: settings.baseHeight, 
     depth 
   });
 

@@ -20,7 +20,7 @@ export const Wall: React.FC<Props> = ({ position, width, height, rotation, obsta
   const activeOpacity = 0.3;
 
   const openings = obstacles.filter(o => o.type === 'window' || o.type === 'door');
-  const protrudingObstacles = obstacles.filter(o => o.type === 'column' || o.type === 'pipe');
+  const protrudingObstacles = obstacles.filter(o => (o.type === 'column' || o.type === 'pipe') && !o.id.startsWith('corner_'));
   const sortedOpenings = [...openings].sort((a, b) => a.fromLeft - b.fromLeft);
   const sortedProtruding = [...protrudingObstacles].sort((a, b) => a.fromLeft - b.fromLeft);
 
