@@ -61,14 +61,15 @@ export const resolveCollisions = (zone: Zone): Zone => {
     .sort((a, b) => a.fromLeft - b.fromLeft)
     .map(c => ({ ...c }));
 
-  for (let i = 1; i < sortedCabs.length; i++) {
+  // First pass: Push right to resolve overlaps
+  // First pass: Push right to resolve overlaps with other cabinets AND obstacles
+  for (let i = 0; i < sortedCabs.length; i++) {
     const next = sortedCabs[i];
     let maxRight = next.fromLeft;
 
+    // Check collisions with preceding cabinets
     for (let j = 0; j < i; j++) {
       const current = sortedCabs[j];
-
-      // Check if they collide vertically (same type or one is Tall)
       const collideVertically =
         current.type === next.type ||
         current.type === CabinetType.TALL ||
@@ -82,6 +83,51 @@ export const resolveCollisions = (zone: Zone): Zone => {
       }
     }
     next.fromLeft = maxRight;
+  }
+
+  // Second pass: Enforce wall boundary (right to left)
+  const wallLimit = zone.totalLength;
+  const limits: Record<string, number> = {
+    [CabinetType.BASE]: wallLimit,
+    [CabinetType.WALL]: wallLimit,
+    [CabinetType.TALL]: wallLimit
+  };
+
+  // Process from right to left to push back or shrink
+  for (let i = sortedCabs.length - 1; i >= 0; i--) {
+    const cab = sortedCabs[i];
+    const type = cab.type;
+    
+    // Determine the relevant limit for this cabinet type
+    let currentLimit = limits[type];
+    if (type === CabinetType.TALL) {
+      currentLimit = Math.min(limits[CabinetType.BASE], limits[CabinetType.WALL], limits[CabinetType.TALL]);
+    }
+
+    if (cab.fromLeft + cab.width > currentLimit) {
+      // If possible, resize to fit
+      if (cab.fromLeft < currentLimit - 100) {
+        cab.width = currentLimit - cab.fromLeft;
+      } else {
+        // If too far right, push back and keep min width
+        cab.width = Math.min(cab.width, 100);
+        cab.fromLeft = Math.max(0, currentLimit - cab.width);
+      }
+    }
+
+    // Update limits for preceding cabinets
+    const nextLimit = cab.fromLeft;
+    if (type === CabinetType.TALL) {
+      limits[CabinetType.BASE] = nextLimit;
+      limits[CabinetType.WALL] = nextLimit;
+      limits[CabinetType.TALL] = nextLimit;
+    } else {
+      limits[type] = nextLimit;
+      // Also update TALL limit if this is more restrictive
+      if (nextLimit < limits[CabinetType.TALL]) {
+        limits[CabinetType.TALL] = nextLimit;
+      }
+    }
   }
 
   return {

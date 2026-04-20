@@ -37,8 +37,8 @@ export const WallVisualizer: React.FC<Props> = ({
   const baseViewBox = {
     x: -viewPadding,
     y: -200,
-    width: zone.totalLength + viewPadding * 2,
-    height: height + 400,
+    width: (zone?.totalLength || 3000) + viewPadding * 2,
+    height: (height || 2400) + 400,
   };
 
   const [viewBox, setViewBox] = useState<{ x: number; y: number; width: number; height: number }>(() => ({
@@ -223,12 +223,12 @@ export const WallVisualizer: React.FC<Props> = ({
     let h = baseHeight;
     let y = height - toeKick - baseHeight;
 
-    if (isTall) { h = tallHeight; y = height - toeKick - tallHeight; }
+    if (isTall) { h = tallHeight; y = (height || 2400) - toeKick - tallHeight; }
     else if (isWall) { 
       h = wallHeight; 
       // Wall cabinet sits above counter top using settings
       const wallElevation = settings?.wallCabinetElevation || 450;
-      y = height - toeKick - baseHeight - counterThickness - wallElevation - wallHeight;
+      y = (height || 2400) - toeKick - baseHeight - counterThickness - wallElevation - wallHeight;
     }
 
     const x = unit.fromLeft;
@@ -431,8 +431,8 @@ export const WallVisualizer: React.FC<Props> = ({
           data-pan="true"
           x="0"
           y="0"
-          width={zone.totalLength}
-          height={height}
+          width={zone?.totalLength || 3000}
+          height={height || 2400}
           fill="var(--bg-wall)"
           className="stroke-[var(--wall-border)] print:stroke-black print:stroke-2"
           strokeWidth="2"

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Obstacle } from '../../types';
+import { Grid } from '@react-three/drei';
 
 interface Props {
   position: [number, number, number];
@@ -11,9 +12,18 @@ interface Props {
   isActive?: boolean;
   onClick?: () => void;
   lightTheme?: boolean;
+  showGrid?: boolean;
+  onPointerMove?: (e: any) => void;
+  onPointerOut?: (e: any) => void;
+  onPointerUp?: (e: any) => void;
 }
 
-export const Wall: React.FC<Props> = ({ position, width, height, rotation, obstacles = [], wallIndex = 0, isActive = false, onClick, lightTheme = false }) => {
+export const Wall: React.FC<Props> = ({ 
+  position, width, height, rotation, 
+  obstacles = [], wallIndex = 0, isActive = false, 
+  onClick, lightTheme = false, showGrid = false,
+  onPointerMove, onPointerOut, onPointerUp
+}) => {
   const wallThickness = 50;
   const wallDepth = wallThickness;
 
@@ -36,6 +46,9 @@ export const Wall: React.FC<Props> = ({ position, width, height, rotation, obsta
           position={[width / 2, height / 2, -wallDepth / 2]} 
           receiveShadow
           onClick={onClick}
+          onPointerMove={onPointerMove}
+          onPointerOut={onPointerOut}
+          onPointerUp={onPointerUp}
         >
           <boxGeometry args={[width, height, wallDepth]} />
           <meshStandardMaterial color={activeColor} roughness={0.9} transparent opacity={activeOpacity} />
@@ -65,6 +78,9 @@ export const Wall: React.FC<Props> = ({ position, width, height, rotation, obsta
             position={[currentX + segWidth / 2, height / 2, -wallDepth / 2]} 
             receiveShadow
             onClick={onClick}
+            onPointerMove={onPointerMove}
+            onPointerOut={onPointerOut}
+            onPointerUp={onPointerUp}
           >
             <boxGeometry args={[segWidth, height, wallDepth]} />
             <meshStandardMaterial color={activeColor} roughness={0.9} transparent opacity={activeOpacity} />
@@ -80,6 +96,9 @@ export const Wall: React.FC<Props> = ({ position, width, height, rotation, obsta
             position={[opening.fromLeft + openingWidth / 2, openingY + openingHeight / 2 + aboveHeight / 2, -wallDepth / 2]} 
             receiveShadow
             onClick={onClick}
+            onPointerMove={onPointerMove}
+            onPointerOut={onPointerOut}
+            onPointerUp={onPointerUp}
           >
             <boxGeometry args={[openingWidth, aboveHeight, wallDepth]} />
             <meshStandardMaterial color={activeColor} roughness={0.9} transparent opacity={activeOpacity} />
@@ -95,6 +114,9 @@ export const Wall: React.FC<Props> = ({ position, width, height, rotation, obsta
             position={[opening.fromLeft + openingWidth / 2, belowHeight / 2, -wallDepth / 2]} 
             receiveShadow
             onClick={onClick}
+            onPointerMove={onPointerMove}
+            onPointerOut={onPointerOut}
+            onPointerUp={onPointerUp}
           >
             <boxGeometry args={[openingWidth, belowHeight, wallDepth]} />
             <meshStandardMaterial color={activeColor} roughness={0.9} transparent opacity={activeOpacity} />
@@ -113,6 +135,9 @@ export const Wall: React.FC<Props> = ({ position, width, height, rotation, obsta
           position={[currentX + segWidth / 2, height / 2, -wallDepth / 2]} 
           receiveShadow
           onClick={onClick}
+          onPointerMove={onPointerMove}
+          onPointerOut={onPointerOut}
+          onPointerUp={onPointerUp}
         >
           <boxGeometry args={[segWidth, height, wallDepth]} />
           <meshStandardMaterial color={activeColor} roughness={0.9} transparent opacity={activeOpacity} />
@@ -179,10 +204,39 @@ export const Wall: React.FC<Props> = ({ position, width, height, rotation, obsta
         return null;
       })}
       
-      <mesh position={[width / 2, height / 2, 0]}>
+      {/* Base plane for grid/interaction */}
+      <mesh 
+        position={[width / 2, height / 2, 0]}
+        onPointerMove={onPointerMove}
+        onPointerOut={onPointerOut}
+        onPointerUp={onPointerUp}
+        onClick={onClick}
+      >
         <planeGeometry args={[width, height]} />
-        <meshStandardMaterial color={lightTheme ? '#f1f5f9' : '#e2e8f0'} roughness={0.8} transparent opacity={lightTheme ? 0.5 : 0.2} side={2} />
+        <meshStandardMaterial 
+          color={lightTheme ? '#f1f5f9' : '#e2e8f0'} 
+          roughness={0.8} 
+          transparent 
+          opacity={showGrid ? 0.4 : (lightTheme ? 0.5 : 0.2)} 
+          side={2} 
+        />
       </mesh>
+
+      {showGrid && (
+        <group position={[width / 2, height / 2, 0.5]}>
+          <Grid
+            args={[width, height]}
+            cellSize={100}
+            cellThickness={1}
+            cellColor={lightTheme ? '#94a3b8' : '#cbd5e1'}
+            sectionSize={500}
+            sectionThickness={1.5}
+            sectionColor={lightTheme ? '#64748b' : '#ffffff'}
+            fadeDistance={10000}
+            rotation={[Math.PI / 2, 0, 0]}
+          />
+        </group>
+      )}
 
       {sortedProtruding.map((obstacle, index) => {
         const obsWidth = obstacle.width || 100;

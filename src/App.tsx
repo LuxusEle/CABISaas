@@ -209,7 +209,11 @@ export default function App() {
       alert("Saving failed. Please try again.");
     } else if (data) {
       const fixedData = ensureProjectSettings(data);
-      setProject(fixedData);
+      // Only update local state if the ID changed (new project promoted to DB)
+      // to avoid race conditions where a slow save reverts recent local changes.
+      if (fixedData.id !== projectToSave.id) {
+        setProject(fixedData);
+      }
       return fixedData;
     }
     return null;
@@ -1060,8 +1064,22 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
 
 const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark }: { project: Project, setProject: React.Dispatch<React.SetStateAction<Project>>, setScreen: (s: Screen) => void, onSave: () => void, isDark: boolean }) => {
   const [activeTab, setActiveTab] = useState<string>(project.zones[0]?.id || 'Wall A');
+  
+  // Keep activeTab in sync if the current one is deleted or project changes
+  useEffect(() => {
+    if (!project.zones.some(z => z.id === activeTab)) {
+      if (project.zones.length > 0) {
+        setActiveTab(project.zones[0].id);
+      }
+    }
+  }, [project.zones, activeTab]);
+
   const currentZoneIndex = project.zones.findIndex(z => z.id === activeTab);
-  const currentZone = project.zones[currentZoneIndex];
+  const currentZone = project.zones[currentZoneIndex] || project.zones[0];
+
+  if (!currentZone) {
+    return <div className="p-8 text-center text-slate-500">Initializing editor...</div>;
+  }
 
   // Resizable bottom table panel
   const [tablePanelHeight, setTablePanelHeight] = useState<number>(280);
@@ -1076,14 +1094,14 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark }: { 
   const [mobileTableCollapsed, setMobileTableCollapsed] = useState(true);
 
   // Undo/Redo history
-  const [history, setHistory] = useState<{ zones: typeof project.zones; timestamp: number }[]>([]);
-  const [redoStack, setRedoStack] = useState<{ zones: typeof project.zones; timestamp: number }[]>([]);
+  const [history, setHistory] = useState<{ zones: typeof project.zones; activeTab: string; timestamp: number }[]>([]);
+  const [redoStack, setRedoStack] = useState<{ zones: typeof project.zones; activeTab: string; timestamp: number }[]>([]);
   const maxHistorySize = 20;
 
   // Save state to history
   const saveToHistory = () => {
     setHistory(prev => {
-      const newHistory = [{ zones: JSON.parse(JSON.stringify(project.zones)), timestamp: Date.now() }, ...prev].slice(0, maxHistorySize);
+      const newHistory = [{ zones: JSON.parse(JSON.stringify(project.zones)), activeTab, timestamp: Date.now() }, ...prev].slice(0, maxHistorySize);
       return newHistory;
     });
     // Clear redo stack when new action occurs
@@ -1095,8 +1113,9 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark }: { 
     if (history.length > 0) {
       const [lastState, ...remainingHistory] = history;
       // Save current state to redo stack
-      setRedoStack(prev => [{ zones: JSON.parse(JSON.stringify(project.zones)), timestamp: Date.now() }, ...prev].slice(0, maxHistorySize));
+      setRedoStack(prev => [{ zones: JSON.parse(JSON.stringify(project.zones)), activeTab, timestamp: Date.now() }, ...prev].slice(0, maxHistorySize));
       setProject(prev => ({ ...prev, zones: lastState.zones }));
+      setActiveTab(lastState.activeTab);
       setHistory(remainingHistory);
     }
   };
@@ -1106,8 +1125,9 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark }: { 
     if (redoStack.length > 0) {
       const [nextState, ...remainingRedo] = redoStack;
       // Save current state to history
-      setHistory(prev => [{ zones: JSON.parse(JSON.stringify(project.zones)), timestamp: Date.now() }, ...prev].slice(0, maxHistorySize));
+      setHistory(prev => [{ zones: JSON.parse(JSON.stringify(project.zones)), activeTab, timestamp: Date.now() }, ...prev].slice(0, maxHistorySize));
       setProject(prev => ({ ...prev, zones: nextState.zones }));
+      setActiveTab(nextState.activeTab);
       setRedoStack(remainingRedo);
     }
   };
@@ -1186,6 +1206,40 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark }: { 
   const initialView = searchParams.get('view') === 'iso' ? 'iso' : 'elevation';
   const [visualMode, setVisualMode] = useState<'elevation' | 'iso'>(initialView);
   const [isTableVisible, setIsTableVisible] = useState(false);
+  const [draggingCabinet, setDraggingCabinet] = useState<CabinetUnit | null>(null);
+
+  const handleDropCabinet = (zoneId: string, fromLeft: number, cabinet: CabinetUnit, targetWidth?: number) => {
+    const targetId = zoneId || activeTab || project.zones[0]?.id;
+    if (!targetId) return;
+
+    // Switch to the zone if it's not active
+    if (targetId !== activeTab) {
+      setActiveTab(targetId);
+    }
+    
+    const { icon, ...cabinetData } = cabinet as any;
+    const newCabinet: CabinetUnit = {
+      ...cabinetData as CabinetUnit,
+      id: Math.random().toString(),
+      fromLeft,
+      width: targetWidth || cabinet.width,
+      label: '' 
+    };
+    
+    handleSequentialAdd([newCabinet], targetId);
+    setDraggingCabinet(null);
+  };
+
+  useEffect(() => {
+    if (draggingCabinet) {
+      const handleGlobalUp = () => {
+        // We delay slightly to allow the onPointerUp on the wall to fire first if it's over the wall
+        setTimeout(() => setDraggingCabinet(null), 10);
+      };
+      window.addEventListener('pointerup', handleGlobalUp);
+      return () => window.removeEventListener('pointerup', handleGlobalUp);
+    }
+  }, [draggingCabinet]);
 
   // Sync visual mode with URL if needed
   useEffect(() => {
@@ -1197,13 +1251,16 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark }: { 
     }
   }, [searchParams]);
 
-  const updateZone = (newZoneOrTransform: Zone | ((z: Zone) => Zone), skipHistory = false) => {
+  const updateZone = (newZoneOrTransform: Zone | ((z: Zone) => Zone), skipHistory = false, targetZoneId?: string) => {
     if (!skipHistory) {
       saveToHistory();
     }
+    const zoneIdToUpdate = targetZoneId || activeTab || project.zones[0]?.id;
+    if (!zoneIdToUpdate) return;
+    
     setProject(prev => {
       const newZones = [...prev.zones];
-      const idx = newZones.findIndex(z => z.id === activeTab);
+      const idx = newZones.findIndex(z => z.id === zoneIdToUpdate);
       if (idx !== -1) {
         const currentZone = newZones[idx];
         const newZone = typeof newZoneOrTransform === 'function'
@@ -1218,6 +1275,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark }: { 
   const handleDragEnd = () => updateZone(z => resolveCollisions(z)); // Shove on drop
 
   const handleAutoFill = () => {
+    saveToHistory();
     const result = generateRubyLayout(project);
     setProject(result.project);
   };
@@ -1231,6 +1289,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark }: { 
         alert("Zone name must be unique");
         return;
       }
+      saveToHistory();
       const newZone = { id: name, active: true, totalLength: 3000, wallHeight: 2400, obstacles: [], cabinets: [] };
       const nextZones = [...project.zones, newZone];
       setProject({ ...project, zones: nextZones });
@@ -1241,6 +1300,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark }: { 
   const deleteZone = (id: string) => {
     if (project.zones.length <= 1) return;
     if (window.confirm(`Delete ${id}?`)) {
+      saveToHistory();
       const newZones = project.zones.filter(z => z.id !== id);
       setProject({ ...project, zones: newZones });
       setActiveTab(newZones[0].id);
@@ -1284,7 +1344,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark }: { 
   };
 
   // Handler for sequential box input - adds cabinets and re-labels
-  const handleSequentialAdd = (newCabinets: CabinetUnit[]) => {
+  const handleSequentialAdd = (newCabinets: CabinetUnit[], targetZoneId?: string) => {
     updateZone(z => {
       const allCabs = [...z.cabinets, ...newCabinets].sort((a, b) => a.fromLeft - b.fromLeft);
       // Re-number all cabinets
@@ -1297,7 +1357,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark }: { 
         return { ...c, label };
       });
       return resolveCollisions({ ...z, cabinets: numbered });
-    });
+    }, false, targetZoneId);
   };
 
   const openAdd = (type: 'cabinet' | 'obstacle') => {
@@ -1521,26 +1581,65 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark }: { 
 
             <div className="flex-1 relative min-h-0 flex flex-col">
               {/* Canvas */}
-              <div className="flex-1 bg-slate-50 dark:bg-slate-900 relative z-10 transition-all min-h-0">
-                {visualMode === 'elevation' ? (
-                  <WallVisualizer zone={currentZone} height={currentZone.wallHeight || 2400} settings={project.settings} onCabinetClick={(i) => openEdit('cabinet', i)} onObstacleClick={(i) => openEdit('obstacle', i)} onCabinetMove={handleCabinetMove} onObstacleMove={handleObstacleMove} onDragEnd={handleDragEnd} onSwapCabinets={handleSwapCabinets} />
-                ) : (
-                  <CabinetViewer 
-                    project={project} 
-                    showHardware={true} 
-                    lightTheme={!isDark}
-                    onCabinetClick={(zIdx, cIdx) => { 
-                      const zoneId = project.zones[zIdx].id; 
-                      setActiveTab(zoneId); 
-                      openEdit("cabinet", cIdx); 
-                    }} 
-                    onWallClick={(wallId) => { 
-                      setActiveTab(wallId); 
-                      setVisualMode("elevation"); 
-                    }} 
-                    activeWallId={activeTab} 
-                  />
+              <div className="flex-1 bg-slate-50 dark:bg-slate-900 relative z-10 transition-all min-h-0 flex overflow-hidden">
+                {visualMode === 'iso' && (
+                  <div className="w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col shrink-0 z-20">
+                    <div className="p-4 border-b dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50">
+                      <h3 className="text-sm font-black uppercase tracking-widest text-slate-500">Cabinets</h3>
+                      <p className="text-[10px] text-slate-400 mt-1">Drag and drop to add</p>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                      {[
+                        { type: CabinetType.BASE, preset: PresetType.BASE_DOOR, label: 'Base Cabinet', icon: <Box size={24} /> },
+                        { type: CabinetType.WALL, preset: PresetType.WALL_STD, label: 'Wall Cabinet', icon: <Layers size={24} /> },
+                        { type: CabinetType.TALL, preset: PresetType.TALL_UTILITY, label: 'Tall Cabinet', icon: <Layers size={24} className="rotate-90" /> },
+                        { type: CabinetType.BASE, preset: PresetType.SINK_UNIT, label: 'Sink Unit', icon: <Box size={24} className="text-blue-500" /> },
+                        { type: CabinetType.BASE, preset: PresetType.BASE_DRAWER_3, label: '3-Drawer', icon: <Box size={24} /> },
+                      ].map((proto, i) => (
+                        <div 
+                          key={i}
+                          onPointerDown={(e) => {
+                            e.preventDefault();
+                            const { icon, ...protoData } = proto;
+                            setDraggingCabinet({ ...protoData, id: 'proto', width: 600, qty: 1, fromLeft: 0 } as any);
+                          }}
+                          className="group bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl p-4 cursor-grab active:cursor-grabbing hover:border-amber-500 dark:hover:border-amber-500 hover:shadow-lg transition-all flex items-center gap-3 select-none active:scale-95"
+                        >
+                          <div className="w-10 h-10 rounded-lg bg-white dark:bg-slate-900 flex items-center justify-center text-slate-400 group-hover:text-amber-500 border dark:border-slate-700 shadow-sm transition-colors">
+                            {proto.icon}
+                          </div>
+                          <div>
+                            <div className="text-sm font-bold text-slate-700 dark:text-slate-200">{proto.label}</div>
+                            <div className="text-[10px] text-slate-400 uppercase font-black">{proto.type}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
+                
+                <div className="flex-1 relative">
+                  {visualMode === 'elevation' ? (
+                    <WallVisualizer zone={currentZone} height={currentZone.wallHeight || 2400} settings={project.settings} onCabinetClick={(i) => openEdit('cabinet', i)} onObstacleClick={(i) => openEdit('obstacle', i)} onCabinetMove={handleCabinetMove} onObstacleMove={handleObstacleMove} onDragEnd={handleDragEnd} onSwapCabinets={handleSwapCabinets} />
+                  ) : (
+                    <CabinetViewer 
+                      project={project} 
+                      showHardware={true} 
+                      lightTheme={!isDark}
+                      draggedCabinet={draggingCabinet}
+                      onDropCabinet={handleDropCabinet}
+                      onCabinetClick={(zoneId, cIdx) => { 
+                        setActiveTab(zoneId); 
+                        openEdit("cabinet", cIdx); 
+                      }} 
+                      onWallClick={(wallId) => { 
+                        setActiveTab(wallId); 
+                        setVisualMode("elevation"); 
+                      }} 
+                      activeWallId={activeTab} 
+                    />
+                  )}
+                </div>
               </div>
 
               {/* Table */}
@@ -1558,7 +1657,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark }: { 
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-amber-900/20">
-                          {[...currentZone.obstacles, ...currentZone.cabinets].map((item, i) => {
+                          {currentZone && [...currentZone.obstacles, ...currentZone.cabinets].map((item, i) => {
                             const isCab = 'preset' in item;
                             return (
                               <tr
@@ -1634,8 +1733,9 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark }: { 
                   project={project} 
                   showHardware={true} 
                   lightTheme={!isDark}
-                  onCabinetClick={(zIdx, cIdx) => { 
-                    const zoneId = project.zones[zIdx].id; 
+                  draggedCabinet={draggingCabinet}
+                  onDropCabinet={handleDropCabinet}
+                  onCabinetClick={(zoneId, cIdx) => { 
                     setActiveTab(zoneId); 
                     openEdit("cabinet", cIdx); 
                   }} 
@@ -1655,6 +1755,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark }: { 
                   <Menu size={18} /><span>Menu</span>
                 </Button>
                 <Button size="sm" variant="secondary" onClick={() => {
+                  saveToHistory();
                   const result = generateRubyLayout(project);
                   setProject(result.project);
                 }} className="min-h-[52px] text-xs flex flex-col items-center justify-center gap-0.5">
@@ -1675,7 +1776,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark }: { 
                 onClick={() => setMobileTableCollapsed(!mobileTableCollapsed)}
                 className="h-10 shrink-0 flex items-center justify-between px-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-500 text-xs font-bold uppercase tracking-wider"
               >
-                <span>{mobileTableCollapsed ? `Show Items (${currentZone.cabinets.length + currentZone.obstacles.length})` : 'Hide Items'}</span>
+                <span>{mobileTableCollapsed ? `Show Items (${(currentZone?.cabinets.length || 0) + (currentZone?.obstacles.length || 0)})` : 'Hide Items'}</span>
                 <span className="transform transition-transform">{mobileTableCollapsed ? '▲' : '▼'}</span>
               </button>
 

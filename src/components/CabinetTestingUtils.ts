@@ -77,6 +77,7 @@ export interface TestingSettings {
   lowerSectionDrawerStackHeight: number;
   enableTallUpperGola: boolean;
   preset?: string;
+  opacity?: number;
 }
 
 export const DEFAULT_SETTINGS: TestingSettings = {
@@ -143,7 +144,8 @@ export const DEFAULT_SETTINGS: TestingSettings = {
   lowerSectionDrawerStackHeight: 800,
   enableTallUpperGola: false,
   blindPanelWidth: 400,
-  blindCornerSide: 'left'
+  blindCornerSide: 'left',
+  opacity: 1
 };
 
 export const RUBY_DOOR_THRESHOLD = 599.5;

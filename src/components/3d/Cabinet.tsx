@@ -26,6 +26,7 @@ interface Props {
   onClick?: () => void;
   doorOpenAngle?: number;
   forceGola?: boolean;
+  opacity?: number;
 }
 
 const DimensionLine: React.FC<{
@@ -76,7 +77,8 @@ export const Cabinet: React.FC<Props> = ({
   editingDimension = null,
   onClick,
   doorOpenAngle,
-  forceGola
+  forceGola,
+  opacity = 1
 }) => {
   const [hovered, setHovered] = React.useState(false);
 
@@ -107,8 +109,12 @@ export const Cabinet: React.FC<Props> = ({
   // Merge legacy project settings and advanced testing settings
   const testingSettings = useMemo(() => {
     const s = getCabinetTestingSettings(unit, settings || {}, width, height, depth);
-    if (doorOpenAngle !== undefined) s.doorOpenAngle = doorOpenAngle;
     if (forceGola !== undefined) s.enableGola = forceGola;
+    if (opacity !== undefined) s.opacity = opacity;
+    if (doorOpenAngle !== undefined) {
+      s.doorOpenAngle = doorOpenAngle;
+      s.lowerDoorOpenAngle = doorOpenAngle;
+    }
     return s;
   }, [unit, settings, width, height, depth, doorOpenAngle, forceGola]);
 
