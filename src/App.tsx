@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Routes, Route, useNavigate, useLocation, Navigate, useParams, useSearchParams } from 'react-router-dom';
-import { Home, Layers, Calculator, Zap, ArrowLeft, ArrowRight, Trash2, Plus, Box, DoorOpen, Wand2, Moon, Sun, Table2, FileSpreadsheet, X, Pencil, Save, List, Settings, Printer, Download, Scissors, LayoutDashboard, DollarSign, Map, LogOut, Menu, Wrench, CreditCard, ChevronDown, ChevronUp, FileText, Ruler, Book, Upload, Image as ImageIcon, Shield, FileCode, Check, Settings2 } from 'lucide-react';
+import { Home, Layers, Calculator, Zap, ArrowLeft, ArrowRight, Trash2, Plus, Box, DoorOpen, Wand2, Moon, Sun, Table2, FileSpreadsheet, X, Pencil, Save, List, Settings, Printer, Download, Scissors, LayoutDashboard, DollarSign, Map, LogOut, Menu, Wrench, CreditCard, ChevronDown, ChevronUp, FileText, Ruler, Book, Upload, Image as ImageIcon, Shield, FileCode, Check, Settings2, RotateCcw } from 'lucide-react';
 import { Screen, Project, Zone, ZoneId, PresetType, CabinetType, CabinetUnit, Obstacle, AutoFillOptions } from './types';
 import { createNewProject, generateProjectBOM, autoFillZone, exportToExcel, resolveCollisions, calculateProjectCost, exportProjectToConstructionJSON, buildProjectConstructionData, getIntersectingCabinets, ensureProjectSettings } from './services/bomService';
 import { generateRubyLayout } from './services/layoutSolver';
@@ -1088,6 +1088,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark }: { 
   const [customCabinets, setCustomCabinets] = useState<any[]>([]);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [mobileTableCollapsed, setMobileTableCollapsed] = useState(true);
+  const [initialZoneCabinetsBackup, setInitialZoneCabinetsBackup] = useState<CabinetUnit[] | null>(null);
 
   // Undo/Redo history
   const [history, setHistory] = useState<{ zones: typeof project.zones; activeTab: string; timestamp: number }[]>([]);
@@ -1105,6 +1106,17 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark }: { 
     // Clear redo stack when new action occurs
     setRedoStack([]);
   };
+
+  useEffect(() => {
+    if (selectedCabinet) {
+      const zone = project.zones.find(z => z.id === selectedCabinet.zoneId);
+      if (zone) {
+        setInitialZoneCabinetsBackup(JSON.parse(JSON.stringify(zone.cabinets)));
+      }
+    } else {
+      setInitialZoneCabinetsBackup(null);
+    }
+  }, [selectedCabinet?.index, selectedCabinet?.zoneId]);
 
   // Undo function
   const handleUndo = () => {
@@ -1852,6 +1864,21 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark }: { 
                 const cab = zone?.cabinets[selectedCabinet.index];
                 if (!cab) return null;
 
+                const isCabinetChanged = initialZoneCabinetsBackup && (
+                  JSON.stringify(zone.cabinets) !== JSON.stringify(initialZoneCabinetsBackup)
+                );
+
+                const handleResetCabinet = () => {
+                  if (initialZoneCabinetsBackup && selectedCabinet) {
+                    const originalCabinets = JSON.parse(JSON.stringify(initialZoneCabinetsBackup));
+                    updateZone(z => ({ ...z, cabinets: originalCabinets }), false, selectedCabinet.zoneId);
+                    
+                    // Sync temp cabinet for editors
+                    const cab = originalCabinets[selectedCabinet.index];
+                    if (cab) setTempCabinet(JSON.parse(JSON.stringify(cab)));
+                  }
+                };
+
                 return (
                   <div className="space-y-5">
                     <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
@@ -2133,6 +2160,15 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark }: { 
                       </button>
                     </div>
 
+                    {isCabinetChanged && (
+                      <button 
+                        onClick={handleResetCabinet}
+                        className="w-full py-2.5 bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/20 dark:hover:bg-amber-900/30 text-amber-600 dark:text-amber-400 font-bold text-xs uppercase tracking-wider rounded-xl transition-all border border-amber-200 dark:border-amber-800/50 flex items-center justify-center gap-2"
+                      >
+                        <RotateCcw size={14} /> Reset Changes
+                      </button>
+                    )}
+
                     <button 
                       onClick={() => {
                         updateZone(z => {
@@ -2407,7 +2443,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark }: { 
         globalSettings={project.settings}
         isDark={isDark}
         onSave={(newCab) => {
-          setTempCabinet(newCab);
+          updateSelectedCabinet(newCab);
           setShowAdvancedCabinetEditor(false);
         }}
       />
