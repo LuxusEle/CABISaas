@@ -355,7 +355,7 @@ export const WallCabinetTesting: React.FC<Props> = ({ settings }) => {
         );
       })}
 
-      {showShelves && numShelves > 0 && skeletonView && Array.from({ length: numShelves }).map((_, i) => {
+      {showShelves && numShelves > 0 && skeletonView && settings.preset !== 'Cooker Hood' && Array.from({ length: numShelves }).map((_, i) => {
         const availableHeight = innerHeight - panelThickness * 2;
         const spacing = availableHeight / (numShelves + 1);
         const shelfY = -innerHeight / 2 + panelThickness + spacing * (i + 1);
@@ -368,7 +368,7 @@ export const WallCabinetTesting: React.FC<Props> = ({ settings }) => {
         );
       })}
 
-      {showShelves && numShelves > 0 && !skeletonView && Array.from({ length: numShelves }).map((_, i) => {
+      {showShelves && numShelves > 0 && !skeletonView && settings.preset !== 'Cooker Hood' && Array.from({ length: numShelves }).map((_, i) => {
         const availableHeight = innerHeight - panelThickness * 2;
         const spacing = availableHeight / (numShelves + 1);
         const shelfY = -innerHeight / 2 + panelThickness + spacing * (i + 1);
@@ -388,26 +388,7 @@ export const WallCabinetTesting: React.FC<Props> = ({ settings }) => {
 
       {/* --- Specialized Equipment --- */}
       
-      {/* 1. COOKER HOOD */}
-      {settings.preset === 'Cooker Hood' && !skeletonView && (
-        <group position={[0, -innerHeight / 2 + 100, 10]}>
-          {/* Main Angled Hood Body */}
-          <mesh castShadow>
-            <cylinderGeometry args={[width * 0.2, width * 0.4, 400, 4, 1, false]} />
-            <meshStandardMaterial color="#475569" metalness={0.8} roughness={0.2} />
-          </mesh>
-          {/* Base Filter Section */}
-          <mesh position={[0, -200, 0]} castShadow>
-            <boxGeometry args={[width * 0.9, 20, depth * 0.9]} />
-            <meshStandardMaterial color="#94a3b8" metalness={0.9} />
-          </mesh>
-          {/* Vent Pipe */}
-          <mesh position={[0, 300, 0]} castShadow>
-             <boxGeometry args={[width * 0.25, 400, width * 0.25]} />
-             <meshStandardMaterial color="#475569" metalness={0.8} />
-          </mesh>
-        </group>
-      )}
+      {/* 1. COOKER HOOD (Now handled globally by Cabinet.tsx) */}
     </group>
   );
 };

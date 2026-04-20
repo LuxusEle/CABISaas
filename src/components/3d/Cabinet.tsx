@@ -64,6 +64,23 @@ const DimensionLine: React.FC<{
   );
 };
 
+const VisualHood: React.FC<{ width: number; depth: number; y: number; opacity?: number }> = ({ width, depth, y, opacity = 1 }) => {
+  return (
+    <group position={[width / 2, y - 60, depth / 2]}>
+      {/* Main Angled Hood Body - Scaled down */}
+      <mesh castShadow>
+        <cylinderGeometry args={[width * 0.15, width * 0.35, 120, 4, 1, false]} />
+        <meshStandardMaterial color="#475569" metalness={0.8} roughness={0.2} transparent={opacity < 1} opacity={opacity} />
+      </mesh>
+      {/* Base Filter Section */}
+      <mesh position={[0, -60, 0]} castShadow>
+        <boxGeometry args={[width * 0.95, 15, depth * 0.95]} />
+        <meshStandardMaterial color="#94a3b8" metalness={0.9} transparent={opacity < 1} opacity={opacity} />
+      </mesh>
+    </group>
+  );
+};
+
 export const Cabinet: React.FC<Props> = ({
   unit,
   position,
@@ -99,12 +116,13 @@ export const Cabinet: React.FC<Props> = ({
   const baseHeight = settings?.baseHeight || 870;
   const counterThickness = settings?.counterThickness || 40;
   const wallElevation = settings?.wallCabinetElevation || 450;
-  const toeKickHeight = settings?.toeKickHeight || 100;
   
   let zBase = 0;
   if (isWall && !previewMode) {
     zBase = baseHeight + counterThickness + wallElevation;
   }
+
+  const isCooker = unit.preset === PresetType.COOKER_HOB || (unit.preset === PresetType.BASE_DRAWER_3 && width >= 800);
 
   // Merge legacy project settings and advanced testing settings
   const testingSettings = useMemo(() => {
@@ -116,7 +134,7 @@ export const Cabinet: React.FC<Props> = ({
       s.lowerDoorOpenAngle = doorOpenAngle;
     }
     return s;
-  }, [unit, settings, width, height, depth, doorOpenAngle, forceGola]);
+  }, [unit, settings, width, height, depth, doorOpenAngle, forceGola, opacity]);
 
   return (
     <group 
@@ -143,6 +161,17 @@ export const Cabinet: React.FC<Props> = ({
           <BaseCabinetTesting settings={testingSettings} />
         )
       )}
+      
+      {/* Standalone Visual Hood for cookers - stays even if wall cabs are deleted */}
+      {isBase && isCooker && !previewMode && (
+        <VisualHood 
+          width={width} 
+          depth={depth} 
+          y={baseHeight + counterThickness + wallElevation} 
+          opacity={opacity}
+        />
+      )}
+
       {isWall && (
         <group position={[0, zBase, 0]}>
           {unit.preset === PresetType.WALL_CORNER ? (
