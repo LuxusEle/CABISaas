@@ -19,15 +19,12 @@ import { Button } from './components/Button';
 import { NumberInput } from './components/NumberInput';
 import { WallVisualizer } from './components/WallVisualizer';
 import { CutPlanVisualizer } from './components/CutPlanVisualizer';
-import { IsometricVisualizer } from './components/IsometricVisualizer';
 import { CabinetViewer } from './components/3d';
 import { KitchenPlanCanvas } from './components/KitchenPlanCanvas';
 import { AuthModal } from './components/AuthModal';
-import { CustomCabinetEditor } from './components/CustomCabinetEditor';
 import { LandingPage } from './components/LandingPage';
 import { customCabinetService } from './services/customCabinetService';
 import { projectService } from './services/projectService';
-import { SequentialBoxInput } from './components/SequentialBoxInput';
 import { SheetTypeManager } from './components/SheetTypeManager';
 import { CabinetPreviewCard } from './components/CabinetPreviewCard';
 import { CabinetEditModal } from './components/CabinetEditModal';
@@ -1087,7 +1084,6 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark }: { 
   const tabsRowRef = useRef<HTMLDivElement | null>(null);
   const resizingRef = useRef(false);
   const dragStartRef = useRef<{ startY: number; startHeight: number } | null>(null);
-  const [showCustomEditor, setShowCustomEditor] = useState(false);
   const [showAdvancedCabinetEditor, setShowAdvancedCabinetEditor] = useState(false);
   const [customCabinets, setCustomCabinets] = useState<any[]>([]);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -2128,14 +2124,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark }: { 
                         )}
                       </div>
                     )}
-
-                    <div className="pt-2 space-y-2">
-                      <button 
-                        onClick={() => setShowCustomEditor(true)}
-                        className="w-full py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs uppercase tracking-wider rounded-xl transition-all border border-slate-200 dark:border-slate-700 flex items-center justify-center gap-2"
-                      >
-                        <Wand2 size={14} /> Customize (Old)
-                      </button>
+                    <div className="pt-2">
                       <button 
                         onClick={() => setShowAdvancedCabinetEditor(true)}
                         className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
@@ -2280,18 +2269,10 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark }: { 
                     </div>
                   </div>
 
-                  {/* Customize Button */}
                   <div className="flex gap-2">
                     <button
-                      onClick={() => setShowCustomEditor(true)}
-                      className="flex-1 py-3 sm:py-2 px-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold rounded-lg transition-all flex items-center justify-center gap-2 min-h-[48px]"
-                    >
-                      <Wand2 size={18} />
-                      <span className="text-sm sm:text-base">Customize (Old)</span>
-                    </button>
-                    <button
                       onClick={() => setShowAdvancedCabinetEditor(true)}
-                      className="flex-1 py-3 sm:py-2 px-4 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold rounded-lg transition-all flex items-center justify-center gap-2 min-h-[48px]"
+                      className="w-full py-3 sm:py-2 px-4 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold rounded-lg transition-all flex items-center justify-center gap-2 min-h-[48px]"
                     >
                       <Settings2 size={18} />
                       <span className="text-sm sm:text-base">Advanced 3D Editor</span>
@@ -2417,18 +2398,6 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark }: { 
         </div>
       )}
 
-      {/* Custom Cabinet Editor Modal */}
-      {showCustomEditor && (
-        <CustomCabinetEditor
-          basePreset={tempCabinet.preset}
-          baseType={tempCabinet.type === CabinetType.BASE ? 'Base' : tempCabinet.type === CabinetType.WALL ? 'Wall' : 'Tall'}
-          initialConfig={tempCabinet.customConfig}
-          onClose={() => setShowCustomEditor(false)}
-          onSave={() => {
-            setShowCustomEditor(false);
-          }}
-        />
-      )}
 
       {/* Advanced 3D Cabinet Editor */}
       <SingleCabinetEditorModal
