@@ -17,6 +17,8 @@ interface Props {
   lightTheme?: boolean;
   draggedCabinet?: CabinetUnit | null;
   onDropCabinet?: (zoneId: string, fromLeft: number, cabinet: CabinetUnit) => void;
+  selectedCabinet?: { zoneId: string, index: number } | null;
+  onCabinetSelect?: (zoneId: string, index: number) => void;
 }
 
 const LoadingFallback = () => {
@@ -116,7 +118,9 @@ const Scene = ({
   doorOpenAngle,
   forceGola,
   draggedCabinet,
-  onDropCabinet
+  onDropCabinet,
+  selectedCabinet,
+  onCabinetSelect
 }: { 
   project: Project; 
   showHardware: boolean; 
@@ -131,6 +135,8 @@ const Scene = ({
   forceGola?: boolean;
   draggedCabinet?: CabinetUnit | null;
   onDropCabinet?: (zoneId: string, fromLeft: number, cabinet: CabinetUnit, targetWidth?: number) => void;
+  selectedCabinet?: { zoneId: string, index: number } | null;
+  onCabinetSelect?: (zoneId: string, index: number) => void;
 }) => {
   const [previewPos, setPreviewPos] = useState<{ wallIndex: number; fromLeft: number; width: number } | null>(null);
   const activeZones = (showEmptyWalls || !!draggedCabinet)
@@ -533,23 +539,27 @@ const Scene = ({
         />
       )}
 
-      {layoutData.cabinetPositions.map(({ unit, zone, position, rotation, wallIndex, cabinetIndex, label }) => (
-        <Cabinet
-          key={unit.id}
-          unit={unit}
-          position={position}
-          rotation={rotation}
-          showHardware={showHardware}
-          wallIndex={wallIndex}
-          label={label}
-          settings={project.settings}
-          onClick={() => {
-            onCabinetClick?.(zone.id, cabinetIndex);
-          }}
-          doorOpenAngle={doorOpenAngle}
-          forceGola={forceGola}
-        />
-      ))}
+      {layoutData.cabinetPositions.map(({ unit, zone, position, rotation, wallIndex, cabinetIndex, label }) => {
+        const isSelected = selectedCabinet?.zoneId === zone.id && selectedCabinet?.index === cabinetIndex;
+        return (
+          <Cabinet
+            key={unit.id}
+            unit={unit}
+            position={position}
+            rotation={rotation}
+            showHardware={showHardware}
+            wallIndex={wallIndex}
+            label={label}
+            settings={project.settings}
+            isSelected={isSelected}
+            onClick={() => {
+              onCabinetSelect?.(zone.id, cabinetIndex);
+            }}
+            doorOpenAngle={doorOpenAngle}
+            forceGola={forceGola}
+          />
+        );
+      })}
 
       {/* Background plane to catch drag events in empty space */}
       {draggedCabinet && (
@@ -687,7 +697,9 @@ export const CabinetViewer: React.FC<Props> = ({
   activeWallId, 
   lightTheme = false,
   draggedCabinet,
-  onDropCabinet
+  onDropCabinet,
+  selectedCabinet,
+  onCabinetSelect
 }) => {
   const [viewMode, setViewMode] = useState<string>('isometric');
   const [showHW, setShowHW] = useState(showHardware);
@@ -848,6 +860,8 @@ export const CabinetViewer: React.FC<Props> = ({
             forceGola={forceGola}
             draggedCabinet={draggedCabinet}
             onDropCabinet={onDropCabinet}
+            selectedCabinet={selectedCabinet}
+            onCabinetSelect={onCabinetSelect}
           />
         </Suspense>
       </Canvas>

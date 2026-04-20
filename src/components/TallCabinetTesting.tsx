@@ -30,12 +30,13 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
     lowerSectionDrawerStackHeight, toeKickHeight,
   } = settings;
 
-  const baseColor = new THREE.Color(woodPalette.carcass);
-  const darkerColor = new THREE.Color(woodPalette.carcass);
-  const backPanelColor = new THREE.Color(woodPalette.backPanel);
-  const doorColor = new THREE.Color(woodPalette.door);
-  const toeKickColor = new THREE.Color(woodPalette.toeKick);
-  const shelfColor = new THREE.Color(woodPalette.shelf);
+  const isSelected = settings.isSelected;
+  const baseColor = new THREE.Color(isSelected ? '#3b82f6' : woodPalette.carcass);
+  const darkerColor = new THREE.Color(isSelected ? '#3b82f6' : woodPalette.carcass);
+  const backPanelColor = new THREE.Color(isSelected ? '#60a5fa' : woodPalette.backPanel);
+  const doorColor = new THREE.Color(isSelected ? '#2563eb' : woodPalette.door);
+  const toeKickColor = new THREE.Color(isSelected ? '#1e40af' : woodPalette.toeKick);
+  const shelfColor = new THREE.Color(isSelected ? '#93c5fd' : woodPalette.shelf);
 
   const getPanelColor = (panelType: string): THREE.Color => {
     if (!showDifferentPanelColors) return darkerColor;

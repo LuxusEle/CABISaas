@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Html } from '@react-three/drei';
+import { Html, Outlines } from '@react-three/drei';
 import * as THREE from 'three';
 import { CabinetUnit, CabinetType, ProjectSettings } from '../../types';
 import { getCabinetTestingSettings } from '../CabinetTestingUtils';
@@ -27,6 +27,7 @@ interface Props {
   doorOpenAngle?: number;
   forceGola?: boolean;
   opacity?: number;
+  isSelected?: boolean;
 }
 
 const DimensionLine: React.FC<{
@@ -95,7 +96,8 @@ export const Cabinet: React.FC<Props> = ({
   onClick,
   doorOpenAngle,
   forceGola,
-  opacity = 1
+  opacity = 1,
+  isSelected = false
 }) => {
   const [hovered, setHovered] = React.useState(false);
 
@@ -129,12 +131,13 @@ export const Cabinet: React.FC<Props> = ({
     const s = getCabinetTestingSettings(unit, settings || {}, width, height, depth);
     if (forceGola !== undefined) s.enableGola = forceGola;
     if (opacity !== undefined) s.opacity = opacity;
+    s.isSelected = isSelected;
     if (doorOpenAngle !== undefined) {
       s.doorOpenAngle = doorOpenAngle;
       s.lowerDoorOpenAngle = doorOpenAngle;
     }
     return s;
-  }, [unit, settings, width, height, depth, doorOpenAngle, forceGola, opacity]);
+  }, [unit, settings, width, height, depth, doorOpenAngle, forceGola, opacity, isSelected]);
 
   return (
     <group 
@@ -150,6 +153,27 @@ export const Cabinet: React.FC<Props> = ({
       }}
       onPointerOut={() => setHovered(false)}
     >
+      {isSelected && (
+        <mesh position={[width / 2, zBase + height / 2, depth / 2]}>
+          <boxGeometry args={[width + 6, height + 6, depth + 6]} />
+          <meshStandardMaterial 
+            color="#fbbf24" 
+            transparent 
+            opacity={0.15} 
+            emissive="#fbbf24"
+            emissiveIntensity={1.5}
+            side={THREE.DoubleSide}
+          />
+          <Outlines 
+            color="#fbbf24" 
+            thickness={4}
+            screenspace
+            transparent
+            opacity={0.8}
+          />
+        </mesh>
+      )}
+
       {/* 
           Testing models already center themselves internally at [width/2, height/2, depth/2].
           We just need to handle the vertical baseline (zBase) for wall cabinets.
@@ -222,7 +246,7 @@ export const Cabinet: React.FC<Props> = ({
 
       {label && (
         <Html position={[width / 2, zBase + height + 50, depth / 2]} center style={{ pointerEvents: 'none', whiteSpace: 'nowrap' }}>
-          <div className="bg-amber-500/90 text-white px-2 py-1 rounded text-xs font-bold shadow-lg">
+          <div className={`transition-all duration-300 transform ${isSelected ? 'bg-amber-600 scale-125 ring-2 ring-white shadow-[0_0_20px_rgba(245,158,11,0.5)] px-3 py-1.5' : 'bg-amber-500/90 px-2 py-1'} text-white rounded text-xs font-bold`}>
             {label}
           </div>
         </Html>

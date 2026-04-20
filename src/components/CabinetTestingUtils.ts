@@ -78,6 +78,7 @@ export interface TestingSettings {
   enableTallUpperGola: boolean;
   preset?: string;
   opacity?: number;
+  isSelected?: boolean;
 }
 
 export const DEFAULT_SETTINGS: TestingSettings = {
@@ -145,7 +146,8 @@ export const DEFAULT_SETTINGS: TestingSettings = {
   enableTallUpperGola: false,
   blindPanelWidth: 400,
   blindCornerSide: 'left',
-  opacity: 1
+  opacity: 1,
+  isSelected: false
 };
 
 export const RUBY_DOOR_THRESHOLD = 599.5;
@@ -571,7 +573,17 @@ export const getCabinetTestingSettings = (
 
   merged.preset = unit.preset;
 
-  // 5. Hardcode Sink Unit defaults for all views
+  // 5. Ensure shelf depth is sane relative to current cabinet depth
+  // This prevents shelves sticking out when depth is reduced in sidebar or moving between zones
+  const minClearance = 2;
+  const doorSpace = merged.showDoors ? (merged.doorMaterialThickness + 2) : 0;
+  const maxShelfDepth = Math.max(50, merged.depth - merged.panelThickness - merged.backPanelThickness - doorSpace - minClearance);
+  
+  if (!unit.advancedSettings?.shelfDepth || merged.shelfDepth > maxShelfDepth) {
+    merged.shelfDepth = maxShelfDepth;
+  }
+
+  // 6. Hardcode Sink Unit defaults for all views
   if (unit.preset === 'Sink Unit') {
     merged.showBackPanel = false;
     merged.showShelves = false;
