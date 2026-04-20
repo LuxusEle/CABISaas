@@ -1,6 +1,16 @@
 import * as THREE from 'three';
 import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
 
+export const woodPalette = {
+  carcass: '#b08968',    // Medium wood brown
+  door: '#7f5539',       // Darker wood brown (distinct)
+  backPanel: '#e6be8a',  // Lighter birch/plywood
+  shelf: '#c6ac8f',      // Medium-light wood
+  toeKick: '#582f0e',    // Dark wood for base
+  internal: '#d4a373',   // Internal dividers
+  blindPanel: '#b08968'  // Same as carcass
+};
+
 export interface TestingSettings {
   width: number;
   height: number;
