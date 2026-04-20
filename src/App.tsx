@@ -3,7 +3,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Routes, Route, useNavigate, useLocation, Navigate, useParams, useSearchParams } from 'react-router-dom';
 import { Home, Layers, Calculator, Zap, ArrowLeft, ArrowRight, Trash2, Plus, Box, DoorOpen, Wand2, Moon, Sun, Table2, FileSpreadsheet, X, Pencil, Save, List, Settings, Printer, Download, Scissors, LayoutDashboard, DollarSign, Map, LogOut, Menu, Wrench, CreditCard, ChevronDown, ChevronUp, FileText, Ruler, Book, Upload, Image as ImageIcon, Shield, FileCode, Check, Settings2, RotateCcw } from 'lucide-react';
 import { Screen, Project, Zone, ZoneId, PresetType, CabinetType, CabinetUnit, Obstacle, AutoFillOptions } from './types';
-import { createNewProject, generateProjectBOM, autoFillZone, exportToExcel, resolveCollisions, calculateProjectCost, exportProjectToConstructionJSON, buildProjectConstructionData, getIntersectingCabinets, ensureProjectSettings } from './services/bomService';
+import { createNewProject, generateProjectBOM, autoFillZone, exportToExcel, resolveCollisions, resolveLocalCollisions, calculateProjectCost, exportProjectToConstructionJSON, buildProjectConstructionData, getIntersectingCabinets, ensureProjectSettings } from './services/bomService';
 import { generateRubyLayout } from './services/layoutSolver';
 import { exportAllSheetsToDXFZip, exportSingleSheetToDXF, exportAllDrillingToZip } from './services/dxfExportService';
 import { generateQuotationPDF } from './services/pdfService';
@@ -36,6 +36,7 @@ import { MaterialAllocationPanel } from './components/MaterialAllocationPanel';
 import { PricingPage } from './components/PricingPage';
 import { HelpButton } from './components/HelpButton';
 import { DocsPage } from './components/DocsPage';
+import { CabinetSpanSlider } from './components/CabinetSpanSlider';
 import { PolicyModal } from './components/PolicyModal';
 import { logoService } from './services/logoService';
 import TermsPage from './pages/TermsPage';
@@ -1322,7 +1323,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark }: { 
     updateZone(z => {
       const cabs = [...z.cabinets];
       cabs[idx] = { ...cabs[idx], fromLeft: x };
-      return { ...z, cabinets: cabs };
+      return resolveLocalCollisions({ ...z, cabinets: cabs }, idx, project.settings);
     });
   };
   const handleObstacleMove = (idx: number, x: number) => {
@@ -1429,7 +1430,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark }: { 
 
       // If width changed, we need to ensure it fits and shoves others
       cabs[selectedCabinet.index] = cab;
-      return resolveCollisions({ ...z, cabinets: cabs });
+      return resolveLocalCollisions({ ...z, cabinets: cabs }, selectedCabinet.index, project.settings);
     }, false, selectedCabinet.zoneId);
   };
 
@@ -1887,17 +1888,13 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark }: { 
                     </div>
 
                     {/* Width */}
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase flex justify-between">
-                        Width <span>{cab.width}mm</span>
-                      </label>
-                      <input 
-                        type="range" min="150" max="1200" step="10"
-                        value={cab.width}
-                        onChange={(e) => updateSelectedCabinet({ width: Number(e.target.value) })}
-                        className="w-full accent-amber-500"
-                      />
-                    </div>
+                    <CabinetSpanSlider 
+                      totalLength={zone.totalLength}
+                      fromLeft={cab.fromLeft}
+                      width={cab.width}
+                      onChange={(updates) => updateSelectedCabinet(updates)}
+                      onDragEnd={handleDragEnd}
+                    />
 
                     {/* ---------------- SECTION-BASED EDITING ---------------- */}
                     {cab.type === CabinetType.TALL ? (

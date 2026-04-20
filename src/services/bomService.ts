@@ -136,6 +136,154 @@ export const resolveCollisions = (zone: Zone): Zone => {
   };
 };
 
+export const resolveLocalCollisions = (zone: Zone, changedIndex: number, settings?: ProjectSettings): Zone => {
+  const cabs = [...zone.cabinets].map(c => ({ ...c }));
+  const cab = cabs[changedIndex];
+  if (!cab) return zone;
+
+  const sortedIndices = cabs.map((_, i) => i).sort((a, b) => cabs[a].fromLeft - cabs[b].fromLeft);
+  const posInSorted = sortedIndices.indexOf(changedIndex);
+
+  const isCompatible = (t1: CabinetType, t2: CabinetType) => 
+    t1 === t2 || t1 === CabinetType.TALL || t2 === CabinetType.TALL;
+
+  const MIN_WIDTH = 150;
+
+  // --- 1. RESOLVE WITH OBSTACLES (Hard Boundaries) ---
+  const baseH = settings?.baseHeight || 870;
+  const wallH = settings?.wallHeight || 720;
+  const tallH = settings?.tallHeight || 2100;
+  const tk = settings?.toeKickHeight || 100;
+  const ct = settings?.counterThickness || 40;
+  const wallElev = settings?.wallCabinetElevation || 450;
+
+  let cabTop = 0;
+  let cabBottom = 0;
+
+  if (cab.type === CabinetType.BASE) {
+    cabBottom = 0;
+    cabTop = tk + baseH + ct;
+  } else if (cab.type === CabinetType.WALL) {
+    cabBottom = tk + baseH + ct + wallElev;
+    cabTop = cabBottom + wallH;
+  } else if (cab.type === CabinetType.TALL) {
+    cabBottom = 0;
+    cabTop = tk + tallH;
+  }
+
+  zone.obstacles.forEach(obs => {
+    // Vertical check
+    let obsBottom = obs.elevation || 0;
+    if (obs.type === 'window' && obs.sillHeight !== undefined) obsBottom = obs.sillHeight;
+    const obsTop = obsBottom + (obs.height || 2100);
+
+    // If no vertical overlap, skip
+    if (cabTop <= obsBottom || cabBottom >= obsTop) return;
+
+    const obsRight = obs.fromLeft + obs.width;
+    
+    // Check horizontal overlap
+    if (cab.fromLeft < obsRight && cab.fromLeft + cab.width > obs.fromLeft) {
+      // Determine side of collision based on previous state if possible, 
+      // but here we just constrain to the nearest edge
+      const midCab = cab.fromLeft + cab.width / 2;
+      const midObs = obs.fromLeft + obs.width / 2;
+
+      if (midCab < midObs) {
+        // Collision on the right side of cabinet
+        cab.width = Math.max(MIN_WIDTH, obs.fromLeft - cab.fromLeft);
+      } else {
+        // Collision on the left side of cabinet
+        const oldRight = cab.fromLeft + cab.width;
+        cab.fromLeft = obsRight;
+        cab.width = Math.max(MIN_WIDTH, oldRight - cab.fromLeft);
+      }
+    }
+  });
+
+  // --- 2. RESOLVE WITH NEIGHBORS (Shrinking/Blocking) ---
+  const resolveNeighborsInDirection = (direction: 'left' | 'right') => {
+    const isRight = direction === 'right';
+    const start = isRight ? posInSorted + 1 : posInSorted - 1;
+    const end = isRight ? sortedIndices.length : -1;
+    const step = isRight ? 1 : -1;
+
+    // We track immediate neighbors for each compatible level
+    const relevantNeighbors: CabinetUnit[] = [];
+    const foundLevels = new Set<CabinetType>();
+    
+    const levelsToFind = cab.type === CabinetType.TALL 
+      ? [CabinetType.BASE, CabinetType.WALL, CabinetType.TALL]
+      : [cab.type, CabinetType.TALL];
+
+    for (let i = start; i !== end; i += step) {
+      const neighbor = cabs[sortedIndices[i]];
+      if (levelsToFind.includes(neighbor.type) && !foundLevels.has(neighbor.type)) {
+        relevantNeighbors.push(neighbor);
+        // If we hit a TALL neighbor, it blocks ALL levels in this direction
+        if (neighbor.type === CabinetType.TALL) break;
+        foundLevels.add(neighbor.type);
+      }
+    }
+
+    relevantNeighbors.forEach(next => {
+      const isTallPriority = next.type === CabinetType.TALL && cab.type !== CabinetType.TALL;
+      
+      if (isRight) {
+        const overlap = (cab.fromLeft + cab.width) - next.fromLeft;
+        if (overlap > 0) {
+          if (isTallPriority) {
+            cab.width = next.fromLeft - cab.fromLeft;
+          } else if (next.width - overlap >= MIN_WIDTH) {
+            next.fromLeft += overlap;
+            next.width -= overlap;
+          } else {
+            const allowedShrink = next.width - MIN_WIDTH;
+            next.fromLeft += allowedShrink;
+            next.width = MIN_WIDTH;
+            cab.width = Math.max(MIN_WIDTH, next.fromLeft - cab.fromLeft);
+          }
+        }
+      } else {
+        const overlap = (next.fromLeft + next.width) - cab.fromLeft;
+        if (overlap > 0) {
+          if (isTallPriority) {
+            const oldRight = cab.fromLeft + cab.width;
+            cab.fromLeft = next.fromLeft + next.width;
+            cab.width = Math.max(MIN_WIDTH, oldRight - cab.fromLeft);
+          } else if (next.width - overlap >= MIN_WIDTH) {
+            next.width -= overlap;
+          } else {
+            const allowedShrink = next.width - MIN_WIDTH;
+            next.width = MIN_WIDTH;
+            const excess = overlap - allowedShrink;
+            cab.fromLeft += excess;
+            cab.width = Math.max(MIN_WIDTH, cab.width - excess);
+          }
+        }
+      }
+    });
+  };
+
+  resolveNeighborsInDirection('right');
+  resolveNeighborsInDirection('left');
+
+  // 3. Enforce Wall Boundaries for the changed cabinet
+  if (cab.fromLeft < 0) {
+    const excess = -cab.fromLeft;
+    cab.fromLeft = 0;
+    cab.width = Math.max(MIN_WIDTH, cab.width - excess);
+  }
+  if (cab.fromLeft + cab.width > zone.totalLength) {
+    cab.width = Math.max(MIN_WIDTH, zone.totalLength - cab.fromLeft);
+  }
+
+  return {
+    ...zone,
+    cabinets: cabs
+  };
+};
+
 // --- AUTO FILL ---
 
 const STD_WIDTHS = [900, 800, 600, 500, 450, 400, 300, 250];
