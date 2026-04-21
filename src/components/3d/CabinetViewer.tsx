@@ -21,6 +21,11 @@ interface Props {
   selectedCabinet?: { zoneId: string, index: number } | null;
   onCabinetSelect?: (zoneId: string, index: number) => void;
   onSettingsUpdate?: (settings: Partial<ProjectSettings>) => void;
+  viewMode?: string;
+  onViewModeChange?: (mode: string) => void;
+  doorOpenAngle?: number;
+  onDoorOpenAngleChange?: (angle: number) => void;
+  onShowHardwareChange?: (show: boolean) => void;
 }
 
 const LoadingFallback = () => {
@@ -50,7 +55,7 @@ const CameraController = ({
   const initialFitRef = useRef<boolean>(false);
   
   const maxDim = Math.max(sceneSize.width, sceneSize.depth, sceneSize.height);
-  const distance = Math.max(maxDim * 1.0, 3000); // Increased distance to zoom out
+  const distance = Math.max(maxDim * 0.85, 2500); // Zoomed in slightly to fit window better
   const centerY = sceneCenter[1];
 
   const viewPositions = useMemo(() => ({
@@ -715,12 +720,13 @@ export const CabinetViewer: React.FC<Props> = ({
   onDropCabinet,
   selectedCabinet,
   onCabinetSelect,
-  onSettingsUpdate
+  onSettingsUpdate,
+  viewMode = 'isometric',
+  onViewModeChange,
+  doorOpenAngle = 0,
+  onDoorOpenAngleChange,
+  onShowHardwareChange
 }) => {
-  const [viewMode, setViewMode] = useState<string>('isometric');
-  const [showHW, setShowHW] = useState(showHardware);
-  const [doorOpenAngle, setDoorOpenAngle] = useState(0);
-  
   // Link forceGola to project settings for persistence
   const forceGola = project.settings.advancedTestingSettings?.enableGola ?? false;
   const setForceGola = (val: boolean) => {
@@ -777,113 +783,12 @@ export const CabinetViewer: React.FC<Props> = ({
           </div>
         )}
         <>
-          <div className="absolute top-2 left-2 z-10 flex flex-col gap-1.5">
-            <div className={`${lightTheme ? 'bg-white/90 border-slate-200' : 'bg-slate-900/95 border-slate-700'} backdrop-blur-sm rounded-lg p-2 border shadow-lg`}>
-              <div className="text-amber-400 font-bold text-xs uppercase tracking-wider mb-2">
-                3D View
-              </div>
-              
-              <div className="flex flex-wrap gap-1 mb-2">
-                {['front', 'side', 'top', 'isometric'].map((view) => (
-                  <button
-                    key={view}
-                    onClick={() => setViewMode(view)}
-                    className={`px-2 py-1 text-xs font-bold rounded transition-all ${
-                      viewMode === view
-                        ? 'bg-amber-500 text-white shadow-md'
-                        : `${lightTheme ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`
-                    }`}
-                  >
-                    {view.charAt(0).toUpperCase() + view.slice(1)}
-                  </button>
-                ))}
-                <button
-                  onClick={() => {
-                    const currentView = viewMode;
-                    setViewMode(''); // Briefly clear
-                    setTimeout(() => setViewMode(currentView), 10); // Re-trigger effect
-                  }}
-                  className={`p-1 text-xs font-bold rounded transition-all ${lightTheme ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
-                  title="Fit View"
-                >
-                  <RotateCcw size={14} />
-                </button>
-              </div>
-              
-              <div className="flex flex-col gap-1">
-                <label className={`flex items-center gap-2 text-xs ${lightTheme ? 'text-slate-600' : 'text-slate-300'} cursor-pointer`}>
-                  <input
-                    type="checkbox"
-                    checked={showHW}
-                    onChange={(e) => setShowHW(e.target.checked)}
-                    className="w-3 h-3 rounded accent-amber-500"
-                  />
-                  Hardware
-                </label>
-              </div>
-
-              <div className="mt-3 pt-3 border-t border-slate-700/50 flex flex-col gap-3">
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex justify-between items-center">
-                    <label className={`text-[10px] ${lightTheme ? 'text-slate-500' : 'text-slate-400'} font-bold uppercase tracking-wider`}>
-                      Doors Open
-                    </label>
-                    <span className="text-[10px] text-amber-500 font-mono">{doorOpenAngle}°</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="120"
-                    step="1"
-                    value={doorOpenAngle}
-                    onChange={(e) => setDoorOpenAngle(parseInt(e.target.value))}
-                    className={`w-full h-1.5 ${lightTheme ? 'bg-slate-200' : 'bg-slate-700'} rounded-lg appearance-none cursor-pointer accent-amber-500`}
-                  />
-                </div>
-
-                <label className={`flex items-center justify-between gap-2 text-[10px] ${lightTheme ? 'text-slate-500 hover:text-slate-700' : 'text-slate-400 hover:text-slate-300'} font-bold uppercase tracking-wider cursor-pointer transition-colors`}>
-                  <span>Global Gola Mode</span>
-                  <div className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={forceGola}
-                      onChange={(e) => setForceGola(e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className={`w-7 h-4 ${lightTheme ? 'bg-slate-200' : 'bg-slate-700'} peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-amber-500`}></div>
-                  </div>
-                </label>
-              </div>
-            </div>
-            
-            {showHW && (
-              <div className={`${lightTheme ? 'bg-white/90 border-slate-200' : 'bg-slate-900/95 border-slate-700'} backdrop-blur-sm rounded-lg p-2 border shadow-lg`}>
-                <div className="text-slate-400 font-bold text-[10px] uppercase tracking-wider mb-1.5">
-                  Legend
-                </div>
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
-                    <span className={`text-[10px] ${lightTheme ? 'text-slate-500' : 'text-slate-400'}`}>Hinge</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-2.5 h-2.5 rounded bg-red-500" />
-                    <span className={`text-[10px] ${lightTheme ? 'text-slate-500' : 'text-slate-400'}`}>Cam-Lock</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-2.5 h-2.5 rounded bg-yellow-500" />
-                    <span className={`text-[10px] ${lightTheme ? 'text-slate-500' : 'text-slate-400'}`}>Confirmat</span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
           <div className={`absolute bottom-2 left-2 z-10 ${lightTheme ? 'bg-white/80 border-slate-200' : 'bg-slate-900/80 border-slate-700'} backdrop-blur-sm rounded px-2 py-1 border`}>
             <div className={`${lightTheme ? 'text-slate-500' : 'text-slate-400'} text-[10px]`}>
               Left: Rotate | Right: Pan | Scroll: Zoom
             </div>
           </div>
+
         </>
 
       <Canvas
@@ -900,7 +805,7 @@ export const CabinetViewer: React.FC<Props> = ({
         <Suspense fallback={<LoadingFallback />}>
           <Scene 
             project={project} 
-            showHardware={showHW} 
+            showHardware={showHardware} 
             viewMode={viewMode}
             showEmptyWalls={showEmptyWalls}
             onSceneBounds={handleSceneBounds}

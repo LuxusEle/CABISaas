@@ -316,7 +316,6 @@ export default function App() {
         setScreen={setScreen} 
         isDark={isDark} 
         isDirty={isDirty}
-        setIsDirty={setIsDirty}
         isSaving={isSaving}
         onSave={() => handleSaveProject(project)} 
       />;
@@ -436,7 +435,6 @@ export default function App() {
                   setScreen={setScreen} 
                   isDark={isDark} 
                   isDirty={isDirty}
-                  setIsDirty={setIsDirty}
                   isSaving={isSaving}
                   onSave={() => handleSaveProject(project)} 
                 />
@@ -1057,7 +1055,7 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
   );
 };
 
-const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark, isDirty, setIsDirty, isSaving }: { project: Project, setProject: React.Dispatch<React.SetStateAction<Project>>, setScreen: (s: Screen) => void, onSave: () => Promise<any>, isDark: boolean, isDirty: boolean, setIsDirty: (d: boolean) => void, isSaving: boolean }) => {
+const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark, isDirty, isSaving }: { project: Project, setProject: React.Dispatch<React.SetStateAction<Project>>, setScreen: (s: Screen) => void, onSave: () => Promise<any>, isDark: boolean, isDirty: boolean, isSaving: boolean }) => {
   const [activeTab, setActiveTab] = useState<string>(project.zones[0]?.id || 'Wall A');
   
   // Keep activeTab in sync if the current one is deleted or project changes
@@ -1094,6 +1092,10 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark, isDi
   const maxHistorySize = 20;
 
   const [selectedCabinet, setSelectedCabinet] = useState<{ zoneId: string, index: number } | null>(null);
+  
+  // 3D View states migrated from CabinetViewer
+  const [isoViewMode, setIsoViewMode] = useState<string>('isometric');
+  const [isoDoorOpenAngle, setIsoDoorOpenAngle] = useState(0);
 
   // Save state to history
   const saveToHistory = () => {
@@ -1665,7 +1667,6 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark, isDi
                   ) : (
                     <CabinetViewer 
                       project={project} 
-                      showHardware={true} 
                       lightTheme={!isDark}
                       draggedCabinet={draggingCabinet}
                       onDropCabinet={handleDropCabinet}
@@ -1673,6 +1674,11 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark, isDi
                       onCabinetSelect={handleCabinetSelect}
                       activeWallId={activeTab} 
                       onSettingsUpdate={(settings) => setProject(prev => ({ ...prev, settings: { ...prev.settings, ...settings } }))}
+                      viewMode={isoViewMode}
+                      onViewModeChange={setIsoViewMode}
+                      doorOpenAngle={isoDoorOpenAngle}
+                      onDoorOpenAngleChange={setIsoDoorOpenAngle}
+                      showHardware={true}
                     />
                   )}
                 </div>
@@ -1777,7 +1783,6 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark, isDi
               ) : (
                 <CabinetViewer 
                   project={project} 
-                  showHardware={true} 
                   lightTheme={!isDark}
                   draggedCabinet={draggingCabinet}
                   onDropCabinet={handleDropCabinet}
@@ -1791,6 +1796,11 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark, isDi
                   }} 
                   activeWallId={activeTab} 
                   onSettingsUpdate={(settings) => setProject(prev => ({ ...prev, settings: { ...prev.settings, ...settings } }))}
+                  viewMode={isoViewMode}
+                  onViewModeChange={setIsoViewMode}
+                  doorOpenAngle={isoDoorOpenAngle}
+                  onDoorOpenAngleChange={setIsoDoorOpenAngle}
+                  showHardware={true}
                 />
               )}
             </div>
@@ -2204,6 +2214,89 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark, isDi
             </div>
           ) : (
             <div className="flex-1 flex flex-col overflow-hidden">
+              {/* Migrated 3D Controls Sidebar Section */}
+              {visualMode === 'iso' && (
+                <div className="p-4 border-b border-slate-200 dark:border-slate-800 space-y-4 bg-slate-50/50 dark:bg-slate-900/50">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-black text-amber-500 uppercase tracking-widest italic">3D Scene Controls</h3>
+                    <button 
+                      onClick={() => {
+                        const current = isoViewMode;
+                        setIsoViewMode('');
+                        setTimeout(() => setIsoViewMode(current), 10);
+                      }}
+                      className="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-amber-500 shadow-sm transition-all"
+                      title="Reset View"
+                    >
+                      <RotateCcw size={14} />
+                    </button>
+                  </div>
+
+                  {/* View Modes */}
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {['front', 'side', 'top', 'isometric'].map((v) => (
+                      <button
+                        key={v}
+                        onClick={() => setIsoViewMode(v)}
+                        className={`py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-lg border transition-all ${
+                          isoViewMode === v 
+                            ? 'bg-amber-500 text-white border-amber-600 shadow-sm' 
+                            : 'bg-white dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700 hover:border-amber-300'
+                        }`}
+                      >
+                        {v}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Gola Mode */}
+                  <div className="space-y-3">
+
+                    <label className="flex items-center justify-between cursor-pointer group">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest group-hover:text-slate-700 dark:group-hover:text-slate-300 transition-colors">Global Gola Mode</span>
+                      <div className="relative inline-flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={project.settings.advancedTestingSettings?.enableGola ?? false}
+                          onChange={(e) => {
+                            setProject(prev => ({
+                              ...prev,
+                              settings: {
+                                ...prev.settings,
+                                advancedTestingSettings: {
+                                  ...prev.settings.advancedTestingSettings,
+                                  enableGola: e.target.checked
+                                }
+                              }
+                            }));
+                          }}
+                          className="sr-only peer"
+                        />
+                        <div className="w-8 h-4 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-amber-500"></div>
+                      </div>
+                    </label>
+                  </div>
+
+                  {/* Doors Slider */}
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Doors Open</span>
+                      <span className="text-[10px] font-mono text-amber-500">{isoDoorOpenAngle}°</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="120"
+                      value={isoDoorOpenAngle}
+                      onChange={(e) => setIsoDoorOpenAngle(parseInt(e.target.value))}
+                      className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-500"
+                    />
+                  </div>
+
+                  {/* Legend removed per user request */}
+                </div>
+              )}
+
               <div className="p-4 border-b border-slate-200 dark:border-slate-800">
                 <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">Presets</h3>
               </div>
