@@ -113,6 +113,15 @@ export default function App() {
   const [authModalMode, setAuthModalMode] = useState<'login' | 'signup'>('login');
   const [showPolicyModal, setShowPolicyModal] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
+  const [isDirty, setIsDirty] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const lastSavedProjectRef = useRef<string>(JSON.stringify(project));
+
+  // Automatically calculate isDirty based on project content comparison
+  useEffect(() => {
+    const currentStr = JSON.stringify(project);
+    setIsDirty(currentStr !== lastSavedProjectRef.current);
+  }, [project]);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -143,6 +152,15 @@ export default function App() {
     };
     checkAuth();
 
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
     // Listen to auth changes
     const subscription = authService.onAuthStateChange((user) => {
       setUser(user);
@@ -153,8 +171,11 @@ export default function App() {
       }
     });
 
-    return () => subscription.unsubscribe();
-  }, [location.pathname]);
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [location.pathname, isDirty]);
 
   // Function to require authentication before action
   const requireAuth = (action: () => void) => {
@@ -186,33 +207,46 @@ export default function App() {
   const toggleTheme = () => setIsDark(!isDark);
 
   useEffect(() => {
-    // Skip auto-save if we're on Home screen or if project is just the initial blank one
-    if (screen === Screen.LANDING || !project.id || project.id.length < 20) return;
+    // Skip auto-save if we're on Home screen or if project is just the initial blank one or already saving
+    if (screen === Screen.LANDING || !project.id || project.id.length < 20 || isSaving) return;
 
     const timer = setTimeout(() => {
       handleSaveProject(project);
     }, 2000); // 2 second debounce
 
     return () => clearTimeout(timer);
-  }, [project, screen]);
+  }, [project, screen, isSaving]);
 
   const handleSaveProject = async (projectToSave: Project) => {
+    if (isSaving) return null;
+    setIsSaving(true);
+    console.log('Saving project...', projectToSave.name, projectToSave.id);
+    
     const isNew = projectToSave.id.length < 20; // Simple check for uuid() vs DB UUID
-    const { data, error } = isNew
-      ? await projectService.createProject(projectToSave)
-      : await projectService.updateProject(projectToSave.id, projectToSave);
+    try {
+      const { data, error } = isNew
+        ? await projectService.createProject(projectToSave)
+        : await projectService.updateProject(projectToSave.id, projectToSave);
 
-    if (error) {
-      console.error("Save error:", error);
-      alert("Saving failed. Please try again.");
-    } else if (data) {
-      const fixedData = ensureProjectSettings(data);
-      // Only update local state if the ID changed (new project promoted to DB)
-      // to avoid race conditions where a slow save reverts recent local changes.
-      if (fixedData.id !== projectToSave.id) {
-        setProject(fixedData);
+      if (error) {
+        console.error("Save error:", error);
+        alert("Saving failed. Please try again.");
+        return null;
+      } else if (data) {
+        console.log('Project saved successfully!', data.id);
+        const fixedData = ensureProjectSettings(data);
+        lastSavedProjectRef.current = JSON.stringify(fixedData);
+        setIsDirty(false);
+        // Only update local state if the ID changed (new project promoted to DB)
+        if (fixedData.id !== projectToSave.id) {
+          setProject(fixedData);
+        }
+        return fixedData;
       }
-      return fixedData;
+    } catch (err) {
+      console.error('Unexpected save error:', err);
+    } finally {
+      setIsSaving(false);
     }
     return null;
   };
@@ -227,6 +261,7 @@ export default function App() {
       const newProj = createNewProject(logoUrl);
       const savedProj = await handleSaveProject(newProj);
       if (savedProj) {
+        lastSavedProjectRef.current = JSON.stringify(savedProj);
         setProject(savedProj);
         navigate('/setup');
       }
@@ -269,16 +304,22 @@ export default function App() {
             onNewProject={handleStartProject}
             onLoadProject={(p) => {
               setProject(p);
-              navigate('/walls');
+              navigate('/walls?view=iso');
             }}
             logoUrl={project.settings.logoUrl}
           />
         );
       case Screen.PROJECT_SETUP: return <ScreenProjectSetup project={project} setProject={setProject} onSave={() => handleSaveProject(project)} onSaveProject={handleSaveProject} isDark={isDark} />;
-      case Screen.WALL_EDITOR: return <ScreenWallEditor project={project} setProject={setProject} setScreen={setScreen} isDark={isDark} onSave={() => {
-        const result = generateRubyLayout(project);
-        handleSaveProject(result.project).then(() => navigate('/walls?view=iso'));
-      }} />;
+      case Screen.WALL_EDITOR: return <ScreenWallEditor 
+        project={project} 
+        setProject={setProject} 
+        setScreen={setScreen} 
+        isDark={isDark} 
+        isDirty={isDirty}
+        setIsDirty={setIsDirty}
+        isSaving={isSaving}
+        onSave={() => handleSaveProject(project)} 
+      />;
       case Screen.BOM_REPORT: return <ScreenBOMReport project={project} setProject={setProject} />;
       case Screen.PRICING: return <PricingPage onSignIn={() => openAuthModal('login')} onGetStarted={() => openAuthModal('signup')} isDark={isDark} setIsDark={setIsDark} />;
       case Screen.DOCS: return <DocsPage onSignIn={() => openAuthModal('login')} onGetStarted={() => openAuthModal('signup')} isDark={isDark} setIsDark={setIsDark} />;
@@ -310,13 +351,13 @@ export default function App() {
           <aside className="hidden md:flex w-20 flex-col items-center py-6 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 shrink-0 z-50 print:hidden">
             <div className="mb-8 text-amber-500"><LayoutDashboard size={28} /></div>
             <nav className="flex flex-col gap-6 w-full px-2">
-              <NavButton active={location.pathname === '/dashboard'} path="/dashboard" icon={<Home size={24} />} label="Home" />
-              <NavButton active={location.pathname === '/setup'} path="/setup" icon={<Settings size={24} />} label="Setup" />
-              <NavButton active={location.pathname === '/walls'} path="/walls" icon={<Box size={24} />} label="Walls" />
-              <NavButton active={location.pathname === '/bom'} path="/bom" icon={<Table2 size={24} />} label="BOM" />
-              <NavButton active={location.pathname === '/pricing'} path="/pricing" icon={<CreditCard size={24} />} label="Pricing" />
-              <NavButton active={location.pathname === '/testing'} path="/testing" icon={<Wrench size={24} />} label="Testing" />
-              <NavButton active={location.pathname === '/docs'} path="/docs" icon={<Book size={24} />} label="Docs" />
+              <NavButton active={location.pathname === '/dashboard'} path="/dashboard" icon={<Home size={24} />} label="Home" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
+              <NavButton active={location.pathname === '/setup'} path="/setup" icon={<Settings size={24} />} label="Setup" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
+              <NavButton active={location.pathname === '/walls'} path="/walls?view=iso" icon={<Box size={24} />} label="Walls" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
+              <NavButton active={location.pathname === '/bom'} path="/bom" icon={<Table2 size={24} />} label="BOM" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
+              <NavButton active={location.pathname === '/pricing'} path="/pricing" icon={<CreditCard size={24} />} label="Pricing" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
+              <NavButton active={location.pathname === '/testing'} path="/testing" icon={<Wrench size={24} />} label="Testing" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
+              <NavButton active={location.pathname === '/docs'} path="/docs" icon={<Book size={24} />} label="Docs" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
             </nav>
             <div className="mt-auto flex flex-col gap-2">
               {user ? (
@@ -373,8 +414,10 @@ export default function App() {
                 <ScreenHome
                   onNewProject={handleStartProject}
                   onLoadProject={(p) => {
-                    setProject(ensureProjectSettings(p));
-                    navigate('/walls');
+                    const fixed = ensureProjectSettings(p);
+                    lastSavedProjectRef.current = JSON.stringify(fixed);
+                    setProject(fixed);
+                    navigate('/walls?view=iso');
                   }}
                   logoUrl={project.settings.logoUrl}
                 />
@@ -387,10 +430,16 @@ export default function App() {
             } />
             <Route path="/walls" element={
               <ProtectedRoute user={user} loading={authLoading}>
-                <ScreenWallEditor project={project} setProject={setProject} setScreen={setScreen} isDark={isDark} onSave={() => {
-                  const result = generateRubyLayout(project);
-                  handleSaveProject(result.project).then(() => navigate('/walls?view=iso'));
-                }} />
+                <ScreenWallEditor 
+                  project={project} 
+                  setProject={setProject} 
+                  setScreen={setScreen} 
+                  isDark={isDark} 
+                  isDirty={isDirty}
+                  setIsDirty={setIsDirty}
+                  isSaving={isSaving}
+                  onSave={() => handleSaveProject(project)} 
+                />
               </ProtectedRoute>
             } />
             <Route path="/bom" element={
@@ -424,12 +473,12 @@ export default function App() {
       {/* MOBILE NAV */}
       {location.pathname !== '/' && location.pathname !== '/terms' && location.pathname !== '/testing' && (
         <div className="md:hidden h-16 mobile-nav bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex items-stretch justify-around z-[100] shrink-0 print:hidden safe-area-bottom" style={{ position: 'fixed', bottom: 0, left: 0, right: 0 }}>
-          <MobileNavButton active={location.pathname === '/dashboard'} path="/dashboard" icon={<Home size={20} />} label="Home" />
-          <MobileNavButton active={location.pathname === '/setup'} path="/setup" icon={<Settings size={20} />} label="Setup" />
-          <MobileNavButton active={location.pathname === '/walls'} path="/walls" icon={<Box size={20} />} label="Editor" />
-          <MobileNavButton active={location.pathname === '/bom'} path="/bom" icon={<Table2 size={20} />} label="BOM" />
-          <MobileNavButton active={location.pathname === '/testing'} path="/testing" icon={<Wrench size={20} />} label="Test" />
-          <MobileNavButton active={location.pathname === '/docs'} path="/docs" icon={<Book size={20} />} label="Docs" />
+          <MobileNavButton active={location.pathname === '/dashboard'} path="/dashboard" icon={<Home size={20} />} label="Home" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
+          <MobileNavButton active={location.pathname === '/setup'} path="/setup" icon={<Settings size={20} />} label="Setup" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
+          <MobileNavButton active={location.pathname === '/walls'} path="/walls?view=iso" icon={<Box size={20} />} label="Editor" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
+          <MobileNavButton active={location.pathname === '/bom'} path="/bom" icon={<Table2 size={20} />} label="BOM" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
+          <MobileNavButton active={location.pathname === '/testing'} path="/testing" icon={<Wrench size={20} />} label="Test" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
+          <MobileNavButton active={location.pathname === '/docs'} path="/docs" icon={<Book size={20} />} label="Docs" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
         </div>
       )}
 
@@ -499,9 +548,22 @@ export default function App() {
   );
 }
 
-const NavButton = ({ active, onClick, icon, label, path }: any) => {
+const NavButton = ({ active, onClick, icon, label, path, isDirty, onSave }: any) => {
   const navigate = useNavigate();
   const handleClick = () => {
+    if (isDirty) {
+      const shouldSave = window.confirm('You have unsaved changes. Would you like to save before leaving?');
+      if (shouldSave) {
+        onSave().then(() => {
+          if (path) navigate(path);
+          if (onClick) onClick();
+        });
+        return;
+      } else {
+        const leaveAnyway = window.confirm('Discard changes and leave?');
+        if (!leaveAnyway) return;
+      }
+    }
     if (path) navigate(path);
     if (onClick) onClick();
   };
@@ -516,9 +578,22 @@ const NavButton = ({ active, onClick, icon, label, path }: any) => {
   );
 };
 
-const MobileNavButton = ({ active, onClick, icon, label, path }: any) => {
+const MobileNavButton = ({ active, onClick, icon, label, path, isDirty, onSave }: any) => {
   const navigate = useNavigate();
   const handleClick = () => {
+    if (isDirty) {
+      const shouldSave = window.confirm('You have unsaved changes. Would you like to save before leaving?');
+      if (shouldSave) {
+        onSave().then(() => {
+          if (path) navigate(path);
+          if (onClick) onClick();
+        });
+        return;
+      } else {
+        const leaveAnyway = window.confirm('Discard changes and leave?');
+        if (!leaveAnyway) return;
+      }
+    }
     if (path) navigate(path);
     if (onClick) onClick();
   };
@@ -982,7 +1057,7 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
   );
 };
 
-const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark }: { project: Project, setProject: React.Dispatch<React.SetStateAction<Project>>, setScreen: (s: Screen) => void, onSave: () => void, isDark: boolean }) => {
+const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark, isDirty, setIsDirty, isSaving }: { project: Project, setProject: React.Dispatch<React.SetStateAction<Project>>, setScreen: (s: Screen) => void, onSave: () => Promise<any>, isDark: boolean, isDirty: boolean, setIsDirty: (d: boolean) => void, isSaving: boolean }) => {
   const [activeTab, setActiveTab] = useState<string>(project.zones[0]?.id || 'Wall A');
   
   // Keep activeTab in sync if the current one is deleted or project changes
@@ -1522,8 +1597,19 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark }: { 
 
               {/* Center: View Controls */}
               <div className="flex items-center gap-2">
-                <Button size="xs" variant="secondary" onClick={onSave} className="bg-white hover:bg-amber-50 text-slate-700 border border-slate-300 shadow-sm hover:shadow hover:border-amber-300 dark:bg-slate-800 dark:text-amber-400 dark:border-slate-700 dark:hover:bg-slate-700 dark:hover:border-amber-600 transition-all min-h-[36px]">
-                  <Save size={14} className="mr-1.5" /> Save
+                <Button 
+                  size="xs" 
+                  variant={isDirty ? "primary" : "secondary"} 
+                  onClick={() => onSave()}
+                  disabled={isSaving || !isDirty}
+                  className={`min-h-[36px] transition-all duration-300 ${
+                    isDirty 
+                      ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-600 shadow-amber-500/20' 
+                      : 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-50'
+                  }`}
+                >
+                  <Save size={14} className={`mr-1.5 ${isSaving ? 'animate-spin' : isDirty ? 'animate-pulse' : ''}`} /> 
+                  {isSaving ? 'Saving...' : isDirty ? 'Save Changes' : 'Saved'}
                 </Button>
                 <div className="w-px h-6 bg-slate-400 dark:bg-slate-600 md:block hidden" />
                 <div className="flex bg-slate-200 dark:bg-slate-800 p-1 rounded-lg">
@@ -1586,6 +1672,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark }: { 
                       selectedCabinet={selectedCabinet}
                       onCabinetSelect={handleCabinetSelect}
                       activeWallId={activeTab} 
+                      onSettingsUpdate={(settings) => setProject(prev => ({ ...prev, settings: { ...prev.settings, ...settings } }))}
                     />
                   )}
                 </div>
@@ -1658,8 +1745,18 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark }: { 
 
               {/* Right: View Controls and Undo/Redo */}
               <div className="flex items-center gap-1">
-                <Button size="xs" variant="secondary" onClick={onSave} className="bg-white hover:bg-amber-50 text-slate-700 border border-slate-300 shadow-sm hover:shadow hover:border-amber-300 dark:bg-slate-800 dark:text-amber-400 dark:border-slate-700 dark:hover:bg-slate-700 dark:hover:border-amber-600 transition-all min-h-[36px] px-2">
-                  <Save size={14} />
+                <Button 
+                  size="xs" 
+                  variant={isDirty ? "primary" : "secondary"} 
+                  onClick={() => onSave()}
+                  disabled={isSaving || !isDirty}
+                  className={`min-h-[36px] px-2 transition-all duration-300 ${
+                    isDirty 
+                      ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-600' 
+                      : 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-50'
+                  }`}
+                >
+                  <Save size={14} className={isSaving ? 'animate-spin' : isDirty ? 'animate-pulse' : ''} />
                 </Button>
                 <Button size="xs" variant={visualMode === 'elevation' ? 'primary' : 'secondary'} onClick={() => setVisualMode('elevation')} className={`${visualMode === 'elevation' ? 'shadow-md' : 'shadow-sm hover:shadow'} border transition-all min-h-[36px] px-2 text-xs`}>Elv</Button>
                 <Button size="xs" variant={visualMode === 'iso' ? 'primary' : 'secondary'} onClick={() => setVisualMode('iso')} className={`${visualMode === 'iso' ? 'shadow-md' : 'shadow-sm hover:shadow'} border transition-all min-h-[36px] px-2 text-xs`}>3D</Button>
@@ -1693,6 +1790,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark }: { 
                     setVisualMode("elevation"); 
                   }} 
                   activeWallId={activeTab} 
+                  onSettingsUpdate={(settings) => setProject(prev => ({ ...prev, settings: { ...prev.settings, ...settings } }))}
                 />
               )}
             </div>
