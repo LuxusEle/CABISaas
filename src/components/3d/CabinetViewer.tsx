@@ -1,7 +1,7 @@
 /// <reference types="@react-three/fiber" />
 import React, { Suspense, useRef, useState, useMemo, useEffect } from 'react';
 import { Canvas, useThree, useLoader } from '@react-three/fiber';
-import { OrbitControls, Grid, Html, useProgress, PerspectiveCamera } from '@react-three/drei';
+import { OrbitControls, Grid, Html, useProgress, PerspectiveCamera, Environment, ContactShadows } from '@react-three/drei';
 import * as THREE from 'three';
 import { Project, CabinetType, CabinetUnit, Zone, Obstacle } from '../../types';
 import { Cabinet } from './Cabinet';
@@ -12,9 +12,13 @@ interface Props {
   showHardware?: boolean;
   showEmptyWalls?: boolean;
   onWallClick?: (wallId: string) => void;
-  onCabinetClick?: (zoneIndex: number, cabinetIndex: number) => void;
+  onCabinetClick?: (zoneId: string, cabinetIndex: number) => void;
   activeWallId?: string;
   lightTheme?: boolean;
+  draggedCabinet?: CabinetUnit | null;
+  onDropCabinet?: (zoneId: string, fromLeft: number, cabinet: CabinetUnit) => void;
+  selectedCabinet?: { zoneId: string, index: number } | null;
+  onCabinetSelect?: (zoneId: string, index: number) => void;
 }
 
 const LoadingFallback = () => {
@@ -40,42 +44,52 @@ const CameraController = ({
   const { camera } = useThree();
   const controlsRef = useRef<any>(null);
   const prevViewRef = useRef<string>('');
+  const lastProjectRef = useRef<string>('');
+  const initialFitRef = useRef<boolean>(false);
   
   const maxDim = Math.max(sceneSize.width, sceneSize.depth, sceneSize.height);
   const distance = maxDim * 1.5;
   const centerY = sceneCenter[1];
 
-  const viewPositions: Record<string, { position: [number, number, number]; target: [number, number, number] }> = {
+  const viewPositions = useMemo(() => ({
     front: { 
-      position: [sceneCenter[0], centerY, sceneCenter[2] + distance], 
+      position: [sceneCenter[0], centerY, sceneCenter[2] + distance] as [number, number, number], 
       target: sceneCenter 
     },
     side: { 
-      position: [sceneCenter[0] + distance, centerY, sceneCenter[2]], 
+      position: [sceneCenter[0] + distance, centerY, sceneCenter[2]] as [number, number, number], 
       target: sceneCenter 
     },
     top: { 
-      position: [sceneCenter[0], sceneCenter[1] + distance + 500, sceneCenter[2] + 0.1], 
+      position: [sceneCenter[0], sceneCenter[1] + distance + 500, sceneCenter[2] + 0.1] as [number, number, number], 
       target: sceneCenter 
     },
     isometric: { 
-      position: [sceneCenter[0] + distance * 0.7, centerY + distance * 0.5, sceneCenter[2] + distance * 0.7], 
+      position: [sceneCenter[0] + distance * 0.7, centerY + distance * 0.5, sceneCenter[2] + distance * 0.7] as [number, number, number], 
       target: sceneCenter 
     },
-  };
+  }), [sceneCenter, centerY, distance]);
 
   useEffect(() => {
-    if (targetView && viewPositions[targetView] && prevViewRef.current !== targetView) {
-      prevViewRef.current = targetView;
-      const { position, target } = viewPositions[targetView];
-      
-      camera.position.set(...position);
-      if (controlsRef.current) {
-        controlsRef.current.target.set(...target);
-        controlsRef.current.update();
+    const isNewView = prevViewRef.current !== targetView;
+    const isNewProject = lastProjectRef.current !== (sceneCenter.join(',') + sceneSize.width); // Rough check for scene change
+    
+    if (targetView && viewPositions[targetView as keyof typeof viewPositions]) {
+      if (isNewView || (!initialFitRef.current && sceneSize.width !== 3000)) {
+        prevViewRef.current = targetView;
+        initialFitRef.current = true;
+        lastProjectRef.current = sceneCenter.join(',') + sceneSize.width;
+        
+        const { position, target } = viewPositions[targetView as keyof typeof viewPositions];
+        
+        camera.position.set(...position);
+        if (controlsRef.current) {
+          controlsRef.current.target.set(...target);
+          controlsRef.current.update();
+        }
       }
     }
-  }, [targetView, camera, viewPositions]);
+  }, [targetView, camera, viewPositions, sceneCenter, sceneSize.width]);
 
   return (
     <OrbitControls
@@ -85,9 +99,8 @@ const CameraController = ({
       minDistance={200}
       maxDistance={maxDim * 5}
       maxPolarAngle={Math.PI / 2.1}
-      target={sceneCenter}
-      enableZoom={!lightTheme}
-      enablePan={!lightTheme}
+      enableZoom={true}
+      enablePan={true}
     />
   );
 };
@@ -103,7 +116,11 @@ const Scene = ({
   activeWallId,
   lightTheme,
   doorOpenAngle,
-  forceGola
+  forceGola,
+  draggedCabinet,
+  onDropCabinet,
+  selectedCabinet,
+  onCabinetSelect
 }: { 
   project: Project; 
   showHardware: boolean; 
@@ -111,13 +128,18 @@ const Scene = ({
   showEmptyWalls?: boolean;
   onSceneBounds: (bounds: { center: [number, number, number]; size: { width: number; depth: number; height: number } }) => void;
   onWallClick?: (wallId: string) => void;
-  onCabinetClick?: (zoneIndex: number, cabinetIndex: number) => void;
+  onCabinetClick?: (zoneId: string, cabinetIndex: number) => void;
   activeWallId?: string;
   lightTheme?: boolean;
   doorOpenAngle?: number;
   forceGola?: boolean;
+  draggedCabinet?: CabinetUnit | null;
+  onDropCabinet?: (zoneId: string, fromLeft: number, cabinet: CabinetUnit, targetWidth?: number) => void;
+  selectedCabinet?: { zoneId: string, index: number } | null;
+  onCabinetSelect?: (zoneId: string, index: number) => void;
 }) => {
-  const activeZones = showEmptyWalls 
+  const [previewPos, setPreviewPos] = useState<{ wallIndex: number; fromLeft: number; width: number } | null>(null);
+  const activeZones = (showEmptyWalls || !!draggedCabinet)
     ? project.zones.filter(z => z.active)
     : project.zones.filter(z => z.active && z.cabinets.length > 0);
   
@@ -359,6 +381,7 @@ const Scene = ({
       />
       
       <ambientLight intensity={0.5} />
+      <Environment preset="city" />
       <directionalLight
         position={[sceneBounds.center[0] + 1000, 2000, sceneBounds.center[2] + 1000]}
         intensity={1}
@@ -367,6 +390,14 @@ const Scene = ({
       <directionalLight
         position={[sceneBounds.center[0] - 500, 1000, sceneBounds.center[2] - 500]}
         intensity={0.5}
+      />
+      
+      <ContactShadows 
+        position={[0, -0.1, 0]} 
+        opacity={0.4} 
+        scale={10000} 
+        blur={2} 
+        far={4} 
       />
       
       <Grid
@@ -392,24 +423,267 @@ const Scene = ({
           wallIndex={index}
           isActive={activeWallId === zone.id}
           onClick={() => onWallClick?.(zone.id)}
+          onPointerMove={(e) => {
+            if (!draggedCabinet) return;
+            e.stopPropagation();
+            // Calculate fromLeft from the local X coordinate of the intersection
+            const point = e.point.clone();
+            const wallMatrixInverse = new THREE.Matrix4().makeTranslation(...position).multiply(new THREE.Matrix4().makeRotationY(rotation)).invert();
+            point.applyMatrix4(wallMatrixInverse);
+            
+            const targetX = point.x;
+            const snapThreshold = 100;
+            
+            // Find all empty spans on this wall (segments not occupied by relevant items)
+            const occupied = [
+              ...layoutData.cabinetPositions.filter(cp => cp.wallIndex === index).map(cp => ({ start: cp.unit.fromLeft, end: cp.unit.fromLeft + cp.unit.width, type: cp.unit.type })),
+              ...zone.obstacles.map(obs => ({ start: obs.fromLeft, end: obs.fromLeft + obs.width, obstacle: obs }))
+            ].filter(o => {
+               if ((o as any).obstacle) {
+                 const obs = (o as any).obstacle;
+                 
+                 // Ruby Rule: Wall cabinets only care about wall corner offsets, Base only care about base offsets
+                 if (obs.id === 'corner_base_offset' && draggedCabinet.type === CabinetType.WALL) return false;
+                 if (obs.id === 'corner_wall_offset' && draggedCabinet.type === CabinetType.BASE) return false;
+
+                 if (obs.type === 'door' || obs.type === 'column' || obs.type === 'pipe') return true;
+                 if (obs.type === 'window') {
+                   const sill = obs.sillHeight || 0;
+                   const cabTop = (draggedCabinet.type === CabinetType.WALL) ? 2100 : (draggedCabinet.type === CabinetType.TALL ? 2100 : 870);
+                   return sill < cabTop;
+                 }
+                 return true;
+               }
+               return (o as any).type === draggedCabinet.type || (o as any).type === CabinetType.TALL || draggedCabinet.type === CabinetType.TALL;
+            }).sort((a, b) => a.start - b.start);
+
+            const spans: { start: number; end: number }[] = [];
+            let curr = 0;
+            occupied.forEach(o => {
+              if (o.start > curr + 50) spans.push({ start: curr, end: o.start });
+              curr = Math.max(curr, o.end);
+            });
+            if (curr < width - 50) spans.push({ start: curr, end: width });
+            
+            // Default to full wall if no other items
+            if (spans.length === 0 && occupied.length === 0) spans.push({ start: 0, end: width });
+
+            // Find the span the user is currently hovering over, or the nearest one
+            const span = spans.find(s => targetX >= s.start && targetX <= s.end) || 
+                         [...spans].sort((a, b) => {
+                           const dA = Math.min(Math.abs(targetX - a.start), Math.abs(targetX - a.end));
+                           const dB = Math.min(Math.abs(targetX - b.start), Math.abs(targetX - b.end));
+                           return dA - dB;
+                         })[0] || { start: 0, end: width };
+
+            const gapStart = span.start;
+            const gapEnd = span.end;
+
+            // Snap points
+            const snapPoints = [gapStart, gapEnd - draggedCabinet.width];
+            
+            let snappedX = Math.round(targetX / 25) * 25;
+            const closestSnap = snapPoints.reduce((prev, curr) => 
+              Math.abs(curr - targetX) < Math.abs(prev - targetX) ? curr : prev, snapPoints[0]
+            );
+            
+            if (Math.abs(closestSnap - targetX) < snapThreshold) {
+              snappedX = closestSnap;
+            }
+            
+            // Clamp to the identified gap
+            let fromLeft = Math.max(gapStart, snappedX);
+            if (fromLeft + 100 > gapEnd) {
+              fromLeft = Math.max(gapStart, gapEnd - draggedCabinet.width);
+            }
+            
+            // Adjust width to fit the gap
+            const finalWidth = Math.min(draggedCabinet.width, gapEnd - fromLeft);
+            
+            setPreviewPos({ wallIndex: index, fromLeft, width: finalWidth });
+          }}
+          onPointerUp={(e) => {
+            if (draggedCabinet && previewPos) {
+              e.stopPropagation();
+              const wall = layoutData.wallPositions[previewPos.wallIndex];
+              onDropCabinet?.(wall.zone.id, previewPos.fromLeft, draggedCabinet, previewPos.width);
+              setPreviewPos(null);
+            }
+          }}
+          lightTheme={lightTheme}
+          showGrid={!!draggedCabinet}
         />
       ))}
 
-      {layoutData.cabinetPositions.map(({ unit, zone, position, rotation, wallIndex, cabinetIndex, label }) => (
+      {previewPos && draggedCabinet && (
         <Cabinet
-          key={unit.id}
-          unit={unit}
-          position={position}
-          rotation={rotation}
-          showHardware={showHardware}
-          wallIndex={wallIndex}
-          label={label}
+          unit={{ ...draggedCabinet, id: 'preview-ghost', width: previewPos.width }}
+          position={(() => {
+            const wall = layoutData.wallPositions[previewPos.wallIndex];
+            const cabOffset = 0;
+            switch (previewPos.wallIndex) {
+              case 0: return [previewPos.fromLeft, 0, cabOffset];
+              case 1: return [layoutData.wallPositions[0].width - cabOffset, 0, previewPos.fromLeft];
+              case 2: return [layoutData.wallPositions[0].width - previewPos.fromLeft, 0, layoutData.wallPositions[1].width - cabOffset];
+              case 3: return [cabOffset, 0, layoutData.wallPositions[1].width - previewPos.fromLeft];
+              default: return [previewPos.fromLeft, 0, cabOffset];
+            }
+          })()}
+          rotation={layoutData.wallPositions[previewPos.wallIndex].rotation}
+          showHardware={false}
+          wallIndex={previewPos.wallIndex}
+          label="PLACE HERE"
           settings={project.settings}
-          onClick={() => onCabinetClick?.(wallIndex, cabinetIndex)}
+          opacity={0.5}
           doorOpenAngle={doorOpenAngle}
-          forceGola={forceGola}
         />
-      ))}
+      )}
+
+      {layoutData.cabinetPositions.map(({ unit, zone, position, rotation, wallIndex, cabinetIndex, label }) => {
+        const isSelected = selectedCabinet?.zoneId === zone.id && selectedCabinet?.index === cabinetIndex;
+        return (
+          <Cabinet
+            key={unit.id}
+            unit={unit}
+            position={position}
+            rotation={rotation}
+            showHardware={showHardware}
+            wallIndex={wallIndex}
+            label={label}
+            settings={project.settings}
+            isSelected={isSelected}
+            onClick={() => {
+              onCabinetSelect?.(zone.id, cabinetIndex);
+            }}
+            doorOpenAngle={doorOpenAngle}
+            forceGola={forceGola}
+          />
+        );
+      })}
+
+      {/* Background plane to catch drag events in empty space */}
+      {draggedCabinet && (
+        <mesh 
+          rotation={[-Math.PI / 2, 0, 0]} 
+          position={[0, -0.5, 0]} 
+          onPointerMove={(e) => {
+            if (!draggedCabinet) return;
+            const point = e.point;
+            
+            let minDist = Infinity;
+            let nearest = null;
+            
+            layoutData.wallPositions.forEach((wall, idx) => {
+              let dist = 0;
+              let fromLeft = 0;
+              
+              // Approximate distance to wall line segments
+              switch(idx) {
+                case 0: // Wall A: z=0, x from 0 to wallAWidth
+                  dist = Math.abs(point.z);
+                  fromLeft = point.x;
+                  break;
+                case 1: // Wall B: x=wallAWidth, z from 0 to wallBWidth
+                  dist = Math.abs(point.x - layoutData.wallPositions[0].width);
+                  fromLeft = point.z;
+                  break;
+                case 2: // Wall C: z=wallBWidth, x from 0 to wallAWidth
+                  dist = Math.abs(point.z - (layoutData.wallPositions[1]?.width || 0));
+                  fromLeft = layoutData.wallPositions[0].width - point.x;
+                  break;
+                case 3: // Wall D: x=0, z from 0 to wallBWidth
+                  dist = Math.abs(point.x);
+                  fromLeft = (layoutData.wallPositions[1]?.width || 0) - point.z;
+                  break;
+              }
+              
+              if (dist < minDist) {
+                minDist = dist;
+                const targetX = fromLeft;
+                const snapThreshold = 100;
+                
+                // Find all empty spans on this wall
+                const occupied = [
+                  ...layoutData.cabinetPositions.filter(cp => cp.wallIndex === idx).map(cp => ({ start: cp.unit.fromLeft, end: cp.unit.fromLeft + cp.unit.width, type: cp.unit.type })),
+                  ...wall.zone.obstacles.map(obs => ({ start: obs.fromLeft, end: obs.fromLeft + obs.width, obstacle: obs }))
+                ].filter(o => {
+                  if ((o as any).obstacle) {
+                    const obs = (o as any).obstacle;
+                    
+                    // Ruby Rule: Row-specific corner isolation
+                    if (obs.id === 'corner_base_offset' && draggedCabinet.type === CabinetType.WALL) return false;
+                    if (obs.id === 'corner_wall_offset' && draggedCabinet.type === CabinetType.BASE) return false;
+
+                    if (obs.type === 'door' || obs.type === 'column' || obs.type === 'pipe') return true;
+                    if (obs.type === 'window') {
+                      const sill = obs.sillHeight || 0;
+                      const cabTop = (draggedCabinet.type === CabinetType.WALL) ? 2100 : (draggedCabinet.type === CabinetType.TALL ? 2100 : 870);
+                      return sill < cabTop;
+                    }
+                    return true;
+                  }
+                  return (o as any).type === draggedCabinet.type || (o as any).type === CabinetType.TALL || draggedCabinet.type === CabinetType.TALL;
+                }).sort((a, b) => a.start - b.start);
+
+                const spans: { start: number; end: number }[] = [];
+                let curr = 0;
+                occupied.forEach(o => {
+                  if (o.start > curr + 50) spans.push({ start: curr, end: o.start });
+                  curr = Math.max(curr, o.end);
+                });
+                if (curr < wall.width - 50) spans.push({ start: curr, end: wall.width });
+                
+                if (spans.length === 0 && occupied.length === 0) spans.push({ start: 0, end: wall.width });
+
+                const span = spans.find(s => targetX >= s.start && targetX <= s.end) || 
+                             [...spans].sort((a, b) => {
+                               const dA = Math.min(Math.abs(targetX - a.start), Math.abs(targetX - a.end));
+                               const dB = Math.min(Math.abs(targetX - b.start), Math.abs(targetX - b.end));
+                               return dA - dB;
+                             })[0] || { start: 0, end: wall.width };
+
+                const gapStart = span.start;
+                const gapEnd = span.end;
+                
+                // Snap points
+                const snapPoints = [gapStart, gapEnd - draggedCabinet.width];
+                
+                let snappedX = Math.round(targetX / 25) * 25;
+                const closestSnap = snapPoints.reduce((prev, curr) => 
+                  Math.abs(curr - targetX) < Math.abs(prev - targetX) ? curr : prev, snapPoints[0]
+                );
+                
+                if (Math.abs(closestSnap - targetX) < snapThreshold) {
+                  snappedX = closestSnap;
+                }
+                
+                // Clamp to the identified gap
+                let fl = Math.max(gapStart, snappedX);
+                if (fl + 100 > gapEnd) {
+                  fl = Math.max(gapStart, gapEnd - draggedCabinet.width);
+                }
+                
+                // Adjust width to fit the gap
+                const finalWidth = Math.min(draggedCabinet.width, gapEnd - fl);
+                
+                nearest = { wallIndex: idx, fromLeft: fl, width: finalWidth };
+              }
+            });
+            
+            if (nearest) setPreviewPos(nearest);
+          }}
+          onPointerUp={(e) => {
+            if (draggedCabinet && previewPos) {
+              const wall = layoutData.wallPositions[previewPos.wallIndex];
+              onDropCabinet?.(wall.zone.id, previewPos.fromLeft, draggedCabinet, previewPos.width);
+              setPreviewPos(null);
+            }
+          }}
+        >
+          <planeGeometry args={[100000, 100000]} />
+          <meshStandardMaterial transparent opacity={0} />
+        </mesh>
+      )}
     </>
   );
 };
@@ -421,7 +695,11 @@ export const CabinetViewer: React.FC<Props> = ({
   onWallClick, 
   onCabinetClick,
   activeWallId, 
-  lightTheme = false 
+  lightTheme = false,
+  draggedCabinet,
+  onDropCabinet,
+  selectedCabinet,
+  onCabinetSelect
 }) => {
   const [viewMode, setViewMode] = useState<string>('isometric');
   const [showHW, setShowHW] = useState(showHardware);
@@ -446,10 +724,10 @@ export const CabinetViewer: React.FC<Props> = ({
 
   if (!hasContent) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900">
+      <div className={`w-full h-full flex items-center justify-center bg-gradient-to-br ${lightTheme ? 'from-slate-50 to-slate-100' : 'from-slate-800 to-slate-900'}`}>
         <div className="text-center">
-          <div className="text-amber-400 text-lg font-bold mb-2">3D ISO View</div>
-          <div className="text-slate-400 text-sm">Add cabinets to see 3D preview</div>
+          <div className={`${lightTheme ? 'text-amber-600' : 'text-amber-400'} text-lg font-bold mb-2`}>3D ISO View</div>
+          <div className={`${lightTheme ? 'text-slate-500' : 'text-slate-400'} text-sm`}>Add cabinets to see 3D preview</div>
         </div>
       </div>
     );
@@ -457,10 +735,9 @@ export const CabinetViewer: React.FC<Props> = ({
 
   return (
     <div className={`w-full h-full relative overflow-hidden ${lightTheme ? 'bg-gradient-to-br from-slate-100 to-slate-200' : ''}`}>
-      {!lightTheme && (
         <>
           <div className="absolute top-2 left-2 z-10 flex flex-col gap-1.5">
-            <div className="bg-slate-900/95 backdrop-blur-sm rounded-lg p-2 border border-slate-700 shadow-lg">
+            <div className={`${lightTheme ? 'bg-white/90 border-slate-200' : 'bg-slate-900/95 border-slate-700'} backdrop-blur-sm rounded-lg p-2 border shadow-lg`}>
               <div className="text-amber-400 font-bold text-xs uppercase tracking-wider mb-2">
                 3D View
               </div>
@@ -473,7 +750,7 @@ export const CabinetViewer: React.FC<Props> = ({
                     className={`px-2 py-1 text-xs font-bold rounded transition-all ${
                       viewMode === view
                         ? 'bg-amber-500 text-white shadow-md'
-                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                        : `${lightTheme ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`
                     }`}
                   >
                     {view.charAt(0).toUpperCase() + view.slice(1)}
@@ -482,7 +759,7 @@ export const CabinetViewer: React.FC<Props> = ({
               </div>
               
               <div className="flex flex-col gap-1">
-                <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                <label className={`flex items-center gap-2 text-xs ${lightTheme ? 'text-slate-600' : 'text-slate-300'} cursor-pointer`}>
                   <input
                     type="checkbox"
                     checked={showHW}
@@ -496,7 +773,7 @@ export const CabinetViewer: React.FC<Props> = ({
               <div className="mt-3 pt-3 border-t border-slate-700/50 flex flex-col gap-3">
                 <div className="flex flex-col gap-1.5">
                   <div className="flex justify-between items-center">
-                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                    <label className={`text-[10px] ${lightTheme ? 'text-slate-500' : 'text-slate-400'} font-bold uppercase tracking-wider`}>
                       Doors Open
                     </label>
                     <span className="text-[10px] text-amber-500 font-mono">{doorOpenAngle}°</span>
@@ -508,11 +785,11 @@ export const CabinetViewer: React.FC<Props> = ({
                     step="1"
                     value={doorOpenAngle}
                     onChange={(e) => setDoorOpenAngle(parseInt(e.target.value))}
-                    className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-500"
+                    className={`w-full h-1.5 ${lightTheme ? 'bg-slate-200' : 'bg-slate-700'} rounded-lg appearance-none cursor-pointer accent-amber-500`}
                   />
                 </div>
 
-                <label className="flex items-center justify-between gap-2 text-[10px] text-slate-400 font-bold uppercase tracking-wider cursor-pointer hover:text-slate-300 transition-colors">
+                <label className={`flex items-center justify-between gap-2 text-[10px] ${lightTheme ? 'text-slate-500 hover:text-slate-700' : 'text-slate-400 hover:text-slate-300'} font-bold uppercase tracking-wider cursor-pointer transition-colors`}>
                   <span>Global Gola Mode</span>
                   <div className="relative inline-flex items-center cursor-pointer">
                     <input
@@ -521,55 +798,49 @@ export const CabinetViewer: React.FC<Props> = ({
                       onChange={(e) => setForceGola(e.target.checked)}
                       className="sr-only peer"
                     />
-                    <div className="w-7 h-4 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-amber-500"></div>
+                    <div className={`w-7 h-4 ${lightTheme ? 'bg-slate-200' : 'bg-slate-700'} peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-amber-500`}></div>
                   </div>
                 </label>
               </div>
             </div>
             
             {showHW && (
-              <div className="bg-slate-900/95 backdrop-blur-sm rounded-lg p-2 border border-slate-700 shadow-lg">
+              <div className={`${lightTheme ? 'bg-white/90 border-slate-200' : 'bg-slate-900/95 border-slate-700'} backdrop-blur-sm rounded-lg p-2 border shadow-lg`}>
                 <div className="text-slate-400 font-bold text-[10px] uppercase tracking-wider mb-1.5">
                   Legend
                 </div>
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center gap-1.5">
                     <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
-                    <span className="text-slate-400 text-[10px]">Hinge</span>
+                    <span className={`text-[10px] ${lightTheme ? 'text-slate-500' : 'text-slate-400'}`}>Hinge</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <div className="w-2.5 h-2.5 rounded bg-red-500" />
-                    <span className="text-slate-400 text-[10px]">Cam-Lock</span>
+                    <span className={`text-[10px] ${lightTheme ? 'text-slate-500' : 'text-slate-400'}`}>Cam-Lock</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <div className="w-2.5 h-2.5 rounded bg-yellow-500" />
-                    <span className="text-slate-400 text-[10px]">Confirmat</span>
+                    <span className={`text-[10px] ${lightTheme ? 'text-slate-500' : 'text-slate-400'}`}>Confirmat</span>
                   </div>
                 </div>
               </div>
             )}
           </div>
 
-          <div className="absolute bottom-2 left-2 z-10 bg-slate-900/80 backdrop-blur-sm rounded px-2 py-1 border border-slate-700">
-            <div className="text-slate-400 text-[10px]">
+          <div className={`absolute bottom-2 left-2 z-10 ${lightTheme ? 'bg-white/80 border-slate-200' : 'bg-slate-900/80 border-slate-700'} backdrop-blur-sm rounded px-2 py-1 border`}>
+            <div className={`${lightTheme ? 'text-slate-500' : 'text-slate-400'} text-[10px]`}>
               Left: Rotate | Right: Pan | Scroll: Zoom
             </div>
           </div>
         </>
-      )}
 
       <Canvas
         shadows
         camera={{ fov: 50 }}
-        style={{ background: lightTheme ? 'linear-gradient(180deg, #e5e7eb 0%, #d1d5db 100%)' : 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)' }}
+        style={{ background: lightTheme ? '#f3f4f6' : '#1e293b' }}
       >
         <PerspectiveCamera 
           makeDefault 
-          position={[
-            sceneBounds.center[0] + sceneBounds.size.width * 0.8,
-            sceneBounds.center[1] + sceneBounds.size.height * 0.6,
-            sceneBounds.center[2] + Math.max(sceneBounds.size.width, sceneBounds.size.depth) * 1.2
-          ]}
           fov={50}
           near={10}
           far={50000}
@@ -587,6 +858,10 @@ export const CabinetViewer: React.FC<Props> = ({
             lightTheme={lightTheme}
             doorOpenAngle={doorOpenAngle}
             forceGola={forceGola}
+            draggedCabinet={draggedCabinet}
+            onDropCabinet={onDropCabinet}
+            selectedCabinet={selectedCabinet}
+            onCabinetSelect={onCabinetSelect}
           />
         </Suspense>
       </Canvas>

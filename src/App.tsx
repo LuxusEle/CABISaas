@@ -1,9 +1,9 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Routes, Route, useNavigate, useLocation, Navigate, useParams, useSearchParams } from 'react-router-dom';
-import { Home, Layers, Calculator, Zap, ArrowLeft, ArrowRight, Trash2, Plus, Box, DoorOpen, Wand2, Moon, Sun, Table2, FileSpreadsheet, X, Pencil, Save, List, Settings, Printer, Download, Scissors, LayoutDashboard, DollarSign, Map, LogOut, Menu, Wrench, CreditCard, ChevronDown, ChevronUp, FileText, Ruler, Book, Upload, Image as ImageIcon, Shield, FileCode, Check, Settings2 } from 'lucide-react';
+import { Home, Layers, Calculator, Zap, ArrowLeft, ArrowRight, Trash2, Plus, Box, DoorOpen, Wand2, Moon, Sun, Table2, FileSpreadsheet, X, Pencil, Save, List, Settings, Printer, Download, Scissors, LayoutDashboard, DollarSign, Map, LogOut, Menu, Wrench, CreditCard, ChevronDown, ChevronUp, FileText, Ruler, Book, Upload, Image as ImageIcon, Shield, FileCode, Check, Settings2, RotateCcw } from 'lucide-react';
 import { Screen, Project, Zone, ZoneId, PresetType, CabinetType, CabinetUnit, Obstacle, AutoFillOptions } from './types';
-import { createNewProject, generateProjectBOM, autoFillZone, exportToExcel, resolveCollisions, calculateProjectCost, exportProjectToConstructionJSON, buildProjectConstructionData, getIntersectingCabinets, ensureProjectSettings } from './services/bomService';
+import { createNewProject, generateProjectBOM, autoFillZone, exportToExcel, resolveCollisions, resolveLocalCollisions, calculateProjectCost, exportProjectToConstructionJSON, buildProjectConstructionData, getIntersectingCabinets, ensureProjectSettings } from './services/bomService';
 import { generateRubyLayout } from './services/layoutSolver';
 import { exportAllSheetsToDXFZip, exportSingleSheetToDXF, exportAllDrillingToZip } from './services/dxfExportService';
 import { generateQuotationPDF } from './services/pdfService';
@@ -19,15 +19,12 @@ import { Button } from './components/Button';
 import { NumberInput } from './components/NumberInput';
 import { WallVisualizer } from './components/WallVisualizer';
 import { CutPlanVisualizer } from './components/CutPlanVisualizer';
-import { IsometricVisualizer } from './components/IsometricVisualizer';
 import { CabinetViewer } from './components/3d';
 import { KitchenPlanCanvas } from './components/KitchenPlanCanvas';
 import { AuthModal } from './components/AuthModal';
-import { CustomCabinetEditor } from './components/CustomCabinetEditor';
 import { LandingPage } from './components/LandingPage';
 import { customCabinetService } from './services/customCabinetService';
 import { projectService } from './services/projectService';
-import { SequentialBoxInput } from './components/SequentialBoxInput';
 import { SheetTypeManager } from './components/SheetTypeManager';
 import { CabinetPreviewCard } from './components/CabinetPreviewCard';
 import { CabinetEditModal } from './components/CabinetEditModal';
@@ -39,10 +36,12 @@ import { MaterialAllocationPanel } from './components/MaterialAllocationPanel';
 import { PricingPage } from './components/PricingPage';
 import { HelpButton } from './components/HelpButton';
 import { DocsPage } from './components/DocsPage';
+import { CabinetSpanSlider } from './components/CabinetSpanSlider';
 import { PolicyModal } from './components/PolicyModal';
 import { logoService } from './services/logoService';
 import TermsPage from './pages/TermsPage';
 import { CabinetTestingPage } from './components/CabinetTestingPage';
+import { TestingSettings } from './components/CabinetTestingUtils';
 
 // --- PRINT TITLE BLOCK ---
 const TitleBlock = ({ project, pageTitle }: { project: Project, pageTitle: string }) => (
@@ -209,7 +208,11 @@ export default function App() {
       alert("Saving failed. Please try again.");
     } else if (data) {
       const fixedData = ensureProjectSettings(data);
-      setProject(fixedData);
+      // Only update local state if the ID changed (new project promoted to DB)
+      // to avoid race conditions where a slow save reverts recent local changes.
+      if (fixedData.id !== projectToSave.id) {
+        setProject(fixedData);
+      }
       return fixedData;
     }
     return null;
@@ -272,8 +275,8 @@ export default function App() {
             logoUrl={project.settings.logoUrl}
           />
         );
-      case Screen.PROJECT_SETUP: return <ScreenProjectSetup project={project} setProject={setProject} onSave={() => handleSaveProject(project)} onSaveProject={handleSaveProject} />;
-      case Screen.WALL_EDITOR: return <ScreenWallEditor project={project} setProject={setProject} setScreen={setScreen} onSave={() => {
+      case Screen.PROJECT_SETUP: return <ScreenProjectSetup project={project} setProject={setProject} onSave={() => handleSaveProject(project)} onSaveProject={handleSaveProject} isDark={isDark} />;
+      case Screen.WALL_EDITOR: return <ScreenWallEditor project={project} setProject={setProject} setScreen={setScreen} isDark={isDark} onSave={() => {
         const result = generateRubyLayout(project);
         handleSaveProject(result.project).then(() => navigate('/walls?view=iso'));
       }} />;
@@ -305,7 +308,7 @@ export default function App() {
       <div className="flex-1 flex overflow-hidden md:pb-0 pb-16">
         {/* DESKTOP SIDEBAR - Hidden on landing page */}
         {(location.pathname !== '/' && location.pathname !== '/terms' && location.pathname !== '/testing' && (location.pathname !== '/docs' || user)) && (
-          <aside className="hidden md:flex w-20 flex-col items-center py-6 bg-slate-900 border-r border-slate-800 shrink-0 z-50 print:hidden">
+          <aside className="hidden md:flex w-20 flex-col items-center py-6 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 shrink-0 z-50 print:hidden">
             <div className="mb-8 text-amber-500"><LayoutDashboard size={28} /></div>
             <nav className="flex flex-col gap-6 w-full px-2">
               <NavButton active={location.pathname === '/dashboard'} path="/dashboard" icon={<Home size={24} />} label="Home" />
@@ -320,7 +323,7 @@ export default function App() {
               {user ? (
                 <button
                   onClick={() => setShowAuthModal(true)}
-                  className="p-3 rounded-xl bg-slate-800 text-amber-500 hover:bg-slate-700 transition-colors"
+                  className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-amber-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
                   title={user.email}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
@@ -328,13 +331,13 @@ export default function App() {
               ) : (
                 <button
                   onClick={() => setShowAuthModal(true)}
-                  className="p-3 rounded-xl bg-slate-800 text-slate-400 hover:bg-slate-700 transition-colors"
+                  className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
                   title="Login"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
                 </button>
               )}
-              <button onClick={toggleTheme} className="p-3 rounded-xl bg-slate-800 text-amber-500 hover:bg-slate-700 transition-colors">{isDark ? <Sun size={20} /> : <Moon size={20} />}</button>
+              <button onClick={toggleTheme} className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-amber-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">{isDark ? <Sun size={20} /> : <Moon size={20} />}</button>
             </div>
           </aside>
         )}
@@ -380,12 +383,12 @@ export default function App() {
             } />
             <Route path="/setup" element={
               <ProtectedRoute user={user} loading={authLoading}>
-                <ScreenProjectSetup project={project} setProject={setProject} onSave={() => handleSaveProject(project)} onSaveProject={handleSaveProject} />
+                <ScreenProjectSetup project={project} setProject={setProject} onSave={() => handleSaveProject(project)} onSaveProject={handleSaveProject} isDark={isDark} />
               </ProtectedRoute>
             } />
             <Route path="/walls" element={
               <ProtectedRoute user={user} loading={authLoading}>
-                <ScreenWallEditor project={project} setProject={setProject} setScreen={setScreen} onSave={() => {
+                <ScreenWallEditor project={project} setProject={setProject} setScreen={setScreen} isDark={isDark} onSave={() => {
                   const result = generateRubyLayout(project);
                   handleSaveProject(result.project).then(() => navigate('/walls?view=iso'));
                 }} />
@@ -405,7 +408,7 @@ export default function App() {
               />
             } />
             <Route path="/testing" element={
-              <CabinetTestingPage />
+              <CabinetTestingPage isDark={isDark} />
             } />
             <Route path="*" element={
               <LandingPage
@@ -506,7 +509,7 @@ const NavButton = ({ active, onClick, icon, label, path }: any) => {
   return (
     <button
       onClick={handleClick}
-      className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all w-full ${active ? 'bg-amber-600 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-800'}`}
+      className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all w-full ${active ? 'bg-amber-600 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
       title={label}
     >
       {icon}
@@ -675,7 +678,7 @@ const ScreenPlanView = ({ project }: { project: Project }) => {
   );
 };
 
-const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject }: { project: Project, setProject: React.Dispatch<React.SetStateAction<Project>>, onSave: () => void, onSaveProject?: (p: Project) => Promise<any> }) => {
+const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark }: { project: Project, setProject: React.Dispatch<React.SetStateAction<Project>>, onSave: () => void, onSaveProject?: (p: Project) => Promise<any>, isDark: boolean }) => {
   const navigate = useNavigate();
   // State to track which section is expanded - only one at a time
   const [expandedSection, setExpandedSection] = useState<'projectInfo' | 'sheetTypes' | 'accessories' | 'allocation' | 'costs' | null>('projectInfo');
@@ -916,7 +919,6 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject }: { pr
               </div>
             </div>
           </div>
-
           {/* CBX Design Rules Modal */}
           {showCbxModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
@@ -963,6 +965,7 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject }: { pr
             isOpen={showWallModal}
             onClose={() => setShowWallModal(false)}
             project={project}
+            isDark={isDark}
             onSave={(newZones) => {
               const updatedProject = { ...project, zones: newZones };
               const result = generateRubyLayout(updatedProject);
@@ -981,6 +984,7 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject }: { pr
             onClose={() => setShowCabinetModal(false)}
             cabinetType={editingCabinetType}
             settings={project.settings}
+            isDark={isDark}
             onSave={(newSettings) => {
               setProject({ ...project, settings: newSettings });
             }}
@@ -1056,10 +1060,24 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject }: { pr
   );
 };
 
-const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project: Project, setProject: React.Dispatch<React.SetStateAction<Project>>, setScreen: (s: Screen) => void, onSave: () => void }) => {
+const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark }: { project: Project, setProject: React.Dispatch<React.SetStateAction<Project>>, setScreen: (s: Screen) => void, onSave: () => void, isDark: boolean }) => {
   const [activeTab, setActiveTab] = useState<string>(project.zones[0]?.id || 'Wall A');
+  
+  // Keep activeTab in sync if the current one is deleted or project changes
+  useEffect(() => {
+    if (!project.zones.some(z => z.id === activeTab)) {
+      if (project.zones.length > 0) {
+        setActiveTab(project.zones[0].id);
+      }
+    }
+  }, [project.zones, activeTab]);
+
   const currentZoneIndex = project.zones.findIndex(z => z.id === activeTab);
-  const currentZone = project.zones[currentZoneIndex];
+  const currentZone = project.zones[currentZoneIndex] || project.zones[0];
+
+  if (!currentZone) {
+    return <div className="p-8 text-center text-slate-500">Initializing editor...</div>;
+  }
 
   // Resizable bottom table panel
   const [tablePanelHeight, setTablePanelHeight] = useState<number>(280);
@@ -1067,34 +1085,48 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
   const tabsRowRef = useRef<HTMLDivElement | null>(null);
   const resizingRef = useRef(false);
   const dragStartRef = useRef<{ startY: number; startHeight: number } | null>(null);
-  const [showCustomEditor, setShowCustomEditor] = useState(false);
   const [showAdvancedCabinetEditor, setShowAdvancedCabinetEditor] = useState(false);
   const [customCabinets, setCustomCabinets] = useState<any[]>([]);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [mobileTableCollapsed, setMobileTableCollapsed] = useState(true);
+  const [initialZoneCabinetsBackup, setInitialZoneCabinetsBackup] = useState<CabinetUnit[] | null>(null);
 
   // Undo/Redo history
-  const [history, setHistory] = useState<{ zones: typeof project.zones; timestamp: number }[]>([]);
-  const [redoStack, setRedoStack] = useState<{ zones: typeof project.zones; timestamp: number }[]>([]);
+  const [history, setHistory] = useState<{ zones: typeof project.zones; activeTab: string; timestamp: number }[]>([]);
+  const [redoStack, setRedoStack] = useState<{ zones: typeof project.zones; activeTab: string; timestamp: number }[]>([]);
   const maxHistorySize = 20;
+
+  const [selectedCabinet, setSelectedCabinet] = useState<{ zoneId: string, index: number } | null>(null);
 
   // Save state to history
   const saveToHistory = () => {
     setHistory(prev => {
-      const newHistory = [{ zones: JSON.parse(JSON.stringify(project.zones)), timestamp: Date.now() }, ...prev].slice(0, maxHistorySize);
+      const newHistory = [{ zones: JSON.parse(JSON.stringify(project.zones)), activeTab, timestamp: Date.now() }, ...prev].slice(0, maxHistorySize);
       return newHistory;
     });
     // Clear redo stack when new action occurs
     setRedoStack([]);
   };
 
+  useEffect(() => {
+    if (selectedCabinet) {
+      const zone = project.zones.find(z => z.id === selectedCabinet.zoneId);
+      if (zone) {
+        setInitialZoneCabinetsBackup(JSON.parse(JSON.stringify(zone.cabinets)));
+      }
+    } else {
+      setInitialZoneCabinetsBackup(null);
+    }
+  }, [selectedCabinet?.index, selectedCabinet?.zoneId]);
+
   // Undo function
   const handleUndo = () => {
     if (history.length > 0) {
       const [lastState, ...remainingHistory] = history;
       // Save current state to redo stack
-      setRedoStack(prev => [{ zones: JSON.parse(JSON.stringify(project.zones)), timestamp: Date.now() }, ...prev].slice(0, maxHistorySize));
+      setRedoStack(prev => [{ zones: JSON.parse(JSON.stringify(project.zones)), activeTab, timestamp: Date.now() }, ...prev].slice(0, maxHistorySize));
       setProject(prev => ({ ...prev, zones: lastState.zones }));
+      setActiveTab(lastState.activeTab);
       setHistory(remainingHistory);
     }
   };
@@ -1104,8 +1136,9 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
     if (redoStack.length > 0) {
       const [nextState, ...remainingRedo] = redoStack;
       // Save current state to history
-      setHistory(prev => [{ zones: JSON.parse(JSON.stringify(project.zones)), timestamp: Date.now() }, ...prev].slice(0, maxHistorySize));
+      setHistory(prev => [{ zones: JSON.parse(JSON.stringify(project.zones)), activeTab, timestamp: Date.now() }, ...prev].slice(0, maxHistorySize));
       setProject(prev => ({ ...prev, zones: nextState.zones }));
+      setActiveTab(nextState.activeTab);
       setRedoStack(remainingRedo);
     }
   };
@@ -1184,6 +1217,40 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
   const initialView = searchParams.get('view') === 'iso' ? 'iso' : 'elevation';
   const [visualMode, setVisualMode] = useState<'elevation' | 'iso'>(initialView);
   const [isTableVisible, setIsTableVisible] = useState(false);
+  const [draggingCabinet, setDraggingCabinet] = useState<CabinetUnit | null>(null);
+
+  const handleDropCabinet = (zoneId: string, fromLeft: number, cabinet: CabinetUnit, targetWidth?: number) => {
+    const targetId = zoneId || activeTab || project.zones[0]?.id;
+    if (!targetId) return;
+
+    // Switch to the zone if it's not active
+    if (targetId !== activeTab) {
+      setActiveTab(targetId);
+    }
+    
+    const { icon, ...cabinetData } = cabinet as any;
+    const newCabinet: CabinetUnit = {
+      ...cabinetData as CabinetUnit,
+      id: Math.random().toString(),
+      fromLeft,
+      width: targetWidth || cabinet.width,
+      label: '' 
+    };
+    
+    handleSequentialAdd([newCabinet], targetId);
+    setDraggingCabinet(null);
+  };
+
+  useEffect(() => {
+    if (draggingCabinet) {
+      const handleGlobalUp = () => {
+        // We delay slightly to allow the onPointerUp on the wall to fire first if it's over the wall
+        setTimeout(() => setDraggingCabinet(null), 10);
+      };
+      window.addEventListener('pointerup', handleGlobalUp);
+      return () => window.removeEventListener('pointerup', handleGlobalUp);
+    }
+  }, [draggingCabinet]);
 
   // Sync visual mode with URL if needed
   useEffect(() => {
@@ -1195,13 +1262,16 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
     }
   }, [searchParams]);
 
-  const updateZone = (newZoneOrTransform: Zone | ((z: Zone) => Zone), skipHistory = false) => {
+  const updateZone = (newZoneOrTransform: Zone | ((z: Zone) => Zone), skipHistory = false, targetZoneId?: string) => {
     if (!skipHistory) {
       saveToHistory();
     }
+    const zoneIdToUpdate = targetZoneId || activeTab || project.zones[0]?.id;
+    if (!zoneIdToUpdate) return;
+    
     setProject(prev => {
       const newZones = [...prev.zones];
-      const idx = newZones.findIndex(z => z.id === activeTab);
+      const idx = newZones.findIndex(z => z.id === zoneIdToUpdate);
       if (idx !== -1) {
         const currentZone = newZones[idx];
         const newZone = typeof newZoneOrTransform === 'function'
@@ -1216,6 +1286,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
   const handleDragEnd = () => updateZone(z => resolveCollisions(z)); // Shove on drop
 
   const handleAutoFill = () => {
+    saveToHistory();
     const result = generateRubyLayout(project);
     setProject(result.project);
   };
@@ -1229,6 +1300,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
         alert("Zone name must be unique");
         return;
       }
+      saveToHistory();
       const newZone = { id: name, active: true, totalLength: 3000, wallHeight: 2400, obstacles: [], cabinets: [] };
       const nextZones = [...project.zones, newZone];
       setProject({ ...project, zones: nextZones });
@@ -1239,6 +1311,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
   const deleteZone = (id: string) => {
     if (project.zones.length <= 1) return;
     if (window.confirm(`Delete ${id}?`)) {
+      saveToHistory();
       const newZones = project.zones.filter(z => z.id !== id);
       setProject({ ...project, zones: newZones });
       setActiveTab(newZones[0].id);
@@ -1250,7 +1323,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
     updateZone(z => {
       const cabs = [...z.cabinets];
       cabs[idx] = { ...cabs[idx], fromLeft: x };
-      return { ...z, cabinets: cabs };
+      return resolveLocalCollisions({ ...z, cabinets: cabs }, idx, project.settings);
     });
   };
   const handleObstacleMove = (idx: number, x: number) => {
@@ -1282,7 +1355,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
   };
 
   // Handler for sequential box input - adds cabinets and re-labels
-  const handleSequentialAdd = (newCabinets: CabinetUnit[]) => {
+  const handleSequentialAdd = (newCabinets: CabinetUnit[], targetZoneId?: string) => {
     updateZone(z => {
       const allCabs = [...z.cabinets, ...newCabinets].sort((a, b) => a.fromLeft - b.fromLeft);
       // Re-number all cabinets
@@ -1295,7 +1368,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
         return { ...c, label };
       });
       return resolveCollisions({ ...z, cabinets: numbered });
-    });
+    }, false, targetZoneId);
   };
 
   const openAdd = (type: 'cabinet' | 'obstacle') => {
@@ -1331,6 +1404,53 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
         }
       };
     });
+  };
+
+  const handleCabinetSelect = (zoneId: string, index: number) => {
+    setSelectedCabinet({ zoneId, index });
+    // Switch tab if needed
+    if (zoneId !== activeTab) setActiveTab(zoneId);
+
+    // Sync to tempCabinet for advanced editors
+    const zone = project.zones.find(z => z.id === zoneId);
+    if (zone && zone.cabinets[index]) {
+      setTempCabinet({ ...zone.cabinets[index] });
+      setEditIndex(index);
+    }
+  };
+
+  const updateSelectedCabinet = (updates: Partial<CabinetUnit>) => {
+    if (!selectedCabinet) return;
+    updateZone(z => {
+      const cabs = [...z.cabinets];
+      const cab = { ...cabs[selectedCabinet.index], ...updates };
+      
+      // Update temp cabinet so advanced editor is in sync
+      setTempCabinet(cab);
+
+      // If width changed, we need to ensure it fits and shoves others
+      cabs[selectedCabinet.index] = cab;
+      return resolveLocalCollisions({ ...z, cabinets: cabs }, selectedCabinet.index, project.settings);
+    }, false, selectedCabinet.zoneId);
+  };
+
+  const updateSelectedAdvancedSetting = (updates: Partial<TestingSettings>) => {
+    if (!selectedCabinet) return;
+    updateZone(z => {
+      const cabs = [...z.cabinets];
+      const cab = cabs[selectedCabinet.index];
+      const advanced = cab.advancedSettings || {};
+      const newCab = {
+        ...cab,
+        advancedSettings: { ...advanced, ...updates }
+      };
+      
+      // Update temp cabinet so advanced editor is in sync
+      setTempCabinet(newCab);
+
+      cabs[selectedCabinet.index] = newCab;
+      return resolveCollisions({ ...z, cabinets: cabs });
+    }, false, selectedCabinet.zoneId);
   };
 
   const saveItem = () => {
@@ -1519,12 +1639,34 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
 
             <div className="flex-1 relative min-h-0 flex flex-col">
               {/* Canvas */}
-              <div className="flex-1 bg-slate-50 dark:bg-slate-900 relative z-10 transition-all min-h-0">
-                {visualMode === 'elevation' ? (
-                  <WallVisualizer zone={currentZone} height={currentZone.wallHeight || 2400} settings={project.settings} onCabinetClick={(i) => openEdit('cabinet', i)} onObstacleClick={(i) => openEdit('obstacle', i)} onCabinetMove={handleCabinetMove} onObstacleMove={handleObstacleMove} onDragEnd={handleDragEnd} onSwapCabinets={handleSwapCabinets} />
-                ) : (
-                  <CabinetViewer project={project} showHardware={true} onCabinetClick={(zIdx, cIdx) => { const zoneId = project.zones[zIdx].id; setActiveTab(zoneId); openEdit("cabinet", cIdx); }} onWallClick={(wallId) => { setActiveTab(wallId); setVisualMode("elevation"); }} activeWallId={activeTab} />
-                )}
+              <div className="flex-1 bg-slate-50 dark:bg-slate-900 relative z-10 transition-all min-h-0 flex overflow-hidden">
+                
+                <div className="flex-1 relative">
+                  {visualMode === 'elevation' ? (
+                    <WallVisualizer 
+                      zone={currentZone} 
+                      height={currentZone.wallHeight || 2400} 
+                      settings={project.settings} 
+                      onCabinetClick={(i) => handleCabinetSelect(currentZone.id, i)} 
+                      onObstacleClick={(i) => openEdit('obstacle', i)} 
+                      onCabinetMove={handleCabinetMove} 
+                      onObstacleMove={handleObstacleMove} 
+                      onDragEnd={handleDragEnd} 
+                      onSwapCabinets={handleSwapCabinets} 
+                    />
+                  ) : (
+                    <CabinetViewer 
+                      project={project} 
+                      showHardware={true} 
+                      lightTheme={!isDark}
+                      draggedCabinet={draggingCabinet}
+                      onDropCabinet={handleDropCabinet}
+                      selectedCabinet={selectedCabinet}
+                      onCabinetSelect={handleCabinetSelect}
+                      activeWallId={activeTab} 
+                    />
+                  )}
+                </div>
               </div>
 
               {/* Table */}
@@ -1542,7 +1684,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-amber-900/20">
-                          {[...currentZone.obstacles, ...currentZone.cabinets].map((item, i) => {
+                          {currentZone && [...currentZone.obstacles, ...currentZone.cabinets].map((item, i) => {
                             const isCab = 'preset' in item;
                             return (
                               <tr
@@ -1614,7 +1756,22 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
               {visualMode === 'elevation' ? (
                 <WallVisualizer zone={currentZone} height={currentZone.wallHeight || 2400} settings={project.settings} onCabinetClick={(i) => openEdit('cabinet', i)} onObstacleClick={(i) => openEdit('obstacle', i)} onCabinetMove={handleCabinetMove} onObstacleMove={handleObstacleMove} onDragEnd={handleDragEnd} onSwapCabinets={handleSwapCabinets} />
               ) : (
-                <CabinetViewer project={project} showHardware={true} onCabinetClick={(zIdx, cIdx) => { const zoneId = project.zones[zIdx].id; setActiveTab(zoneId); openEdit("cabinet", cIdx); }} onWallClick={(wallId) => { setActiveTab(wallId); setVisualMode("elevation"); }} activeWallId={activeTab} />
+                <CabinetViewer 
+                  project={project} 
+                  showHardware={true} 
+                  lightTheme={!isDark}
+                  draggedCabinet={draggingCabinet}
+                  onDropCabinet={handleDropCabinet}
+                  onCabinetClick={(zoneId, cIdx) => { 
+                    setActiveTab(zoneId); 
+                    openEdit("cabinet", cIdx); 
+                  }} 
+                  onWallClick={(wallId) => { 
+                    setActiveTab(wallId); 
+                    setVisualMode("elevation"); 
+                  }} 
+                  activeWallId={activeTab} 
+                />
               )}
             </div>
 
@@ -1625,6 +1782,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
                   <Menu size={18} /><span>Menu</span>
                 </Button>
                 <Button size="sm" variant="secondary" onClick={() => {
+                  saveToHistory();
                   const result = generateRubyLayout(project);
                   setProject(result.project);
                 }} className="min-h-[52px] text-xs flex flex-col items-center justify-center gap-0.5">
@@ -1645,7 +1803,7 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
                 onClick={() => setMobileTableCollapsed(!mobileTableCollapsed)}
                 className="h-10 shrink-0 flex items-center justify-between px-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-500 text-xs font-bold uppercase tracking-wider"
               >
-                <span>{mobileTableCollapsed ? `Show Items (${currentZone.cabinets.length + currentZone.obstacles.length})` : 'Hide Items'}</span>
+                <span>{mobileTableCollapsed ? `Show Items (${(currentZone?.cabinets.length || 0) + (currentZone?.obstacles.length || 0)})` : 'Hide Items'}</span>
                 <span className="transform transition-transform">{mobileTableCollapsed ? '▲' : '▼'}</span>
               </button>
 
@@ -1686,6 +1844,378 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
               )}
             </div>
           </div>
+        </div>
+
+        {/* Desktop Sidebar: Presets or Selected Cabinet Editor */}
+        <div className="hidden md:flex w-80 h-full bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 flex-col overflow-hidden shrink-0">
+          {selectedCabinet ? (
+            <div className="flex-1 flex flex-col p-4 space-y-6 overflow-y-auto">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">Edit Cabinet</h3>
+                <button 
+                  onClick={() => setSelectedCabinet(null)}
+                  className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {(() => {
+                const zone = project.zones.find(z => z.id === selectedCabinet.zoneId);
+                const cab = zone?.cabinets[selectedCabinet.index];
+                if (!cab) return null;
+
+                const isCabinetChanged = initialZoneCabinetsBackup && (
+                  JSON.stringify(zone.cabinets) !== JSON.stringify(initialZoneCabinetsBackup)
+                );
+
+                const handleResetCabinet = () => {
+                  if (initialZoneCabinetsBackup && selectedCabinet) {
+                    const originalCabinets = JSON.parse(JSON.stringify(initialZoneCabinetsBackup));
+                    updateZone(z => ({ ...z, cabinets: originalCabinets }), false, selectedCabinet.zoneId);
+                    
+                    // Sync temp cabinet for editors
+                    const cab = originalCabinets[selectedCabinet.index];
+                    if (cab) setTempCabinet(JSON.parse(JSON.stringify(cab)));
+                  }
+                };
+
+                return (
+                  <div className="space-y-5">
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
+                      <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Active Unit</p>
+                      <p className="text-sm font-bold text-slate-900 dark:text-white">{cab.label || 'Cabinet'} - {cab.preset}</p>
+                    </div>
+
+                    {/* Width */}
+                    <CabinetSpanSlider 
+                      totalLength={zone.totalLength}
+                      fromLeft={cab.fromLeft}
+                      width={cab.width}
+                      onChange={(updates) => updateSelectedCabinet(updates)}
+                      onDragEnd={handleDragEnd}
+                    />
+
+                    {/* ---------------- SECTION-BASED EDITING ---------------- */}
+                    {cab.type === CabinetType.TALL ? (
+                      <div className="space-y-4 mt-2">
+                        {/* --- UPPER SECTION --- */}
+                        <div className="space-y-3 pt-2">
+                          <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Upper Section</h4>
+                          
+                          {/* Upper Section Height */}
+                          <div className="space-y-2 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Upper Height</span>
+                              <span className="text-xs font-mono text-amber-500 font-bold">{(cab.advancedSettings?.tallUpperSectionHeight ?? 300).toFixed(0)}mm</span>
+                            </div>
+                            <input 
+                              type="range" 
+                              min="100" 
+                              max="1500" 
+                              step="10"
+                              value={cab.advancedSettings?.tallUpperSectionHeight ?? 300}
+                              onChange={(e) => updateSelectedAdvancedSetting({ tallUpperSectionHeight: parseInt(e.target.value) })}
+                              className="w-full accent-amber-500 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer"
+                            />
+                          </div>
+
+                          {/* Upper Doors */}
+                          <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Upper Doors</span>
+                            <input 
+                              type="checkbox" 
+                              checked={cab.advancedSettings?.showDoors ?? true}
+                              onChange={(e) => updateSelectedAdvancedSetting({ showDoors: e.target.checked })}
+                              className="w-4 h-4 accent-amber-500"
+                            />
+                          </div>
+
+                          {/* Upper Shelves */}
+                          <div className="space-y-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Upper Shelves</span>
+                              <input 
+                                type="checkbox" 
+                                checked={cab.advancedSettings?.showShelves ?? true}
+                                onChange={(e) => updateSelectedAdvancedSetting({ showShelves: e.target.checked })}
+                                className="w-4 h-4 accent-amber-500"
+                              />
+                            </div>
+                            {(cab.advancedSettings?.showShelves ?? true) && (
+                              <div className="flex items-center gap-3">
+                                <button 
+                                  onClick={() => updateSelectedAdvancedSetting({ numShelves: Math.max(0, (cab.advancedSettings?.numShelves ?? 2) - 1) })}
+                                  className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 shadow-sm"
+                                >-</button>
+                                <span className="flex-1 text-center font-bold">{cab.advancedSettings?.numShelves ?? 2}</span>
+                                <button 
+                                  onClick={() => updateSelectedAdvancedSetting({ numShelves: (cab.advancedSettings?.numShelves ?? 2) + 1 })}
+                                  className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 shadow-sm"
+                                >+</button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* --- LOWER SECTION --- */}
+                        <div className="space-y-3 pt-4 border-t border-slate-200 dark:border-slate-800">
+                          <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Lower Section</h4>
+                          
+                          {/* Lower Section Height */}
+                          <div className="space-y-2 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Section Height</span>
+                              <span className="text-xs font-mono text-amber-500 font-bold">{(cab.advancedSettings?.tallLowerSectionHeight ?? 800).toFixed(0)}mm</span>
+                            </div>
+                            <input 
+                              type="range" 
+                              min="200" 
+                              max="1500" 
+                              step="10"
+                              value={cab.advancedSettings?.tallLowerSectionHeight ?? 800}
+                              onChange={(e) => updateSelectedAdvancedSetting({ tallLowerSectionHeight: parseInt(e.target.value) })}
+                              className="w-full accent-amber-500 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer"
+                            />
+                          </div>
+
+                          {/* Lower Doors */}
+                          <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Lower Doors</span>
+                            <input 
+                              type="checkbox" 
+                              checked={cab.advancedSettings?.showLowerDoors ?? true}
+                              onChange={(e) => {
+                                const checked = e.target.checked;
+                                const updates: Partial<TestingSettings> = { showLowerDoors: checked };
+                                if (checked) updates.showDrawers = false;
+                                updateSelectedAdvancedSetting(updates);
+                              }}
+                              className="w-4 h-4 accent-amber-500"
+                            />
+                          </div>
+
+                          {/* Lower Shelves */}
+                          <div className="space-y-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Lower Shelves</span>
+                              <input 
+                                type="checkbox" 
+                                checked={cab.advancedSettings?.showLowerShelves ?? false}
+                                onChange={(e) => {
+                                  const checked = e.target.checked;
+                                  const updates: Partial<TestingSettings> = { showLowerShelves: checked };
+                                  if (checked) updates.showDrawers = false;
+                                  updateSelectedAdvancedSetting(updates);
+                                }}
+                                className="w-4 h-4 accent-amber-500"
+                              />
+                            </div>
+                            {(cab.advancedSettings?.showLowerShelves ?? false) && (
+                              <div className="flex items-center gap-3">
+                                <button 
+                                  onClick={() => updateSelectedAdvancedSetting({ numLowerShelves: Math.max(0, (cab.advancedSettings?.numLowerShelves ?? 0) - 1) })}
+                                  className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 shadow-sm"
+                                >-</button>
+                                <span className="flex-1 text-center font-bold">{cab.advancedSettings?.numLowerShelves ?? 0}</span>
+                                <button 
+                                  onClick={() => updateSelectedAdvancedSetting({ numLowerShelves: (cab.advancedSettings?.numLowerShelves ?? 0) + 1 })}
+                                  className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 shadow-sm"
+                                >+</button>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Lower Drawers */}
+                          <div className="space-y-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Lower Drawers</span>
+                              <input 
+                                type="checkbox" 
+                                checked={cab.advancedSettings?.showDrawers ?? false}
+                                onChange={(e) => {
+                                  const checked = e.target.checked;
+                                  const updates: Partial<TestingSettings> = { showDrawers: checked };
+                                  if (checked) {
+                                    updates.showLowerDoors = false;
+                                    updates.showLowerShelves = false;
+                                  }
+                                  updateSelectedAdvancedSetting(updates);
+                                }}
+                                className="w-4 h-4 accent-amber-500"
+                              />
+                            </div>
+                            {(cab.advancedSettings?.showDrawers ?? false) && (
+                              <div className="flex items-center gap-3">
+                                <button 
+                                  onClick={() => updateSelectedAdvancedSetting({ numDrawers: Math.max(0, (cab.advancedSettings?.numDrawers ?? 3) - 1) })}
+                                  className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 shadow-sm"
+                                >-</button>
+                                <span className="flex-1 text-center font-bold">{cab.advancedSettings?.numDrawers ?? 3}</span>
+                                <button 
+                                  onClick={() => updateSelectedAdvancedSetting({ numDrawers: (cab.advancedSettings?.numDrawers ?? 3) + 1 })}
+                                  className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 shadow-sm"
+                                >+</button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      /* STANDARD VIEW (Base / Wall) */
+                      <div className="space-y-4">
+                        {/* Doors Toggle */}
+                        <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                          <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Show Doors</span>
+                          <input 
+                            type="checkbox" 
+                            checked={cab.advancedSettings?.showDoors ?? true}
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              const updates: Partial<TestingSettings> = { showDoors: checked };
+                              if (checked) updates.showDrawers = false;
+                              updateSelectedAdvancedSetting(updates);
+                            }}
+                            className="w-4 h-4 accent-amber-500"
+                          />
+                        </div>
+
+                        {/* Shelves */}
+                        <div className="space-y-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Shelves</span>
+                            <input 
+                              type="checkbox" 
+                              checked={cab.advancedSettings?.showShelves ?? true}
+                              onChange={(e) => {
+                                const checked = e.target.checked;
+                                const updates: Partial<TestingSettings> = { showShelves: checked };
+                                if (checked) updates.showDrawers = false;
+                                updateSelectedAdvancedSetting(updates);
+                              }}
+                              className="w-4 h-4 accent-amber-500"
+                            />
+                          </div>
+                          {(cab.advancedSettings?.showShelves ?? true) && (
+                            <div className="flex items-center gap-3">
+                              <button 
+                                onClick={() => updateSelectedAdvancedSetting({ numShelves: Math.max(0, (cab.advancedSettings?.numShelves ?? 2) - 1) })}
+                                className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 shadow-sm"
+                              >-</button>
+                              <span className="flex-1 text-center font-bold">{cab.advancedSettings?.numShelves ?? 2}</span>
+                              <button 
+                                onClick={() => updateSelectedAdvancedSetting({ numShelves: (cab.advancedSettings?.numShelves ?? 2) + 1 })}
+                                className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 shadow-sm"
+                              >+</button>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Drawers (Base only) */}
+                        {cab.type === CabinetType.BASE && (
+                          <div className="space-y-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Drawers</span>
+                              <input 
+                                type="checkbox" 
+                                checked={cab.advancedSettings?.showDrawers ?? false}
+                                onChange={(e) => {
+                                  const checked = e.target.checked;
+                                  const updates: Partial<TestingSettings> = { showDrawers: checked };
+                                  if (checked) {
+                                    updates.showDoors = false;
+                                    updates.showShelves = false;
+                                  }
+                                  updateSelectedAdvancedSetting(updates);
+                                }}
+                                className="w-4 h-4 accent-amber-500"
+                              />
+                            </div>
+                            {(cab.advancedSettings?.showDrawers ?? false) && (
+                              <div className="flex items-center gap-3">
+                                <button 
+                                  onClick={() => updateSelectedAdvancedSetting({ numDrawers: Math.max(0, (cab.advancedSettings?.numDrawers ?? 3) - 1) })}
+                                  className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 shadow-sm"
+                                >-</button>
+                                <span className="flex-1 text-center font-bold">{cab.advancedSettings?.numDrawers ?? 3}</span>
+                                <button 
+                                  onClick={() => updateSelectedAdvancedSetting({ numDrawers: (cab.advancedSettings?.numDrawers ?? 3) + 1 })}
+                                  className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 shadow-sm"
+                                >+</button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    <div className="pt-2">
+                      <button 
+                        onClick={() => setShowAdvancedCabinetEditor(true)}
+                        className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
+                      >
+                        <Settings2 size={14} /> Advanced 3D Editor
+                      </button>
+                    </div>
+
+                    {isCabinetChanged && (
+                      <button 
+                        onClick={handleResetCabinet}
+                        className="w-full py-2.5 bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/20 dark:hover:bg-amber-900/30 text-amber-600 dark:text-amber-400 font-bold text-xs uppercase tracking-wider rounded-xl transition-all border border-amber-200 dark:border-amber-800/50 flex items-center justify-center gap-2"
+                      >
+                        <RotateCcw size={14} /> Reset Changes
+                      </button>
+                    )}
+
+                    <button 
+                      onClick={() => {
+                        updateZone(z => {
+                          const cabs = z.cabinets.filter((_, i) => i !== selectedCabinet.index);
+                          return resolveCollisions({ ...z, cabinets: cabs });
+                        }, false, selectedCabinet.zoneId);
+                        setSelectedCabinet(null);
+                      }}
+                      className="w-full py-3 bg-rose-500 hover:bg-rose-600 text-white font-black uppercase tracking-widest text-[10px] rounded-xl transition-all shadow-lg shadow-rose-500/20"
+                    >
+                      Delete Cabinet
+                    </button>
+                  </div>
+                );
+              })()}
+            </div>
+          ) : (
+            <div className="flex-1 flex flex-col overflow-hidden">
+              <div className="p-4 border-b border-slate-200 dark:border-slate-800">
+                <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">Presets</h3>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {[
+                  { type: CabinetType.BASE, preset: PresetType.BASE_DOOR, label: 'Base Cabinet', icon: <Box size={24} /> },
+                  { type: CabinetType.WALL, preset: PresetType.WALL_STD, label: 'Wall Cabinet', icon: <Layers size={24} /> },
+                  { type: CabinetType.TALL, preset: PresetType.TALL_UTILITY, label: 'Tall Cabinet', icon: <Layers size={24} className="rotate-90" /> },
+                  { type: CabinetType.BASE, preset: PresetType.SINK_UNIT, label: 'Sink Unit', icon: <Box size={24} className="text-blue-500" /> },
+                  { type: CabinetType.BASE, preset: PresetType.BASE_DRAWER_3, label: '3-Drawer', icon: <Box size={24} /> },
+                ].map((proto, i) => (
+                  <div 
+                    key={i}
+                    onPointerDown={(e) => {
+                      e.preventDefault();
+                      const { icon, ...protoData } = proto;
+                      setDraggingCabinet({ ...protoData, id: 'proto', width: 600, qty: 1, fromLeft: 0 } as any);
+                    }}
+                    className="group bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl p-4 cursor-grab active:cursor-grabbing hover:border-amber-500 dark:hover:border-amber-500 hover:shadow-lg transition-all flex items-center gap-3 select-none active:scale-95"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-white dark:bg-slate-900 flex items-center justify-center text-slate-400 group-hover:text-amber-500 border dark:border-slate-700 shadow-sm transition-colors">
+                      {proto.icon}
+                    </div>
+                    <div>
+                      <div className="text-sm font-bold text-slate-700 dark:text-slate-200">{proto.label}</div>
+                      <div className="text-[10px] text-slate-400 uppercase font-black">{proto.type}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -1772,18 +2302,10 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
                     </div>
                   </div>
 
-                  {/* Customize Button */}
                   <div className="flex gap-2">
                     <button
-                      onClick={() => setShowCustomEditor(true)}
-                      className="flex-1 py-3 sm:py-2 px-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold rounded-lg transition-all flex items-center justify-center gap-2 min-h-[48px]"
-                    >
-                      <Wand2 size={18} />
-                      <span className="text-sm sm:text-base">Customize (Old)</span>
-                    </button>
-                    <button
                       onClick={() => setShowAdvancedCabinetEditor(true)}
-                      className="flex-1 py-3 sm:py-2 px-4 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold rounded-lg transition-all flex items-center justify-center gap-2 min-h-[48px]"
+                      className="w-full py-3 sm:py-2 px-4 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold rounded-lg transition-all flex items-center justify-center gap-2 min-h-[48px]"
                     >
                       <Settings2 size={18} />
                       <span className="text-sm sm:text-base">Advanced 3D Editor</span>
@@ -1909,18 +2431,6 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
         </div>
       )}
 
-      {/* Custom Cabinet Editor Modal */}
-      {showCustomEditor && (
-        <CustomCabinetEditor
-          basePreset={tempCabinet.preset}
-          baseType={tempCabinet.type === CabinetType.BASE ? 'Base' : tempCabinet.type === CabinetType.WALL ? 'Wall' : 'Tall'}
-          initialConfig={tempCabinet.customConfig}
-          onClose={() => setShowCustomEditor(false)}
-          onSave={() => {
-            setShowCustomEditor(false);
-          }}
-        />
-      )}
 
       {/* Advanced 3D Cabinet Editor */}
       <SingleCabinetEditorModal
@@ -1928,8 +2438,9 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave }: { project:
         onClose={() => setShowAdvancedCabinetEditor(false)}
         cabinet={tempCabinet}
         globalSettings={project.settings}
+        isDark={isDark}
         onSave={(newCab) => {
-          setTempCabinet(newCab);
+          updateSelectedCabinet(newCab);
           setShowAdvancedCabinetEditor(false);
         }}
       />

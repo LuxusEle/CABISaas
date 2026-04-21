@@ -9,6 +9,7 @@ interface WallEditModalProps {
   onClose: () => void;
   project: Project;
   onSave: (newZones: Zone[]) => void;
+  isDark?: boolean;
 }
 
 const DEFAULT_WALL_NAMES = ['Wall A', 'Wall B', 'Wall C', 'Wall D'];
@@ -18,6 +19,7 @@ export const WallEditModal: React.FC<WallEditModalProps> = ({
   onClose,
   project,
   onSave,
+  isDark = true,
 }) => {
   const [localZones, setLocalZones] = useState<Zone[]>(project.zones);
   const [activeTab, setActiveTab] = useState<string>('');
@@ -166,14 +168,14 @@ export const WallEditModal: React.FC<WallEditModalProps> = ({
         <div className="flex-1 flex overflow-hidden">
           {/* Left panel: Live 3D Preview */}
           <div className="w-1/2 md:w-3/5 bg-slate-100 relative">
-            <CabinetViewer 
-              project={tempProject} 
-              showHardware={false} 
-              showEmptyWalls={true} 
-              activeWallId={activeTab}
-              onWallClick={(wallId) => setActiveTab(wallId)}
-              lightTheme={true}
-            />
+              <CabinetViewer 
+                project={tempProject} 
+                showHardware={false} 
+                showEmptyWalls={true} 
+                activeWallId={activeTab}
+                onWallClick={(wallId) => setActiveTab(wallId)}
+                lightTheme={!isDark}
+              />
           </div>
 
           {/* Right panel: Wall tabs and form */}

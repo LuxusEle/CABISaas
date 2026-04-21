@@ -9,6 +9,7 @@ interface CabinetEditModalProps {
   cabinetType: 'base' | 'wall' | 'tall';
   settings: ProjectSettings;
   onSave: (newSettings: ProjectSettings) => void;
+  isDark?: boolean;
 }
 
 const PRESETS_BY_TYPE = {
@@ -45,6 +46,7 @@ export const CabinetEditModal: React.FC<CabinetEditModalProps> = ({
   cabinetType,
   settings,
   onSave,
+  isDark = true,
 }) => {
   const [localSettings, setLocalSettings] = useState<ProjectSettings>(settings);
   const [selectedPreset, setSelectedPreset] = useState<PresetType>(getDefaultPreset(cabinetType));
@@ -221,6 +223,7 @@ export const CabinetEditModal: React.FC<CabinetEditModalProps> = ({
               onDimensionClick={handleDimensionClick}
               showDimensionLabels={false}
               editingDimension={editingDimension}
+              lightTheme={!isDark}
             />
             <p className="text-xs text-slate-500 mt-2 text-center">
               Click the dimension buttons to edit

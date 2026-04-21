@@ -8,6 +8,7 @@ import {
   createDoorWithHingeHoles, 
   createGroovedPanelGeo,
   panelColors,
+  woodPalette,
   RUBY_DOOR_THRESHOLD
 } from './CabinetTestingUtils';
 
@@ -29,11 +30,13 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
     lowerSectionDrawerStackHeight, toeKickHeight,
   } = settings;
 
-  const baseColor = new THREE.Color('#d4a574');
-  const darkerColor = baseColor.clone().multiplyScalar(0.7);
-  const darkerColor2 = baseColor.clone().multiplyScalar(0.5);
-  const backPanelColor = new THREE.Color('#c9a87c');
-  const doorColor = baseColor.clone();
+  const isSelected = settings.isSelected;
+  const baseColor = new THREE.Color(isSelected ? '#3b82f6' : woodPalette.carcass);
+  const darkerColor = new THREE.Color(isSelected ? '#3b82f6' : woodPalette.carcass);
+  const backPanelColor = new THREE.Color(isSelected ? '#60a5fa' : woodPalette.backPanel);
+  const doorColor = new THREE.Color(isSelected ? '#2563eb' : woodPalette.door);
+  const toeKickColor = new THREE.Color(isSelected ? '#1e40af' : woodPalette.toeKick);
+  const shelfColor = new THREE.Color(isSelected ? '#93c5fd' : woodPalette.shelf);
 
   const getPanelColor = (panelType: string): THREE.Color => {
     if (!showDifferentPanelColors) return darkerColor;
@@ -413,7 +416,7 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
       {shouldShow('bottomPanel') && (
         <mesh position={[0 + getOffset('bottomPanel')[0], -innerHeight / 2 + panelThickness / 2 + getOffset('bottomPanel')[1], 0 + getOffset('bottomPanel')[2]]} castShadow receiveShadow visible={!skeletonView}>
           <primitive object={bottomPanelGeo} attach="geometry" />
-          <meshStandardMaterial color={getPanelColor('bottomPanel')} roughness={0.8} side={THREE.DoubleSide} />
+          <meshStandardMaterial color={getPanelColor('bottomPanel')} roughness={0.4} metalness={0} side={THREE.DoubleSide} transparent={settings.opacity < 1} opacity={settings.opacity} />
         </mesh>
       )}
       {skeletonView && shouldShow('bottomPanel') && (
@@ -425,7 +428,7 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
       {shouldShow('topPanel') && (
         <mesh position={[0 + getOffset('topPanel')[0], innerHeight / 2 - panelThickness / 2 + getOffset('topPanel')[1], 0 + getOffset('topPanel')[2]]} castShadow receiveShadow visible={!skeletonView}>
           <primitive object={topPanelGeo} attach="geometry" />
-          <meshStandardMaterial color={getPanelColor('topPanel')} roughness={0.8} side={THREE.DoubleSide} />
+          <meshStandardMaterial color={getPanelColor('topPanel')} roughness={0.4} metalness={0} side={THREE.DoubleSide} transparent={settings.opacity < 1} opacity={settings.opacity} />
         </mesh>
       )}
       {skeletonView && shouldShow('topPanel') && (
@@ -438,7 +441,7 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
       {toeKickHeight > 0 && shouldShow('toeKick') && (
         <mesh position={[0 + getOffset('toeKick')[0], -innerHeight / 2 - toeKickHeight / 2 + getOffset('toeKick')[1], depth / 2 - 50 - panelThickness / 2 + getOffset('toeKick')[2]]} castShadow receiveShadow visible={!skeletonView}>
           <boxGeometry args={[width, toeKickHeight, panelThickness]} />
-          <meshStandardMaterial color={getPanelColor('toeKick')} roughness={0.8} />
+          <meshStandardMaterial color={toeKickColor} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
         </mesh>
       )}
       {toeKickHeight > 0 && skeletonView && shouldShow('toeKick') && (
@@ -451,7 +454,7 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
       {shouldShow('leftPanel') && (
         <mesh position={[-width / 2 + panelThickness / 2 + getOffset('leftPanel')[0], 0 + getOffset('leftPanel')[1], 0 + getOffset('leftPanel')[2]]} castShadow receiveShadow visible={!skeletonView}>
           <primitive object={leftPanelGeo} attach="geometry" />
-          <meshStandardMaterial color={getPanelColor('leftPanel')} roughness={0.8} side={THREE.DoubleSide} />
+          <meshStandardMaterial color={getPanelColor('leftPanel')} roughness={0.4} metalness={0} side={THREE.DoubleSide} transparent={settings.opacity < 1} opacity={settings.opacity} />
         </mesh>
       )}
       {skeletonView && shouldShow('leftPanel') && (
@@ -463,7 +466,7 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
       {shouldShow('rightPanel') && (
         <mesh position={[width / 2 - panelThickness / 2 + getOffset('rightPanel')[0], 0 + getOffset('rightPanel')[1], 0 + getOffset('rightPanel')[2]]} castShadow receiveShadow visible={!skeletonView}>
           <primitive object={rightPanelGeo} attach="geometry" />
-          <meshStandardMaterial color={getPanelColor('rightPanel')} roughness={0.8} side={THREE.DoubleSide} />
+          <meshStandardMaterial color={getPanelColor('rightPanel')} roughness={0.4} metalness={0} side={THREE.DoubleSide} transparent={settings.opacity < 1} opacity={settings.opacity} />
         </mesh>
       )}
       {skeletonView && shouldShow('rightPanel') && (
@@ -476,7 +479,7 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
       {showBackPanel && shouldShow('backPanel') && (
         <mesh position={[0 + getOffset('backPanel')[0], 0 + getOffset('backPanel')[1], -innerDepth / 2 + panelThickness + backPanelThickness / 2 + getOffset('backPanel')[2]]} castShadow receiveShadow visible={!skeletonView}>
           <boxGeometry args={[innerWidth - panelThickness * 2 + grooveDepth * 2, innerHeight - panelThickness * 2 + grooveDepth * 2, backPanelThickness]} />
-          <meshStandardMaterial color={showDifferentPanelColors ? panelColors.backPanel : backPanelColor} roughness={0.9} />
+          <meshStandardMaterial color={showDifferentPanelColors ? panelColors.backPanel : backPanelColor} roughness={0.5} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
         </mesh>
       )}
       {showBackPanel && skeletonView && shouldShow('backPanel') && (
@@ -490,7 +493,7 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
         <>
           <mesh position={[0, innerHeight / 2 - panelThickness - 50, -innerDepth / 2 + panelThickness / 2 + getOffset('topStretcher')[2]]} castShadow receiveShadow visible={!skeletonView}>
             <boxGeometry args={[innerWidth - panelThickness * 2, 100, panelThickness]} />
-            <meshStandardMaterial color={getPanelColor('topStretcher')} roughness={0.8} />
+            <meshStandardMaterial color={getPanelColor('topStretcher')} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
           </mesh>
           {skeletonView && (
             <lineSegments position={[0, innerHeight / 2 - panelThickness - 50, -innerDepth / 2 + panelThickness / 2 + getOffset('topStretcher')[2]]}>
@@ -501,7 +504,7 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
 
           <mesh position={[0, -innerHeight / 2 + panelThickness + settings.wallBottomRecess + 50, -innerDepth / 2 + panelThickness / 2 + getOffset('bottomStretcher')[2]]} castShadow receiveShadow visible={!skeletonView}>
             <boxGeometry args={[innerWidth - panelThickness * 2, 100, panelThickness]} />
-            <meshStandardMaterial color={getPanelColor('bottomStretcher')} roughness={0.8} />
+            <meshStandardMaterial color={getPanelColor('bottomStretcher')} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
           </mesh>
           {skeletonView && (
             <lineSegments position={[0, -innerHeight / 2 + panelThickness + settings.wallBottomRecess + 50, -innerDepth / 2 + panelThickness / 2 + getOffset('bottomStretcher')[2]]}>
@@ -527,7 +530,7 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
             <group position={[pivotX, 0, 0]} rotation={[0, rotationDirection * doorAngle, 0]}>
               <mesh position={[-pivotX, 0, doorMaterialThickness / 2]} castShadow receiveShadow visible={!skeletonView}>
                 <primitive object={doorGeos[i]} attach="geometry" />
-                <meshStandardMaterial color={doorColor} roughness={0.6} />
+                <meshStandardMaterial color={doorColor} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
               </mesh>
               {skeletonView && (
                 <lineSegments position={[-pivotX, 0, doorMaterialThickness / 2]}>
@@ -573,7 +576,7 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
             <group position={[pivotX, 0, 0]} rotation={[0, rotationDirection * doorAngle, 0]}>
               <mesh position={[-pivotX, 0, doorMaterialThickness / 2]} castShadow receiveShadow visible={!skeletonView}>
                 <primitive object={lowerDoorGeos[i]} attach="geometry" />
-                <meshStandardMaterial color={doorColor} roughness={0.6} />
+                <meshStandardMaterial color={doorColor} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
               </mesh>
               {skeletonView && (
                 <lineSegments position={[-pivotX, 0, doorMaterialThickness / 2]}>
@@ -612,7 +615,7 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
           <group key={`drawer-${i}`} position={[getOffset('drawer', i)[0], getOffset('drawer', i)[1], getOffset('drawer', i)[2] + drawerOpenDistance]}>
             <mesh position={[0, drawerYPositions[i], depth / 2 + doorMaterialThickness / 2]} rotation={[0, -Math.PI / 2, 0]} castShadow receiveShadow visible={!skeletonView}>
               <primitive object={frontGeo} attach="geometry" />
-              <meshStandardMaterial color={showDifferentPanelColors ? panelColors.drawerFront : doorColor} roughness={0.6} side={THREE.DoubleSide} />
+              <meshStandardMaterial color={showDifferentPanelColors ? panelColors.drawerFront : doorColor} roughness={0.4} metalness={0} side={THREE.DoubleSide} transparent={settings.opacity < 1} opacity={settings.opacity} />
             </mesh>
             {!isLowerGolaActive && (
               <mesh position={[0, drawerYPositions[i], depth / 2 + doorMaterialThickness + 5]} rotation={[0, 0, Math.PI / 2]} castShadow>
@@ -623,19 +626,19 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
             {shouldShow('drawerBottom') && (
               <mesh position={[0, drawerYPositions[i] - boxH / 2 + drawerBottomThickness / 2, boxZOffset + drawerBackThickness / 2]} castShadow receiveShadow visible={!skeletonView}>
                 <boxGeometry args={[boxWidth - panelThickness * 2, drawerBottomThickness, boxDepth - drawerBackThickness]} />
-                <meshStandardMaterial color={showDifferentPanelColors ? panelColors.drawerBottom : darkerColor2} roughness={0.8} />
+                <meshStandardMaterial color={showDifferentPanelColors ? panelColors.drawerBottom : shelfColor} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
               </mesh>
             )}
             {[-1, 1].map(side => shouldShow('drawerSide') && (
               <mesh key={side} position={[side * (boxWidth / 2 - panelThickness / 2), drawerYPositions[i], boxZOffset]} castShadow receiveShadow visible={!skeletonView}>
                 <primitive object={side === -1 ? sideLGeo : sideRGeo} attach="geometry" />
-                <meshStandardMaterial color={showDifferentPanelColors ? panelColors.drawerSide : darkerColor2} roughness={0.8} side={THREE.DoubleSide} />
+                <meshStandardMaterial color={showDifferentPanelColors ? panelColors.drawerSide : shelfColor} roughness={0.4} metalness={0} side={THREE.DoubleSide} transparent={settings.opacity < 1} opacity={settings.opacity} />
               </mesh>
             ))}
             {shouldShow('drawerBack') && (
               <mesh position={[0, drawerYPositions[i], boxZOffset - boxDepth / 2 + drawerBackThickness / 2]} castShadow receiveShadow visible={!skeletonView}>
                 <boxGeometry args={[boxWidth - panelThickness * 2, boxH, drawerBackThickness]} />
-                <meshStandardMaterial color={showDifferentPanelColors ? panelColors.drawerBack : darkerColor2} roughness={0.8} />
+                <meshStandardMaterial color={showDifferentPanelColors ? panelColors.drawerBack : shelfColor} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
               </mesh>
             )}
 
@@ -672,7 +675,7 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
 
       <mesh position={[0 + getOffset('shelf', 99)[0], tallLowerSectionHeight - innerHeight / 2 - panelThickness / 2 + getOffset('shelf', 99)[1], -depth / 2 + panelThickness + backPanelThickness + (depth - panelThickness - backPanelThickness) / 2 + getOffset('shelf', 99)[2]]} castShadow receiveShadow visible={!skeletonView}>
         <boxGeometry args={[innerWidth - panelThickness * 2, panelThickness, depth - panelThickness - backPanelThickness]} />
-        <meshStandardMaterial color={getPanelColor('shelf')} roughness={0.8} />
+        <meshStandardMaterial color={shelfColor} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
       </mesh>
 
       {showShelves && numShelves > 0 && Array.from({ length: numShelves }).map((_, i) => {
@@ -685,7 +688,7 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
         return (
           <mesh key={`shelf-upper-${i}`} position={[0 + getOffset('shelf', i)[0], sy - panelThickness / 2 + getOffset('shelf', i)[1], shelfZOffset + getOffset('shelf', i)[2]]} castShadow receiveShadow visible={!skeletonView}>
             <primitive object={shelfGeo.clone()} attach="geometry" />
-            <meshStandardMaterial color={getPanelColor('shelf')} roughness={0.8} />
+            <meshStandardMaterial color={shelfColor} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
           </mesh>
         );
       })}
@@ -700,7 +703,7 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
         return (
           <mesh key={`shelf-lower-${i}`} position={[0 + getOffset('shelf', i)[0], shelfY - panelThickness / 2 + getOffset('shelf', i)[1], shelfZOffset + getOffset('shelf', i)[2]]} castShadow receiveShadow visible={!skeletonView}>
             <primitive object={shelfGeo.clone()} attach="geometry" />
-            <meshStandardMaterial color={getPanelColor('shelf')} roughness={0.8} />
+            <meshStandardMaterial color={shelfColor} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
           </mesh>
         );
       })}

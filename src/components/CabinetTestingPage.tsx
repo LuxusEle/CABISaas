@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Download } from 'lucide-react';
 import JSZip from 'jszip';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
+import { OrbitControls, Environment, ContactShadows } from '@react-three/drei';
 import { 
   TestingSettings, 
   DEFAULT_SETTINGS, 
@@ -15,7 +15,7 @@ import { BaseCornerCabinetTesting, exportBaseCornerCabinetDXF } from './BaseCorn
 import { WallCornerCabinetTesting, exportWallCornerCabinetDXF } from './WallCornerCabinetTesting';
 
 const Section: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="bg-slate-700/50 p-3 rounded-lg border border-slate-600/50 mb-3 last:mb-0">
+  <div className="bg-slate-100 dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700/50 mb-3 last:mb-0">
     {children}
   </div>
 );
@@ -37,7 +37,7 @@ const SettingRow: React.FC<{ label: string; value: number; onChange: (v: number)
         type="number"
         value={value}
         onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
-        className="w-14 px-1 py-0.5 text-[11px] bg-slate-900 border border-slate-600 rounded text-amber-500 font-mono text-center"
+        className="w-14 px-1 py-0.5 text-[11px] bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-600 rounded text-amber-600 dark:text-amber-500 font-mono text-center"
       />
     </div>
   </div>
@@ -58,10 +58,11 @@ const CheckboxRow: React.FC<{ label: string; checked: boolean; onChange: (v: boo
   </label>
 );
 
-export const CabinetTestingPage: React.FC = () => {
-  const [activeType, setActiveType] = useState<'base' | 'wall' | 'tall' | 'corner' | 'wall_corner'>('base');
-  const [allConfigs, setAllConfigs] = useState<Record<'base' | 'wall' | 'tall' | 'corner' | 'wall_corner', TestingSettings>>({
+export const CabinetTestingPage: React.FC<{ isDark?: boolean }> = ({ isDark = true }) => {
+  const [activeType, setActiveType] = useState<'base' | 'sink' | 'wall' | 'tall' | 'corner' | 'wall_corner'>('base');
+  const [allConfigs, setAllConfigs] = useState<Record<'base' | 'sink' | 'wall' | 'tall' | 'corner' | 'wall_corner', TestingSettings>>({
     base: { ...DEFAULT_SETTINGS, cabinetType: 'base' },
+    sink: { ...DEFAULT_SETTINGS, cabinetType: 'sink', showBackPanel: false, showShelves: false, showDrawers: false, preset: 'Sink Unit' },
     wall: { ...DEFAULT_SETTINGS, cabinetType: 'wall', height: 720, depth: 300, toeKickHeight: 0, showDrawers: false, showDoors: true, shelfDepth: 300 - 18 - 6 },
     tall: { ...DEFAULT_SETTINGS, cabinetType: 'tall', height: 2100, depth: 560, toeKickHeight: 100, showDrawers: false, showDoors: true, shelfDepth: 560 - 18 - 6 },
     corner: { ...DEFAULT_SETTINGS, cabinetType: 'corner', width: 1000, height: 870, depth: 560, blindPanelWidth: 400, blindCornerSide: 'left' },
@@ -118,7 +119,7 @@ export const CabinetTestingPage: React.FC = () => {
 
   const handleExportDXF = async () => {
     const zip = new JSZip();
-    if (settings.cabinetType === 'base') {
+    if (settings.cabinetType === 'base' || settings.cabinetType === 'sink') {
       await exportBaseCabinetDXF(settings, zip);
     } else if (settings.cabinetType === 'wall') {
       await exportWallCabinetDXF(settings, zip);
@@ -141,7 +142,7 @@ export const CabinetTestingPage: React.FC = () => {
   };
 
   const CalculatedStats = useMemo(() => {
-    const isBase = settings.cabinetType === 'base';
+    const isBase = settings.cabinetType === 'base' || settings.cabinetType === 'sink';
     const innerHeight = isBase ? settings.height - settings.toeKickHeight : settings.height;
     const actualNumDoors = settings.width < RUBY_DOOR_THRESHOLD ? 1 : 2;
     const doorWidth = actualNumDoors === 1 
@@ -151,14 +152,14 @@ export const CabinetTestingPage: React.FC = () => {
   }, [settings]);
 
   return (
-    <div className="flex h-full bg-slate-900 text-white font-sans overflow-hidden">
-      <div className="w-96 shrink-0 overflow-y-auto p-4 border-r border-slate-700 bg-slate-800 scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent">
+    <div className={`flex h-full ${isDark ? 'bg-slate-950 text-white' : 'bg-slate-50 text-slate-900'} font-sans overflow-hidden`}>
+      <div className={`w-96 shrink-0 overflow-y-auto p-4 border-r ${isDark ? 'border-slate-700 bg-slate-900' : 'border-slate-200 bg-white'} scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent`}>
         <div className="flex items-center gap-2 mb-6">
           <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center shadow-lg shadow-amber-500/20">
             <span className="font-bold text-white text-lg">C</span>
           </div>
           <div>
-            <h2 className="text-sm font-bold text-slate-100 leading-none">Cabinet Testing</h2>
+            <h2 className={`text-sm font-bold ${isDark ? 'text-slate-100' : 'text-slate-800'} leading-none`}>Cabinet Testing</h2>
             <span className="text-[10px] text-slate-400 font-medium">Configurator v2.1</span>
           </div>
         </div>
@@ -167,7 +168,7 @@ export const CabinetTestingPage: React.FC = () => {
           <Section>
             <h3 className="text-[11px] font-bold text-amber-500 uppercase tracking-wider mb-3">Cabinet Type</h3>
             <div className="grid grid-cols-2 gap-2">
-              {(['base', 'wall', 'tall', 'corner', 'wall_corner'] as const).map(type => (
+              {(['base', 'sink', 'wall', 'tall', 'corner', 'wall_corner'] as const).map(type => (
                 <button
                   key={type}
                   onClick={() => setActiveType(type)}
@@ -183,10 +184,10 @@ export const CabinetTestingPage: React.FC = () => {
             </div>
           </Section>
 
-          {(settings.cabinetType === 'base' || settings.cabinetType === 'tall' || settings.cabinetType === 'corner' || settings.cabinetType === 'wall_corner') && (
+          {(settings.cabinetType === 'base' || settings.cabinetType === 'sink' || settings.cabinetType === 'tall' || settings.cabinetType === 'corner' || settings.cabinetType === 'wall_corner') && (
             <Section>
               <h3 className="text-[11px] font-bold text-amber-500 uppercase tracking-wider mb-3">{settings.cabinetType.toUpperCase().replace('_', ' ')} Options</h3>
-              {(settings.cabinetType === 'base' || settings.cabinetType === 'tall' || settings.cabinetType === 'corner') && (
+              {(settings.cabinetType === 'base' || settings.cabinetType === 'sink' || settings.cabinetType === 'tall' || settings.cabinetType === 'corner') && (
                 <SettingRow label="Toe Kick Height" value={settings.toeKickHeight} onChange={v => updateSetting('toeKickHeight', v)} step={5} min={0} max={200} />
               )}
               {(settings.cabinetType === 'corner' || settings.cabinetType === 'wall_corner') && (
@@ -194,7 +195,7 @@ export const CabinetTestingPage: React.FC = () => {
                   <SettingRow label="Blind Width" value={settings.blindPanelWidth} onChange={v => updateSetting('blindPanelWidth', v)} step={10} min={200} max={settings.width} />
                   <div className="flex items-center justify-between gap-4 py-1.5 px-1">
                     <span className="text-[11px] text-slate-400 font-medium">Blind Side</span>
-                    <div className="flex bg-slate-900 rounded p-0.5 border border-slate-700">
+                    <div className={`flex ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-slate-100 border-slate-200'} rounded p-0.5 border`}>
                       {(['left', 'right'] as const).map(side => (
                         <button
                           key={side}
@@ -479,7 +480,7 @@ export const CabinetTestingPage: React.FC = () => {
                     <SettingRow label="Hinge V Offset" value={settings.hingeVerticalOffset} onChange={v => updateSetting('hingeVerticalOffset', v)} step={1} min={20} max={200} />
                   </div>
                 )}
-                {activeType !== 'wall' && activeType !== 'corner' && activeType !== 'wall_corner' && <CheckboxRow label="Show Drawers" checked={settings.showDrawers} onChange={v => updateSetting('showDrawers', v)} />}
+                {activeType !== 'wall' && activeType !== 'corner' && activeType !== 'sink' && activeType !== 'wall_corner' && <CheckboxRow label="Show Drawers" checked={settings.showDrawers} onChange={v => updateSetting('showDrawers', v)} />}
                 {settings.showDrawers && activeType !== 'wall' && activeType !== 'corner' && activeType !== 'wall_corner' && (
                   <div className="mt-2 pl-2 border-l-2 border-amber-500/30 space-y-2">
                     <SettingRow label="Num Drawers" value={settings.numDrawers} onChange={v => updateSetting('numDrawers', v)} step={1} min={1} max={6} />
@@ -490,7 +491,7 @@ export const CabinetTestingPage: React.FC = () => {
                     <SettingRow label="Back Clearance" value={settings.drawerBackClearance} onChange={v => updateSetting('drawerBackClearance', v)} step={1} min={0} max={100} />
                   </div>
                 )}
-                <CheckboxRow label="Show Shelves" checked={settings.showShelves} onChange={v => updateSetting('showShelves', v)} />
+                {activeType !== 'sink' && <CheckboxRow label="Show Shelves" checked={settings.showShelves} onChange={v => updateSetting('showShelves', v)} />}
                 {settings.showShelves && (
                   <div className="mt-2 pl-2 border-l-2 border-amber-500/30 space-y-2">
                     <SettingRow label="Num Shelves" value={settings.numShelves} onChange={v => updateSetting('numShelves', v)} step={1} min={0} max={10} />
@@ -522,7 +523,7 @@ export const CabinetTestingPage: React.FC = () => {
             )}
           </Section>
 
-          {(settings.cabinetType === 'base' || settings.cabinetType === 'wall' || settings.cabinetType === 'wall_corner' || settings.cabinetType === 'corner') && (settings.showDoors || settings.showDrawers) && (
+          {(settings.cabinetType === 'base' || settings.cabinetType === 'sink' || settings.cabinetType === 'wall' || settings.cabinetType === 'wall_corner' || settings.cabinetType === 'corner') && (settings.showDoors || settings.showDrawers) && (
            <Section>
              <h3 className="text-[11px] font-bold text-amber-500 uppercase tracking-wider mb-3">Gola System</h3>
              <CheckboxRow label="Enable Gola" checked={settings.enableGola} onChange={v => updateSetting('enableGola', v)} />
@@ -550,7 +551,7 @@ export const CabinetTestingPage: React.FC = () => {
                 <select 
                   value={settings.selectedPart} 
                   onChange={(e) => updateSetting('selectedPart', e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1.5 text-[11px] text-amber-500 font-medium"
+                  className={`w-full ${isDark ? 'bg-slate-950 border-slate-600' : 'bg-white border-slate-300'} border rounded px-2 py-1.5 text-[11px] text-amber-500 font-medium`}
                 >
                   <option value="all">View All Parts</option>
                   <option value="leftPanel">Left Panel</option>
@@ -586,24 +587,36 @@ export const CabinetTestingPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex-1 relative bg-slate-900">
+      <div className={`flex-1 relative ${isDark ? 'bg-slate-900' : 'bg-slate-50'}`}>
         <Canvas 
           shadows 
           camera={{ position: [900, 600, 900], fov: 40, near: 1, far: 10000 }}
           gl={{ antialias: true }}
         >
-          <color attach="background" args={['#0f172a']} />
+          <color attach="background" args={[isDark ? '#1e293b' : '#f8fafc']} />
+          <Environment preset="city" />
           <ambientLight intensity={0.5} />
           <spotLight position={[1000, 1000, 1000]} angle={0.15} penumbra={1} intensity={1} castShadow />
           <directionalLight position={[-400, 400, -400]} intensity={0.5} />
           
-          {settings.cabinetType === 'base' && <BaseCabinetTesting settings={settings} />}
+          <ContactShadows 
+            position={[0, -1, 0]} 
+            opacity={0.4} 
+            scale={2000} 
+            blur={2} 
+            far={4} 
+          />
+          
+          {(settings.cabinetType === 'base' || settings.cabinetType === 'sink') && <BaseCabinetTesting settings={settings} />}
           {settings.cabinetType === 'wall' && <WallCabinetTesting settings={settings} />}
           {settings.cabinetType === 'tall' && <TallCabinetTesting settings={settings} />}
           {settings.cabinetType === 'corner' && <BaseCornerCabinetTesting settings={settings} />}
           {settings.cabinetType === 'wall_corner' && <WallCornerCabinetTesting settings={settings} />}
           
-          <gridHelper args={[4000, 40, '#1e293b', '#0f172a']} rotation={[0, 0, 0]} />
+          <gridHelper 
+            args={[4000, 40, isDark ? '#1e293b' : '#cbd5e1', isDark ? '#0f172a' : '#e2e8f0']} 
+            rotation={[0, 0, 0]} 
+          />
           <OrbitControls 
             makeDefault 
             minDistance={100} 
@@ -614,7 +627,7 @@ export const CabinetTestingPage: React.FC = () => {
         </Canvas>
 
         <div className="absolute top-6 left-6 flex flex-col gap-2">
-          <div className="bg-slate-800/80 backdrop-blur-md px-3 py-2 rounded-lg border border-slate-700/50 shadow-xl">
+          <div className={`${isDark ? 'bg-slate-800/80 border-slate-700/50' : 'bg-white/80 border-slate-200'} backdrop-blur-md px-3 py-2 rounded-lg border shadow-xl`}>
              <div className="text-[10px] uppercase tracking-wider text-amber-500 font-bold mb-1">Live Stats</div>
              <div className="text-[11px] text-slate-300 font-mono">
                DIM: {settings.width}x{settings.height}x{settings.depth}<br/>
@@ -625,7 +638,7 @@ export const CabinetTestingPage: React.FC = () => {
         </div>
 
         <div className="absolute bottom-6 right-6 flex gap-2">
-          <div className="bg-slate-800/80 backdrop-blur-md px-3 py-2 rounded-lg border border-slate-700/50 text-[10px] text-slate-400">
+          <div className={`${isDark ? 'bg-slate-800/80 border-slate-700/50 text-slate-400' : 'bg-white/80 border-slate-200 text-slate-500'} backdrop-blur-md px-3 py-2 rounded-lg border text-[10px]`}>
             <span className="text-amber-500 font-bold uppercase">Pro Tip:</span> Hold SHIFT + Right Click to PAN
           </div>
         </div>

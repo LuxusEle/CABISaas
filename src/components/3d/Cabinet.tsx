@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Html } from '@react-three/drei';
+import { Html, Outlines } from '@react-three/drei';
 import * as THREE from 'three';
 import { CabinetUnit, CabinetType, ProjectSettings } from '../../types';
 import { getCabinetTestingSettings } from '../CabinetTestingUtils';
@@ -26,6 +26,8 @@ interface Props {
   onClick?: () => void;
   doorOpenAngle?: number;
   forceGola?: boolean;
+  opacity?: number;
+  isSelected?: boolean;
 }
 
 const DimensionLine: React.FC<{
@@ -63,6 +65,23 @@ const DimensionLine: React.FC<{
   );
 };
 
+const VisualHood: React.FC<{ width: number; depth: number; y: number; opacity?: number }> = ({ width, depth, y, opacity = 1 }) => {
+  return (
+    <group position={[width / 2, y - 60, depth / 2]}>
+      {/* Main Angled Hood Body - Scaled down */}
+      <mesh castShadow>
+        <cylinderGeometry args={[width * 0.15, width * 0.35, 120, 4, 1, false]} />
+        <meshStandardMaterial color="#475569" metalness={0.8} roughness={0.2} transparent={opacity < 1} opacity={opacity} />
+      </mesh>
+      {/* Base Filter Section */}
+      <mesh position={[0, -60, 0]} castShadow>
+        <boxGeometry args={[width * 0.95, 15, depth * 0.95]} />
+        <meshStandardMaterial color="#94a3b8" metalness={0.9} transparent={opacity < 1} opacity={opacity} />
+      </mesh>
+    </group>
+  );
+};
+
 export const Cabinet: React.FC<Props> = ({
   unit,
   position,
@@ -76,7 +95,9 @@ export const Cabinet: React.FC<Props> = ({
   editingDimension = null,
   onClick,
   doorOpenAngle,
-  forceGola
+  forceGola,
+  opacity = 1,
+  isSelected = false
 }) => {
   const [hovered, setHovered] = React.useState(false);
 
@@ -97,20 +118,26 @@ export const Cabinet: React.FC<Props> = ({
   const baseHeight = settings?.baseHeight || 870;
   const counterThickness = settings?.counterThickness || 40;
   const wallElevation = settings?.wallCabinetElevation || 450;
-  const toeKickHeight = settings?.toeKickHeight || 100;
   
   let zBase = 0;
   if (isWall && !previewMode) {
     zBase = baseHeight + counterThickness + wallElevation;
   }
 
+  const isCooker = unit.preset === PresetType.COOKER_HOB || (unit.preset === PresetType.BASE_DRAWER_3 && width >= 800);
+
   // Merge legacy project settings and advanced testing settings
   const testingSettings = useMemo(() => {
     const s = getCabinetTestingSettings(unit, settings || {}, width, height, depth);
-    if (doorOpenAngle !== undefined) s.doorOpenAngle = doorOpenAngle;
     if (forceGola !== undefined) s.enableGola = forceGola;
+    if (opacity !== undefined) s.opacity = opacity;
+    s.isSelected = isSelected;
+    if (doorOpenAngle !== undefined) {
+      s.doorOpenAngle = doorOpenAngle;
+      s.lowerDoorOpenAngle = doorOpenAngle;
+    }
     return s;
-  }, [unit, settings, width, height, depth, doorOpenAngle, forceGola]);
+  }, [unit, settings, width, height, depth, doorOpenAngle, forceGola, opacity, isSelected]);
 
   return (
     <group 
@@ -126,6 +153,27 @@ export const Cabinet: React.FC<Props> = ({
       }}
       onPointerOut={() => setHovered(false)}
     >
+      {isSelected && (
+        <mesh position={[width / 2, zBase + height / 2, depth / 2]}>
+          <boxGeometry args={[width + 6, height + 6, depth + 6]} />
+          <meshStandardMaterial 
+            color="#fbbf24" 
+            transparent 
+            opacity={0.15} 
+            emissive="#fbbf24"
+            emissiveIntensity={1.5}
+            side={THREE.DoubleSide}
+          />
+          <Outlines 
+            color="#fbbf24" 
+            thickness={4}
+            screenspace
+            transparent
+            opacity={0.8}
+          />
+        </mesh>
+      )}
+
       {/* 
           Testing models already center themselves internally at [width/2, height/2, depth/2].
           We just need to handle the vertical baseline (zBase) for wall cabinets.
@@ -137,6 +185,17 @@ export const Cabinet: React.FC<Props> = ({
           <BaseCabinetTesting settings={testingSettings} />
         )
       )}
+      
+      {/* Standalone Visual Hood for cookers - stays even if wall cabs are deleted */}
+      {isBase && isCooker && !previewMode && (
+        <VisualHood 
+          width={width} 
+          depth={depth} 
+          y={baseHeight + counterThickness + wallElevation} 
+          opacity={opacity}
+        />
+      )}
+
       {isWall && (
         <group position={[0, zBase, 0]}>
           {unit.preset === PresetType.WALL_CORNER ? (
@@ -187,7 +246,7 @@ export const Cabinet: React.FC<Props> = ({
 
       {label && (
         <Html position={[width / 2, zBase + height + 50, depth / 2]} center style={{ pointerEvents: 'none', whiteSpace: 'nowrap' }}>
-          <div className="bg-amber-500/90 text-white px-2 py-1 rounded text-xs font-bold shadow-lg">
+          <div className={`transition-all duration-300 transform ${isSelected ? 'bg-amber-600 scale-125 ring-2 ring-white shadow-[0_0_20px_rgba(245,158,11,0.5)] px-3 py-1.5' : 'bg-amber-500/90 px-2 py-1'} text-white rounded text-xs font-bold`}>
             {label}
           </div>
         </Html>

@@ -1,6 +1,16 @@
 import * as THREE from 'three';
 import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
 
+export const woodPalette = {
+  carcass: '#b08968',    // Medium wood brown
+  door: '#7f5539',       // Darker wood brown (distinct)
+  backPanel: '#e6be8a',  // Lighter birch/plywood
+  shelf: '#c6ac8f',      // Medium-light wood
+  toeKick: '#582f0e',    // Dark wood for base
+  internal: '#d4a373',   // Internal dividers
+  blindPanel: '#b08968'  // Same as carcass
+};
+
 export interface TestingSettings {
   width: number;
   height: number;
@@ -31,7 +41,7 @@ export interface TestingSettings {
   numDrawers: number;
   numShelves: number;
   showShelves: boolean;
-  cabinetType: 'base' | 'wall' | 'tall' | 'corner' | 'wall_corner';
+  cabinetType: 'base' | 'sink' | 'wall' | 'tall' | 'corner' | 'wall_corner';
   blindPanelWidth: number;
   blindCornerSide: 'left' | 'right';
   hingeDiameter: number;
@@ -67,6 +77,8 @@ export interface TestingSettings {
   lowerSectionDrawerStackHeight: number;
   enableTallUpperGola: boolean;
   preset?: string;
+  opacity?: number;
+  isSelected?: boolean;
 }
 
 export const DEFAULT_SETTINGS: TestingSettings = {
@@ -133,7 +145,9 @@ export const DEFAULT_SETTINGS: TestingSettings = {
   lowerSectionDrawerStackHeight: 800,
   enableTallUpperGola: false,
   blindPanelWidth: 400,
-  blindCornerSide: 'left'
+  blindCornerSide: 'left',
+  opacity: 1,
+  isSelected: false
 };
 
 export const RUBY_DOOR_THRESHOLD = 599.5;
@@ -558,5 +572,23 @@ export const getCabinetTestingSettings = (
   }
 
   merged.preset = unit.preset;
+
+  // 5. Ensure shelf depth is sane relative to current cabinet depth
+  // This prevents shelves sticking out when depth is reduced in sidebar or moving between zones
+  const minClearance = 2;
+  const doorSpace = merged.showDoors ? (merged.doorMaterialThickness + 2) : 0;
+  const maxShelfDepth = Math.max(50, merged.depth - merged.panelThickness - merged.backPanelThickness - doorSpace - minClearance);
+  
+  if (!unit.advancedSettings?.shelfDepth || merged.shelfDepth > maxShelfDepth) {
+    merged.shelfDepth = maxShelfDepth;
+  }
+
+  // 6. Hardcode Sink Unit defaults for all views
+  if (unit.preset === 'Sink Unit') {
+    merged.showBackPanel = false;
+    merged.showShelves = false;
+    merged.showDrawers = false;
+  }
+
   return merged;
 };
