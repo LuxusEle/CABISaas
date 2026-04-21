@@ -1,15 +1,5 @@
 import { supabase } from './supabaseClient';
-
-export interface SheetType {
-  id: string;
-  user_id: string;
-  name: string;
-  thickness: number;
-  price_per_sheet: number;
-  is_default: boolean;
-  created_at: string;
-  updated_at: string;
-}
+import { SheetType } from '../types';
 
 export const sheetTypeService = {
   async getSheetTypes(): Promise<SheetType[]> {
@@ -31,7 +21,7 @@ export const sheetTypeService = {
     return data || [];
   },
 
-  async saveSheetType(name: string, thickness: number, pricePerSheet: number): Promise<SheetType | null> {
+  async saveSheetType(name: string, thickness: number, width: number, length: number, pricePerSheet: number): Promise<SheetType | null> {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) return null;
 
@@ -42,6 +32,8 @@ export const sheetTypeService = {
           user_id: userData.user.id,
           name,
           thickness,
+          width,
+          length,
           price_per_sheet: pricePerSheet,
           is_default: false
         }

@@ -13,8 +13,8 @@ export const CutPlanVisualizer: React.FC<Props> = ({ sheet, settings, index }) =
   const kerf = settings.kerf || 4;
   
   // VERTICAL sheet orientation: 1220mm wide x 2440mm tall (4' x 8')
-  const sheetWidth = 1220;
-  const sheetHeight = 2440;
+  const sheetWidth = sheet.width || 1220;
+  const sheetHeight = sheet.length || 2440;
   
   // Scale to fit display - larger scale for better visibility
   const scale = 0.25;

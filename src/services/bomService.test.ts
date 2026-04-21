@@ -132,8 +132,6 @@ describe('bomService', () => {
       expect(project.settings.wallHeight).toBe(720);
       expect(project.settings.tallHeight).toBe(2100);
       expect(project.settings.thickness).toBe(16);
-      expect(project.settings.sheetWidth).toBe(1220);
-      expect(project.settings.sheetLength).toBe(2440);
     });
   });
 

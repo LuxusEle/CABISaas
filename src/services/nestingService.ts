@@ -1,5 +1,5 @@
 
-import { BOMItem, OptimizationResult, SheetLayout, PlacedPart, ProjectSettings } from '../types';
+import { BOMItem, OptimizationResult, SheetLayout, PlacedPart, ProjectSettings, SheetType } from '../types';
 
 // Maximal rectangle bin packing for efficient space utilization
 interface FreeRect {
@@ -9,7 +9,7 @@ interface FreeRect {
   height: number;
 }
 
-export const optimizeCuts = (items: BOMItem[], settings: ProjectSettings): OptimizationResult => {
+export const optimizeCuts = (items: BOMItem[], settings: ProjectSettings, sheetTypes: SheetType[] = []): OptimizationResult => {
   const sheets: SheetLayout[] = [];
   
   // 1. Group items by material
@@ -34,14 +34,22 @@ export const optimizeCuts = (items: BOMItem[], settings: ProjectSettings): Optim
     let remainingParts = [...parts];
     
     while (remainingParts.length > 0) {
+      // Find correct sheet dimensions for this material
+      const matched = sheetTypes.find(st => 
+        material.toLowerCase().includes(st.name.toLowerCase()) || 
+        st.name.toLowerCase().includes(material.toLowerCase())
+      );
+      const sheetWidth = matched?.width || 1220;
+      const sheetHeight = matched?.length || 2440;
+
       const currentSheetParts: PlacedPart[] = [];
       
       // Start with one free rectangle (the whole sheet)
       let freeRects: FreeRect[] = [{
         x: 0,
         y: 0,
-        width: settings.sheetWidth,
-        height: settings.sheetLength
+        width: sheetWidth,
+        height: sheetHeight
       }];
       
       // Keep trying to place parts until no more can fit
@@ -143,8 +151,8 @@ export const optimizeCuts = (items: BOMItem[], settings: ProjectSettings): Optim
       sheets.push({
         id: Math.random().toString(36).substr(2, 9),
         material,
-        width: settings.sheetWidth,
-        length: settings.sheetLength,
+        width: sheetWidth,
+        length: sheetHeight,
         parts: currentSheetParts,
         waste: 0
       });

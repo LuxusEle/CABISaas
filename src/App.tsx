@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Routes, Route, useNavigate, useLocation, Navigate, useParams, useSearchParams } from 'react-router-dom';
 import { Home, Layers, Calculator, Zap, ArrowLeft, ArrowRight, Trash2, Plus, Box, DoorOpen, Wand2, Moon, Sun, Table2, FileSpreadsheet, X, Pencil, Save, List, Settings, Printer, Download, Scissors, LayoutDashboard, DollarSign, Map, LogOut, Menu, Wrench, CreditCard, ChevronDown, ChevronUp, FileText, Ruler, Book, Upload, Image as ImageIcon, Shield, FileCode, Check, Settings2, RotateCcw } from 'lucide-react';
-import { Screen, Project, Zone, ZoneId, PresetType, CabinetType, CabinetUnit, Obstacle, AutoFillOptions } from './types';
+import { Screen, Project, Zone, ZoneId, PresetType, CabinetType, CabinetUnit, Obstacle, AutoFillOptions, SheetType } from './types';
 import { createNewProject, generateProjectBOM, autoFillZone, exportToExcel, resolveCollisions, resolveLocalCollisions, calculateProjectCost, exportProjectToConstructionJSON, buildProjectConstructionData, getIntersectingCabinets, ensureProjectSettings } from './services/bomService';
 import { generateRubyLayout } from './services/layoutSolver';
 import { exportAllSheetsToDXFZip, exportSingleSheetToDXF, exportAllDrillingToZip } from './services/dxfExportService';
@@ -10,7 +10,7 @@ import { generateQuotationPDF } from './services/pdfService';
 import { optimizeCuts } from './services/nestingService';
 import { authService } from './services/authService';
 import { expenseTemplateService, ExpenseTemplate } from './services/expenseTemplateService';
-import { sheetTypeService, SheetType } from './services/sheetTypeService';
+import { sheetTypeService } from './services/sheetTypeService';
 import { supabase } from './services/supabaseClient';
 import type { User } from '@supabase/supabase-js';
 
@@ -26,7 +26,6 @@ import { LandingPage } from './components/LandingPage';
 import { customCabinetService } from './services/customCabinetService';
 import { projectService } from './services/projectService';
 import { SheetTypeManager } from './components/SheetTypeManager';
-import { CabinetPreviewCard } from './components/CabinetPreviewCard';
 import { CabinetEditModal } from './components/CabinetEditModal';
 import { SingleCabinetEditorModal } from './components/SingleCabinetEditorModal';
 import { WallSetupCard } from './components/WallSetupCard';
@@ -683,9 +682,6 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
   // State to track which section is expanded - only one at a time
   const [expandedSection, setExpandedSection] = useState<'projectInfo' | 'sheetTypes' | 'accessories' | 'allocation' | 'costs' | null>('projectInfo');
 
-  // CBX Advanced Settings Modal
-  const [showCbxModal, setShowCbxModal] = useState(false);
-
   // Cabinet Edit Modal
   const [showCabinetModal, setShowCabinetModal] = useState(false);
   const [editingCabinetType, setEditingCabinetType] = useState<'base' | 'wall' | 'tall'>('base');
@@ -874,91 +870,17 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
                     onClick={() => setShowWallModal(true)}
                   />
 
-                  <h4 className="text-slate-500 font-bold uppercase text-xs tracking-wider flex items-center gap-2">
-                    <Ruler size={14} /> Cabinet Dimensions
-                  </h4>
-                  
-                  {/* Cabinet Preview Cards */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <CabinetPreviewCard
-                      type="base"
-                      settings={project.settings}
-                      onClick={() => { setEditingCabinetType('base'); setShowCabinetModal(true); }}
-                    />
-                    <CabinetPreviewCard
-                      type="wall"
-                      settings={project.settings}
-                      onClick={() => { setEditingCabinetType('wall'); setShowCabinetModal(true); }}
-                    />
-                    <CabinetPreviewCard
-                      type="tall"
-                      settings={project.settings}
-                      onClick={() => { setEditingCabinetType('tall'); setShowCabinetModal(true); }}
-                    />
-                  </div>
 
                   {/* Additional Settings */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4">
-                    <NumberInput label="Sheet Length (mm)" value={project.settings.sheetLength} onChange={(v) => setProject({ ...project, settings: { ...project.settings, sheetLength: v } })} step={100} />
-                    <NumberInput label="Sheet Width (mm)" value={project.settings.sheetWidth} onChange={(v) => setProject({ ...project, settings: { ...project.settings, sheetWidth: v } })} step={100} />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-4 mt-4">
                     <NumberInput label="Kerf (mm)" value={project.settings.kerf} onChange={(v) => setProject({ ...project, settings: { ...project.settings, kerf: v } })} step={1} />
                     <NumberInput label="Counter Thickness (mm)" value={project.settings.counterThickness} onChange={(v) => setProject({ ...project, settings: { ...project.settings, counterThickness: v } })} step={5} />
                   </div>
 
-                  {/* Ruby CBX Advanced Settings Button */}
-                  <div className="mt-4">
-                    <button
-                      onClick={() => setShowCbxModal(true)}
-                      className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg text-sm font-medium transition-colors"
-                    >
-                      <Settings2 size={16} />
-                      Ruby CBX Design Rules (Advanced)
-                    </button>
-                  </div>
                 </div>
               </div>
             </div>
           </div>
-          {/* CBX Design Rules Modal */}
-          {showCbxModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
-                <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
-                  <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
-                    <Settings2 size={20} /> Ruby CBX Design Rules
-                  </h3>
-                  <button
-                    onClick={() => setShowCbxModal(false)}
-                    className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
-                  >
-                    <X size={20} className="text-slate-500" />
-                  </button>
-                </div>
-                <div className="p-4 overflow-y-auto max-h-[calc(90vh-80px)]">
-                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">Gap and clearance settings matching Ruby CBX Shotgun plugin defaults.</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                    <NumberInput label="Door-to-Door Gap (mm)" value={project.settings.doorToDoorGap} onChange={(v) => setProject({ ...project, settings: { ...project.settings, doorToDoorGap: v } })} step={0.5} />
-                    <NumberInput label="Door-to-Panel Gap (mm)" value={project.settings.doorToPanelGap} onChange={(v) => setProject({ ...project, settings: { ...project.settings, doorToPanelGap: v } })} step={0.5} />
-                    <NumberInput label="Drawer-to-Drawer Gap (mm)" value={project.settings.drawerToDrawerGap} onChange={(v) => setProject({ ...project, settings: { ...project.settings, drawerToDrawerGap: v } })} step={0.5} />
-                    <NumberInput label="Door Outer Gap (mm)" value={project.settings.doorOuterGap} onChange={(v) => setProject({ ...project, settings: { ...project.settings, doorOuterGap: v } })} step={0.5} />
-                    <NumberInput label="Door Inner Gap (mm)" value={project.settings.doorInnerGap} onChange={(v) => setProject({ ...project, settings: { ...project.settings, doorInnerGap: v } })} step={0.5} />
-                    <NumberInput label="Door Side Clearance (mm)" value={project.settings.doorSideClearance} onChange={(v) => setProject({ ...project, settings: { ...project.settings, doorSideClearance: v } })} step={0.5} />
-                    <NumberInput label="Groove Depth (mm)" value={project.settings.grooveDepth} onChange={(v) => setProject({ ...project, settings: { ...project.settings, grooveDepth: v } })} step={1} />
-                    <NumberInput label="Back Panel Thickness (mm)" value={project.settings.backPanelThickness} onChange={(v) => setProject({ ...project, settings: { ...project.settings, backPanelThickness: v } })} step={1} />
-                    <NumberInput label="Door Material Thickness (mm)" value={project.settings.doorMaterialThickness} onChange={(v) => setProject({ ...project, settings: { ...project.settings, doorMaterialThickness: v } })} step={1} />
-                  </div>
-                  <div className="mt-6 flex justify-end">
-                    <button
-                      onClick={() => setShowCbxModal(false)}
-                      className="px-6 py-2 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-lg font-medium hover:bg-slate-800 dark:hover:bg-slate-200 transition-colors"
-                    >
-                      Done
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Wall Edit Modal */}
           <WallEditModal
@@ -2452,7 +2374,18 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
   // Use more specific dependencies to prevent unnecessary recalculations
   const data = useMemo(() => generateProjectBOM(project), [project.id, project.zones, project.settings]);
   const [activeView, setActiveView] = useState<'list' | 'cutplan' | 'wallplan' | 'quotation'>('list');
-  const cutPlan = useMemo(() => optimizeCuts(data.groups.flatMap(g => g.items), project.settings), [data.groups, project.settings.sheetLength, project.settings.sheetWidth, project.settings.kerf]);
+
+  // Load sheet types from database for pricing and nesting
+  const [sheetTypes, setSheetTypes] = useState<SheetType[]>([]);
+  useEffect(() => {
+    const loadSheetTypes = async () => {
+      const types = await sheetTypeService.getSheetTypes();
+      setSheetTypes(types);
+    };
+    loadSheetTypes();
+  }, []);
+
+  const cutPlan = useMemo(() => optimizeCuts(data.groups.flatMap(g => g.items), project.settings, sheetTypes), [data.groups, sheetTypes, project.settings.kerf]);
   const currency = project.settings.currency || '$';
 
   // Load accessories from database
@@ -2465,15 +2398,6 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
     loadAccessories();
   }, []);
 
-  // Load sheet types from database for pricing
-  const [sheetTypes, setSheetTypes] = useState<SheetType[]>([]);
-  useEffect(() => {
-    const loadSheetTypes = async () => {
-      const types = await sheetTypeService.getSheetTypes();
-      setSheetTypes(types);
-    };
-    loadSheetTypes();
-  }, []);
 
   // Calculate total doors for hinge calculation
   // Ruby CBX door threshold: < 599.5mm = single door, >= 600mm = double doors
@@ -2536,7 +2460,7 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
     acc.name.toLowerCase().includes('hinge') ||
     acc.name.toLowerCase().includes('soft-close')
   );
-  const hingeUnitCost = hingeAccessory?.default_amount || 5.00;
+  const hingeUnitCost = hingeAccessory?.default_amount || project.settings.costs.pricePerHardwareUnit;
   const hingeTotalCost = hingeQuantity * hingeUnitCost;
 
   // Calculate total drawers (from drawer cabinets)
@@ -2559,7 +2483,7 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
     acc.name.toLowerCase().includes('handle') ||
     acc.name.toLowerCase().includes('knob')
   );
-  const handleUnitCost = handleAccessory?.default_amount || 8.00;
+  const handleUnitCost = handleAccessory?.default_amount || project.settings.costs.pricePerHardwareUnit;
   const handleTotalCost = handleQuantity * handleUnitCost;
 
   // Calculate Drawer Slide quantity (pairs) = number of drawers
@@ -2568,26 +2492,32 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
     acc.name.toLowerCase().includes('drawer slide') ||
     acc.name.toLowerCase().includes('slide')
   );
-  const drawerSlideUnitCost = drawerSlideAccessory?.default_amount || 15.00;
+  const drawerSlideUnitCost = drawerSlideAccessory?.default_amount || project.settings.costs.pricePerHardwareUnit;
   const drawerSlideTotalCost = drawerSlideQuantity * drawerSlideUnitCost;
 
   // Calculate total hardware cost from all individual items (only those actually used in project)
-  const otherAccessoriesCost = accessories
-    .filter(acc => {
-      // Skip items already calculated separately
-      const isExcluded =
-        acc.name.toLowerCase().includes('hinge') ||
-        acc.name.toLowerCase().includes('handle') ||
-        acc.name.toLowerCase().includes('knob') ||
-        acc.name.toLowerCase().includes('drawer slide') ||
-        acc.name.toLowerCase().includes('slide');
-      return !isExcluded;
-    })
-    .reduce((sum, acc) => {
-      // Get actual quantity from BOM, default to 0 if not found
-      const qty = data.hardwareSummary[acc.name] || 0;
-      return sum + (qty * acc.default_amount);
-    }, 0);
+  const otherAccessoriesCost = useMemo(() => {
+    return Object.entries(data.hardwareSummary)
+      .filter(([name]) => {
+        const lower = name.toLowerCase();
+        // Skip items already calculated separately with special logic
+        return !lower.includes('hinge') && 
+               !lower.includes('handle') && 
+               !lower.includes('knob') && 
+               !lower.includes('slide');
+      })
+      .reduce((sum, [name, qty]) => {
+        // Find best match in accessories list
+        const accessory = accessories.find(acc => 
+          acc.name.toLowerCase() === name.toLowerCase() ||
+          acc.name.toLowerCase().includes(name.toLowerCase()) ||
+          name.toLowerCase().includes(acc.name.toLowerCase())
+        );
+        
+        const unitCost = accessory?.default_amount || project.settings.costs.pricePerHardwareUnit;
+        return sum + (qty * unitCost);
+      }, 0);
+  }, [data.hardwareSummary, accessories, project.settings.costs.pricePerHardwareUnit]);
 
   const totalHardwareCost = hingeTotalCost + handleTotalCost + drawerSlideTotalCost + otherAccessoriesCost;
 
@@ -2618,13 +2548,21 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
       return project.settings.costs?.pricePerSheet ?? 85.00;
     };
 
-    return Object.entries(summary).map(([mat, data]) => ({
-      material: mat,
-      sheets: data.sheets,
-      waste: Math.round(data.waste / data.sheets),
-      dims: `${project.settings.sheetLength} x ${project.settings.sheetWidth}`,
-      cost: data.sheets * findSheetPrice(mat)
-    }));
+    return Object.entries(summary).map(([mat, data]) => {
+      const matched = sheetTypes.find(st => 
+        mat.toLowerCase().includes(st.name.toLowerCase()) || 
+        st.name.toLowerCase().includes(mat.toLowerCase())
+      );
+      return {
+        material: mat,
+        sheets: data.sheets,
+        waste: Math.round(data.waste / data.sheets),
+        dims: (matched && matched.length && matched.width) 
+          ? `${matched.length} x ${matched.width}` 
+          : '1220 x 2440',
+        cost: data.sheets * findSheetPrice(mat)
+      };
+    });
   }, [cutPlan, project.settings, sheetTypes]);
 
   // Calculate Quotation Specifications with Filters

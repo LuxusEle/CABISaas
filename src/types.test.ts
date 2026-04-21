@@ -159,15 +159,26 @@ describe('types', () => {
           thickness: 16,
           counterThickness: 40,
           toeKickHeight: 150,
-          sheetWidth: 1220,
-          sheetLength: 2440,
+          widthBase: 600,
+          widthWall: 600,
+          widthTall: 600,
+          doorToDoorGap: 2,
+          doorToPanelGap: 2,
+          drawerToDrawerGap: 2,
+          doorOuterGap: 3,
+          doorInnerGap: 3,
+          doorSideClearance: 3,
+          grooveDepth: 5,
+          backPanelThickness: 6,
+          doorMaterialThickness: 18,
+          wallCabinetElevation: 450,
           kerf: 4,
           costs: {
             pricePerSheet: 85,
             pricePerHardwareUnit: 5,
-            laborRatePerHour: 60,
-            laborHoursPerCabinet: 1.5,
-            marginPercent: 50
+            laborCost: 100,
+            marginPercent: 50,
+            transportCost: 50
           }
         },
         zones: []

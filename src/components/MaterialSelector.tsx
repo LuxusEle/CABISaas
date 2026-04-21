@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { SheetType, sheetTypeService } from '../services/sheetTypeService';
-import { CabinetMaterials } from '../types';
+import { SheetType, CabinetMaterials } from '../types';
+import { sheetTypeService } from '../services/sheetTypeService';
 import { Layers, ChevronDown } from 'lucide-react';
 
 interface MaterialSelectorProps {

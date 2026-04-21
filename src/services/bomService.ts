@@ -1,6 +1,6 @@
 
 import { Project, Zone, CabinetUnit, BOMGroup, BOMItem, CabinetType, PresetType, ProjectSettings, OptimizationResult, Obstacle, AutoFillOptions } from '../types';
-import { SheetType } from './sheetTypeService';
+import { SheetType } from '../types';
 import type { ConstructionPlanJSON } from '../types/construction';
 
 // Helper to generate unique IDs
@@ -747,7 +747,8 @@ export interface MaterialBreakdown {
 }
 
 export const getMaterialRequirements = (
-  project: Project
+  project: Project,
+  sheetTypes: SheetType[] = []
 ): MaterialBreakdown[] => {
   const allParts: BOMItem[] = [];
 
@@ -780,8 +781,14 @@ export const getMaterialRequirements = (
         0
       );
 
-      // Estimate sheets needed (rough calculation)
-      const sheetArea = (project.settings.sheetWidth * project.settings.sheetLength) / 1000000;
+      // Estimate sheets needed using material-specific size
+      const matched = sheetTypes.find(st => 
+        materialName.toLowerCase().includes(st.name.toLowerCase()) || 
+        st.name.toLowerCase().includes(materialName.toLowerCase())
+      );
+      const sheetWidth = matched?.width || 1220;
+      const sheetLength = matched?.length || 2440;
+      const sheetArea = (sheetWidth * sheetLength) / 1000000;
       const estimatedSheets = Math.ceil(totalArea / (sheetArea * 0.85)); // 85% efficiency
 
       // Get thickness from first part or default
@@ -930,8 +937,6 @@ export const createNewProject = (logoUrl?: string): Project => ({
     thickness: 18,     // Ruby: 18mm
     counterThickness: 40,
     toeKickHeight: 100, // Ruby: 100mm plinth
-    sheetWidth: 1220,
-    sheetLength: 2440,
     kerf: 4,
     // Ruby CBX Design Rules - Gap & Clearance Settings
     doorToDoorGap: 2.0,      // Ruby: 2.0mm
@@ -991,11 +996,17 @@ export const exportToExcel = (groups: BOMGroup[], nestingData: OptimizationResul
   });
 
   // Sheet 2: Material BOM (Sheets Count)
-  const materialCounts: Record<string, { sheets: number, wasteSum: number, count: number }> = {};
+  const materialCounts: Record<string, { sheets: number, wasteSum: number, count: number, width: number, length: number }> = {};
 
-  nestingData.sheets.forEach(sheet => {
+    nestingData.sheets.forEach(sheet => {
     if (!materialCounts[sheet.material]) {
-      materialCounts[sheet.material] = { sheets: 0, wasteSum: 0, count: 0 };
+      materialCounts[sheet.material] = { 
+        sheets: 0, 
+        wasteSum: 0, 
+        count: 0, 
+        width: sheet.width || 1220, 
+        length: sheet.length || 2440 
+      };
     }
     materialCounts[sheet.material].sheets += 1;
     materialCounts[sheet.material].wasteSum += sheet.waste;
@@ -1012,7 +1023,7 @@ export const exportToExcel = (groups: BOMGroup[], nestingData: OptimizationResul
     <Row>
       <Cell><Data ss:Type="String">${mat}</Data></Cell>
       <Cell><Data ss:Type="Number">${data.sheets}</Data></Cell>
-      <Cell><Data ss:Type="String">${project.settings.sheetLength} x ${project.settings.sheetWidth}</Data></Cell>
+      <Cell><Data ss:Type="String">${data.length} x ${data.width}</Data></Cell>
       <Cell><Data ss:Type="Number">${avgWaste}</Data></Cell>
       <Cell><Data ss:Type="Number">${estCost}</Data></Cell>
     </Row>`;
