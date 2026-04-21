@@ -103,7 +103,8 @@ export const optimizeCuts = (items: BOMItem[], settings: ProjectSettings, sheetT
               length: h,
               rotated,
               partId: part.id,
-              label: `${part.name} (${part.label || ''})`
+              label: `${part.cabinetLabel || ''}|${part.name}`,
+              features: part.features
             });
             
             // Remove the used rectangle

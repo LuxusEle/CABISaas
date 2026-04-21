@@ -549,6 +549,10 @@ export const getCabinetTestingSettings = (
     merged.depth = baseSettings.depth;
     merged.cabinetType = baseSettings.cabinetType;
     merged.toeKickHeight = baseSettings.toeKickHeight;
+    // Special handling for Global Gola - if global is on, it should generally win
+    if (globalSettings.advancedTestingSettings.enableGola) {
+      merged.enableGola = true;
+    }
   }
 
   // 4. Override with previously saved unit-specific advancedSettings

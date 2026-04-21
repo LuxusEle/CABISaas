@@ -206,6 +206,7 @@ export interface BOMItem {
   isHardware?: boolean;
   cabinetId?: string;
   cabinetLabel?: string;
+  features?: string[];
 }
 
 export interface MaterialRequirement {
@@ -242,6 +243,7 @@ export interface PlacedPart {
   rotated: boolean;
   partId: string;
   label: string;
+  features?: string[];
 }
 
 export interface SheetLayout {

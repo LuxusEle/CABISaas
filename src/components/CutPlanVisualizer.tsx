@@ -52,14 +52,14 @@ export const CutPlanVisualizer: React.FC<Props> = ({ sheet, settings, index }) =
           
           {/* Parts */}
           {sheet.parts.map((part, i) => {
-             const [partName, cabRef] = part.label.split(' (');
-             const cabinetName = cabRef ? cabRef.replace(')', '') : '';
+             const [cabName, partName] = part.label.split('|');
              const isLongSideVertical = part.length > part.width;
              const minDim = Math.min(part.width, part.length);
+             const maxDim = Math.max(part.width, part.length);
              
-             // Larger font size for readability
-             const fontSize = Math.min(50, Math.max(20, minDim / 5));
-             const showText = part.width > 100 && part.length > 100;
+             // Adaptive font size: scale based on part size but keep it within readable limits
+             const fontSize = Math.min(maxDim / 10, minDim / 4, 45);
+             const showText = maxDim > 120 && minDim > 60;
              const isSelected = selectedPart === i;
 
              return (
@@ -79,38 +79,64 @@ export const CutPlanVisualizer: React.FC<Props> = ({ sheet, settings, index }) =
                   className="print:fill-slate-100 print:stroke-black"
                 />
                 {showText && (
-                  <g style={{ pointerEvents: 'none' }}>
-                    {/* Part name - parallel to grain */}
-                    <text 
-                      x={part.x + part.width / 2} 
-                      y={part.y + part.length / 2 - (isLongSideVertical ? 0 : 8)} 
-                      textAnchor="middle" 
-                      fontSize={fontSize}
-                      fill="#0f172a"
-                      fontWeight="bold"
-                      className="print:fill-black"
-                      transform={isLongSideVertical ? 
-                        `rotate(-90, ${part.x + part.width / 2}, ${part.y + part.length / 2})` : 
-                        ''}
-                    >
-                      {partName}
-                    </text>
-                    {/* Cabinet reference */}
-                    <text 
-                      x={part.x + part.width / 2} 
-                      y={part.y + part.length / 2 + (isLongSideVertical ? 0 : fontSize * 0.8)} 
-                      textAnchor="middle" 
-                      fontSize={fontSize * 0.7}
-                      fill="#475569"
-                      className="print:fill-black"
-                      transform={isLongSideVertical ? 
-                        `rotate(-90, ${part.x + part.width / 2}, ${part.y + part.length / 2})` : 
-                        ''}
-                    >
-                      {cabinetName}
-                    </text>
-                  </g>
+                  <text 
+                    x={part.x + part.width / 2} 
+                    y={part.y + part.length / 2} 
+                    textAnchor="middle" 
+                    dominantBaseline="middle"
+                    fontSize={fontSize}
+                    fill="#0f172a"
+                    fontWeight="bold"
+                    className="print:fill-black select-none"
+                    transform={isLongSideVertical ? 
+                      `rotate(-90, ${part.x + part.width / 2}, ${part.y + part.length / 2})` : 
+                      ''}
+                  >
+                    <tspan x={part.x + part.width / 2} dy="-0.4em" fontSize={fontSize * 0.75} fill="#475569">{cabName}</tspan>
+                    <tspan x={part.x + part.width / 2} dy="1.2em">{partName}</tspan>
+                  </text>
                 )}
+                {/* Gola Cuts Visualization */}
+                {part.features?.map((feature, fIdx) => {
+                  if (feature === 'gola-top-l') {
+                    return (
+                      <rect 
+                        key={`gola-${fIdx}`}
+                        x={part.rotated ? part.x + part.width - 55 : part.x}
+                        y={part.y}
+                        width={55}
+                        height={55}
+                        fill="#cbd5e1"
+                        stroke="#94a3b8"
+                        strokeWidth="1"
+                        strokeDasharray="5,5"
+                      />
+                    );
+                  }
+                  if (feature.startsWith('gola-mid-c:')) {
+                    const gh = parseFloat(feature.split(':')[1]);
+                    // Side panel height in design is innerHeight - panelThickness
+                    // gh is from cabinet bottom (above toe kick)
+                    const yOffsetFromBottom = gh - (settings.thickness || 18)/2;
+                    const yPosFromTop = (part.rotated ? part.width : part.length) - yOffsetFromBottom;
+                    
+                    return (
+                      <rect 
+                        key={`gola-${fIdx}`}
+                        x={part.rotated ? part.x + yPosFromTop - 36.75 : part.x}
+                        y={part.rotated ? part.y : part.y + yPosFromTop - 36.75}
+                        width={part.rotated ? 73.5 : 35}
+                        height={part.rotated ? 35 : 73.5}
+                        fill="#cbd5e1"
+                        stroke="#94a3b8"
+                        strokeWidth="1"
+                        strokeDasharray="5,5"
+                      />
+                    );
+                  }
+                  return null;
+                })}
+                
                 {/* Dimensions in corner */}
                 <text 
                   x={part.x + 10} 
@@ -151,14 +177,17 @@ export const CutPlanVisualizer: React.FC<Props> = ({ sheet, settings, index }) =
             <h3 className="font-bold text-lg mb-4">Part Details</h3>
             {(() => {
               const part = sheet.parts[selectedPart];
-              const [partName, cabRef] = part.label.split(' (');
+              const [cabName, partName] = part.label.split('|');
               return (
                 <div className="space-y-2">
+                  <p><span className="font-semibold">Cabinet:</span> {cabName}</p>
                   <p><span className="font-semibold">Part:</span> {partName}</p>
-                  <p><span className="font-semibold">Cabinet:</span> {cabRef?.replace(')', '')}</p>
                   <p><span className="font-semibold">Dimensions:</span> {Math.round(part.length)} × {Math.round(part.width)} mm</p>
                   <p><span className="font-semibold">Position:</span> X:{Math.round(part.x)}, Y:{Math.round(part.y)}</p>
                   <p><span className="font-semibold">Grain:</span> Along length ({part.length > part.width ? 'vertical' : 'horizontal'})</p>
+                  {part.features && part.features.length > 0 && (
+                    <p><span className="font-semibold">Machining:</span> {part.features.map(f => f.replace(/-/g, ' ').toUpperCase()).join(', ')}</p>
+                  )}
                 </div>
               );
             })()}

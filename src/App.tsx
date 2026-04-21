@@ -136,30 +136,21 @@ export default function App() {
       if (user) {
         const savedLogo = await logoService.getUserLogo(user.id);
         if (savedLogo) {
-          setProject(prev => ({
-            ...prev,
-            settings: { ...prev.settings, logoUrl: savedLogo }
-          }));
+          setProject(prev => {
+            const updated = {
+              ...prev,
+              settings: { ...prev.settings, logoUrl: savedLogo }
+            };
+            // Sync ref so it doesn't stay dirty
+            lastSavedProjectRef.current = JSON.stringify(updated);
+            return updated;
+          });
         }
       }
 
       setAuthLoading(false);
-      // If user is logged in and we're on landing page, go to dashboard
-      const isPublicPath = ['/', '/docs', '/terms'].includes(location.pathname);
-      if (user && isPublicPath && location.pathname === '/') {
-        navigate('/dashboard');
-      }
     };
     checkAuth();
-
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (isDirty) {
-        e.preventDefault();
-        e.returnValue = '';
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
 
     // Listen to auth changes
     const subscription = authService.onAuthStateChange((user) => {
@@ -173,9 +164,28 @@ export default function App() {
 
     return () => {
       subscription.unsubscribe();
+    };
+  }, []);
+
+  // Separate effect for navigation-related auth checks and beforeunload
+  useEffect(() => {
+    const isPublicPath = ['/', '/docs', '/terms'].includes(location.pathname);
+    if (user && isPublicPath && location.pathname === '/') {
+      navigate('/dashboard');
+    }
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [location.pathname, isDirty]);
+  }, [location.pathname, isDirty, user]);
 
   // Function to require authentication before action
   const requireAuth = (action: () => void) => {
@@ -237,10 +247,8 @@ export default function App() {
         const fixedData = ensureProjectSettings(data);
         lastSavedProjectRef.current = JSON.stringify(fixedData);
         setIsDirty(false);
-        // Only update local state if the ID changed (new project promoted to DB)
-        if (fixedData.id !== projectToSave.id) {
-          setProject(fixedData);
-        }
+        // Always update local state with server data to ensure perfect sync (e.g. timestamps, normalized settings)
+        setProject(fixedData);
         return fixedData;
       }
     } catch (err) {
@@ -3083,7 +3091,7 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-black/10">
-                              {zone.cabinets.sort((a, b) => (a.label || '').localeCompare(b.label || '')).map((cab, idx) => (
+                              {[...zone.cabinets].sort((a, b) => (a.label || '').localeCompare(b.label || '')).map((cab, idx) => (
                                 <tr key={idx}>
                                   <td className="py-3 text-amber-600 font-black italic">{cab.label}</td>
                                   <td className="py-3 font-black tracking-tight">{cab.preset}</td>
