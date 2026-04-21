@@ -2193,7 +2193,6 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark }: { 
                   { type: CabinetType.WALL, preset: PresetType.WALL_STD, label: 'Wall Cabinet', icon: <Layers size={24} /> },
                   { type: CabinetType.TALL, preset: PresetType.TALL_UTILITY, label: 'Tall Cabinet', icon: <Layers size={24} className="rotate-90" /> },
                   { type: CabinetType.BASE, preset: PresetType.SINK_UNIT, label: 'Sink Unit', icon: <Box size={24} className="text-blue-500" /> },
-                  { type: CabinetType.BASE, preset: PresetType.BASE_DRAWER_3, label: '3-Drawer', icon: <Box size={24} /> },
                 ].map((proto, i) => (
                   <div 
                     key={i}

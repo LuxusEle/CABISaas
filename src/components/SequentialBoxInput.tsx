@@ -23,7 +23,6 @@ interface PresetButton {
 const BASE_PRESETS: PresetButton[] = [
     { label: 'Open 350', preset: PresetType.OPEN_BOX, width: 350 },
     { label: '2-Door 600', preset: PresetType.BASE_DOOR, width: 600 },
-    { label: '3-Drawer 600', preset: PresetType.BASE_DRAWER_3, width: 600 },
     { label: 'Sink 900', preset: PresetType.SINK_UNIT, width: 900 },
     { label: 'Cooker Hob 600', preset: PresetType.COOKER_HOB, width: 600, pairedPreset: PresetType.HOOD_UNIT, pairedWidth: 600 },
     { label: 'Corner', preset: PresetType.BASE_CORNER, width: 900 },
