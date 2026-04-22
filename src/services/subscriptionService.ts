@@ -14,8 +14,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       'Community support'
     ],
     maxProjects: 3,
-    twocheckoutProductId: null,
-    paypalPlanId: null
+    paddlePriceId: null
   },
   {
     id: 'pro',
@@ -32,8 +31,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       'Material management'
     ],
     maxProjects: -1,
-    twocheckoutProductId: null,
-    paypalPlanId: 'P-PRO-29-MONTHLY'
+    paddlePriceId: import.meta.env.VITE_PADDLE_PRO_PRICE_ID || null
   }
 ];
 
@@ -50,17 +48,19 @@ export const subscriptionService = {
       .from('subscriptions')
       .select('*')
       .eq('user_id', userData.user.id)
-      .single();
+      .order('created_at', { ascending: false })
+      .limit(1);
 
     if (error) {
-      if (error.code === 'PGRST116') {
-        return this.createFreeSubscription(userData.user.id);
-      }
       console.error('Error fetching subscription:', error);
       return null;
     }
 
-    return data;
+    if (!data || data.length === 0) {
+      return this.createFreeSubscription(userData.user.id);
+    }
+
+    return data[0];
   },
 
   async createFreeSubscription(userId: string): Promise<UserSubscription> {
@@ -80,6 +80,15 @@ export const subscriptionService = {
       .single();
 
     if (error) {
+      if (error.code === '23505') { // Unique constraint violation
+        // Row already exists, just fetch it
+        const { data: existing } = await supabase
+          .from('subscriptions')
+          .select('*')
+          .eq('user_id', userId)
+          .single();
+        return existing;
+      }
       console.error('Error creating free subscription:', error);
       throw error;
     }
@@ -87,53 +96,78 @@ export const subscriptionService = {
     return data;
   },
 
-  async initiatePayPalSubscription(planId: string): Promise<{ subscriptionId: string; approvalUrl: string } | null> {
+  async initiatePaddleSubscription(planId: string): Promise<void> {
     const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) return null;
+    if (!userData.user) throw new Error('User not authenticated');
 
     const plan = SUBSCRIPTION_PLANS.find(p => p.id === planId);
-    if (!plan || plan.id === 'free') return null;
+    if (!plan || !plan.paddlePriceId) throw new Error('Invalid plan or missing Paddle Price ID');
 
-    try {
-      const { data, error } = await supabase.functions.invoke('create-paypal-subscription', {
-        body: { planId: plan.id }
-      });
+    const { openPaddleCheckout } = await import('./paddle');
 
-      if (error) {
-        console.error('Error creating PayPal subscription:', error);
-        return null;
+    openPaddleCheckout({
+      priceId: plan.paddlePriceId,
+      userId: userData.user.id,
+      userEmail: userData.user.email,
+      onSuccess: async (data) => {
+        await this.handlePaddleSuccess(userData.user!.id, plan.id, data);
+        window.location.reload(); // Refresh to update UI
       }
+    });
+  },
 
-      return data;
-    } catch (err) {
-      console.error('PayPal subscription error:', err);
-      return null;
+  async handlePaddleSuccess(userId: string, planId: string, paddleData: any): Promise<void> {
+    console.log('Paddle Success Callback Data:', paddleData);
+    alert('Payment Successful! Processing your subscription update...');
+    
+    // Extracting data more broadly to cover different Paddle v2 event structures
+    const paddleSubId = paddleData.subscription_id || 
+                       paddleData.subscription?.id || 
+                       paddleData.id || 
+                       (paddleData.items?.[0]?.subscription_id);
+    
+    const paddleCustId = paddleData.customer_id || 
+                        paddleData.customer?.id;
+
+    if (!paddleSubId) {
+      console.error('Could not find subscription ID in Paddle data:', paddleData);
+      alert('Error: Could not find Subscription ID. Update aborted.');
+      return;
+    }
+
+    const subscriptionData = {
+      plan_id: planId,
+      status: 'active',
+      paddle_subscription_id: paddleSubId,
+      paddle_customer_id: paddleCustId,
+      current_period_end: new Date(Date.now() + 31 * 24 * 60 * 60 * 1000).toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    console.log('Updating database for User:', userId);
+    console.log('Update Data:', subscriptionData);
+
+    const { data, error } = await supabase
+      .from('subscriptions')
+      .update(subscriptionData)
+      .eq('user_id', userId)
+      .select();
+
+    if (error) {
+      console.error('Supabase Update Error:', error);
+      alert(`Database Update FAILED\nUser: ${userId}\nError: ${error.message}`);
+    } else if (!data || data.length === 0) {
+      console.warn('No rows were updated.');
+      alert(`Database Update DONE but 0 rows affected.\nUser: ${userId}\nThis means no row exists for this User ID.`);
+    } else {
+      console.log('Database Update Success:', data);
+      alert(`SUCCESS!\nUser: ${userId}\nNew Plan: ${planId}\nSub ID: ${paddleSubId}`);
     }
   },
 
   async cancelSubscription(): Promise<boolean> {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) return false;
-
-    const { data: subscription } = await supabase
-      .from('subscriptions')
-      .select('paypal_subscription_id')
-      .eq('user_id', userData.user.id)
-      .single();
-
-    if (subscription?.paypal_subscription_id) {
-      try {
-        const { error } = await supabase.functions.invoke('cancel-paypal-subscription', {
-          body: { subscriptionId: subscription.paypal_subscription_id }
-        });
-        
-        if (error) {
-          console.error('Error cancelling PayPal subscription:', error);
-        }
-      } catch (err) {
-        console.error('Cancel subscription error:', err);
-      }
-    }
 
     const { error } = await supabase
       .from('subscriptions')

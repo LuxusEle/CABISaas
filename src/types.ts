@@ -294,8 +294,7 @@ export interface SubscriptionPlan {
   features: string[];
   maxProjects: number;
   maxUsers?: number;
-  twocheckoutProductId: string | null;
-  paypalPlanId: string | null;
+  paddlePriceId: string | null;
 }
 
 export interface UserSubscription {
@@ -306,10 +305,8 @@ export interface UserSubscription {
   current_period_start: string;
   current_period_end: string;
   cancel_at_period_end: boolean;
-  twocheckout_subscription_id?: string;
-  paypal_subscription_id?: string;
-  paypal_order_id?: string;
-  paypal_payer_id?: string;
+  paddle_subscription_id?: string;
+  paddle_customer_id?: string;
   created_at?: string;
   updated_at?: string;
 }
