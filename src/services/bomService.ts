@@ -1,7 +1,7 @@
-
 import { Project, Zone, CabinetUnit, BOMGroup, BOMItem, CabinetType, PresetType, ProjectSettings, OptimizationResult, Obstacle, AutoFillOptions } from '../types';
-import { SheetType } from './sheetTypeService';
+import { SheetType } from '../types';
 import type { ConstructionPlanJSON } from '../types/construction';
+import { getCabinetTestingSettings } from '../components/CabinetTestingUtils';
 
 // Helper to generate unique IDs
 const uuid = () => Math.random().toString(36).substr(2, 9);
@@ -351,7 +351,7 @@ export const autoFillZone = (
       const sinkLeft = Math.round((win.fromLeft + (win.width - sinkWidth) / 2) / 25) * 25;
       if (!isOccupied(sinkLeft, sinkWidth, CabinetType.BASE) && sinkLeft >= 0 && sinkLeft + sinkWidth <= totalLength) {
         newCabinets.push({
-          id: uuid(), preset: PresetType.SINK_UNIT, type: CabinetType.BASE,
+          id: `auto-sink-${sinkLeft}`, preset: PresetType.SINK_UNIT, type: CabinetType.BASE,
           width: sinkWidth, qty: 1, isAutoFilled: true, fromLeft: sinkLeft
         });
         break; // Only one sink
@@ -376,7 +376,7 @@ export const autoFillZone = (
       for (const x of positions) {
         if (x >= 0 && x <= totalLength - cookerWidth && !isOccupied(x, cookerWidth, CabinetType.BASE)) {
           cookerCabinet = {
-            id: uuid(), preset: PresetType.BASE_DRAWER_3, type: CabinetType.BASE,
+            id: `auto-cooker-${x}`, preset: PresetType.BASE_DRAWER_3, type: CabinetType.BASE,
             width: cookerWidth, qty: 1, isAutoFilled: true, fromLeft: x
           };
           newCabinets.push(cookerCabinet);
@@ -396,7 +396,7 @@ export const autoFillZone = (
     const hoodLeft = cookerCabinet.fromLeft;
     if (!isOccupied(hoodLeft, hoodWidth, CabinetType.WALL)) {
       newCabinets.push({
-        id: uuid(), preset: PresetType.HOOD_UNIT, type: CabinetType.WALL,
+        id: `auto-hood-${hoodLeft}`, preset: PresetType.HOOD_UNIT, type: CabinetType.WALL,
         width: hoodWidth, qty: 1, isAutoFilled: true, fromLeft: hoodLeft
       });
     }
@@ -417,7 +417,7 @@ export const autoFillZone = (
             ? (options.preferDrawers ? PresetType.BASE_DRAWER_3 : PresetType.BASE_DOOR)
             : (type === CabinetType.WALL ? PresetType.WALL_STD : PresetType.TALL_UTILITY);
 
-          newCabinets.push({ id: uuid(), preset, type, width: w, qty: 1, isAutoFilled: true, fromLeft: x });
+          newCabinets.push({ id: `auto-box-${type}-${x}`, preset, type, width: w, qty: 1, isAutoFilled: true, fromLeft: x });
           x += w;
           foundSpot = true;
           break;
@@ -433,7 +433,7 @@ export const autoFillZone = (
           const preset = type === CabinetType.BASE
             ? (options.preferDrawers ? PresetType.BASE_DRAWER_3 : PresetType.BASE_DOOR)
             : (type === CabinetType.WALL ? PresetType.WALL_STD : PresetType.TALL_UTILITY);
-          newCabinets.push({ id: uuid(), preset, type, width: gapWidth, qty: 1, isAutoFilled: true, fromLeft: x });
+          newCabinets.push({ id: `auto-filler-${type}-${x}`, preset, type, width: gapWidth, qty: 1, isAutoFilled: true, fromLeft: x });
           x += gapWidth;
         } else {
           x += 25;
@@ -469,9 +469,9 @@ export const autoFillZone = (
   const numbered = finalCabs.map(c => {
     let label = c.label; // Preserve existing labels
     if (!label) {
-      if (c.type === CabinetType.BASE) label = `B${String(bIdx++).padStart(2, '0')}`;
-      else if (c.type === CabinetType.WALL) label = `W${String(wIdx++).padStart(2, '0')}`;
-      else label = `T${String(tIdx++).padStart(2, '0')}`;
+      const typeChar = c.type === CabinetType.BASE ? 'B' : c.type === CabinetType.WALL ? 'W' : 'T';
+      const seq = typeChar === 'B' ? bIdx++ : typeChar === 'W' ? wIdx++ : tIdx++;
+      label = `${zone.id}${typeChar}${String(seq).padStart(2, '0')}`;
     }
     return { ...c, label };
   });
@@ -483,38 +483,45 @@ export const autoFillZone = (
 
 const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabIndex: number): BOMItem[] => {
   const parts: BOMItem[] = [];
-  const { thickness } = settings;
+  const { thickness: globalThickness } = settings;
   const labelPrefix = unit.label ? `${unit.label} ${unit.preset}` : `#${cabIndex + 1} ${unit.preset}`;
 
   // Get materials from cabinet or use project defaults
   const materials = unit.materials || {};
   const projectMaterials = settings.materialSettings || {
-    carcassMaterial: `${thickness}mm White`,
-    doorMaterial: `${thickness}mm White`,
+    carcassMaterial: `${globalThickness}mm White`,
+    doorMaterial: `${globalThickness}mm White`,
     drawerMaterial: '16mm White',
     backMaterial: '6mm MDF',
-    shelfMaterial: `${thickness}mm White`
+    shelfMaterial: `${globalThickness}mm White`
   };
 
   // Resolve materials with fallbacks
-  const carcassMaterial = materials.carcassMaterial || projectMaterials.carcassMaterial || `${thickness}mm White`;
-  const doorMaterial = materials.doorMaterial || projectMaterials.doorMaterial || `${thickness}mm White`;
+  const carcassMaterial = materials.carcassMaterial || projectMaterials.carcassMaterial || `${globalThickness}mm White`;
+  const doorMaterial = materials.doorMaterial || projectMaterials.doorMaterial || `${globalThickness}mm White`;
   const drawerMaterial = materials.drawerMaterial || projectMaterials.drawerMaterial || '16mm White';
   const backMaterial = materials.backPanelMaterial || projectMaterials.backMaterial || '6mm MDF';
   const shelfMaterial = materials.shelfMaterial || projectMaterials.shelfMaterial || carcassMaterial;
 
-  let height = settings.baseHeight;
-  let depth = settings.depthBase;
-
-  if (unit.type === CabinetType.WALL) { height = settings.wallHeight; depth = settings.depthWall; }
-  else if (unit.type === CabinetType.TALL) { height = settings.tallHeight; depth = settings.depthTall; }
-
+  // Get unified testing settings to respect all design toggles
+  const t = getCabinetTestingSettings(unit, settings);
+  const thickness = t.panelThickness;
+  
+  // Base Dimensions
+  const height = t.height;
+  const depth = t.depth;
+  const width = t.width;
+  
+  // Inner widths/heights
+  const innerWidth = width - 2 * thickness;
+  
+  // 0. FILLER LOGIC
   if (unit.preset === PresetType.FILLER) {
     parts.push({
       id: uuid(),
       name: 'Filler Panel',
       qty: 1,
-      width: unit.width,
+      width: width,
       length: height,
       material: carcassMaterial,
       category: 'carcass',
@@ -525,155 +532,209 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
     return parts;
   }
 
-  // CARASS PARTS (Box construction)
-  const horizWidth = unit.width - (2 * thickness);
-
-  // Side Panels (Left & Right)
-  parts.push({
-    id: uuid(),
-    name: 'Side Panel',
-    qty: 2,
-    width: depth,
-    length: height,
-    material: carcassMaterial,
-    category: 'side',
-    label: labelPrefix,
-    cabinetId: unit.id,
-    cabinetLabel: unit.label
+  // 1. CARCASS PANELS
+  // Left/Right Sides
+  parts.push({ 
+    id: uuid(), 
+    name: 'Side Panel', 
+    qty: 2, 
+    width: depth, 
+    length: height, 
+    material: carcassMaterial, 
+    category: 'carcass', 
+    label: labelPrefix, 
+    cabinetId: unit.id, 
+    cabinetLabel: unit.label,
+    features: (() => {
+      const f = t.enableGola ? ['gola-top-l'] : [];
+      if (t.enableGola && t.showDrawers && t.numDrawers > 1) {
+        // Calculate gap heights for C-cuts exactly like BaseCabinetTesting.tsx
+        const innerH = height - t.toeKickHeight;
+        const golaVerticalGap = 13;
+        const golaTopGap = t.golaTopGap;
+        const doorOuterGap = 3;
+        const panelThickness = thickness;
+        const golaGapTotal = golaVerticalGap * 2;
+        const totalAvailablePool = (innerH - golaTopGap) - doorOuterGap - panelThickness;
+        const numGaps = t.numDrawers - 1;
+        const eachFrontH = (totalAvailablePool - numGaps * golaGapTotal) / t.numDrawers;
+        
+        let yBase = doorOuterGap;
+        for (let i = 0; i < t.numDrawers - 1; i++) {
+          const drawerFrontH = (i === 0) ? eachFrontH + panelThickness : eachFrontH;
+          const gh = yBase + drawerFrontH + golaVerticalGap;
+          // Position relative to panel bottom (which is at -innerHeight/2 + panelThickness)
+          // Design uses: gh - (innerHeight + panelThickness) / 2 
+          // We'll store the raw gh and let visualizer handle it
+          f.push(`gola-mid-c:${gh}`);
+          yBase += drawerFrontH + golaGapTotal;
+        }
+      }
+      return f;
+    })()
   });
-
+  
   // Bottom Panel
-  parts.push({
-    id: uuid(),
-    name: 'Bottom Panel',
-    qty: 1,
-    width: depth,
-    length: horizWidth,
-    material: carcassMaterial,
-    category: 'bottom',
-    label: labelPrefix,
-    cabinetId: unit.id,
-    cabinetLabel: unit.label
+  parts.push({ 
+    id: uuid(), 
+    name: 'Bottom Panel', 
+    qty: 1, 
+    width: depth, 
+    length: innerWidth, 
+    material: carcassMaterial, 
+    category: 'carcass', 
+    label: labelPrefix, 
+    cabinetId: unit.id, 
+    cabinetLabel: unit.label 
   });
-
-  // Top Panel or Rails
-  if (unit.type === CabinetType.BASE) {
-    parts.push({
-      id: uuid(),
-      name: 'Top Rail',
-      qty: 2,
-      width: 100,
-      length: horizWidth,
-      material: carcassMaterial,
-      category: 'carcass',
-      label: labelPrefix,
-      cabinetId: unit.id,
-      cabinetLabel: unit.label
+  
+  // Top/Stretchers
+  if (t.cabinetType === 'wall') {
+    parts.push({ 
+      id: uuid(), 
+      name: 'Top Panel', 
+      qty: 1, 
+      width: depth, 
+      length: innerWidth, 
+      material: carcassMaterial, 
+      category: 'carcass', 
+      label: labelPrefix, 
+      cabinetId: unit.id, 
+      cabinetLabel: unit.label 
     });
   } else {
-    parts.push({
-      id: uuid(),
-      name: 'Top Panel',
-      qty: 1,
-      width: depth,
-      length: horizWidth,
-      material: carcassMaterial,
-      category: 'carcass',
-      label: labelPrefix,
-      cabinetId: unit.id,
-      cabinetLabel: unit.label
+    // Base/Tall often use stretchers
+    parts.push({ 
+      id: uuid(), 
+      name: 'Top Stretcher', 
+      qty: 2, 
+      width: t.topStretcherWidth || 100, 
+      length: innerWidth, 
+      material: carcassMaterial, 
+      category: 'carcass', 
+      label: labelPrefix, 
+      cabinetId: unit.id, 
+      cabinetLabel: unit.label 
     });
   }
-
-  // Back Panel
-  parts.push({
-    id: uuid(),
-    name: 'Back Panel',
-    qty: 1,
-    width: unit.width - 2,
-    length: height - 2,
-    material: backMaterial,
-    category: 'back',
-    label: labelPrefix,
-    cabinetId: unit.id,
-    cabinetLabel: unit.label
-  });
-
-  // Check for custom configuration
-  if (unit.customConfig) {
-    const config = unit.customConfig;
-
-    // Add custom shelves
-    if (config.num_shelves > 0) {
-      parts.push({ id: uuid(), name: 'Shelf', qty: config.num_shelves, width: depth - 20, length: horizWidth, material: shelfMaterial, category: 'shelf', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label });
-    }
-
-    // Add custom drawers
-    if (config.num_drawers > 0) {
-      parts.push({ id: uuid(), name: 'Drawer Bottom', qty: config.num_drawers, width: depth - 50, length: horizWidth - 26, material: drawerMaterial, category: 'drawer', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label });
-      parts.push({ id: uuid(), name: 'Drawer Side', qty: config.num_drawers * 2, width: depth - 10, length: 150, material: drawerMaterial, category: 'drawer', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label });
-    }
-
-    // Add custom hardware (using Ruby CBX door threshold: >= 600mm = double door)
-    const isDoubleDoor = unit.width >= 599.5;
-    const hinges = config.hinges ?? (config.num_doors > 0 ? (isDoubleDoor ? config.num_doors * 2 : config.num_doors) : 0);
-    const slides = config.slides ?? config.num_drawers;
-    const handles = config.handles ?? (config.num_doors + config.num_drawers);
-
-    if (hinges > 0) parts.push({ id: uuid(), name: HW.HINGE, qty: hinges, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
-    if (slides > 0) parts.push({ id: uuid(), name: HW.SLIDE, qty: slides, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
-    if (handles > 0) parts.push({ id: uuid(), name: HW.HANDLE, qty: handles, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
-
-    // Add legs for base cabinets, hangers for wall cabinets
-    if (unit.type === CabinetType.BASE || unit.type === CabinetType.TALL) {
-      parts.push({ id: uuid(), name: HW.LEG, qty: 4, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
-    } else if (unit.type === CabinetType.WALL) {
-      parts.push({ id: uuid(), name: HW.HANGER, qty: 1, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
-    }
-
-    return parts;
-  }
-
-  // Preset Hardware
-  // Calculate door dimensions using Ruby CBX rules
-  const doorConfig = calculateDoors(unit.width, height - 4, settings);
   
-  if (unit.preset === PresetType.BASE_DOOR) {
-    parts.push({ id: uuid(), name: 'Door', qty: doorConfig.qty, width: doorConfig.width, length: doorConfig.length, material: doorMaterial, category: 'door', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label });
-    parts.push({ id: uuid(), name: 'Shelf', qty: 1, width: depth - 20, length: horizWidth, material: shelfMaterial, category: 'shelf', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label });
+  // 2. BACK PANEL
+  if (t.showBackPanel) {
+    const backHeight = height - (t.cabinetType === 'base' ? t.toeKickHeight : 0);
+    parts.push({ 
+      id: uuid(), 
+      name: 'Back Panel', 
+      qty: 1, 
+      width: width - (2 * (thickness - t.grooveDepth)), 
+      length: backHeight, 
+      material: backMaterial, 
+      category: 'back', 
+      label: labelPrefix, 
+      cabinetId: unit.id, 
+      cabinetLabel: unit.label 
+    });
+  }
+  
+  // 3. SHELVES
+  if (t.showShelves && t.numShelves > 0) {
+    parts.push({ 
+      id: uuid(), 
+      name: 'Shelf', 
+      qty: t.numShelves, 
+      width: t.shelfDepth || (depth - 20), 
+      length: innerWidth, 
+      material: shelfMaterial, 
+      category: 'shelf', 
+      label: labelPrefix, 
+      cabinetId: unit.id, 
+      cabinetLabel: unit.label 
+    });
+  }
+  
+  // 4. DOORS
+  if (t.showDoors) {
+    // Calculate door dimensions using Ruby CBX rules
+    const doorConfig = calculateDoors(width, height - (t.cabinetType === 'base' ? t.toeKickHeight : 0) - 4, settings);
+    parts.push({ 
+      id: uuid(), 
+      name: 'Door', 
+      qty: doorConfig.qty, 
+      width: doorConfig.width, 
+      length: doorConfig.length, 
+      material: doorMaterial, 
+      category: 'door', 
+      label: labelPrefix, 
+      cabinetId: unit.id, 
+      cabinetLabel: unit.label 
+    });
+    
+    // Hardware for doors
     parts.push({ id: uuid(), name: HW.HINGE, qty: doorConfig.hinges, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
     parts.push({ id: uuid(), name: HW.HANDLE, qty: doorConfig.handles, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
+  }
+  
+  // 5. DRAWERS
+  if (t.showDrawers && t.numDrawers > 0) {
+    const drawerStackHeight = height - (t.cabinetType === 'base' ? t.toeKickHeight : 0);
+    const drawerFrontHeight = Math.round(drawerStackHeight / t.numDrawers) - t.drawerToDrawerGap;
+    
+    // Fronts
+    parts.push({ 
+      id: uuid(), 
+      name: 'Drawer Front', 
+      qty: t.numDrawers, 
+      width: width - (2 * t.doorOuterGap), 
+      length: drawerFrontHeight, 
+      material: doorMaterial, 
+      category: 'door', 
+      label: labelPrefix, 
+      cabinetId: unit.id, 
+      cabinetLabel: unit.label 
+    });
+    
+    // Box Parts
+    // Bottoms
+    parts.push({ 
+      id: uuid(), 
+      name: 'Drawer Bottom', 
+      qty: t.numDrawers, 
+      width: t.shelfDepth || (depth - 50), 
+      length: innerWidth - 26, 
+      material: drawerMaterial, 
+      category: 'drawer', 
+      label: labelPrefix, 
+      cabinetId: unit.id, 
+      cabinetLabel: unit.label 
+    });
+    
+    // Sides
+    parts.push({ 
+      id: uuid(), 
+      name: 'Drawer Side', 
+      qty: t.numDrawers * 2, 
+      width: t.shelfDepth || (depth - 10), 
+      length: 150, 
+      material: drawerMaterial, 
+      category: 'drawer', 
+      label: labelPrefix, 
+      cabinetId: unit.id, 
+      cabinetLabel: unit.label 
+    });
+    
+    // Hardware for drawers
+    parts.push({ id: uuid(), name: HW.SLIDE, qty: t.numDrawers, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
+    parts.push({ id: uuid(), name: HW.HANDLE, qty: t.numDrawers, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
+  }
+  
+  // 6. GENERAL HARDWARE (Legs, Hangers)
+  if (t.cabinetType === 'base' || t.cabinetType === 'tall' || t.cabinetType === 'corner') {
     parts.push({ id: uuid(), name: HW.LEG, qty: 4, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
   }
-  if (unit.preset === PresetType.BASE_DRAWER_3) {
-    parts.push({ id: uuid(), name: 'Drawer Front', qty: 3, width: unit.width - 4, length: Math.round(height / 3) - 4, material: doorMaterial, category: 'door', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label });
-    parts.push({ id: uuid(), name: 'Drawer Bottom', qty: 3, width: depth - 50, length: horizWidth - 26, material: drawerMaterial, category: 'drawer', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label });
-    parts.push({ id: uuid(), name: 'Drawer Side', qty: 6, width: depth - 10, length: 150, material: drawerMaterial, category: 'drawer', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label });
-    parts.push({ id: uuid(), name: HW.SLIDE, qty: 3, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
-    parts.push({ id: uuid(), name: HW.HANDLE, qty: 3, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
-    parts.push({ id: uuid(), name: HW.LEG, qty: 4, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
-  }
-  if (unit.preset === PresetType.WALL_STD) {
-    parts.push({ id: uuid(), name: 'Door', qty: doorConfig.qty, width: doorConfig.width, length: doorConfig.length, material: doorMaterial, category: 'door', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label });
-    parts.push({ id: uuid(), name: 'Shelf', qty: 2, width: depth - 20, length: horizWidth, material: shelfMaterial, category: 'shelf', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label });
-    parts.push({ id: uuid(), name: HW.HINGE, qty: doorConfig.hinges, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
-    parts.push({ id: uuid(), name: HW.HANDLE, qty: doorConfig.handles, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
+  if (t.cabinetType === 'wall' || t.cabinetType === 'wall_corner') {
     parts.push({ id: uuid(), name: HW.HANGER, qty: 1, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
   }
-  if (unit.preset === PresetType.TALL_OVEN) {
-    parts.push({ id: uuid(), name: 'Fixed Shelf (Oven)', qty: 2, width: depth, length: horizWidth, material: shelfMaterial, category: 'shelf', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label });
-    parts.push({ id: uuid(), name: HW.LEG, qty: 4, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
-    parts.push({ id: uuid(), name: HW.SLIDE, qty: 2, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
-  }
-  if (unit.preset === PresetType.OPEN_BOX) {
-    parts.push({ id: uuid(), name: 'Shelf', qty: 2, width: depth - 20, length: horizWidth, material: shelfMaterial, category: 'shelf', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label });
-    if (unit.type === CabinetType.BASE) {
-      parts.push({ id: uuid(), name: HW.LEG, qty: 4, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
-    } else if (unit.type === CabinetType.WALL) {
-      parts.push({ id: uuid(), name: HW.HANGER, qty: 1, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
-    }
-  }
 
+  // General Connectors
   const connectorsPerCabinet = 4;
   parts.push({ id: uuid(), name: HW.CAM_LOCK, qty: connectorsPerCabinet, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
   parts.push({ id: uuid(), name: HW.CONFIRMAT, qty: connectorsPerCabinet, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
@@ -688,17 +749,33 @@ export const generateProjectBOM = (project: Project): { groups: BOMGroup[], hard
   let totalLinearFeet = 0;
   let cabinetCount = 0;
 
-  project.zones.filter(z => z.active).forEach(zone => {
+  project.zones.filter(z => z.active).forEach((zone, zIdx) => {
     let zoneLen = 0;
+    
+    // Sort cabinets by position to ensure sequential labeling matches visual order
+    const sortedCabinets = [...zone.cabinets].sort((a, b) => a.fromLeft - b.fromLeft);
+    
+    let bIdx = 1;
+    let wIdx = 1;
+    let tIdx = 1;
 
-    zone.cabinets.forEach((unit, index) => {
+    sortedCabinets.forEach((unit, index) => {
       // Only skip filler panels, include other auto-filled cabinets (boxes)
       if (unit.isAutoFilled && unit.preset === PresetType.FILLER) return;
 
       cabinetCount++;
       if (unit.type !== CabinetType.WALL) zoneLen += unit.width;
 
-      const parts = generateCabinetParts(unit, project.settings, index);
+      // Assign sequential label for the report: W01B01, W01W01 etc.
+      const wallPrefix = `W${String(zIdx + 1).padStart(2, '0')}`;
+      const typeChar = unit.type === CabinetType.BASE ? 'B' : unit.type === CabinetType.WALL ? 'W' : 'T';
+      const seq = typeChar === 'B' ? bIdx++ : typeChar === 'W' ? wIdx++ : tIdx++;
+      const effectiveLabel = `${wallPrefix}${typeChar}${String(seq).padStart(2, '0')}`;
+
+      // Temporarily override unit label for part generation
+      const unitWithNewLabel = { ...unit, label: effectiveLabel };
+
+      const parts = generateCabinetParts(unitWithNewLabel, project.settings, index);
       const woodParts = parts.filter(p => !p.isHardware);
       const hwParts = parts.filter(p => p.isHardware);
 
@@ -712,7 +789,7 @@ export const generateProjectBOM = (project: Project): { groups: BOMGroup[], hard
 
       groups.push({
         cabinetId: unit.id,
-        cabinetName: unit.label ? `${unit.label} - ${unit.preset} (${unit.width}mm)` : `${zone.id} - ${unit.preset} (${unit.width}mm)`,
+        cabinetName: `${effectiveLabel} - ${unit.preset} (${unit.width}mm)`,
         items: woodParts
       });
     });
@@ -747,17 +824,29 @@ export interface MaterialBreakdown {
 }
 
 export const getMaterialRequirements = (
-  project: Project
+  project: Project,
+  sheetTypes: SheetType[] = []
 ): MaterialBreakdown[] => {
   const allParts: BOMItem[] = [];
 
   // Collect all parts from all cabinets
   project.zones
     .filter(z => z.active)
-    .forEach(zone => {
-      zone.cabinets.forEach((unit, index) => {
+    .forEach((zone, zIdx) => {
+      let bIdx = 1;
+      let wIdx = 1;
+      let tIdx = 1;
+      const sortedCabinets = [...zone.cabinets].sort((a, b) => a.fromLeft - b.fromLeft);
+
+      sortedCabinets.forEach((unit, index) => {
         if (unit.isAutoFilled && unit.preset === PresetType.FILLER) return;
-        const parts = generateCabinetParts(unit, project.settings, index);
+        
+        const wallPrefix = `W${String(zIdx + 1).padStart(2, '0')}`;
+        const typeChar = unit.type === CabinetType.BASE ? 'B' : unit.type === CabinetType.WALL ? 'W' : 'T';
+        const seq = typeChar === 'B' ? bIdx++ : typeChar === 'W' ? wIdx++ : tIdx++;
+        const effectiveLabel = `${wallPrefix}${typeChar}${String(seq).padStart(2, '0')}`;
+        
+        const parts = generateCabinetParts({ ...unit, label: effectiveLabel }, project.settings, index);
         allParts.push(...parts.filter(p => !p.isHardware));
       });
     });
@@ -780,8 +869,14 @@ export const getMaterialRequirements = (
         0
       );
 
-      // Estimate sheets needed (rough calculation)
-      const sheetArea = (project.settings.sheetWidth * project.settings.sheetLength) / 1000000;
+      // Estimate sheets needed using material-specific size
+      const matched = sheetTypes.find(st => 
+        materialName.toLowerCase().includes(st.name.toLowerCase()) || 
+        st.name.toLowerCase().includes(materialName.toLowerCase())
+      );
+      const sheetWidth = matched?.width || 1220;
+      const sheetLength = matched?.length || 2440;
+      const sheetArea = (sheetWidth * sheetLength) / 1000000;
       const estimatedSheets = Math.ceil(totalArea / (sheetArea * 0.85)); // 85% efficiency
 
       // Get thickness from first part or default
@@ -930,8 +1025,6 @@ export const createNewProject = (logoUrl?: string): Project => ({
     thickness: 18,     // Ruby: 18mm
     counterThickness: 40,
     toeKickHeight: 100, // Ruby: 100mm plinth
-    sheetWidth: 1220,
-    sheetLength: 2440,
     kerf: 4,
     // Ruby CBX Design Rules - Gap & Clearance Settings
     doorToDoorGap: 2.0,      // Ruby: 2.0mm
@@ -991,11 +1084,17 @@ export const exportToExcel = (groups: BOMGroup[], nestingData: OptimizationResul
   });
 
   // Sheet 2: Material BOM (Sheets Count)
-  const materialCounts: Record<string, { sheets: number, wasteSum: number, count: number }> = {};
+  const materialCounts: Record<string, { sheets: number, wasteSum: number, count: number, width: number, length: number }> = {};
 
-  nestingData.sheets.forEach(sheet => {
+    nestingData.sheets.forEach(sheet => {
     if (!materialCounts[sheet.material]) {
-      materialCounts[sheet.material] = { sheets: 0, wasteSum: 0, count: 0 };
+      materialCounts[sheet.material] = { 
+        sheets: 0, 
+        wasteSum: 0, 
+        count: 0, 
+        width: sheet.width || 1220, 
+        length: sheet.length || 2440 
+      };
     }
     materialCounts[sheet.material].sheets += 1;
     materialCounts[sheet.material].wasteSum += sheet.waste;
@@ -1012,7 +1111,7 @@ export const exportToExcel = (groups: BOMGroup[], nestingData: OptimizationResul
     <Row>
       <Cell><Data ss:Type="String">${mat}</Data></Cell>
       <Cell><Data ss:Type="Number">${data.sheets}</Data></Cell>
-      <Cell><Data ss:Type="String">${project.settings.sheetLength} x ${project.settings.sheetWidth}</Data></Cell>
+      <Cell><Data ss:Type="String">${data.length} x ${data.width}</Data></Cell>
       <Cell><Data ss:Type="Number">${avgWaste}</Data></Cell>
       <Cell><Data ss:Type="Number">${estCost}</Data></Cell>
     </Row>`;

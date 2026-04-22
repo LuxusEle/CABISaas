@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { SheetType, sheetTypeService } from '../services/sheetTypeService';
+import { SheetType, ProjectSettings } from '../types';
+import { sheetTypeService } from '../services/sheetTypeService';
 import { Layers, Box, Circle, Square, Settings2, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface MaterialAllocationPanelProps {
@@ -239,5 +240,3 @@ export const MaterialAllocationPanel: React.FC<MaterialAllocationPanelProps> = (
     </div>
   );
 };
-
-import { ProjectSettings } from '../types';

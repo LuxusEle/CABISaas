@@ -96,16 +96,16 @@ export const HardwareMarkers: React.FC<Props> = ({ unit, width, depth, height, z
     
     // Top panel cam-locks
     markers.push(
-      <mesh key={`cam-T-${idx}`} position={[width / 2, zBase + height - sidePanelThickness - 34, depth / 2]}>
-        <cylinderGeometry args={[7.5, 7.5, 12, 12]} rotation={[Math.PI / 2, 0, 0]} />
+      <mesh key={`cam-T-${idx}`} position={[width / 2, zBase + height - sidePanelThickness - 34, depth / 2]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[7.5, 7.5, 12, 12]} />
         <meshStandardMaterial color="#eab308" />
       </mesh>
     );
     
     // Bottom panel cam-locks
     markers.push(
-      <mesh key={`cam-B-${idx}`} position={[width / 2, zBase + sidePanelThickness + 34, depth / 2]}>
-        <cylinderGeometry args={[7.5, 7.5, 12, 12]} rotation={[Math.PI / 2, 0, 0]} />
+      <mesh key={`cam-B-${idx}`} position={[width / 2, zBase + sidePanelThickness + 34, depth / 2]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[7.5, 7.5, 12, 12]} />
         <meshStandardMaterial color="#eab308" />
       </mesh>
     );

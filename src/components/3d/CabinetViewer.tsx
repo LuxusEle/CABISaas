@@ -2,8 +2,9 @@
 import React, { Suspense, useRef, useState, useMemo, useEffect } from 'react';
 import { Canvas, useThree, useLoader } from '@react-three/fiber';
 import { OrbitControls, Grid, Html, useProgress, PerspectiveCamera, Environment, ContactShadows } from '@react-three/drei';
+import { RotateCcw } from 'lucide-react';
 import * as THREE from 'three';
-import { Project, CabinetType, CabinetUnit, Zone, Obstacle } from '../../types';
+import { Project, CabinetType, CabinetUnit, Zone, Obstacle, ProjectSettings } from '../../types';
 import { Cabinet } from './Cabinet';
 import { Wall } from './Wall';
 
@@ -19,6 +20,12 @@ interface Props {
   onDropCabinet?: (zoneId: string, fromLeft: number, cabinet: CabinetUnit) => void;
   selectedCabinet?: { zoneId: string, index: number } | null;
   onCabinetSelect?: (zoneId: string, index: number) => void;
+  onSettingsUpdate?: (settings: Partial<ProjectSettings>) => void;
+  viewMode?: string;
+  onViewModeChange?: (mode: string) => void;
+  doorOpenAngle?: number;
+  onDoorOpenAngleChange?: (angle: number) => void;
+  onShowHardwareChange?: (show: boolean) => void;
 }
 
 const LoadingFallback = () => {
@@ -48,7 +55,7 @@ const CameraController = ({
   const initialFitRef = useRef<boolean>(false);
   
   const maxDim = Math.max(sceneSize.width, sceneSize.depth, sceneSize.height);
-  const distance = maxDim * 1.5;
+  const distance = Math.max(maxDim * 0.85, 2500); // Zoomed in slightly to fit window better
   const centerY = sceneCenter[1];
 
   const viewPositions = useMemo(() => ({
@@ -65,31 +72,44 @@ const CameraController = ({
       target: sceneCenter 
     },
     isometric: { 
-      position: [sceneCenter[0] + distance * 0.7, centerY + distance * 0.5, sceneCenter[2] + distance * 0.7] as [number, number, number], 
-      target: sceneCenter 
+      position: [sceneCenter[0] - distance * 0.8, centerY + distance * 0.4, sceneCenter[2] + distance * 1.0] as [number, number, number], 
+      target: [sceneCenter[0] - 500, centerY + 100, sceneCenter[2]] as [number, number, number] 
     },
   }), [sceneCenter, centerY, distance]);
 
   useEffect(() => {
     const isNewView = prevViewRef.current !== targetView;
-    const isNewProject = lastProjectRef.current !== (sceneCenter.join(',') + sceneSize.width); // Rough check for scene change
+    const projectFingerprint = `${sceneCenter.map(c => Math.round(c)).join(',')}-${Math.round(sceneSize.width)}-${Math.round(sceneSize.depth)}`;
+    const isNewProject = lastProjectRef.current !== projectFingerprint;
+    const isDefaultScene = sceneSize.width === 3000 && sceneSize.depth === 1000;
+    const isInvalidScene = sceneCenter[0] === 0 && sceneCenter[1] === 0 && sceneCenter[2] === 0;
     
     if (targetView && viewPositions[targetView as keyof typeof viewPositions]) {
-      if (isNewView || (!initialFitRef.current && sceneSize.width !== 3000)) {
-        prevViewRef.current = targetView;
-        initialFitRef.current = true;
-        lastProjectRef.current = sceneCenter.join(',') + sceneSize.width;
-        
-        const { position, target } = viewPositions[targetView as keyof typeof viewPositions];
-        
-        camera.position.set(...position);
-        if (controlsRef.current) {
-          controlsRef.current.target.set(...target);
-          controlsRef.current.update();
+      // Re-fit if view changed, OR if project changed and it's not the default empty/invalid scene
+      if (isNewView || (isNewProject && !isDefaultScene && !isInvalidScene)) {
+        const performFit = () => {
+          prevViewRef.current = targetView;
+          lastProjectRef.current = projectFingerprint;
+          
+          const { position, target } = viewPositions[targetView as keyof typeof viewPositions];
+          
+          camera.position.set(...position);
+          camera.lookAt(...target);
+          if (controlsRef.current) {
+            controlsRef.current.target.set(...target);
+            controlsRef.current.update();
+          }
+        };
+
+        if (!initialFitRef.current) {
+          initialFitRef.current = true;
+          setTimeout(performFit, 100); // Small delay for first mount
+        } else {
+          performFit();
         }
       }
     }
-  }, [targetView, camera, viewPositions, sceneCenter, sceneSize.width]);
+  }, [targetView, camera, viewPositions, sceneCenter, sceneSize.width, sceneSize.depth]);
 
   return (
     <OrbitControls
@@ -699,12 +719,26 @@ export const CabinetViewer: React.FC<Props> = ({
   draggedCabinet,
   onDropCabinet,
   selectedCabinet,
-  onCabinetSelect
+  onCabinetSelect,
+  onSettingsUpdate,
+  viewMode = 'isometric',
+  onViewModeChange,
+  doorOpenAngle = 0,
+  onDoorOpenAngleChange,
+  onShowHardwareChange
 }) => {
-  const [viewMode, setViewMode] = useState<string>('isometric');
-  const [showHW, setShowHW] = useState(showHardware);
-  const [doorOpenAngle, setDoorOpenAngle] = useState(0);
-  const [forceGola, setForceGola] = useState(false);
+  // Link forceGola to project settings for persistence
+  const forceGola = project.settings.advancedTestingSettings?.enableGola ?? false;
+  const setForceGola = (val: boolean) => {
+    onSettingsUpdate?.({
+      advancedTestingSettings: {
+        ...project.settings.advancedTestingSettings,
+        enableGola: val
+      }
+    });
+  };
+
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [sceneBounds, setSceneBounds] = useState<{ 
     center: [number, number, number]; 
     size: { width: number; depth: number; height: number } 
@@ -722,6 +756,13 @@ export const CabinetViewer: React.FC<Props> = ({
     : project.zones.filter(z => z.active && z.cabinets.length > 0);
   const hasContent = activeZones.length > 0 && (showEmptyWalls || activeZones.some(z => z.cabinets.length > 0));
 
+  useEffect(() => {
+    if (hasContent && sceneBounds.size.width !== 3000) {
+      const timer = setTimeout(() => setIsInitialLoading(false), 800); // Wait for scene to settle
+      return () => clearTimeout(timer);
+    }
+  }, [hasContent, sceneBounds.size.width]);
+
   if (!hasContent) {
     return (
       <div className={`w-full h-full flex items-center justify-center bg-gradient-to-br ${lightTheme ? 'from-slate-50 to-slate-100' : 'from-slate-800 to-slate-900'}`}>
@@ -735,103 +776,19 @@ export const CabinetViewer: React.FC<Props> = ({
 
   return (
     <div className={`w-full h-full relative overflow-hidden ${lightTheme ? 'bg-gradient-to-br from-slate-100 to-slate-200' : ''}`}>
-        <>
-          <div className="absolute top-2 left-2 z-10 flex flex-col gap-1.5">
-            <div className={`${lightTheme ? 'bg-white/90 border-slate-200' : 'bg-slate-900/95 border-slate-700'} backdrop-blur-sm rounded-lg p-2 border shadow-lg`}>
-              <div className="text-amber-400 font-bold text-xs uppercase tracking-wider mb-2">
-                3D View
-              </div>
-              
-              <div className="flex flex-wrap gap-1 mb-2">
-                {['front', 'side', 'top', 'isometric'].map((view) => (
-                  <button
-                    key={view}
-                    onClick={() => setViewMode(view)}
-                    className={`px-2 py-1 text-xs font-bold rounded transition-all ${
-                      viewMode === view
-                        ? 'bg-amber-500 text-white shadow-md'
-                        : `${lightTheme ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`
-                    }`}
-                  >
-                    {view.charAt(0).toUpperCase() + view.slice(1)}
-                  </button>
-                ))}
-              </div>
-              
-              <div className="flex flex-col gap-1">
-                <label className={`flex items-center gap-2 text-xs ${lightTheme ? 'text-slate-600' : 'text-slate-300'} cursor-pointer`}>
-                  <input
-                    type="checkbox"
-                    checked={showHW}
-                    onChange={(e) => setShowHW(e.target.checked)}
-                    className="w-3 h-3 rounded accent-amber-500"
-                  />
-                  Hardware
-                </label>
-              </div>
-
-              <div className="mt-3 pt-3 border-t border-slate-700/50 flex flex-col gap-3">
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex justify-between items-center">
-                    <label className={`text-[10px] ${lightTheme ? 'text-slate-500' : 'text-slate-400'} font-bold uppercase tracking-wider`}>
-                      Doors Open
-                    </label>
-                    <span className="text-[10px] text-amber-500 font-mono">{doorOpenAngle}°</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="120"
-                    step="1"
-                    value={doorOpenAngle}
-                    onChange={(e) => setDoorOpenAngle(parseInt(e.target.value))}
-                    className={`w-full h-1.5 ${lightTheme ? 'bg-slate-200' : 'bg-slate-700'} rounded-lg appearance-none cursor-pointer accent-amber-500`}
-                  />
-                </div>
-
-                <label className={`flex items-center justify-between gap-2 text-[10px] ${lightTheme ? 'text-slate-500 hover:text-slate-700' : 'text-slate-400 hover:text-slate-300'} font-bold uppercase tracking-wider cursor-pointer transition-colors`}>
-                  <span>Global Gola Mode</span>
-                  <div className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={forceGola}
-                      onChange={(e) => setForceGola(e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className={`w-7 h-4 ${lightTheme ? 'bg-slate-200' : 'bg-slate-700'} peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-amber-500`}></div>
-                  </div>
-                </label>
-              </div>
-            </div>
-            
-            {showHW && (
-              <div className={`${lightTheme ? 'bg-white/90 border-slate-200' : 'bg-slate-900/95 border-slate-700'} backdrop-blur-sm rounded-lg p-2 border shadow-lg`}>
-                <div className="text-slate-400 font-bold text-[10px] uppercase tracking-wider mb-1.5">
-                  Legend
-                </div>
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
-                    <span className={`text-[10px] ${lightTheme ? 'text-slate-500' : 'text-slate-400'}`}>Hinge</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-2.5 h-2.5 rounded bg-red-500" />
-                    <span className={`text-[10px] ${lightTheme ? 'text-slate-500' : 'text-slate-400'}`}>Cam-Lock</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-2.5 h-2.5 rounded bg-yellow-500" />
-                    <span className={`text-[10px] ${lightTheme ? 'text-slate-500' : 'text-slate-400'}`}>Confirmat</span>
-                  </div>
-                </div>
-              </div>
-            )}
+        {isInitialLoading && (
+          <div className="absolute inset-0 z-[100] flex flex-col items-center justify-center bg-slate-900">
+            <div className="w-16 h-16 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+            <div className="text-amber-500 font-bold animate-pulse uppercase tracking-widest text-sm">Building 3D Scene...</div>
           </div>
-
+        )}
+        <>
           <div className={`absolute bottom-2 left-2 z-10 ${lightTheme ? 'bg-white/80 border-slate-200' : 'bg-slate-900/80 border-slate-700'} backdrop-blur-sm rounded px-2 py-1 border`}>
             <div className={`${lightTheme ? 'text-slate-500' : 'text-slate-400'} text-[10px]`}>
               Left: Rotate | Right: Pan | Scroll: Zoom
             </div>
           </div>
+
         </>
 
       <Canvas
@@ -848,7 +805,7 @@ export const CabinetViewer: React.FC<Props> = ({
         <Suspense fallback={<LoadingFallback />}>
           <Scene 
             project={project} 
-            showHardware={showHW} 
+            showHardware={showHardware} 
             viewMode={viewMode}
             showEmptyWalls={showEmptyWalls}
             onSceneBounds={handleSceneBounds}

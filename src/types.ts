@@ -1,5 +1,17 @@
-
 import type { TestingSettings } from './components/CabinetTestingUtils';
+
+export interface SheetType {
+  id: string;
+  user_id: string;
+  name: string;
+  thickness: number;
+  width: number;
+  length: number;
+  price_per_sheet: number;
+  is_default: boolean;
+  created_at: string;
+  updated_at: string;
+}
 
 export enum ZoneId {
   WALL_A = 'Wall A',
@@ -57,9 +69,6 @@ export interface ProjectSettings {
   counterThickness: number;
   toeKickHeight: number;
 
-  // Nesting Settings
-  sheetWidth: number;
-  sheetLength: number;
   kerf: number;
 
   // Ruby CBX Design Rules - Gap & Clearance Settings
@@ -197,6 +206,7 @@ export interface BOMItem {
   isHardware?: boolean;
   cabinetId?: string;
   cabinetLabel?: string;
+  features?: string[];
 }
 
 export interface MaterialRequirement {
@@ -233,6 +243,7 @@ export interface PlacedPart {
   rotated: boolean;
   partId: string;
   label: string;
+  features?: string[];
 }
 
 export interface SheetLayout {

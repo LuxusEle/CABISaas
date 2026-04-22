@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { SheetType, sheetTypeService } from '../services/sheetTypeService';
+import { SheetType } from '../types';
+import { sheetTypeService } from '../services/sheetTypeService';
 import { ExpenseTemplate, expenseTemplateService } from '../services/expenseTemplateService';
 import { Plus, Trash2, Edit2, Save, X, Settings2, Package, ChevronDown, ChevronUp } from 'lucide-react';
 
@@ -22,8 +23,8 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
   const [accessories, setAccessories] = useState<ExpenseTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editFormData, setEditFormData] = useState<{ name: string; thickness: number; price_per_sheet: number; default_amount?: number }>({ name: '', thickness: 16, price_per_sheet: 0 });
-  const [newSheetType, setNewSheetType] = useState({ name: '', thickness: 16, price_per_sheet: 0 });
+  const [editFormData, setEditFormData] = useState<{ name: string; thickness: number; width: number; length: number; price_per_sheet: number; default_amount?: number }>({ name: '', thickness: 16, width: 1220, length: 2440, price_per_sheet: 0 });
+  const [newSheetType, setNewSheetType] = useState({ name: '', thickness: 16, width: 1220, length: 2440, price_per_sheet: 0 });
   const [newAccessory, setNewAccessory] = useState({ name: '', price: 0 });
   const [showAddForm, setShowAddForm] = useState<'sheet' | 'accessory' | null>(null);
 
@@ -69,6 +70,8 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
       await sheetTypeService.saveSheetType(
         sheetType.name,
         sheetType.thickness,
+        1220,
+        2440,
         sheetType.price_per_sheet
       );
     }
@@ -84,6 +87,8 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
       user_id: '',
       name: newSheetType.name,
       thickness: newSheetType.thickness,
+      width: newSheetType.width,
+      length: newSheetType.length,
       price_per_sheet: newSheetType.price_per_sheet,
       is_default: false,
       created_at: new Date().toISOString(),
@@ -91,11 +96,11 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
     };
 
     setSheetTypes(prev => [...prev, optimisticSheet]);
-    setNewSheetType({ name: '', thickness: 16, price_per_sheet: 0 });
+    setNewSheetType({ name: '', thickness: 16, width: 1220, length: 2440, price_per_sheet: 0 });
     setShowAddForm(null);
 
     // Save to database in background
-    const result = await sheetTypeService.saveSheetType(newSheetType.name, newSheetType.thickness, newSheetType.price_per_sheet);
+    const result = await sheetTypeService.saveSheetType(newSheetType.name, newSheetType.thickness, newSheetType.width, newSheetType.length, newSheetType.price_per_sheet);
     if (result) {
       setSheetTypes(prev => prev.map(s => s.id === tempId ? result : s));
     } else {
@@ -138,6 +143,8 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
     setEditFormData({
       name: sheet.name,
       thickness: sheet.thickness,
+      width: sheet.width || 1220,
+      length: sheet.length || 2440,
       price_per_sheet: sheet.price_per_sheet
     });
   };
@@ -147,6 +154,8 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
     setEditFormData({
       name: acc.name,
       thickness: 0,
+      width: 1220,
+      length: 2440,
       price_per_sheet: 0,
       default_amount: acc.default_amount
     });
@@ -158,7 +167,7 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
     // Optimistic update - update local state immediately
     setSheetTypes(prev => prev.map(s =>
       s.id === id
-        ? { ...s, name: editFormData.name, thickness: editFormData.thickness, price_per_sheet: editFormData.price_per_sheet }
+        ? { ...s, name: editFormData.name, thickness: editFormData.thickness, width: editFormData.width, length: editFormData.length, price_per_sheet: editFormData.price_per_sheet }
         : s
     ));
     setEditingId(null);
@@ -167,6 +176,8 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
     const success = await sheetTypeService.updateSheetType(id, {
       name: editFormData.name,
       thickness: editFormData.thickness,
+      width: editFormData.width,
+      length: editFormData.length,
       price_per_sheet: editFormData.price_per_sheet
     });
 
@@ -203,7 +214,7 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
 
   const cancelEditing = () => {
     setEditingId(null);
-    setEditFormData({ name: '', thickness: 16, price_per_sheet: 0 });
+    setEditFormData({ name: '', thickness: 16, width: 1220, length: 2440, price_per_sheet: 0 });
   };
 
   const handleDeleteSheet = async (id: string) => {
@@ -296,14 +307,22 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
             {showAddForm === 'sheet' && (
               <div className="mb-4 p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border-2 border-dashed border-amber-200 dark:border-amber-900/50 animate-in slide-in-from-top-4">
                 <h4 className="text-xs font-black mb-4 text-amber-600 uppercase tracking-widest">Register New Material</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold text-slate-400 uppercase">Material Name</label>
-                    <input type="text" value={newSheetType.name} onChange={(e) => setNewSheetType({ ...newSheetType, name: e.target.value })} placeholder="e.g., Oak Plywood" className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-sm font-bold" />
+                    <input type="text" value={newSheetType.name} onChange={(e) => setNewSheetType({ ...newSheetType, name: e.target.value })} placeholder="Oak Plywood" className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-sm font-bold" />
                   </div>
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold text-slate-400 uppercase">Thickness (mm)</label>
                     <input type="number" value={newSheetType.thickness} onChange={(e) => setNewSheetType({ ...newSheetType, thickness: Number(e.target.value) })} className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-sm font-bold" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase">Width (mm)</label>
+                    <input type="number" value={newSheetType.width} onChange={(e) => setNewSheetType({ ...newSheetType, width: Number(e.target.value) })} className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-sm font-bold" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase">Length (mm)</label>
+                    <input type="number" value={newSheetType.length} onChange={(e) => setNewSheetType({ ...newSheetType, length: Number(e.target.value) })} className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-sm font-bold" />
                   </div>
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold text-slate-400 uppercase">Price per Sheet</label>
@@ -325,6 +344,7 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
                   <tr className="text-[10px] uppercase tracking-widest text-slate-400 border-b dark:border-slate-700">
                     <th className="px-3 py-3 text-left font-bold">Material Name</th>
                     <th className="px-3 py-3 text-left font-bold">Thickness</th>
+                    <th className="px-3 py-3 text-left font-bold">Dimensions (W x L)</th>
                     <th className="px-3 py-3 text-left font-bold">Price/Sheet</th>
                     <th className="px-3 py-3 text-right font-bold">Actions</th>
                   </tr>
@@ -336,6 +356,13 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
                         <>
                           <td className="px-3 py-3"><input type="text" value={editFormData.name} onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })} className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm font-bold bg-white dark:bg-slate-700 text-slate-900 dark:text-white" autoFocus /></td>
                           <td className="px-3 py-3"><input type="number" value={editFormData.thickness} onChange={(e) => setEditFormData({ ...editFormData, thickness: Number(e.target.value) })} className="w-20 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white" /></td>
+                          <td className="px-3 py-3">
+                            <div className="flex items-center gap-1">
+                              <input type="number" value={editFormData.width} onChange={(e) => setEditFormData({ ...editFormData, width: Number(e.target.value) })} className="w-16 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-xs bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
+                              <span className="text-slate-400">x</span>
+                              <input type="number" value={editFormData.length} onChange={(e) => setEditFormData({ ...editFormData, length: Number(e.target.value) })} className="w-16 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-xs bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
+                            </div>
+                          </td>
                           <td className="px-3 py-3"><input type="number" value={editFormData.price_per_sheet} onChange={(e) => setEditFormData({ ...editFormData, price_per_sheet: Number(e.target.value) })} className="w-24 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white" /></td>
                           <td className="px-3 py-3 text-right">
                             <div className="flex justify-end gap-1">
@@ -348,6 +375,7 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
                         <>
                           <td className="px-3 py-4 text-slate-900 dark:text-white font-bold">{sheetType.name}</td>
                           <td className="px-3 py-4 text-slate-500 font-mono text-xs">{sheetType.thickness}mm</td>
+                          <td className="px-3 py-4 text-slate-500 font-mono text-xs">{sheetType.width || 1220} x {sheetType.length || 2440}mm</td>
                           <td className="px-3 py-4 text-slate-900 dark:text-amber-400 font-black">{currency}{sheetType.price_per_sheet.toFixed(2)}</td>
                           <td className="px-3 py-4 text-right">
                             <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

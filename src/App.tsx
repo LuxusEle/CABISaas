@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Routes, Route, useNavigate, useLocation, Navigate, useParams, useSearchParams } from 'react-router-dom';
 import { Home, Layers, Calculator, Zap, ArrowLeft, ArrowRight, Trash2, Plus, Box, DoorOpen, Wand2, Moon, Sun, Table2, FileSpreadsheet, X, Pencil, Save, List, Settings, Printer, Download, Scissors, LayoutDashboard, DollarSign, Map, LogOut, Menu, Wrench, CreditCard, ChevronDown, ChevronUp, FileText, Ruler, Book, Upload, Image as ImageIcon, Shield, FileCode, Check, Settings2, RotateCcw } from 'lucide-react';
-import { Screen, Project, Zone, ZoneId, PresetType, CabinetType, CabinetUnit, Obstacle, AutoFillOptions } from './types';
+import { Screen, Project, Zone, ZoneId, PresetType, CabinetType, CabinetUnit, Obstacle, AutoFillOptions, SheetType } from './types';
 import { createNewProject, generateProjectBOM, autoFillZone, exportToExcel, resolveCollisions, resolveLocalCollisions, calculateProjectCost, exportProjectToConstructionJSON, buildProjectConstructionData, getIntersectingCabinets, ensureProjectSettings } from './services/bomService';
 import { generateRubyLayout } from './services/layoutSolver';
 import { exportAllSheetsToDXFZip, exportSingleSheetToDXF, exportAllDrillingToZip } from './services/dxfExportService';
@@ -10,7 +10,7 @@ import { generateQuotationPDF } from './services/pdfService';
 import { optimizeCuts } from './services/nestingService';
 import { authService } from './services/authService';
 import { expenseTemplateService, ExpenseTemplate } from './services/expenseTemplateService';
-import { sheetTypeService, SheetType } from './services/sheetTypeService';
+import { sheetTypeService } from './services/sheetTypeService';
 import { supabase } from './services/supabaseClient';
 import type { User } from '@supabase/supabase-js';
 
@@ -26,7 +26,6 @@ import { LandingPage } from './components/LandingPage';
 import { customCabinetService } from './services/customCabinetService';
 import { projectService } from './services/projectService';
 import { SheetTypeManager } from './components/SheetTypeManager';
-import { CabinetPreviewCard } from './components/CabinetPreviewCard';
 import { CabinetEditModal } from './components/CabinetEditModal';
 import { SingleCabinetEditorModal } from './components/SingleCabinetEditorModal';
 import { WallSetupCard } from './components/WallSetupCard';
@@ -114,6 +113,15 @@ export default function App() {
   const [authModalMode, setAuthModalMode] = useState<'login' | 'signup'>('login');
   const [showPolicyModal, setShowPolicyModal] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
+  const [isDirty, setIsDirty] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const lastSavedProjectRef = useRef<string>(JSON.stringify(project));
+
+  // Automatically calculate isDirty based on project content comparison
+  useEffect(() => {
+    const currentStr = JSON.stringify(project);
+    setIsDirty(currentStr !== lastSavedProjectRef.current);
+  }, [project]);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -128,19 +136,19 @@ export default function App() {
       if (user) {
         const savedLogo = await logoService.getUserLogo(user.id);
         if (savedLogo) {
-          setProject(prev => ({
-            ...prev,
-            settings: { ...prev.settings, logoUrl: savedLogo }
-          }));
+          setProject(prev => {
+            const updated = {
+              ...prev,
+              settings: { ...prev.settings, logoUrl: savedLogo }
+            };
+            // Sync ref so it doesn't stay dirty
+            lastSavedProjectRef.current = JSON.stringify(updated);
+            return updated;
+          });
         }
       }
 
       setAuthLoading(false);
-      // If user is logged in and we're on landing page, go to dashboard
-      const isPublicPath = ['/', '/docs', '/terms'].includes(location.pathname);
-      if (user && isPublicPath && location.pathname === '/') {
-        navigate('/dashboard');
-      }
     };
     checkAuth();
 
@@ -154,8 +162,30 @@ export default function App() {
       }
     });
 
-    return () => subscription.unsubscribe();
-  }, [location.pathname]);
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // Separate effect for navigation-related auth checks and beforeunload
+  useEffect(() => {
+    const isPublicPath = ['/', '/docs', '/terms'].includes(location.pathname);
+    if (user && isPublicPath && location.pathname === '/') {
+      navigate('/dashboard');
+    }
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [location.pathname, isDirty, user]);
 
   // Function to require authentication before action
   const requireAuth = (action: () => void) => {
@@ -187,33 +217,44 @@ export default function App() {
   const toggleTheme = () => setIsDark(!isDark);
 
   useEffect(() => {
-    // Skip auto-save if we're on Home screen or if project is just the initial blank one
-    if (screen === Screen.LANDING || !project.id || project.id.length < 20) return;
+    // Skip auto-save if we're on Home screen or if project is just the initial blank one or already saving
+    if (screen === Screen.LANDING || !project.id || project.id.length < 20 || isSaving) return;
 
     const timer = setTimeout(() => {
       handleSaveProject(project);
     }, 2000); // 2 second debounce
 
     return () => clearTimeout(timer);
-  }, [project, screen]);
+  }, [project, screen, isSaving]);
 
   const handleSaveProject = async (projectToSave: Project) => {
+    if (isSaving) return null;
+    setIsSaving(true);
+    console.log('Saving project...', projectToSave.name, projectToSave.id);
+    
     const isNew = projectToSave.id.length < 20; // Simple check for uuid() vs DB UUID
-    const { data, error } = isNew
-      ? await projectService.createProject(projectToSave)
-      : await projectService.updateProject(projectToSave.id, projectToSave);
+    try {
+      const { data, error } = isNew
+        ? await projectService.createProject(projectToSave)
+        : await projectService.updateProject(projectToSave.id, projectToSave);
 
-    if (error) {
-      console.error("Save error:", error);
-      alert("Saving failed. Please try again.");
-    } else if (data) {
-      const fixedData = ensureProjectSettings(data);
-      // Only update local state if the ID changed (new project promoted to DB)
-      // to avoid race conditions where a slow save reverts recent local changes.
-      if (fixedData.id !== projectToSave.id) {
+      if (error) {
+        console.error("Save error:", error);
+        alert("Saving failed. Please try again.");
+        return null;
+      } else if (data) {
+        console.log('Project saved successfully!', data.id);
+        const fixedData = ensureProjectSettings(data);
+        lastSavedProjectRef.current = JSON.stringify(fixedData);
+        setIsDirty(false);
+        // Always update local state with server data to ensure perfect sync (e.g. timestamps, normalized settings)
         setProject(fixedData);
+        return fixedData;
       }
-      return fixedData;
+    } catch (err) {
+      console.error('Unexpected save error:', err);
+    } finally {
+      setIsSaving(false);
     }
     return null;
   };
@@ -228,6 +269,7 @@ export default function App() {
       const newProj = createNewProject(logoUrl);
       const savedProj = await handleSaveProject(newProj);
       if (savedProj) {
+        lastSavedProjectRef.current = JSON.stringify(savedProj);
         setProject(savedProj);
         navigate('/setup');
       }
@@ -270,16 +312,21 @@ export default function App() {
             onNewProject={handleStartProject}
             onLoadProject={(p) => {
               setProject(p);
-              navigate('/walls');
+              navigate('/walls?view=iso');
             }}
             logoUrl={project.settings.logoUrl}
           />
         );
       case Screen.PROJECT_SETUP: return <ScreenProjectSetup project={project} setProject={setProject} onSave={() => handleSaveProject(project)} onSaveProject={handleSaveProject} isDark={isDark} />;
-      case Screen.WALL_EDITOR: return <ScreenWallEditor project={project} setProject={setProject} setScreen={setScreen} isDark={isDark} onSave={() => {
-        const result = generateRubyLayout(project);
-        handleSaveProject(result.project).then(() => navigate('/walls?view=iso'));
-      }} />;
+      case Screen.WALL_EDITOR: return <ScreenWallEditor 
+        project={project} 
+        setProject={setProject} 
+        setScreen={setScreen} 
+        isDark={isDark} 
+        isDirty={isDirty}
+        isSaving={isSaving}
+        onSave={() => handleSaveProject(project)} 
+      />;
       case Screen.BOM_REPORT: return <ScreenBOMReport project={project} setProject={setProject} />;
       case Screen.PRICING: return <PricingPage onSignIn={() => openAuthModal('login')} onGetStarted={() => openAuthModal('signup')} isDark={isDark} setIsDark={setIsDark} />;
       case Screen.DOCS: return <DocsPage onSignIn={() => openAuthModal('login')} onGetStarted={() => openAuthModal('signup')} isDark={isDark} setIsDark={setIsDark} />;
@@ -311,13 +358,13 @@ export default function App() {
           <aside className="hidden md:flex w-20 flex-col items-center py-6 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 shrink-0 z-50 print:hidden">
             <div className="mb-8 text-amber-500"><LayoutDashboard size={28} /></div>
             <nav className="flex flex-col gap-6 w-full px-2">
-              <NavButton active={location.pathname === '/dashboard'} path="/dashboard" icon={<Home size={24} />} label="Home" />
-              <NavButton active={location.pathname === '/setup'} path="/setup" icon={<Settings size={24} />} label="Setup" />
-              <NavButton active={location.pathname === '/walls'} path="/walls" icon={<Box size={24} />} label="Walls" />
-              <NavButton active={location.pathname === '/bom'} path="/bom" icon={<Table2 size={24} />} label="BOM" />
-              <NavButton active={location.pathname === '/pricing'} path="/pricing" icon={<CreditCard size={24} />} label="Pricing" />
-              <NavButton active={location.pathname === '/testing'} path="/testing" icon={<Wrench size={24} />} label="Testing" />
-              <NavButton active={location.pathname === '/docs'} path="/docs" icon={<Book size={24} />} label="Docs" />
+              <NavButton active={location.pathname === '/dashboard'} path="/dashboard" icon={<Home size={24} />} label="Home" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
+              <NavButton active={location.pathname === '/setup'} path="/setup" icon={<Settings size={24} />} label="Setup" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
+              <NavButton active={location.pathname === '/walls'} path="/walls?view=iso" icon={<Box size={24} />} label="Walls" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
+              <NavButton active={location.pathname === '/bom'} path="/bom" icon={<Table2 size={24} />} label="BOM" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
+              <NavButton active={location.pathname === '/pricing'} path="/pricing" icon={<CreditCard size={24} />} label="Pricing" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
+              <NavButton active={location.pathname === '/testing'} path="/testing" icon={<Wrench size={24} />} label="Testing" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
+              <NavButton active={location.pathname === '/docs'} path="/docs" icon={<Book size={24} />} label="Docs" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
             </nav>
             <div className="mt-auto flex flex-col gap-2">
               {user ? (
@@ -374,8 +421,10 @@ export default function App() {
                 <ScreenHome
                   onNewProject={handleStartProject}
                   onLoadProject={(p) => {
-                    setProject(ensureProjectSettings(p));
-                    navigate('/walls');
+                    const fixed = ensureProjectSettings(p);
+                    lastSavedProjectRef.current = JSON.stringify(fixed);
+                    setProject(fixed);
+                    navigate('/walls?view=iso');
                   }}
                   logoUrl={project.settings.logoUrl}
                 />
@@ -388,10 +437,15 @@ export default function App() {
             } />
             <Route path="/walls" element={
               <ProtectedRoute user={user} loading={authLoading}>
-                <ScreenWallEditor project={project} setProject={setProject} setScreen={setScreen} isDark={isDark} onSave={() => {
-                  const result = generateRubyLayout(project);
-                  handleSaveProject(result.project).then(() => navigate('/walls?view=iso'));
-                }} />
+                <ScreenWallEditor 
+                  project={project} 
+                  setProject={setProject} 
+                  setScreen={setScreen} 
+                  isDark={isDark} 
+                  isDirty={isDirty}
+                  isSaving={isSaving}
+                  onSave={() => handleSaveProject(project)} 
+                />
               </ProtectedRoute>
             } />
             <Route path="/bom" element={
@@ -425,12 +479,12 @@ export default function App() {
       {/* MOBILE NAV */}
       {location.pathname !== '/' && location.pathname !== '/terms' && location.pathname !== '/testing' && (
         <div className="md:hidden h-16 mobile-nav bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex items-stretch justify-around z-[100] shrink-0 print:hidden safe-area-bottom" style={{ position: 'fixed', bottom: 0, left: 0, right: 0 }}>
-          <MobileNavButton active={location.pathname === '/dashboard'} path="/dashboard" icon={<Home size={20} />} label="Home" />
-          <MobileNavButton active={location.pathname === '/setup'} path="/setup" icon={<Settings size={20} />} label="Setup" />
-          <MobileNavButton active={location.pathname === '/walls'} path="/walls" icon={<Box size={20} />} label="Editor" />
-          <MobileNavButton active={location.pathname === '/bom'} path="/bom" icon={<Table2 size={20} />} label="BOM" />
-          <MobileNavButton active={location.pathname === '/testing'} path="/testing" icon={<Wrench size={20} />} label="Test" />
-          <MobileNavButton active={location.pathname === '/docs'} path="/docs" icon={<Book size={20} />} label="Docs" />
+          <MobileNavButton active={location.pathname === '/dashboard'} path="/dashboard" icon={<Home size={20} />} label="Home" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
+          <MobileNavButton active={location.pathname === '/setup'} path="/setup" icon={<Settings size={20} />} label="Setup" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
+          <MobileNavButton active={location.pathname === '/walls'} path="/walls?view=iso" icon={<Box size={20} />} label="Editor" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
+          <MobileNavButton active={location.pathname === '/bom'} path="/bom" icon={<Table2 size={20} />} label="BOM" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
+          <MobileNavButton active={location.pathname === '/testing'} path="/testing" icon={<Wrench size={20} />} label="Test" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
+          <MobileNavButton active={location.pathname === '/docs'} path="/docs" icon={<Book size={20} />} label="Docs" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
         </div>
       )}
 
@@ -500,9 +554,22 @@ export default function App() {
   );
 }
 
-const NavButton = ({ active, onClick, icon, label, path }: any) => {
+const NavButton = ({ active, onClick, icon, label, path, isDirty, onSave }: any) => {
   const navigate = useNavigate();
   const handleClick = () => {
+    if (isDirty) {
+      const shouldSave = window.confirm('You have unsaved changes. Would you like to save before leaving?');
+      if (shouldSave) {
+        onSave().then(() => {
+          if (path) navigate(path);
+          if (onClick) onClick();
+        });
+        return;
+      } else {
+        const leaveAnyway = window.confirm('Discard changes and leave?');
+        if (!leaveAnyway) return;
+      }
+    }
     if (path) navigate(path);
     if (onClick) onClick();
   };
@@ -517,9 +584,22 @@ const NavButton = ({ active, onClick, icon, label, path }: any) => {
   );
 };
 
-const MobileNavButton = ({ active, onClick, icon, label, path }: any) => {
+const MobileNavButton = ({ active, onClick, icon, label, path, isDirty, onSave }: any) => {
   const navigate = useNavigate();
   const handleClick = () => {
+    if (isDirty) {
+      const shouldSave = window.confirm('You have unsaved changes. Would you like to save before leaving?');
+      if (shouldSave) {
+        onSave().then(() => {
+          if (path) navigate(path);
+          if (onClick) onClick();
+        });
+        return;
+      } else {
+        const leaveAnyway = window.confirm('Discard changes and leave?');
+        if (!leaveAnyway) return;
+      }
+    }
     if (path) navigate(path);
     if (onClick) onClick();
   };
@@ -682,9 +762,6 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
   const navigate = useNavigate();
   // State to track which section is expanded - only one at a time
   const [expandedSection, setExpandedSection] = useState<'projectInfo' | 'sheetTypes' | 'accessories' | 'allocation' | 'costs' | null>('projectInfo');
-
-  // CBX Advanced Settings Modal
-  const [showCbxModal, setShowCbxModal] = useState(false);
 
   // Cabinet Edit Modal
   const [showCabinetModal, setShowCabinetModal] = useState(false);
@@ -874,91 +951,17 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
                     onClick={() => setShowWallModal(true)}
                   />
 
-                  <h4 className="text-slate-500 font-bold uppercase text-xs tracking-wider flex items-center gap-2">
-                    <Ruler size={14} /> Cabinet Dimensions
-                  </h4>
-                  
-                  {/* Cabinet Preview Cards */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <CabinetPreviewCard
-                      type="base"
-                      settings={project.settings}
-                      onClick={() => { setEditingCabinetType('base'); setShowCabinetModal(true); }}
-                    />
-                    <CabinetPreviewCard
-                      type="wall"
-                      settings={project.settings}
-                      onClick={() => { setEditingCabinetType('wall'); setShowCabinetModal(true); }}
-                    />
-                    <CabinetPreviewCard
-                      type="tall"
-                      settings={project.settings}
-                      onClick={() => { setEditingCabinetType('tall'); setShowCabinetModal(true); }}
-                    />
-                  </div>
 
                   {/* Additional Settings */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4">
-                    <NumberInput label="Sheet Length (mm)" value={project.settings.sheetLength} onChange={(v) => setProject({ ...project, settings: { ...project.settings, sheetLength: v } })} step={100} />
-                    <NumberInput label="Sheet Width (mm)" value={project.settings.sheetWidth} onChange={(v) => setProject({ ...project, settings: { ...project.settings, sheetWidth: v } })} step={100} />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-4 mt-4">
                     <NumberInput label="Kerf (mm)" value={project.settings.kerf} onChange={(v) => setProject({ ...project, settings: { ...project.settings, kerf: v } })} step={1} />
                     <NumberInput label="Counter Thickness (mm)" value={project.settings.counterThickness} onChange={(v) => setProject({ ...project, settings: { ...project.settings, counterThickness: v } })} step={5} />
                   </div>
 
-                  {/* Ruby CBX Advanced Settings Button */}
-                  <div className="mt-4">
-                    <button
-                      onClick={() => setShowCbxModal(true)}
-                      className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg text-sm font-medium transition-colors"
-                    >
-                      <Settings2 size={16} />
-                      Ruby CBX Design Rules (Advanced)
-                    </button>
-                  </div>
                 </div>
               </div>
             </div>
           </div>
-          {/* CBX Design Rules Modal */}
-          {showCbxModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
-                <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
-                  <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
-                    <Settings2 size={20} /> Ruby CBX Design Rules
-                  </h3>
-                  <button
-                    onClick={() => setShowCbxModal(false)}
-                    className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
-                  >
-                    <X size={20} className="text-slate-500" />
-                  </button>
-                </div>
-                <div className="p-4 overflow-y-auto max-h-[calc(90vh-80px)]">
-                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">Gap and clearance settings matching Ruby CBX Shotgun plugin defaults.</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                    <NumberInput label="Door-to-Door Gap (mm)" value={project.settings.doorToDoorGap} onChange={(v) => setProject({ ...project, settings: { ...project.settings, doorToDoorGap: v } })} step={0.5} />
-                    <NumberInput label="Door-to-Panel Gap (mm)" value={project.settings.doorToPanelGap} onChange={(v) => setProject({ ...project, settings: { ...project.settings, doorToPanelGap: v } })} step={0.5} />
-                    <NumberInput label="Drawer-to-Drawer Gap (mm)" value={project.settings.drawerToDrawerGap} onChange={(v) => setProject({ ...project, settings: { ...project.settings, drawerToDrawerGap: v } })} step={0.5} />
-                    <NumberInput label="Door Outer Gap (mm)" value={project.settings.doorOuterGap} onChange={(v) => setProject({ ...project, settings: { ...project.settings, doorOuterGap: v } })} step={0.5} />
-                    <NumberInput label="Door Inner Gap (mm)" value={project.settings.doorInnerGap} onChange={(v) => setProject({ ...project, settings: { ...project.settings, doorInnerGap: v } })} step={0.5} />
-                    <NumberInput label="Door Side Clearance (mm)" value={project.settings.doorSideClearance} onChange={(v) => setProject({ ...project, settings: { ...project.settings, doorSideClearance: v } })} step={0.5} />
-                    <NumberInput label="Groove Depth (mm)" value={project.settings.grooveDepth} onChange={(v) => setProject({ ...project, settings: { ...project.settings, grooveDepth: v } })} step={1} />
-                    <NumberInput label="Back Panel Thickness (mm)" value={project.settings.backPanelThickness} onChange={(v) => setProject({ ...project, settings: { ...project.settings, backPanelThickness: v } })} step={1} />
-                    <NumberInput label="Door Material Thickness (mm)" value={project.settings.doorMaterialThickness} onChange={(v) => setProject({ ...project, settings: { ...project.settings, doorMaterialThickness: v } })} step={1} />
-                  </div>
-                  <div className="mt-6 flex justify-end">
-                    <button
-                      onClick={() => setShowCbxModal(false)}
-                      className="px-6 py-2 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-lg font-medium hover:bg-slate-800 dark:hover:bg-slate-200 transition-colors"
-                    >
-                      Done
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Wall Edit Modal */}
           <WallEditModal
@@ -1060,7 +1063,7 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
   );
 };
 
-const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark }: { project: Project, setProject: React.Dispatch<React.SetStateAction<Project>>, setScreen: (s: Screen) => void, onSave: () => void, isDark: boolean }) => {
+const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark, isDirty, isSaving }: { project: Project, setProject: React.Dispatch<React.SetStateAction<Project>>, setScreen: (s: Screen) => void, onSave: () => Promise<any>, isDark: boolean, isDirty: boolean, isSaving: boolean }) => {
   const [activeTab, setActiveTab] = useState<string>(project.zones[0]?.id || 'Wall A');
   
   // Keep activeTab in sync if the current one is deleted or project changes
@@ -1097,6 +1100,10 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark }: { 
   const maxHistorySize = 20;
 
   const [selectedCabinet, setSelectedCabinet] = useState<{ zoneId: string, index: number } | null>(null);
+  
+  // 3D View states migrated from CabinetViewer
+  const [isoViewMode, setIsoViewMode] = useState<string>('isometric');
+  const [isoDoorOpenAngle, setIsoDoorOpenAngle] = useState(0);
 
   // Save state to history
   const saveToHistory = () => {
@@ -1600,8 +1607,19 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark }: { 
 
               {/* Center: View Controls */}
               <div className="flex items-center gap-2">
-                <Button size="xs" variant="secondary" onClick={onSave} className="bg-white hover:bg-amber-50 text-slate-700 border border-slate-300 shadow-sm hover:shadow hover:border-amber-300 dark:bg-slate-800 dark:text-amber-400 dark:border-slate-700 dark:hover:bg-slate-700 dark:hover:border-amber-600 transition-all min-h-[36px]">
-                  <Save size={14} className="mr-1.5" /> Save
+                <Button 
+                  size="xs" 
+                  variant={isDirty ? "primary" : "secondary"} 
+                  onClick={() => onSave()}
+                  disabled={isSaving || !isDirty}
+                  className={`min-h-[36px] transition-all duration-300 ${
+                    isDirty 
+                      ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-600 shadow-amber-500/20' 
+                      : 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-50'
+                  }`}
+                >
+                  <Save size={14} className={`mr-1.5 ${isSaving ? 'animate-spin' : isDirty ? 'animate-pulse' : ''}`} /> 
+                  {isSaving ? 'Saving...' : isDirty ? 'Save Changes' : 'Saved'}
                 </Button>
                 <div className="w-px h-6 bg-slate-400 dark:bg-slate-600 md:block hidden" />
                 <div className="flex bg-slate-200 dark:bg-slate-800 p-1 rounded-lg">
@@ -1657,13 +1675,18 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark }: { 
                   ) : (
                     <CabinetViewer 
                       project={project} 
-                      showHardware={true} 
                       lightTheme={!isDark}
                       draggedCabinet={draggingCabinet}
                       onDropCabinet={handleDropCabinet}
                       selectedCabinet={selectedCabinet}
                       onCabinetSelect={handleCabinetSelect}
                       activeWallId={activeTab} 
+                      onSettingsUpdate={(settings) => setProject(prev => ({ ...prev, settings: { ...prev.settings, ...settings } }))}
+                      viewMode={isoViewMode}
+                      onViewModeChange={setIsoViewMode}
+                      doorOpenAngle={isoDoorOpenAngle}
+                      onDoorOpenAngleChange={setIsoDoorOpenAngle}
+                      showHardware={true}
                     />
                   )}
                 </div>
@@ -1736,8 +1759,18 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark }: { 
 
               {/* Right: View Controls and Undo/Redo */}
               <div className="flex items-center gap-1">
-                <Button size="xs" variant="secondary" onClick={onSave} className="bg-white hover:bg-amber-50 text-slate-700 border border-slate-300 shadow-sm hover:shadow hover:border-amber-300 dark:bg-slate-800 dark:text-amber-400 dark:border-slate-700 dark:hover:bg-slate-700 dark:hover:border-amber-600 transition-all min-h-[36px] px-2">
-                  <Save size={14} />
+                <Button 
+                  size="xs" 
+                  variant={isDirty ? "primary" : "secondary"} 
+                  onClick={() => onSave()}
+                  disabled={isSaving || !isDirty}
+                  className={`min-h-[36px] px-2 transition-all duration-300 ${
+                    isDirty 
+                      ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-600' 
+                      : 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-50'
+                  }`}
+                >
+                  <Save size={14} className={isSaving ? 'animate-spin' : isDirty ? 'animate-pulse' : ''} />
                 </Button>
                 <Button size="xs" variant={visualMode === 'elevation' ? 'primary' : 'secondary'} onClick={() => setVisualMode('elevation')} className={`${visualMode === 'elevation' ? 'shadow-md' : 'shadow-sm hover:shadow'} border transition-all min-h-[36px] px-2 text-xs`}>Elv</Button>
                 <Button size="xs" variant={visualMode === 'iso' ? 'primary' : 'secondary'} onClick={() => setVisualMode('iso')} className={`${visualMode === 'iso' ? 'shadow-md' : 'shadow-sm hover:shadow'} border transition-all min-h-[36px] px-2 text-xs`}>3D</Button>
@@ -1758,7 +1791,6 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark }: { 
               ) : (
                 <CabinetViewer 
                   project={project} 
-                  showHardware={true} 
                   lightTheme={!isDark}
                   draggedCabinet={draggingCabinet}
                   onDropCabinet={handleDropCabinet}
@@ -1771,6 +1803,12 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark }: { 
                     setVisualMode("elevation"); 
                   }} 
                   activeWallId={activeTab} 
+                  onSettingsUpdate={(settings) => setProject(prev => ({ ...prev, settings: { ...prev.settings, ...settings } }))}
+                  viewMode={isoViewMode}
+                  onViewModeChange={setIsoViewMode}
+                  doorOpenAngle={isoDoorOpenAngle}
+                  onDoorOpenAngleChange={setIsoDoorOpenAngle}
+                  showHardware={true}
                 />
               )}
             </div>
@@ -2184,6 +2222,89 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark }: { 
             </div>
           ) : (
             <div className="flex-1 flex flex-col overflow-hidden">
+              {/* Migrated 3D Controls Sidebar Section */}
+              {visualMode === 'iso' && (
+                <div className="p-4 border-b border-slate-200 dark:border-slate-800 space-y-4 bg-slate-50/50 dark:bg-slate-900/50">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-black text-amber-500 uppercase tracking-widest italic">3D Scene Controls</h3>
+                    <button 
+                      onClick={() => {
+                        const current = isoViewMode;
+                        setIsoViewMode('');
+                        setTimeout(() => setIsoViewMode(current), 10);
+                      }}
+                      className="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-amber-500 shadow-sm transition-all"
+                      title="Reset View"
+                    >
+                      <RotateCcw size={14} />
+                    </button>
+                  </div>
+
+                  {/* View Modes */}
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {['front', 'side', 'top', 'isometric'].map((v) => (
+                      <button
+                        key={v}
+                        onClick={() => setIsoViewMode(v)}
+                        className={`py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-lg border transition-all ${
+                          isoViewMode === v 
+                            ? 'bg-amber-500 text-white border-amber-600 shadow-sm' 
+                            : 'bg-white dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700 hover:border-amber-300'
+                        }`}
+                      >
+                        {v}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Gola Mode */}
+                  <div className="space-y-3">
+
+                    <label className="flex items-center justify-between cursor-pointer group">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest group-hover:text-slate-700 dark:group-hover:text-slate-300 transition-colors">Global Gola Mode</span>
+                      <div className="relative inline-flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={project.settings.advancedTestingSettings?.enableGola ?? false}
+                          onChange={(e) => {
+                            setProject(prev => ({
+                              ...prev,
+                              settings: {
+                                ...prev.settings,
+                                advancedTestingSettings: {
+                                  ...prev.settings.advancedTestingSettings,
+                                  enableGola: e.target.checked
+                                }
+                              }
+                            }));
+                          }}
+                          className="sr-only peer"
+                        />
+                        <div className="w-8 h-4 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-amber-500"></div>
+                      </div>
+                    </label>
+                  </div>
+
+                  {/* Doors Slider */}
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Doors Open</span>
+                      <span className="text-[10px] font-mono text-amber-500">{isoDoorOpenAngle}°</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="120"
+                      value={isoDoorOpenAngle}
+                      onChange={(e) => setIsoDoorOpenAngle(parseInt(e.target.value))}
+                      className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-500"
+                    />
+                  </div>
+
+                  {/* Legend removed per user request */}
+                </div>
+              )}
+
               <div className="p-4 border-b border-slate-200 dark:border-slate-800">
                 <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">Presets</h3>
               </div>
@@ -2193,7 +2314,6 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark }: { 
                   { type: CabinetType.WALL, preset: PresetType.WALL_STD, label: 'Wall Cabinet', icon: <Layers size={24} /> },
                   { type: CabinetType.TALL, preset: PresetType.TALL_UTILITY, label: 'Tall Cabinet', icon: <Layers size={24} className="rotate-90" /> },
                   { type: CabinetType.BASE, preset: PresetType.SINK_UNIT, label: 'Sink Unit', icon: <Box size={24} className="text-blue-500" /> },
-                  { type: CabinetType.BASE, preset: PresetType.BASE_DRAWER_3, label: '3-Drawer', icon: <Box size={24} /> },
                 ].map((proto, i) => (
                   <div 
                     key={i}
@@ -2453,7 +2573,18 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
   // Use more specific dependencies to prevent unnecessary recalculations
   const data = useMemo(() => generateProjectBOM(project), [project.id, project.zones, project.settings]);
   const [activeView, setActiveView] = useState<'list' | 'cutplan' | 'wallplan' | 'quotation'>('list');
-  const cutPlan = useMemo(() => optimizeCuts(data.groups.flatMap(g => g.items), project.settings), [data.groups, project.settings.sheetLength, project.settings.sheetWidth, project.settings.kerf]);
+
+  // Load sheet types from database for pricing and nesting
+  const [sheetTypes, setSheetTypes] = useState<SheetType[]>([]);
+  useEffect(() => {
+    const loadSheetTypes = async () => {
+      const types = await sheetTypeService.getSheetTypes();
+      setSheetTypes(types);
+    };
+    loadSheetTypes();
+  }, []);
+
+  const cutPlan = useMemo(() => optimizeCuts(data.groups.flatMap(g => g.items), project.settings, sheetTypes), [data.groups, sheetTypes, project.settings.kerf]);
   const currency = project.settings.currency || '$';
 
   // Load accessories from database
@@ -2466,15 +2597,6 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
     loadAccessories();
   }, []);
 
-  // Load sheet types from database for pricing
-  const [sheetTypes, setSheetTypes] = useState<SheetType[]>([]);
-  useEffect(() => {
-    const loadSheetTypes = async () => {
-      const types = await sheetTypeService.getSheetTypes();
-      setSheetTypes(types);
-    };
-    loadSheetTypes();
-  }, []);
 
   // Calculate total doors for hinge calculation
   // Ruby CBX door threshold: < 599.5mm = single door, >= 600mm = double doors
@@ -2537,7 +2659,7 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
     acc.name.toLowerCase().includes('hinge') ||
     acc.name.toLowerCase().includes('soft-close')
   );
-  const hingeUnitCost = hingeAccessory?.default_amount || 5.00;
+  const hingeUnitCost = hingeAccessory?.default_amount || project.settings.costs.pricePerHardwareUnit;
   const hingeTotalCost = hingeQuantity * hingeUnitCost;
 
   // Calculate total drawers (from drawer cabinets)
@@ -2560,7 +2682,7 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
     acc.name.toLowerCase().includes('handle') ||
     acc.name.toLowerCase().includes('knob')
   );
-  const handleUnitCost = handleAccessory?.default_amount || 8.00;
+  const handleUnitCost = handleAccessory?.default_amount || project.settings.costs.pricePerHardwareUnit;
   const handleTotalCost = handleQuantity * handleUnitCost;
 
   // Calculate Drawer Slide quantity (pairs) = number of drawers
@@ -2569,26 +2691,32 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
     acc.name.toLowerCase().includes('drawer slide') ||
     acc.name.toLowerCase().includes('slide')
   );
-  const drawerSlideUnitCost = drawerSlideAccessory?.default_amount || 15.00;
+  const drawerSlideUnitCost = drawerSlideAccessory?.default_amount || project.settings.costs.pricePerHardwareUnit;
   const drawerSlideTotalCost = drawerSlideQuantity * drawerSlideUnitCost;
 
   // Calculate total hardware cost from all individual items (only those actually used in project)
-  const otherAccessoriesCost = accessories
-    .filter(acc => {
-      // Skip items already calculated separately
-      const isExcluded =
-        acc.name.toLowerCase().includes('hinge') ||
-        acc.name.toLowerCase().includes('handle') ||
-        acc.name.toLowerCase().includes('knob') ||
-        acc.name.toLowerCase().includes('drawer slide') ||
-        acc.name.toLowerCase().includes('slide');
-      return !isExcluded;
-    })
-    .reduce((sum, acc) => {
-      // Get actual quantity from BOM, default to 0 if not found
-      const qty = data.hardwareSummary[acc.name] || 0;
-      return sum + (qty * acc.default_amount);
-    }, 0);
+  const otherAccessoriesCost = useMemo(() => {
+    return Object.entries(data.hardwareSummary)
+      .filter(([name]) => {
+        const lower = name.toLowerCase();
+        // Skip items already calculated separately with special logic
+        return !lower.includes('hinge') && 
+               !lower.includes('handle') && 
+               !lower.includes('knob') && 
+               !lower.includes('slide');
+      })
+      .reduce((sum, [name, qty]) => {
+        // Find best match in accessories list
+        const accessory = accessories.find(acc => 
+          acc.name.toLowerCase() === name.toLowerCase() ||
+          acc.name.toLowerCase().includes(name.toLowerCase()) ||
+          name.toLowerCase().includes(acc.name.toLowerCase())
+        );
+        
+        const unitCost = accessory?.default_amount || project.settings.costs.pricePerHardwareUnit;
+        return sum + (qty * unitCost);
+      }, 0);
+  }, [data.hardwareSummary, accessories, project.settings.costs.pricePerHardwareUnit]);
 
   const totalHardwareCost = hingeTotalCost + handleTotalCost + drawerSlideTotalCost + otherAccessoriesCost;
 
@@ -2619,13 +2747,21 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
       return project.settings.costs?.pricePerSheet ?? 85.00;
     };
 
-    return Object.entries(summary).map(([mat, data]) => ({
-      material: mat,
-      sheets: data.sheets,
-      waste: Math.round(data.waste / data.sheets),
-      dims: `${project.settings.sheetLength} x ${project.settings.sheetWidth}`,
-      cost: data.sheets * findSheetPrice(mat)
-    }));
+    return Object.entries(summary).map(([mat, data]) => {
+      const matched = sheetTypes.find(st => 
+        mat.toLowerCase().includes(st.name.toLowerCase()) || 
+        st.name.toLowerCase().includes(mat.toLowerCase())
+      );
+      return {
+        material: mat,
+        sheets: data.sheets,
+        waste: Math.round(data.waste / data.sheets),
+        dims: (matched && matched.length && matched.width) 
+          ? `${matched.length} x ${matched.width}` 
+          : '1220 x 2440',
+        cost: data.sheets * findSheetPrice(mat)
+      };
+    });
   }, [cutPlan, project.settings, sheetTypes]);
 
   // Calculate Quotation Specifications with Filters
@@ -2955,7 +3091,7 @@ const ScreenBOMReport = ({ project, setProject }: { project: Project, setProject
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-black/10">
-                              {zone.cabinets.sort((a, b) => (a.label || '').localeCompare(b.label || '')).map((cab, idx) => (
+                              {[...zone.cabinets].sort((a, b) => (a.label || '').localeCompare(b.label || '')).map((cab, idx) => (
                                 <tr key={idx}>
                                   <td className="py-3 text-amber-600 font-black italic">{cab.label}</td>
                                   <td className="py-3 font-black tracking-tight">{cab.preset}</td>

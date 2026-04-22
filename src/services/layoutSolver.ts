@@ -55,7 +55,7 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
         qty: 1, 
         fromLeft: 0, 
         isAutoFilled: true, 
-        label: 'TALL' 
+        label: '' 
       });
       tallPlaced = true;
     } 
@@ -69,7 +69,7 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
         qty: 1, 
         fromLeft: zone.totalLength - tallWidth, 
         isAutoFilled: true, 
-        label: 'TALL' 
+        label: '' 
       });
       tallPlaced = true;
     }
@@ -83,7 +83,7 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
       const sinkWidth = 900;
       const x = Math.max(0, window.fromLeft + (window.width - sinkWidth) / 2);
       if (canPlace(zone, x, sinkWidth, CabinetType.BASE, settings)) {
-        placeUnit(zone, { id: uuid(), preset: PresetType.SINK_UNIT, type: CabinetType.BASE, width: sinkWidth, qty: 1, fromLeft: x, isAutoFilled: true, label: 'SINK' });
+        placeUnit(zone, { id: uuid(), preset: PresetType.SINK_UNIT, type: CabinetType.BASE, width: sinkWidth, qty: 1, fromLeft: x, isAutoFilled: true, label: '' });
         sinkPlaced = true;
       }
     }
@@ -97,9 +97,9 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
     for (const gap of gaps) {
       if (gap.length >= cookerWidth) {
         const x = gap.start + (gap.length - cookerWidth) / 2;
-        placeUnit(zone, { id: uuid(), preset: PresetType.BASE_DRAWER_3, type: CabinetType.BASE, width: cookerWidth, qty: 1, fromLeft: x, isAutoFilled: true, label: 'COOK' });
+        placeUnit(zone, { id: uuid(), preset: PresetType.BASE_DRAWER_3, type: CabinetType.BASE, width: cookerWidth, qty: 1, fromLeft: x, isAutoFilled: true, label: '' });
         if (canPlace(zone, x, cookerWidth, CabinetType.WALL, settings)) {
-          placeUnit(zone, { id: uuid(), preset: PresetType.HOOD_UNIT, type: CabinetType.WALL, width: cookerWidth, qty: 1, fromLeft: x, isAutoFilled: true, label: 'HOOD' });
+          placeUnit(zone, { id: uuid(), preset: PresetType.HOOD_UNIT, type: CabinetType.WALL, width: cookerWidth, qty: 1, fromLeft: x, isAutoFilled: true, label: '' });
         }
         cookerPlaced = true;
         break;
@@ -108,12 +108,24 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
   }
 
   // 4. Fill Remaining Space
-  for (const zone of zones) {
+  zones.forEach((zone, zIdx) => {
     fillRemaining(zone, CabinetType.BASE, settings);
     fillRemaining(zone, CabinetType.WALL, settings);
     absorbRemainder(zone, settings); // Ruby Rule: Absorb small gaps into corners
-    zone.cabinets.sort((a,b) => a.fromLeft - b.fromLeft);
-  }
+    
+    // Assign sequential labels with Zone Prefix (e.g., W01B01, W01W01)
+    let bIdx = 1;
+    let wIdx = 1;
+    let tIdx = 1;
+    
+    const wallPrefix = `W${String(zIdx + 1).padStart(2, '0')}`;
+    
+    zone.cabinets = [...zone.cabinets].sort((a,b) => a.fromLeft - b.fromLeft).map(c => {
+      const typeChar = c.type === CabinetType.BASE ? 'B' : c.type === CabinetType.WALL ? 'W' : 'T';
+      const seq = typeChar === 'B' ? bIdx++ : typeChar === 'W' ? wIdx++ : tIdx++;
+      return { ...c, label: `${wallPrefix}${typeChar}${String(seq).padStart(2, '0')}` };
+    });
+  });
 
   return { project: newProject, warnings };
 };
@@ -140,7 +152,7 @@ function injectCorners(current: Zone, next: Zone, settings: ProjectSettings) {
     qty: 1, 
     fromLeft: current.totalLength - BASE_CORNER_WIDTH, 
     isAutoFilled: true, 
-    label: 'BC',
+    label: '',
     advancedSettings: { 
       blindPanelWidth: baseCornerOffset, 
       blindCornerSide: 'right', 
@@ -168,7 +180,7 @@ function injectCorners(current: Zone, next: Zone, settings: ProjectSettings) {
     qty: 1, 
     fromLeft: current.totalLength - WALL_CORNER_WIDTH, 
     isAutoFilled: true, 
-    label: 'WC',
+    label: '',
     advancedSettings: { 
       blindPanelWidth: wallCornerOffset, 
       blindCornerSide: 'right', 
