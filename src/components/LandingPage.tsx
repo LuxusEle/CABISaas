@@ -579,8 +579,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
                       </div>
                       <div>
                         <p className="text-[10px] font-bold text-slate-400 uppercase">Phone</p>
-                        <a href="tel:+94777246137" className="text-sm text-slate-900 dark:text-white font-bold hover:text-amber-500 transition-colors tracking-tight">
-                          +94 777 246 137
+                        <a href="tel:+94777163564" className="text-sm text-slate-900 dark:text-white font-bold hover:text-amber-500 transition-colors tracking-tight">
+                          +94 777 163 564
                         </a>
                       </div>
                     </div>
