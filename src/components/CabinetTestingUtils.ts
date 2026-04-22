@@ -76,6 +76,7 @@ export interface TestingSettings {
   lowerDoorOpenAngle: number;
   lowerSectionDrawerStackHeight: number;
   enableTallUpperGola: boolean;
+  showUpperDoors: boolean;
   preset?: string;
   opacity?: number;
   isSelected?: boolean;
@@ -144,6 +145,7 @@ export const DEFAULT_SETTINGS: TestingSettings = {
   lowerDoorOpenAngle: 0,
   lowerSectionDrawerStackHeight: 800,
   enableTallUpperGola: false,
+  showUpperDoors: true,
   blindPanelWidth: 400,
   blindCornerSide: 'left',
   opacity: 1,

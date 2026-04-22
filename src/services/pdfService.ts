@@ -20,6 +20,7 @@ export const generateQuotationPDF = (
   specifications: string[],
   costs: Costs,
   currency: string,
+  isPro: boolean,
   additionalInfo?: {
     companyAddress?: string[];
     phone?: string;
@@ -52,16 +53,19 @@ export const generateQuotationPDF = (
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
-  doc.text(project.company || 'Company Name', pageWidth - margin, 12, { align: 'right' });
+  
+  const displayCompany = isPro ? (project.company || 'Company Name') : 'CABENGINE (FREE)';
+  doc.text(displayCompany, pageWidth - margin, 12, { align: 'right' });
+  
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
 
-  const addressLines = additionalInfo?.companyAddress || [
-    'Katuwawala Road',
-    'Borelesgamuwa',
-    'Western Province',
-    'Sri Lanka'
+  const addressLines = (isPro && additionalInfo?.companyAddress) ? additionalInfo.companyAddress : [
+    'Professional Cabinet Engineering',
+    'Get PRO for custom branding',
+    'www.cabengine.com'
   ];
+  
   addressLines.forEach((line, idx) => {
     doc.text(line, pageWidth - margin, 17 + idx * 4, { align: 'right' });
   });
@@ -90,7 +94,8 @@ export const generateQuotationPDF = (
   doc.setTextColor(40, 40, 40);
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
-  doc.text(project.company || 'Customer Name', margin, yPos);
+  const customerName = isPro ? (project.company || 'Customer Name') : 'VALUED CUSTOMER';
+  doc.text(customerName, margin, yPos);
 
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
@@ -159,7 +164,7 @@ export const generateQuotationPDF = (
   doc.setFontSize(8);
   doc.text('Looking forward for your business.', margin, yPos);
 
-  if (additionalInfo?.bankName || additionalInfo?.accountNumber) {
+  if (isPro && (additionalInfo?.bankName || additionalInfo?.accountNumber)) {
     yPos += 10;
     doc.setFont('helvetica', 'bold');
     doc.text(project.company?.toUpperCase() || 'COMPANY', margin, yPos);

@@ -112,6 +112,7 @@ export interface Obstacle {
   fromLeft: number;
   width: number;
   height: number;
+  fromBottom?: number;
   sillHeight?: number; // Distance from floor to bottom of window
   elevation?: number; // Distance from floor (alias or used for other types)
   depth?: number;
@@ -160,6 +161,8 @@ export interface CabinetUnit {
   preset: PresetType;
   type: CabinetType;
   width: number;
+  height?: number;
+  depth?: number;
   qty: number;
   fromLeft: number;
   isAutoFilled?: boolean;
