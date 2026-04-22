@@ -151,13 +151,8 @@ export const subscriptionService = {
   },
 
   async canCreateProject(): Promise<boolean> {
-    const subscription = await this.getUserSubscription();
-    if (!subscription) return false;
-
-    const plan = SUBSCRIPTION_PLANS.find(p => p.id === subscription.plan_id);
-    if (!plan) return false;
-
-    if (plan.maxProjects === -1) return true;
+    const isPro = await this.isPro();
+    if (isPro) return true;
 
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) return false;
@@ -167,7 +162,20 @@ export const subscriptionService = {
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userData.user.id);
 
-    return (count || 0) < plan.maxProjects;
+    return (count || 0) < 3;
+  },
+
+  async isPro(): Promise<boolean> {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) return false;
+
+    const { data: sub } = await supabase
+      .from('subscriptions')
+      .select('plan_id, status')
+      .eq('user_id', userData.user.id)
+      .single();
+
+    return sub?.plan_id === 'pro' && sub?.status === 'active';
   },
 
   async getCurrentPlan(): Promise<SubscriptionPlan | null> {

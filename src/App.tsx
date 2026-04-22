@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Routes, Route, useNavigate, useLocation, Navigate, useParams, useSearchParams } from 'react-router-dom';
-import { Home, Layers, Calculator, Zap, ArrowLeft, ArrowRight, Trash2, Plus, Box, DoorOpen, Wand2, Moon, Sun, Table2, FileSpreadsheet, X, Pencil, Save, List, Settings, Printer, Download, Scissors, LayoutDashboard, DollarSign, Map, LogOut, Menu, Wrench, CreditCard, ChevronDown, ChevronUp, FileText, Ruler, Book, Upload, Image as ImageIcon, Shield, FileCode, Check, Settings2, RotateCcw } from 'lucide-react';
+import { Home, Layers, Calculator, Zap, ArrowLeft, ArrowRight, Trash2, Plus, Box, DoorOpen, Wand2, Moon, Sun, Table2, FileSpreadsheet, X, Pencil, Save, List, Settings, Printer, Download, Scissors, LayoutDashboard, DollarSign, Map, LogOut, Menu, Wrench, CreditCard, ChevronDown, ChevronUp, FileText, Ruler, Book, Upload, Image as ImageIcon, Shield, FileCode, Check, Settings2, RotateCcw, Lock } from 'lucide-react';
 import { Screen, Project, Zone, ZoneId, PresetType, CabinetType, CabinetUnit, Obstacle, AutoFillOptions, SheetType } from './types';
 import { createNewProject, generateProjectBOM, autoFillZone, exportToExcel, resolveCollisions, resolveLocalCollisions, calculateProjectCost, exportProjectToConstructionJSON, buildProjectConstructionData, getIntersectingCabinets, ensureProjectSettings } from './services/bomService';
 import { generateRubyLayout } from './services/layoutSolver';
@@ -12,6 +12,7 @@ import { authService } from './services/authService';
 import { expenseTemplateService, ExpenseTemplate } from './services/expenseTemplateService';
 import { sheetTypeService } from './services/sheetTypeService';
 import { supabase } from './services/supabaseClient';
+import { subscriptionService } from './services/subscriptionService';
 import type { User } from '@supabase/supabase-js';
 
 // Components
@@ -109,6 +110,21 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>(Screen.LANDING);
   const [project, setProject] = useState<Project>(createNewProject());
   const [user, setUser] = useState<User | null>(null);
+  const [isUserPro, setIsUserPro] = useState(false);
+
+  // Check subscription status
+  useEffect(() => {
+    const checkSubscription = async () => {
+      if (user) {
+        const pro = await subscriptionService.isPro();
+        setIsUserPro(pro);
+      } else {
+        setIsUserPro(false);
+      }
+    };
+    checkSubscription();
+  }, [user]);
+
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'login' | 'signup'>('login');
   const [showPolicyModal, setShowPolicyModal] = useState(false);
@@ -326,6 +342,7 @@ export default function App() {
         isDirty={isDirty}
         isSaving={isSaving}
         onSave={() => handleSaveProject(project)} 
+        isUserPro={isUserPro}
       />;
       case Screen.BOM_REPORT: return <ScreenBOMReport project={project} setProject={setProject} />;
       case Screen.PRICING: return <PricingPage onSignIn={() => openAuthModal('login')} onGetStarted={() => openAuthModal('signup')} isDark={isDark} setIsDark={setIsDark} />;
@@ -445,6 +462,7 @@ export default function App() {
                   isDirty={isDirty}
                   isSaving={isSaving}
                   onSave={() => handleSaveProject(project)} 
+                  isUserPro={isUserPro}
                 />
               </ProtectedRoute>
             } />
@@ -1063,7 +1081,7 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
   );
 };
 
-const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark, isDirty, isSaving }: { project: Project, setProject: React.Dispatch<React.SetStateAction<Project>>, setScreen: (s: Screen) => void, onSave: () => Promise<any>, isDark: boolean, isDirty: boolean, isSaving: boolean }) => {
+const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark, isDirty, isSaving, isUserPro }: { project: Project, setProject: React.Dispatch<React.SetStateAction<Project>>, setScreen: (s: Screen) => void, onSave: () => Promise<any>, isDark: boolean, isDirty: boolean, isSaving: boolean, isUserPro: boolean }) => {
   const [activeTab, setActiveTab] = useState<string>(project.zones[0]?.id || 'Wall A');
   
   // Keep activeTab in sync if the current one is deleted or project changes
@@ -2188,10 +2206,17 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark, isDi
                     )}
                     <div className="pt-2">
                       <button 
-                        onClick={() => setShowAdvancedCabinetEditor(true)}
-                        className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
+                        onClick={() => {
+                          if (isUserPro) {
+                            setShowAdvancedCabinetEditor(true);
+                          } else {
+                            setScreen(Screen.PRICING);
+                          }
+                        }}
+                        className={`w-full py-2.5 ${isUserPro ? 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700' : 'bg-slate-700 hover:bg-slate-600 opacity-90'} text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg flex items-center justify-center gap-2`}
                       >
-                        <Settings2 size={14} /> Advanced 3D Editor
+                        {isUserPro ? <Settings2 size={14} /> : <Lock size={14} className="text-amber-400" />}
+                        Advanced 3D Editor {!isUserPro && <span className="ml-1 text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded">PRO</span>}
                       </button>
                     </div>
 
@@ -2424,11 +2449,18 @@ const ScreenWallEditor = ({ project, setProject, setScreen, onSave, isDark, isDi
 
                   <div className="flex gap-2">
                     <button
-                      onClick={() => setShowAdvancedCabinetEditor(true)}
-                      className="w-full py-3 sm:py-2 px-4 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold rounded-lg transition-all flex items-center justify-center gap-2 min-h-[48px]"
+                      onClick={() => {
+                        if (isUserPro) {
+                          setShowAdvancedCabinetEditor(true);
+                        } else {
+                          setScreen(Screen.PRICING);
+                        }
+                      }}
+                      className={`w-full py-3 sm:py-2 px-4 ${isUserPro ? 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700' : 'bg-slate-700 hover:bg-slate-600 opacity-90'} text-white font-semibold rounded-lg transition-all flex items-center justify-center gap-2 min-h-[48px]`}
                     >
-                      <Settings2 size={18} />
+                      {isUserPro ? <Settings2 size={18} /> : <Lock size={18} className="text-amber-400" />}
                       <span className="text-sm sm:text-base">Advanced 3D Editor</span>
+                      {!isUserPro && <span className="ml-1 text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded font-bold">PRO</span>}
                     </button>
                   </div>
 
