@@ -62,20 +62,15 @@ export const PricingPage: React.FC<PricingPageProps> = ({
         userId: userData.user.id,
         userEmail: userData.user.email,
         onSuccess: async (data) => {
-          try {
-            await subscriptionService.handlePaddleSuccess(userData.user!.id, plan.id, data);
-            
-            // Wait 3 seconds for user to see Paddle success screen, then auto-close
-            setTimeout(() => {
-              closePaddleCheckout();
-              setShowSuccessModal(true);
-              setIsProcessing(false);
-            }, 1000);
-          } catch (err: any) {
-            console.error('Success handler error:', err);
-            setSubscriptionError('Payment was successful, but we failed to update your account automatically. Please contact support.');
+          // Database update is now handled securely by the Edge Function (Webhook)
+          console.log('Payment success received. Waiting for webhook sync...');
+          
+          // Wait 1 second for user to see Paddle success screen, then auto-close
+          setTimeout(() => {
+            closePaddleCheckout();
+            setShowSuccessModal(true);
             setIsProcessing(false);
-          }
+          }, 1000);
         },
         onClose: () => {
           setIsProcessing(false);
@@ -176,32 +171,20 @@ export const PricingPage: React.FC<PricingPageProps> = ({
 
           {/* Current Subscription Status */}
           {isPro && (
-            <div className="mb-8 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-              <div className="flex items-center justify-between">
+            <div className="mb-8 p-6 bg-amber-50 dark:bg-amber-900/10 border-2 border-amber-500/20 rounded-2xl">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-amber-500 rounded-full flex items-center justify-center shadow-lg shadow-amber-500/20">
+                  <Sparkles className="text-white" size={24} />
+                </div>
                 <div>
-                  <h3 className="font-bold text-green-900 dark:text-green-400">
-                    Current Plan: {SUBSCRIPTION_PLANS.find(p => p.id === currentPlanId)?.name}
+                  <h3 className="font-bold text-slate-900 dark:text-white">
+                    You are a Pro Member
                   </h3>
-                  <p className="text-sm text-green-700 dark:text-green-300">
-                    Status: {currentSubscription?.status}
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                    Status: <span className="capitalize font-semibold text-green-600 dark:text-green-400">{currentSubscription?.status}</span>
                     {currentSubscription?.cancel_at_period_end && ' (Cancels at period end)'}
                   </p>
                 </div>
-                {currentSubscription?.cancel_at_period_end ? (
-                  <button
-                    onClick={handleResume}
-                    className="px-4 py-2 bg-green-500 text-white font-bold rounded-lg hover:bg-green-600"
-                  >
-                    Resume Subscription
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleCancel}
-                    className="px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600"
-                  >
-                    Cancel
-                  </button>
-                )}
               </div>
             </div>
           )}

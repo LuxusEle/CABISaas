@@ -98,7 +98,7 @@ export const subscriptionService = {
 
   async initiatePaddleSubscription(planId: string): Promise<void> {
     const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) throw new Error('User not authenticated');
+    if (!userData.user) throw new Error('User not logged in');
 
     const plan = SUBSCRIPTION_PLANS.find(p => p.id === planId);
     if (!plan || !plan.paddlePriceId) throw new Error('Invalid plan or missing Paddle Price ID');
@@ -109,95 +109,45 @@ export const subscriptionService = {
       priceId: plan.paddlePriceId,
       userId: userData.user.id,
       userEmail: userData.user.email,
-      onSuccess: async (data) => {
-        await this.handlePaddleSuccess(userData.user!.id, plan.id, data);
-        window.location.reload(); // Refresh to update UI
-      }
     });
   },
 
-  async handlePaddleSuccess(userId: string, planId: string, paddleData: any): Promise<void> {
-    console.log('Paddle Success Callback Data:', paddleData);
-    
-    // Extracting data more broadly to cover different Paddle v2 event structures
-    const paddleSubId = paddleData.subscription_id || 
-                       paddleData.subscription?.id || 
-                       paddleData.id || 
-                       (paddleData.items?.[0]?.subscription_id);
-    
-    const paddleCustId = paddleData.customer_id || 
-                        paddleData.customer?.id;
-
-    if (!paddleSubId) {
-      console.error('Could not find subscription ID in Paddle data:', paddleData);
-      throw new Error('Could not find Subscription ID from Paddle.');
-    }
-
-    const subscriptionData = {
-      plan_id: planId,
-      status: 'active',
-      paddle_subscription_id: paddleSubId,
-      paddle_customer_id: paddleCustId,
-      current_period_end: new Date(Date.now() + 31 * 24 * 60 * 60 * 1000).toISOString(),
-      updated_at: new Date().toISOString()
-    };
-
-    const { data, error } = await supabase
-      .from('subscriptions')
-      .update(subscriptionData)
-      .eq('user_id', userId)
-      .select();
-
-    if (error) {
-      console.error('Supabase Update Error:', error);
-      throw error;
-    } 
-    
-    if (!data || data.length === 0) {
-      throw new Error('Subscription row not found for update.');
-    }
-
-    console.log('Database Update Success:', data);
+  async cancelSubscription(): Promise<boolean> {
+    // In Paddle, we usually prefer directing users to the Customer Portal
+    return this.manageSubscription();
   },
 
-  async cancelSubscription(): Promise<boolean> {
+  async manageSubscription(): Promise<boolean> {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) return false;
 
-    const { error } = await supabase
+    const { data: sub } = await supabase
       .from('subscriptions')
-      .update({ 
-        cancel_at_period_end: true,
-        updated_at: new Date().toISOString()
-      })
-      .eq('user_id', userData.user.id);
+      .select('paddle_customer_id')
+      .eq('user_id', userData.user.id)
+      .single();
 
-    if (error) {
-      console.error('Error cancelling subscription:', error);
+    if (!sub?.paddle_customer_id) {
+      alert('Could not find your customer record. Please contact support.');
       return false;
     }
 
+    const { openPaddleCheckout } = await import('./paddle');
+    
+    openPaddleCheckout({
+      customerId: sub.paddle_customer_id,
+      userId: userData.user.id,
+      // In Paddle v2, opening with a customer ID allows them to see their billing
+      onClose: () => {
+        window.location.reload();
+      }
+    });
+    
     return true;
   },
 
   async resumeSubscription(): Promise<boolean> {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) return false;
-
-    const { error } = await supabase
-      .from('subscriptions')
-      .update({ 
-        cancel_at_period_end: false,
-        updated_at: new Date().toISOString()
-      })
-      .eq('user_id', userData.user.id);
-
-    if (error) {
-      console.error('Error resuming subscription:', error);
-      return false;
-    }
-
-    return true;
+    return this.manageSubscription();
   },
 
   async canCreateProject(): Promise<boolean> {

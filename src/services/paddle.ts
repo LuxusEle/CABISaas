@@ -25,14 +25,16 @@ export const initializePaddle = () => {
 };
 
 interface CheckoutOptions {
-  priceId: string;
+  priceId?: string;
+  subscriptionId?: string;
+  customerId?: string;
   userId?: string;
   userEmail?: string;
   onSuccess?: (data: any) => void;
   onClose?: () => void;
 }
 
-export const openPaddleCheckout = ({ priceId, userId, userEmail, onSuccess, onClose }: CheckoutOptions) => {
+export const openPaddleCheckout = ({ priceId, subscriptionId, customerId, userId, userEmail, onSuccess, onClose }: CheckoutOptions) => {
   if (!window.Paddle) {
     console.error('Paddle.js not loaded');
     return;
@@ -62,25 +64,27 @@ export const openPaddleCheckout = ({ priceId, userId, userEmail, onSuccess, onCl
   window.addEventListener('paddle:checkout.completed', handleSuccess);
   window.addEventListener('paddle:checkout.closed', handleClose);
 
-  window.Paddle.Checkout.open({
+  const checkoutConfig: any = {
     settings: {
       displayMode: 'overlay',
       theme: 'light',
       locale: 'en',
     },
-    items: [
-      {
-        priceId: priceId,
-        quantity: 1,
-      },
-    ],
-    customer: {
-      email: userEmail,
-    },
     customData: {
       userId: userId,
     }
-  });
+  };
+
+  if (subscriptionId) {
+    checkoutConfig.subscriptionId = subscriptionId;
+  } else if (customerId) {
+    checkoutConfig.customer = { id: customerId };
+  } else if (priceId) {
+    checkoutConfig.items = [{ priceId, quantity: 1 }];
+    checkoutConfig.customer = { email: userEmail };
+  }
+
+  window.Paddle.Checkout.open(checkoutConfig);
 };
 
 export const closePaddleCheckout = () => {
