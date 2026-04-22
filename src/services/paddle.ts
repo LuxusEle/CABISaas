@@ -82,3 +82,9 @@ export const openPaddleCheckout = ({ priceId, userId, userEmail, onSuccess, onCl
     }
   });
 };
+
+export const closePaddleCheckout = () => {
+  if (window.Paddle) {
+    window.Paddle.Checkout.close();
+  }
+};

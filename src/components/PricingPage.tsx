@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabaseClient';
 import { subscriptionService, SUBSCRIPTION_PLANS } from '../services/subscriptionService';
 import type { UserSubscription } from '../types';
-import { Check, X, Sparkles, User, Loader2 } from 'lucide-react';
+import { Check, X, Sparkles, User, Loader2, PartyPopper } from 'lucide-react';
 import { LandingHeader } from './LandingHeader';
+import { useNavigate } from 'react-router-dom';
 
 interface PricingPageProps {
   onSignIn: () => void;
@@ -18,11 +19,13 @@ export const PricingPage: React.FC<PricingPageProps> = ({
   isDark,
   setIsDark
 }) => {
+  const navigate = useNavigate();
   const [currentSubscription, setCurrentSubscription] = useState<UserSubscription | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [subscriptionError, setSubscriptionError] = useState<string | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   useEffect(() => {
     loadSubscription();
@@ -45,14 +48,14 @@ export const PricingPage: React.FC<PricingPageProps> = ({
     try {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) {
-        alert('Please log in first.');
+        onSignIn();
         return;
       }
 
       const plan = SUBSCRIPTION_PLANS.find(p => p.id === planId);
       if (!plan || !plan.paddlePriceId) throw new Error('Invalid plan');
 
-      const { openPaddleCheckout } = await import('../services/paddle');
+      const { openPaddleCheckout, closePaddleCheckout } = await import('../services/paddle');
 
       openPaddleCheckout({
         priceId: plan.paddlePriceId,
@@ -61,10 +64,17 @@ export const PricingPage: React.FC<PricingPageProps> = ({
         onSuccess: async (data) => {
           try {
             await subscriptionService.handlePaddleSuccess(userData.user!.id, plan.id, data);
-            window.location.reload();
+            
+            // Wait 3 seconds for user to see Paddle success screen, then auto-close
+            setTimeout(() => {
+              closePaddleCheckout();
+              setShowSuccessModal(true);
+              setIsProcessing(false);
+            }, 1000);
           } catch (err: any) {
             console.error('Success handler error:', err);
-            alert('Payment was successful, but we failed to update your account. Please contact support. Error: ' + err.message);
+            setSubscriptionError('Payment was successful, but we failed to update your account automatically. Please contact support.');
+            setIsProcessing(false);
           }
         },
         onClose: () => {
@@ -82,10 +92,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({
     if (confirm('Are you sure you want to cancel your subscription? You will still have access until the end of your current billing period.')) {
       const success = await subscriptionService.cancelSubscription();
       if (success) {
-        alert('Your subscription has been cancelled.');
         loadSubscription();
-      } else {
-        alert('Failed to cancel subscription. Please try again.');
       }
     }
   };
@@ -93,11 +100,13 @@ export const PricingPage: React.FC<PricingPageProps> = ({
   const handleResume = async () => {
     const success = await subscriptionService.resumeSubscription();
     if (success) {
-      alert('Your subscription has been resumed.');
       loadSubscription();
-    } else {
-      alert('Failed to resume subscription. Please try again.');
     }
+  };
+
+  const handleCloseSuccessModal = () => {
+    setShowSuccessModal(false);
+    navigate('/dashboard');
   };
 
   if (isLoading) {
@@ -112,13 +121,47 @@ export const PricingPage: React.FC<PricingPageProps> = ({
   const isPro = currentSubscription?.plan_id === 'pro' && currentSubscription?.status === 'active';
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 relative">
       <LandingHeader
         onSignIn={onSignIn}
         onGetStarted={onGetStarted}
         isDark={isDark}
         setIsDark={setIsDark}
       />
+      
+      {/* Success Modal Overlay */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-300" />
+          <div className="relative bg-white dark:bg-slate-900 rounded-3xl shadow-2xl p-8 max-w-md w-full text-center border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-300">
+            <div className="w-20 h-20 bg-amber-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-amber-500/30 animate-bounce">
+              <PartyPopper size={40} className="text-white" />
+            </div>
+            
+            <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-2">
+              Welcome to Pro!
+            </h2>
+            <p className="text-slate-600 dark:text-slate-400 mb-8">
+              Your subscription is now active. You've unlocked unlimited projects, custom libraries, and advanced features.
+            </p>
+            
+            <div className="space-y-3">
+              <button
+                onClick={handleCloseSuccessModal}
+                className="w-full py-4 bg-amber-500 text-white font-black rounded-xl hover:bg-amber-600 transition-all shadow-lg shadow-amber-500/20 active:scale-95"
+              >
+                Let's Build Something
+              </button>
+            </div>
+            
+            <div className="mt-6 flex items-center justify-center gap-2 text-xs text-slate-400">
+              <Sparkles size={14} className="text-amber-500" />
+              <span>Pro features enabled globally</span>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="py-12 px-4 pt-14 sm:pt-16">
         <div className="max-w-6xl mx-auto">
           {/* Header */}

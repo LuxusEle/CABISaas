@@ -118,7 +118,6 @@ export const subscriptionService = {
 
   async handlePaddleSuccess(userId: string, planId: string, paddleData: any): Promise<void> {
     console.log('Paddle Success Callback Data:', paddleData);
-    alert('Payment Successful! Processing your subscription update...');
     
     // Extracting data more broadly to cover different Paddle v2 event structures
     const paddleSubId = paddleData.subscription_id || 
@@ -131,8 +130,7 @@ export const subscriptionService = {
 
     if (!paddleSubId) {
       console.error('Could not find subscription ID in Paddle data:', paddleData);
-      alert('Error: Could not find Subscription ID. Update aborted.');
-      return;
+      throw new Error('Could not find Subscription ID from Paddle.');
     }
 
     const subscriptionData = {
@@ -144,9 +142,6 @@ export const subscriptionService = {
       updated_at: new Date().toISOString()
     };
 
-    console.log('Updating database for User:', userId);
-    console.log('Update Data:', subscriptionData);
-
     const { data, error } = await supabase
       .from('subscriptions')
       .update(subscriptionData)
@@ -155,14 +150,14 @@ export const subscriptionService = {
 
     if (error) {
       console.error('Supabase Update Error:', error);
-      alert(`Database Update FAILED\nUser: ${userId}\nError: ${error.message}`);
-    } else if (!data || data.length === 0) {
-      console.warn('No rows were updated.');
-      alert(`Database Update DONE but 0 rows affected.\nUser: ${userId}\nThis means no row exists for this User ID.`);
-    } else {
-      console.log('Database Update Success:', data);
-      alert(`SUCCESS!\nUser: ${userId}\nNew Plan: ${planId}\nSub ID: ${paddleSubId}`);
+      throw error;
+    } 
+    
+    if (!data || data.length === 0) {
+      throw new Error('Subscription row not found for update.');
     }
+
+    console.log('Database Update Success:', data);
   },
 
   async cancelSubscription(): Promise<boolean> {
