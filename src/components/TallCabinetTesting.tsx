@@ -537,7 +537,7 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
             <group position={[pivotX, 0, 0]} rotation={[0, rotationDirection * doorAngle, 0]}>
               <mesh position={[-pivotX, 0, doorMaterialThickness / 2]} castShadow receiveShadow visible={!skeletonView}>
                 <primitive object={doorGeos[i]} attach="geometry" />
-                <meshStandardMaterial color={doorColor} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
+                <meshStandardMaterial color={doorColor} roughness={0.4} metalness={0} transparent={true} opacity={settings.opacity} side={THREE.DoubleSide} depthWrite={settings.opacity < 1 ? false : true} />
               </mesh>
               {skeletonView && (
                 <lineSegments position={[-pivotX, 0, doorMaterialThickness / 2]}>
@@ -548,18 +548,18 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
               {shouldShow('door') && !isUpperGolaActive && (
                 <mesh position={[handleXOffset - pivotX, -actualDoorHeight / 2 + 50, doorMaterialThickness + 5]} rotation={[0, 0, Math.PI / 2]} castShadow>
                   <cylinderGeometry args={[2.5, 2.5, 60, 16]} />
-                  <meshStandardMaterial color="#4a5568" metalness={0.8} roughness={0.2} />
+                  <meshStandardMaterial color="#4a5568" metalness={0.8} roughness={0.2} transparent={settings.opacity < 1} opacity={settings.opacity} />
                 </mesh>
               )}
               {showHinges && (
                 <>
                   <mesh position={[hingeXOffset - pivotX, actualDoorHeight / 2 - hingeVerticalOffset, -hingeDepth / 2]} rotation={[Math.PI / 2, 0, 0]} castShadow>
                     <cylinderGeometry args={[hingeDiameter / 2, hingeDiameter / 2, hingeDepth, 16]} />
-                    <meshStandardMaterial color="#333333" metalness={0.9} roughness={0.1} />
+                    <meshStandardMaterial color="#333333" metalness={0.9} roughness={0.1} transparent={settings.opacity < 1} opacity={settings.opacity} />
                   </mesh>
                   <mesh position={[hingeXOffset - pivotX, -actualDoorHeight / 2 + hingeVerticalOffset + (isUpperGolaActive ? settings.doorOverride : 0), -hingeDepth / 2]} rotation={[Math.PI / 2, 0, 0]} castShadow>
                     <cylinderGeometry args={[hingeDiameter / 2, hingeDiameter / 2, hingeDepth, 16]} />
-                    <meshStandardMaterial color="#333333" metalness={0.9} roughness={0.1} />
+                    <meshStandardMaterial color="#333333" metalness={0.9} roughness={0.1} transparent={settings.opacity < 1} opacity={settings.opacity} />
                   </mesh>
                 </>
               )}
@@ -583,7 +583,7 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
             <group position={[pivotX, 0, 0]} rotation={[0, rotationDirection * doorAngle, 0]}>
               <mesh position={[-pivotX, 0, doorMaterialThickness / 2]} castShadow receiveShadow visible={!skeletonView}>
                 <primitive object={lowerDoorGeos[i]} attach="geometry" />
-                <meshStandardMaterial color={doorColor} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
+                <meshStandardMaterial color={doorColor} roughness={0.4} metalness={0} transparent={true} opacity={settings.opacity} side={THREE.DoubleSide} depthWrite={settings.opacity < 1 ? false : true} />
               </mesh>
               {skeletonView && (
                 <lineSegments position={[-pivotX, 0, doorMaterialThickness / 2]}>
@@ -594,18 +594,18 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
               {shouldShow('door') && !isLowerGolaActive && (
                 <mesh position={[handleXOffset - pivotX, 0, doorMaterialThickness + 5]} castShadow>
                   <cylinderGeometry args={[2.5, 2.5, 50, 16]} />
-                  <meshStandardMaterial color="#4a5568" metalness={0.8} roughness={0.2} />
+                  <meshStandardMaterial color="#4a5568" metalness={0.8} roughness={0.2} transparent={settings.opacity < 1} opacity={settings.opacity} />
                 </mesh>
               )}
               {showHinges && (
                 <>
                   <mesh position={[hingeXOffset - pivotX, actualLowerDoorHeight / 2 - hingeVerticalOffset, -hingeDepth / 2]} rotation={[Math.PI / 2, 0, 0]} castShadow>
                     <cylinderGeometry args={[hingeDiameter / 2, hingeDiameter / 2, hingeDepth, 16]} />
-                    <meshStandardMaterial color="#333333" metalness={0.9} roughness={0.1} />
+                    <meshStandardMaterial color="#333333" metalness={0.9} roughness={0.1} transparent={settings.opacity < 1} opacity={settings.opacity} />
                   </mesh>
                   <mesh position={[hingeXOffset - pivotX, -actualLowerDoorHeight / 2 + hingeVerticalOffset, -hingeDepth / 2]} rotation={[Math.PI / 2, 0, 0]} castShadow>
                     <cylinderGeometry args={[hingeDiameter / 2, hingeDiameter / 2, hingeDepth, 16]} />
-                    <meshStandardMaterial color="#333333" metalness={0.9} roughness={0.1} />
+                    <meshStandardMaterial color="#333333" metalness={0.9} roughness={0.1} transparent={settings.opacity < 1} opacity={settings.opacity} />
                   </mesh>
                 </>
               )}
@@ -622,12 +622,12 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
           <group key={`drawer-${i}`} position={[getOffset('drawer', i)[0], getOffset('drawer', i)[1], getOffset('drawer', i)[2] + drawerOpenDistance]}>
             <mesh position={[0, drawerYPositions[i], depth / 2 + doorMaterialThickness / 2]} rotation={[0, -Math.PI / 2, 0]} castShadow receiveShadow visible={!skeletonView}>
               <primitive object={frontGeo} attach="geometry" />
-              <meshStandardMaterial color={showDifferentPanelColors ? panelColors.drawerFront : doorColor} roughness={0.4} metalness={0} side={THREE.DoubleSide} transparent={settings.opacity < 1} opacity={settings.opacity} />
+              <meshStandardMaterial color={doorColor} roughness={0.4} metalness={0} side={THREE.DoubleSide} transparent={true} opacity={settings.opacity} depthWrite={settings.opacity < 1 ? false : true} />
             </mesh>
             {!isLowerGolaActive && (
               <mesh position={[0, drawerYPositions[i], depth / 2 + doorMaterialThickness + 5]} rotation={[0, 0, Math.PI / 2]} castShadow>
                 <cylinderGeometry args={[2.5, 2.5, 150, 16]} />
-                <meshStandardMaterial color="#4a5568" metalness={0.8} roughness={0.2} />
+                <meshStandardMaterial color="#4a5568" metalness={0.8} roughness={0.2} transparent={settings.opacity < 1} opacity={settings.opacity} />
               </mesh>
             )}
             {shouldShow('drawerBottom') && (

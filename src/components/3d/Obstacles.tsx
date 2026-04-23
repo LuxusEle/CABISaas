@@ -9,6 +9,7 @@ interface Props {
   wallAEnd: number;
   wallBEnd: number;
   wallCEnd: number;
+  opacity?: number;
 }
 
 const getObstacleColor = (type: string): string => {
@@ -62,7 +63,7 @@ const getObstaclePosition = (
   }
 };
 
-export const Obstacles: React.FC<Props> = ({ obstacles, zone, wallIndex, wallAEnd, wallBEnd, wallCEnd }) => {
+export const Obstacles: React.FC<Props> = ({ obstacles, zone, wallIndex, wallAEnd, wallBEnd, wallCEnd, opacity = 1 }) => {
   if (!obstacles || obstacles.length === 0) return null;
 
   return (
@@ -70,7 +71,7 @@ export const Obstacles: React.FC<Props> = ({ obstacles, zone, wallIndex, wallAEn
       {obstacles.filter(o => !o.id.startsWith('corner_')).map((obstacle, index) => {
         const position = getObstaclePosition(obstacle, wallIndex, wallAEnd, wallBEnd, wallCEnd);
         const color = getObstacleColor(obstacle.type);
-        const isTransparent = obstacle.type === 'window';
+        const isTransparentWindow = obstacle.type === 'window';
         
         return (
           <group key={`obstacle-${zone.id}-${index}`}>
@@ -79,10 +80,11 @@ export const Obstacles: React.FC<Props> = ({ obstacles, zone, wallIndex, wallAEn
               <boxGeometry args={[obstacle.width, obstacle.height || 2100, obstacle.depth]} />
               <meshStandardMaterial 
                 color={color} 
-                transparent={isTransparent}
-                opacity={isTransparent ? 0.7 : 1.0}
+                transparent={isTransparentWindow || opacity < 1}
+                opacity={(isTransparentWindow ? 0.7 : 1.0) * opacity}
                 roughness={0.3}
                 metalness={0.1}
+                depthWrite={opacity < 1 ? false : true}
               />
             </mesh>
             
@@ -93,8 +95,9 @@ export const Obstacles: React.FC<Props> = ({ obstacles, zone, wallIndex, wallAEn
                 <meshStandardMaterial 
                   color="#1f2937" 
                   transparent={true}
-                  opacity={0.8}
+                  opacity={0.8 * opacity}
                   roughness={0.8}
+                  depthWrite={opacity < 1 ? false : true}
                 />
               </mesh>
             )}
@@ -106,9 +109,10 @@ export const Obstacles: React.FC<Props> = ({ obstacles, zone, wallIndex, wallAEn
                 <meshStandardMaterial 
                   color="#dbeafe" 
                   transparent={true}
-                  opacity={0.3}
+                  opacity={0.3 * opacity}
                   roughness={0.1}
                   metalness={0.0}
+                  depthWrite={opacity < 1 ? false : true}
                 />
               </mesh>
             )}
@@ -117,7 +121,13 @@ export const Obstacles: React.FC<Props> = ({ obstacles, zone, wallIndex, wallAEn
             {obstacle.type === 'column' && (
               <mesh position={[position[0], position[1] - (obstacle.height || 2100) / 2 + 50, position[2]]}>
                 <cylinderGeometry args={[20, 20, 100, 8]} />
-                <meshStandardMaterial color="#374151" roughness={0.9} />
+                <meshStandardMaterial 
+                  color="#374151" 
+                  roughness={0.9} 
+                  transparent={opacity < 1}
+                  opacity={opacity}
+                  depthWrite={opacity < 1 ? false : true}
+                />
               </mesh>
             )}
             
@@ -125,7 +135,14 @@ export const Obstacles: React.FC<Props> = ({ obstacles, zone, wallIndex, wallAEn
             {obstacle.type === 'pipe' && (
               <mesh position={position}>
                 <cylinderGeometry args={[obstacle.width / 2, obstacle.width / 2, obstacle.height || 2100, 16]} />
-                <meshStandardMaterial color={color} roughness={0.2} metalness={0.8} />
+                <meshStandardMaterial 
+                  color={color} 
+                  roughness={0.2} 
+                  metalness={0.8} 
+                  transparent={opacity < 1}
+                  opacity={opacity}
+                  depthWrite={opacity < 1 ? false : true}
+                />
               </mesh>
             )}
             
@@ -135,8 +152,9 @@ export const Obstacles: React.FC<Props> = ({ obstacles, zone, wallIndex, wallAEn
               <meshStandardMaterial 
                 color="#fbbf24" 
                 transparent={true}
-                opacity={0.9}
+                opacity={0.9 * opacity}
                 side={THREE.DoubleSide}
+                depthWrite={opacity < 1 ? false : true}
               />
             </mesh>
           </group>

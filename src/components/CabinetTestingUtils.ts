@@ -62,6 +62,8 @@ export interface TestingSettings {
   drawerBoxHeightRatio: number;
   drawerBackClearance: number;
   golaCutoutDepth: number;
+  opacity: number;
+
   golaLCutoutDepth: number;
   golaLCutoutHeight: number;
   golaCCutoutHeight: number;
@@ -73,13 +75,10 @@ export interface TestingSettings {
   showLowerShelves: boolean;
   numLowerShelves: number;
   showLowerDoors: boolean;
-  lowerDoorOpenAngle: number;
   lowerSectionDrawerStackHeight: number;
   enableTallUpperGola: boolean;
   showUpperDoors: boolean;
   preset?: string;
-  opacity?: number;
-  isSelected?: boolean;
 }
 
 export const DEFAULT_SETTINGS: TestingSettings = {
@@ -134,6 +133,9 @@ export const DEFAULT_SETTINGS: TestingSettings = {
   drawerOpenDistances: [0, 0, 0, 0, 0],
   golaCutoutDepth: 26,
   golaLCutoutDepth: 26,
+  opacity: 1,
+  lowerDoorOpenAngle: 0,
+  isSelected: false,
   golaLCutoutHeight: 59,
   golaCCutoutHeight: 73.5,
   golaTopGap: 30,

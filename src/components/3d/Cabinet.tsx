@@ -216,7 +216,14 @@ export const Cabinet: React.FC<Props> = ({
         <group position={[width / 2, zBase + height, depth / 2]}>
           <mesh position={[0, counterThickness / 2, 0]} castShadow receiveShadow>
             <boxGeometry args={[width + 20, counterThickness, depth + 20]} />
-            <meshStandardMaterial color="#9ca3af" roughness={0.3} metalness={0.1} />
+            <meshStandardMaterial 
+              color="#9ca3af" 
+              roughness={0.3} 
+              metalness={0.1} 
+              transparent={testingSettings.opacity < 1} 
+              opacity={testingSettings.opacity}
+              depthWrite={testingSettings.opacity < 1 ? false : true}
+            />
           </mesh>
         </group>
       )}
