@@ -64,8 +64,8 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
   const actualDoorHeight = tallUpperSectionHeight - doorOuterGap + (isUpperGolaActive ? settings.doorOverride : 0);
   const doorYOffset_Upper = innerHeight / 2 - doorOuterGap - (tallUpperSectionHeight - doorOuterGap) / 2 - (isUpperGolaActive ? settings.doorOverride / 2 : 0);
 
-  const actualLowerDoorHeight = tallLowerSectionHeight - panelThickness - doorOuterGap - (isLowerGolaActive ? settings.doorOverride : 0);
-  const doorYOffset_Lower = -innerHeight / 2 + panelThickness + doorOuterGap + actualLowerDoorHeight / 2;
+  const actualLowerDoorHeight = tallLowerSectionHeight - doorOuterGap - (isLowerGolaActive ? settings.doorOverride : 0);
+  const doorYOffset_Lower = -innerHeight / 2 + doorOuterGap + actualLowerDoorHeight / 2;
 
   const getOffset = (part: string, index: number = 0): [number, number, number] => {
     if (!partsSeparatedView || selectedPart !== 'all' && selectedPart !== part) return [0, 0, 0];
@@ -268,7 +268,7 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
     );
   }, [panelThickness, innerHeight, height, depth, backPanelThickness, grooveDepth, nailHolePositions, settings.nailHoleDepth, isLowerGolaActive, isUpperGolaActive, tallLowerSectionHeight, drawerData.gapHeights, settings.golaLCutoutDepth, settings.golaCutoutDepth, settings.golaLCutoutHeight, settings.golaCCutoutHeight, showDrawers]);
 
-  const bottomPanelHoles = useMemo(() => {
+  const commonPanelHoles = useMemo(() => {
     if (!showNailHoles) return [];
     const technicalR = nailHoleDiameter / 2;
     const u1 = -innerDepth / 2 + innerDepth / 5;
@@ -297,6 +297,13 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
         { y: v3, z: zBackHole, r: technicalR, through: true }
       );
     }
+    return positions;
+  }, [showNailHoles, innerWidth, innerDepth, panelThickness, nailHoleDiameter, showBackStretchers]);
+
+  const bottomPanelHoles = useMemo(() => {
+    if (!showNailHoles) return [];
+    const technicalR = nailHoleDiameter / 2;
+    const positions = [...commonPanelHoles];
     
     // Add 3 Toe Kick Nailholes
     const tk1 = -innerWidth / 2 + innerWidth / 5;
@@ -310,7 +317,7 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
     );
 
     return positions;
-  }, [showNailHoles, innerWidth, innerDepth, panelThickness, nailHoleDiameter, showBackStretchers]);
+  }, [commonPanelHoles, showNailHoles, innerWidth, innerDepth, panelThickness, nailHoleDiameter]);
 
   const bottomPanelGeo = useMemo(() => createPanelWithHolesGeo(
     panelThickness, innerWidth, innerDepth,
@@ -324,9 +331,9 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
     panelThickness, innerWidth, innerDepth,
     -innerDepth / 2 + panelThickness, -innerDepth / 2 + panelThickness + backPanelThickness,
     grooveDepth, 'ny',
-    bottomPanelHoles, settings.nailHoleDepth,
+    commonPanelHoles, settings.nailHoleDepth,
     panelThickness, panelThickness
-  ), [innerWidth, panelThickness, innerDepth, backPanelThickness, grooveDepth, bottomPanelHoles, settings.nailHoleDepth]);
+  ), [innerWidth, panelThickness, innerDepth, backPanelThickness, grooveDepth, commonPanelHoles, settings.nailHoleDepth]);
 
   const doorGeos = useMemo(() => {
     const geos = [];
@@ -934,13 +941,13 @@ export const exportTallCabinetDXF = async (settings: TestingSettings, zip: JSZip
   addPanelToZip('Left_Panel', sideW, sideH_Panel, nailHoles, sideGroove, false, golaCutoutsArr);
   addPanelToZip('Right_Panel', sideW, sideH_Panel, nailHoles, sideGroove, true, golaCutoutsArr);
 
-  const bottomNailHoles = [];
+  const commonNailHoles = [];
   const u1b = -innerDepth / 2 + innerDepth / 5;
   const u2b = 0;
   const u3b = innerDepth / 2 - innerDepth / 5;
   const vLeftb = -innerWidth / 2 + panelThickness / 2;
   const vRightb = innerWidth / 2 - panelThickness / 2;
-  bottomNailHoles.push(
+  commonNailHoles.push(
     { z: vLeftb, y: u1b, r: technicalR, through: true },
     { z: vLeftb, y: u2b, r: technicalR, through: true },
     { z: vLeftb, y: u3b, r: technicalR, through: true },
@@ -954,12 +961,14 @@ export const exportTallCabinetDXF = async (settings: TestingSettings, zip: JSZip
     const v2 = 0;
     const v3 = innerWidth / 2 - innerWidth / 5;
     const zBackH = -innerDepth / 2 + panelThickness / 2;
-    bottomNailHoles.push(
+    commonNailHoles.push(
       { z: v1, y: zBackH, r: technicalR, through: true },
       { z: v2, y: zBackH, r: technicalR, through: true },
       { z: v3, y: zBackH, r: technicalR, through: true }
     );
   }
+
+  const bottomNailHoles = [...commonNailHoles];
 
   // Add 3 Toe Kick Nailholes for DXF
   const tk1 = -innerWidth / 2 + innerWidth / 5;
@@ -973,7 +982,7 @@ export const exportTallCabinetDXF = async (settings: TestingSettings, zip: JSZip
   );
 
   addPanelToZip('Bottom_Panel', innerWidth, innerDepth, bottomNailHoles, { x: panelThickness, y: panelThickness, w: innerWidth - 2 * panelThickness, h: backPanelThickness + 2, depth: grooveDepth });
-  addPanelToZip('Top_Panel', innerWidth, innerDepth, bottomNailHoles, { x: panelThickness, y: panelThickness, w: innerWidth - 2 * panelThickness, h: backPanelThickness + 2, depth: grooveDepth });
+  addPanelToZip('Top_Panel', innerWidth, innerDepth, commonNailHoles, { x: panelThickness, y: panelThickness, w: innerWidth - 2 * panelThickness, h: backPanelThickness + 2, depth: grooveDepth });
 
   if (toeKickHeight > 0) {
     addPanelToZip('Toe_Kick', width, toeKickHeight);
@@ -998,7 +1007,7 @@ export const exportTallCabinetDXF = async (settings: TestingSettings, zip: JSZip
 
   if (showLowerDoors) {
     const isLowerGolaActive_DXF_Door = settings.enableGola && (showLowerDoors || (showDrawers && numDrawers > 0));
-    const actualLowerDoorHeight = tallLowerSectionHeight - panelThickness - doorOuterGap - (isLowerGolaActive_DXF_Door ? settings.doorOverride : 0);
+    const actualLowerDoorHeight = tallLowerSectionHeight - doorOuterGap - (isLowerGolaActive_DXF_Door ? settings.doorOverride : 0);
     for (let i = 0; i < actualNumDoors; i++) {
       const hX = actualNumDoors === 1 ? -doorWidth / 2 + hingeHorizontalOffset : (i === 0 ? -doorWidth / 2 + hingeHorizontalOffset : doorWidth / 2 - hingeHorizontalOffset);
       const hingeHoles = [{ y: actualLowerDoorHeight / 2 - hingeVerticalOffset, z: hX, r: hingeDiameter / 2 }, { y: -actualLowerDoorHeight / 2 + hingeVerticalOffset, z: hX, r: hingeDiameter / 2 }];
