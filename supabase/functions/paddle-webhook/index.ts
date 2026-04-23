@@ -7,6 +7,27 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
+async function verifySignature(body: string, signatureHeader: string, secret: string): Promise<boolean> {
+  if (!signatureHeader || !secret) return false;
+  try {
+    const parts = signatureHeader.split(';');
+    const timestamp = parts.find(p => p.startsWith('ts='))?.split('=')[1];
+    const h1 = parts.find(p => p.startsWith('h1='))?.split('=')[1];
+    if (!timestamp || !h1) return false;
+    const payload = `${timestamp}:${body}`;
+    const encoder = new TextEncoder();
+    const keyData = encoder.encode(secret);
+    const messageData = encoder.encode(payload);
+    const key = await crypto.subtle.importKey("raw", keyData, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+    const signatureBuffer = await crypto.subtle.sign("HMAC", key, messageData);
+    const hashHex = Array.from(new Uint8Array(signatureBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+    return hashHex === h1;
+  } catch (err) {
+    console.error("Signature verification error:", err);
+    return false;
+  }
+}
+
 serve(async (req) => {
   try {
     const signature = req.headers.get("paddle-signature")
@@ -16,10 +37,14 @@ serve(async (req) => {
       return new Response("Missing signature", { status: 401 })
     }
 
-    // In production, you would verify the signature here using the secret
-    // For now, we will log the event and process it
+    const isValid = await verifySignature(body, signature, PADDLE_WEBHOOK_SECRET);
+    if (!isValid) {
+      console.error("Invalid Paddle signature");
+      return new Response("Invalid signature", { status: 401 })
+    }
+
     const event = JSON.parse(body)
-    console.log(`Received event: ${event.event_type}`)
+    console.log(`Received verified event: ${event.event_type}`)
 
     const { event_type, data } = event
 
