@@ -1110,7 +1110,7 @@ const ScreenWallEditor = ({
                     <input
                       type="range"
                       min="0"
-                      max="120"
+                      max="45"
                       value={isoDoorOpenAngle}
                       onChange={(e) => setIsoDoorOpenAngle(parseInt(e.target.value))}
                       className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-500"
