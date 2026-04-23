@@ -34,6 +34,7 @@ const ScreenWallEditor = ({
   const [activeTab, setActiveTab] = useState<string>(project.zones[0]?.id || 'Wall A');
   
   const [isTransparent, setIsTransparent] = useState(false);
+  const [isSkeleton, setIsSkeleton] = useState(false);
   
   // Keep activeTab in sync if the current one is deleted or project changes
   useEffect(() => {
@@ -474,6 +475,7 @@ const ScreenWallEditor = ({
                     selectedCabinet={selectedCabinet}
                     draggedCabinet={draggingCabinet}
                     onDropCabinet={handleDropCabinet}
+                    skeletonView={isSkeleton}
                   />
                 )}
               </div>
@@ -637,6 +639,7 @@ const ScreenWallEditor = ({
                     onDropCabinet={handleDropCabinet}
                     selectedCabinet={selectedCabinet}
                     opacity={isTransparent ? 0.4 : 1}
+                    skeletonView={isSkeleton}
                   />
                 )}
             </div>
@@ -1088,6 +1091,24 @@ const ScreenWallEditor = ({
                           checked={isTransparent}
                           onChange={(e) => {
                             setIsTransparent(e.target.checked);
+                          }}
+                          className="sr-only peer"
+                        />
+                        <div className="w-8 h-4 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-500"></div>
+                      </div>
+                    </label>
+                  </div>
+
+                  {/* Skeleton Mode */}
+                  <div className="space-y-3">
+                    <label className="flex items-center justify-between cursor-pointer group">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest group-hover:text-slate-700 dark:group-hover:text-slate-300 transition-colors">Skeleton View</span>
+                      <div className="relative inline-flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={isSkeleton}
+                          onChange={(e) => {
+                            setIsSkeleton(e.target.checked);
                           }}
                           className="sr-only peer"
                         />

@@ -27,6 +27,7 @@ interface Props {
   onDoorOpenAngleChange?: (angle: number) => void;
   onShowHardwareChange?: (show: boolean) => void;
   opacity?: number;
+  skeletonView?: boolean;
 }
 
 const LoadingFallback = () => {
@@ -142,7 +143,8 @@ const Scene = ({
   onDropCabinet,
   selectedCabinet,
   onCabinetSelect,
-  opacity
+  opacity,
+  skeletonView
 }: { 
   project: Project; 
   showHardware: boolean; 
@@ -160,6 +162,7 @@ const Scene = ({
   selectedCabinet?: { zoneId: string, index: number } | null;
   onCabinetSelect?: (zoneId: string, index: number) => void;
   opacity?: number;
+  skeletonView?: boolean;
 }) => {
   const [previewPos, setPreviewPos] = useState<{ wallIndex: number; fromLeft: number; width: number } | null>(null);
   const activeZones = (showEmptyWalls || !!draggedCabinet)
@@ -560,6 +563,7 @@ const Scene = ({
           settings={project.settings}
           opacity={0.5}
           doorOpenAngle={doorOpenAngle}
+          skeletonView={skeletonView}
         />
       )}
 
@@ -576,6 +580,7 @@ const Scene = ({
             label={label}
             settings={project.settings}
             isSelected={isSelected}
+            skeletonView={skeletonView}
             onClick={() => {
               onCabinetSelect?.(zone.id, cabinetIndex);
             }}
@@ -731,7 +736,8 @@ export const CabinetViewer: React.FC<Props> = ({
   doorOpenAngle = 0,
   onDoorOpenAngleChange,
   onShowHardwareChange,
-  opacity
+  opacity,
+  skeletonView
 }) => {
   // Link forceGola to project settings for persistence
   const forceGola = project.settings.advancedTestingSettings?.enableGola ?? false;
@@ -826,6 +832,7 @@ export const CabinetViewer: React.FC<Props> = ({
             selectedCabinet={selectedCabinet}
             onCabinetSelect={onCabinetSelect}
             opacity={opacity}
+            skeletonView={skeletonView}
           />
         </Suspense>
       </Canvas>

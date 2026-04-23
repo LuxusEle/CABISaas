@@ -28,6 +28,7 @@ interface Props {
   forceGola?: boolean;
   opacity?: number;
   isSelected?: boolean;
+  skeletonView?: boolean;
 }
 
 const DimensionLine: React.FC<{
@@ -97,7 +98,8 @@ export const Cabinet: React.FC<Props> = ({
   doorOpenAngle,
   forceGola,
   opacity = 1,
-  isSelected = false
+  isSelected = false,
+  skeletonView = false
 }) => {
   const [hovered, setHovered] = React.useState(false);
 
@@ -132,12 +134,13 @@ export const Cabinet: React.FC<Props> = ({
     if (forceGola !== undefined) s.enableGola = forceGola;
     if (opacity !== undefined) s.opacity = opacity;
     s.isSelected = isSelected;
+    if (skeletonView !== undefined) s.skeletonView = skeletonView;
     if (doorOpenAngle !== undefined) {
       s.doorOpenAngle = doorOpenAngle;
       s.lowerDoorOpenAngle = doorOpenAngle;
     }
     return s;
-  }, [unit, settings, width, height, depth, doorOpenAngle, forceGola, opacity, isSelected]);
+  }, [unit, settings, width, height, depth, doorOpenAngle, forceGola, opacity, isSelected, skeletonView]);
 
   return (
     <group 
