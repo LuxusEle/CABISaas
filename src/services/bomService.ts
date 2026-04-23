@@ -992,6 +992,8 @@ export const ensureProjectSettings = (project: Project): Project => {
     settings: {
       ...defaults.settings,
       ...project.settings,
+      // Migration: Snap old 2100mm default to new 2080mm aligned standard
+      tallHeight: project.settings?.tallHeight === 2100 ? 2080 : (project.settings?.tallHeight || defaults.settings.tallHeight),
       costs: {
         ...defaults.settings.costs,
         ...(project.settings?.costs || {})
@@ -1022,7 +1024,7 @@ export const createNewProject = (logoUrl?: string): Project => ({
     // Dimensions - Updated to match Ruby CBX defaults
     baseHeight: 870,    // Ruby: 870mm (includes plinth)
     wallHeight: 720,    // Ruby: 720mm
-    tallHeight: 2100,  // Ruby: 2100mm
+    tallHeight: 2080,  // Ruby: 2080mm (aligned)
     depthBase: 560,    // Ruby: 560mm
     depthWall: 350,    // Ruby: 350mm
     depthTall: 560,    // Ruby: 560mm

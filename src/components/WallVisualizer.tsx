@@ -221,7 +221,7 @@ export const WallVisualizer: React.FC<Props> = ({
     // Use project settings with fallbacks
     const baseHeight = settings?.baseHeight || 870;
     const wallHeight = settings?.wallHeight || 720;
-    const tallHeight = settings?.tallHeight || 2100;
+    const tallHeight = (settings?.tallHeight === 2100 || !settings?.tallHeight) ? (baseHeight + counterThickness + (settings?.wallCabinetElevation || 450) + wallHeight) : settings.tallHeight;
     const toeKick = settings?.toeKickHeight || 100;
     const counterThickness = settings?.counterThickness || 40;
     

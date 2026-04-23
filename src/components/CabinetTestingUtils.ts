@@ -137,13 +137,13 @@ export const DEFAULT_SETTINGS: TestingSettings = {
   golaLCutoutHeight: 59,
   golaCCutoutHeight: 73.5,
   golaTopGap: 30,
-  tallLowerSectionHeight: 800,
-  tallUpperSectionHeight: 1000,
-  showLowerShelves: false,
-  numLowerShelves: 0,
-  showLowerDoors: false,
+  tallLowerSectionHeight: 870,
+  tallUpperSectionHeight: 720,
+  showLowerShelves: true,
+  numLowerShelves: 2,
+  showLowerDoors: true,
   lowerDoorOpenAngle: 0,
-  lowerSectionDrawerStackHeight: 800,
+  lowerSectionDrawerStackHeight: 870,
   enableTallUpperGola: false,
   showUpperDoors: true,
   blindPanelWidth: 400,
@@ -573,6 +573,9 @@ export const getCabinetTestingSettings = (
     } else if (typeStr === 'tall') {
       merged.showDrawers = false;
       merged.showDoors = true;
+      merged.showLowerDoors = true;
+      merged.showLowerShelves = true;
+      merged.numLowerShelves = 2;
       merged.shelfDepth = initialDepth - merged.panelThickness - merged.backPanelThickness;
     }
   }
