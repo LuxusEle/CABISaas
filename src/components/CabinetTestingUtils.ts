@@ -538,8 +538,9 @@ export const getCabinetTestingSettings = (
     grooveDepth: globalSettings.grooveDepth ?? 5,
     backPanelThickness: globalSettings.backPanelThickness ?? 6,
     doorMaterialThickness: globalSettings.doorMaterialThickness ?? 18,
-    tallLowerSectionHeight: globalSettings.baseHeight ? (globalSettings.baseHeight - (globalSettings.toeKickHeight ?? 0)) : DEFAULT_SETTINGS.tallLowerSectionHeight,
+    tallLowerSectionHeight: globalSettings.baseHeight ? (globalSettings.baseHeight - (globalSettings.toeKickHeight ?? 100)) : DEFAULT_SETTINGS.tallLowerSectionHeight,
     tallUpperSectionHeight: globalSettings.wallHeight || DEFAULT_SETTINGS.tallUpperSectionHeight,
+    lowerSectionDrawerStackHeight: globalSettings.baseHeight ? (globalSettings.baseHeight - (globalSettings.toeKickHeight ?? 100)) : DEFAULT_SETTINGS.lowerSectionDrawerStackHeight,
     wallBottomRecess: globalSettings.wallBottomRecess ?? 0,
   };
 
