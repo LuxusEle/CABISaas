@@ -570,6 +570,12 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
           yBase += drawerFrontH + golaGapTotal;
         }
       }
+      if (t.showBackPanel) {
+        f.push('groove-back');
+      }
+      if (t.showNailHoles) {
+        f.push('nail-holes');
+      }
       return f;
     })()
   });
@@ -584,8 +590,9 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
     material: carcassMaterial, 
     category: 'carcass', 
     label: labelPrefix, 
-    cabinetId: unit.id, 
-    cabinetLabel: unit.label 
+    cabinetId: unit.id,
+    cabinetLabel: unit.label,
+    features: t.showBackPanel ? ['groove-back'] : []
   });
   
   // Top/Stretchers
@@ -1037,6 +1044,15 @@ export const createNewProject = (logoUrl?: string): Project => ({
     backPanelThickness: 6,    // Ruby: 6mm
     doorMaterialThickness: 18, // Ruby: 18mm
     wallCabinetElevation: 450, // Gap from counter top to wall cabinet bottom - default: 450mm
+    nailHoleDiameter: 3,
+    nailHoleDepth: 10,
+    shelfHoleDiameter: 5,
+    nailHoleShelfDistance: 20,
+    golaLCutoutHeight: 55,
+    golaLCutoutDepth: 20,
+    golaCCutoutHeight: 73.5,
+    golaCutoutDepth: 20,
+    drawerBackClearance: 20,
     costs: {
       pricePerSheet: 85.00,
       pricePerHardwareUnit: 5.00,

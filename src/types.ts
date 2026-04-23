@@ -82,6 +82,17 @@ export interface ProjectSettings {
   backPanelThickness: number;  // Back panel thickness - default: 6mm
   doorMaterialThickness: number; // Door material thickness - default: 18mm
   wallCabinetElevation: number; // Gap from counter top to wall cabinet bottom - default: 450mm
+  
+  // Manufacturing Settings
+  nailHoleDiameter: number;     // Nail hole diameter - default: 3mm
+  nailHoleDepth: number;        // Nail hole depth - default: 10mm
+  shelfHoleDiameter: number;    // Shelf hole diameter - default: 5mm
+  nailHoleShelfDistance: number; // Distance from shelf to nail hole - default: 20mm
+  golaLCutoutHeight: number;    // Gola L-cutout height - default: 55mm
+  golaLCutoutDepth: number;     // Gola L-cutout depth - default: 20mm
+  golaCCutoutHeight: number;    // Gola C-cutout height - default: 73.5mm
+  golaCutoutDepth: number;      // Gola C-cutout depth - default: 20mm
+  drawerBackClearance: number;  // Drawer back clearance - default: 20mm
 
   // Costing
   costs: CostSettings;
