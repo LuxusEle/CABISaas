@@ -225,15 +225,18 @@ export const WallVisualizer: React.FC<Props> = ({
     const toeKick = settings?.toeKickHeight || 100;
     const counterThickness = settings?.counterThickness || 40;
     
-    let h = baseHeight;
-    let y = height - toeKick - baseHeight;
+    let h = baseHeight - toeKick;
+    let y = height - baseHeight;
 
-    if (isTall) { h = tallHeight; y = (height || 2400) - toeKick - tallHeight; }
+    if (isTall) { 
+        h = tallHeight - toeKick; 
+        y = (height || 2400) - tallHeight; 
+    }
     else if (isWall) { 
-      h = wallHeight; 
-      // Wall cabinet sits above counter top using settings
-      const wallElevation = settings?.wallCabinetElevation || 450;
-      y = (height || 2400) - toeKick - baseHeight - counterThickness - wallElevation - wallHeight;
+        h = wallHeight; 
+        // Wall cabinet sits above counter top using settings
+        const wallElevation = settings?.wallCabinetElevation || 450;
+        y = (height || 2400) - baseHeight - counterThickness - wallElevation - wallHeight;
     }
 
     const x = unit.fromLeft;

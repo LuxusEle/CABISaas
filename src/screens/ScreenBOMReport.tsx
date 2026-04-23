@@ -322,7 +322,7 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
             {isUserPro ? <Wrench size={14} /> : <Lock size={12} className="text-amber-500" />}
             <span>Drilling</span>
           </Button>
-          <Button variant={activeView === 'quotation' ? 'primary' : 'secondary'} size="sm" onClick={() => setActiveView('quotation')} className="h-9 text-[10px] sm:text-xs px-3 gap-1.5">
+          <Button variant="secondary" size="sm" onClick={() => setActiveView('quotation')} className="h-9 text-[10px] sm:text-xs px-3 gap-1.5">
             <CreditCard size={14} /> {project.settings.quotationStatus === 'invoice' ? 'Invoice' : 'Quotation'}
           </Button>
         </div>
