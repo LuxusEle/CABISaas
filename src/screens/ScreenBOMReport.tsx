@@ -1,19 +1,12 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Printer, Download, FileSpreadsheet, Wrench, CreditCard, Layers, DollarSign, Scissors, FileCode, Check, Lock 
-} from 'lucide-react';
-import { 
-  Project, SheetType, PresetType, CabinetType 
-} from '../types';
+import { Printer, Download, FileSpreadsheet, Wrench, CreditCard, Layers, DollarSign, Scissors, FileCode, Check, Lock } from 'lucide-react';
+import { Project, SheetType, PresetType, CabinetType } from '../types';
 import { Button } from '../components/Button';
 import { CutPlanVisualizer } from '../components/CutPlanVisualizer';
 import { WallVisualizer } from '../components/WallVisualizer';
 import { KitchenPlanCanvas } from '../components/KitchenPlanCanvas';
-import { 
-  generateProjectBOM, exportToExcel, calculateProjectCost, 
-  exportProjectToConstructionJSON, buildProjectConstructionData 
-} from '../services/bomService';
+import { generateProjectBOM, exportToExcel, calculateProjectCost, buildProjectConstructionData } from '../services/bomService';
 import { sheetTypeService } from '../services/sheetTypeService';
 import { expenseTemplateService, ExpenseTemplate } from '../services/expenseTemplateService';
 import { optimizeCuts } from '../services/nestingService';
@@ -286,38 +279,31 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
 
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 w-full overflow-hidden">
-      <div className="p-3 sm:p-4 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex flex-col gap-3 shrink-0 print:hidden">
-        <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg self-start overflow-x-auto w-full">
+      <div className="p-2 sm:p-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-3 shrink-0 print:hidden">
+        <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg overflow-x-auto">
           {['list', 'cutplan', 'wallplan', 'quotation'].map((v) => (
             <button
               key={v}
               onClick={() => setActiveView(v as any)}
-              className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 text-xs sm:text-sm font-bold rounded-md capitalize whitespace-nowrap min-h-[40px] ${activeView === v ? 'bg-white dark:bg-slate-700 shadow text-slate-900 dark:text-white' : 'text-slate-500'}`}
+              className={`px-3 sm:px-4 py-1.5 text-[10px] sm:text-xs font-bold rounded-md capitalize whitespace-nowrap ${activeView === v ? 'bg-white dark:bg-slate-700 shadow text-slate-900 dark:text-white' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
             >
               {v === 'list' ? 'Material List' : v === 'cutplan' ? 'Cut Plan' : v === 'wallplan' ? 'Wall Plans' : (project.settings.quotationStatus === 'invoice' ? 'Invoice Review' : 'Quotation Review')}
             </button>
           ))}
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="secondary" size="sm" onClick={handlePrint} className="flex-1 sm:flex-none min-h-[40px] text-xs sm:text-sm">
-            <Printer size={16} className="mr-1 sm:mr-2" /> <span className="hidden sm:inline">Print / PDF</span><span className="sm:hidden">Print</span>
+        
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="secondary" size="sm" onClick={handlePrint} className="h-9 text-[10px] sm:text-xs px-3">
+            <Printer size={14} className="mr-1.5" /> <span>Print</span>
           </Button>
+
           <Button 
             variant="secondary" 
             size="sm" 
-            onClick={() => isUserPro ? exportProjectToConstructionJSON(project) : navigate('/pricing')} 
-            className="flex-1 sm:flex-none min-h-[40px] text-xs sm:text-sm gap-2"
-          >
-            {isUserPro ? <Download size={16} /> : <Lock size={14} className="text-amber-500" />}
-            <span className="hidden sm:inline">JSON</span><span className="sm:hidden">JSON</span>
-          </Button>
-          <Button 
-            variant={isUserPro ? "primary" : "secondary"} 
-            size="sm" 
             onClick={() => isUserPro ? exportToExcel(data.groups, cutPlan, project) : navigate('/pricing')} 
-            className="flex-1 sm:flex-none min-h-[40px] text-xs sm:text-sm gap-2"
+            className="h-9 text-[10px] sm:text-xs px-3 gap-1.5"
           >
-            {isUserPro ? <FileSpreadsheet size={16} /> : <Lock size={14} className="text-amber-500" />}
+            {isUserPro ? <FileSpreadsheet size={14} /> : <Lock size={12} className="text-amber-500" />}
             Excel
           </Button>
           <Button 
@@ -331,13 +317,13 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
               const allCabinets = project.zones.flatMap(z => z.cabinets);
               exportAllDrillingToZip(allCabinets, project.settings, project.name);
             }} 
-            className="flex-1 sm:flex-none min-h-[40px] text-xs sm:text-sm gap-2"
+            className="h-9 text-[10px] sm:text-xs px-3 gap-1.5"
           >
-            {isUserPro ? <Wrench size={16} /> : <Lock size={14} className="text-amber-500" />}
-            <span className="hidden sm:inline">Drilling DXF</span><span className="sm:hidden">DXF</span>
+            {isUserPro ? <Wrench size={14} /> : <Lock size={12} className="text-amber-500" />}
+            <span>Drilling</span>
           </Button>
-          <Button variant={activeView === 'quotation' ? 'primary' : 'secondary'} size="sm" onClick={() => setActiveView('quotation')} className="flex-1 sm:flex-none min-h-[40px] text-xs sm:text-sm">
-            <CreditCard size={16} className="mr-1 sm:mr-2" /> {project.settings.quotationStatus === 'invoice' ? 'Invoice' : 'Quotation'}
+          <Button variant={activeView === 'quotation' ? 'primary' : 'secondary'} size="sm" onClick={() => setActiveView('quotation')} className="h-9 text-[10px] sm:text-xs px-3 gap-1.5">
+            <CreditCard size={14} /> {project.settings.quotationStatus === 'invoice' ? 'Invoice' : 'Quotation'}
           </Button>
         </div>
       </div>
@@ -370,139 +356,112 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
             </div>
           )}
 
-          {/* MATERIAL SUMMARY TABLE - Only show in List view */}
+          {/* MATERIAL & HARDWARE SUMMARY */}
           {activeView === 'list' && (
-            <div className="break-inside-avoid overflow-x-auto">
-              <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 flex items-center gap-2"><Layers size={18} /> Materials & Hardware</h3>
-              <table className="w-full min-w-[400px] text-xs sm:text-sm text-left border-collapse border border-slate-200 dark:border-slate-700 print:border-black">
-                <thead className="bg-slate-100 dark:bg-slate-800 print:!bg-slate-200 print:!text-black">
-                  <tr>
-                    <th className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:text-black">Material</th>
-                    <th className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:text-black">Size</th>
-                    <th className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:text-black">Qty</th>
-                    <th className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:text-black">Cost</th>
-                    <th className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:text-black print:hidden">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {materialSummary.map((m) => (
-                    <tr key={m.material}>
-                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">{m.material}</td>
-                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">{m.dims}</td>
-                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">{m.sheets}</td>
-                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">{currency}{m.cost.toFixed(2)}</td>
-                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
-                    </tr>
-                  ))}
-                  {/* Soft-Close Hinges - calculated: 2 per door */}
-                  {hingeQuantity > 0 && (
-                    <tr>
-                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">Soft-Close Hinges (2 per door)</td>
-                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">-</td>
-                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">{hingeQuantity}</td>
-                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">{currency}{hingeTotalCost.toFixed(2)}</td>
-                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
-                    </tr>
-                  )}
-                  {/* Handle/Knob - calculated: doors + drawers */}
-                  {handleQuantity > 0 && (
-                    <tr>
-                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">Handle/Knob ({totalDoors} doors + {totalDrawers} drawers)</td>
-                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">-</td>
-                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">{handleQuantity}</td>
-                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">{currency}{handleTotalCost.toFixed(2)}</td>
-                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
-                    </tr>
-                  )}
-                  {/* Drawer Slide (Pair) - calculated: number of drawers */}
-                  {drawerSlideQuantity > 0 && (
-                    <tr>
-                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">Drawer Slide (Pair) ({totalDrawers} drawers)</td>
-                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">-</td>
-                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">{drawerSlideQuantity}</td>
-                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">{currency}{drawerSlideTotalCost.toFixed(2)}</td>
-                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
-                    </tr>
-                  )}
-                  {/* Adjustable Leg - calculated: 4 per BASE/TALL cabinet */}
-                  {totalLegs > 0 && (
-                    <tr>
-                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">Adjustable Leg</td>
-                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">-</td>
-                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">{totalLegs}</td>
-                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">{currency}{(totalLegs * (accessories.find(a => a.name.toLowerCase().includes('adjustable leg'))?.default_amount || 2)).toFixed(2)}</td>
-                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
-                    </tr>
-                  )}
-                  {/* Wall Hanger - calculated: 1 per WALL cabinet */}
-                  {totalHangers > 0 && (
-                    <tr>
-                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">Wall Hanger (Pair)</td>
-                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">-</td>
-                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">{totalHangers}</td>
-                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">{currency}{(totalHangers * (accessories.find(a => a.name.toLowerCase().includes('wall hanger'))?.default_amount || 6)).toFixed(2)}</td>
-                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
-                    </tr>
-                  )}
-                  {/* Installation Nail - calculated: 6 per hinge */}
-                  {totalNails > 0 && (
-                    <tr>
-                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">Installation Nail</td>
-                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">-</td>
-                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">{totalNails}</td>
-                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">{currency}{(totalNails * (accessories.find(a => a.name.toLowerCase().includes('installation nail'))?.default_amount || 0.10)).toFixed(2)}</td>
-                      <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
-                    </tr>
-                  )}
-                  {accessories
-                    .filter(acc =>
-                      !acc.name.toLowerCase().includes('hinge') &&
-                      !acc.name.toLowerCase().includes('handle') &&
-                      !acc.name.toLowerCase().includes('knob') &&
-                      !acc.name.toLowerCase().includes('drawer slide') &&
-                      !acc.name.toLowerCase().includes('slide') &&
-                      !acc.name.toLowerCase().includes('adjustable leg') &&
-                      !acc.name.toLowerCase().includes('wall hanger') &&
-                      !acc.name.toLowerCase().includes('installation nail')
-                    )
-                    .map((acc) => (
-                      <tr key={acc.id}>
-                        <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold">{acc.name}</td>
-                        <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-mono">-</td>
-                        <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black font-bold text-base sm:text-lg">1</td>
-                        <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black">{currency}{acc.default_amount.toFixed(2)}</td>
-                        <td className="p-2 sm:p-3 border border-slate-200 dark:border-slate-700 print:border-black print:hidden">-</td>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 break-inside-avoid">
+              {/* Sheet Material Summary */}
+              <div className="space-y-4">
+                <h3 className="text-lg sm:text-xl font-black uppercase tracking-widest flex items-center gap-2 border-b-2 border-black pb-2">
+                  <Layers size={18} /> Sheet Materials
+                </h3>
+                <div className="overflow-x-auto border border-slate-200 dark:border-slate-800">
+                  <table className="w-full text-xs sm:text-sm text-left border-collapse">
+                    <thead className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+                      <tr>
+                        <th className="p-3 font-black uppercase text-[10px] tracking-wider text-slate-500">Material</th>
+                        <th className="p-3 font-black uppercase text-[10px] tracking-wider text-slate-500 text-center">Size</th>
+                        <th className="p-3 font-black uppercase text-[10px] tracking-wider text-slate-500 text-center">Qty</th>
+                        <th className="p-3 font-black uppercase text-[10px] tracking-wider text-slate-500 text-right">Cost</th>
                       </tr>
-                    ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* LIST VIEW */}
-          <div className={activeView === 'list' ? 'block' : 'hidden print:block'}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 print:grid-cols-2 print:gap-4">
-              {data.groups.map((group, i) => (
-                <div key={i} className="border-2 sm:border-4 border-black p-3 sm:p-4 bg-white break-inside-avoid">
-                  <div className="flex items-end gap-2 mb-3 sm:mb-4 border-b-2 border-black pb-1">
-                    <span className="bg-black text-white text-[10px] font-black px-2 py-0.5 uppercase tracking-tighter">POS {i + 1}</span>
-                    <div className="font-black uppercase text-xs sm:text-sm truncate">{group.cabinetName}</div>
-                  </div>
-                  <table className="w-full text-[10px] sm:text-[11px] font-medium italic">
-                    <tbody>
-                      {group.items.map((item, j) => (
-                        <tr key={j} className="border-b border-slate-100 dark:border-amber-900/20">
-                          <td className="py-1 text-slate-900 font-bold">{item.name}</td>
-                          <td className="py-1 text-right text-slate-500 font-mono text-[8px] sm:text-[9px]">{item.length}x{item.width}</td>
-                          <td className="py-1 pr-1 text-right font-black text-black">x{item.qty}</td>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {materialSummary.map((m) => (
+                        <tr key={m.material} className="hover:bg-slate-50/50 transition-colors">
+                          <td className="p-3 font-bold text-slate-900 dark:text-white">{m.material}</td>
+                          <td className="p-3 text-center font-mono text-slate-500">{m.dims}</td>
+                          <td className="p-3 text-center font-black text-lg text-amber-600">{m.sheets}</td>
+                          <td className="p-3 text-right font-medium">{currency}{m.cost.toFixed(2)}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
-              ))}
+              </div>
+
+              {/* Hardware Summary */}
+              <div className="space-y-4">
+                <h3 className="text-lg sm:text-xl font-black uppercase tracking-widest flex items-center gap-2 border-b-2 border-black pb-2">
+                  <Wrench size={18} /> Hardware & Accessories
+                </h3>
+                <div className="overflow-x-auto border border-slate-200 dark:border-slate-800">
+                  <table className="w-full text-xs sm:text-sm text-left border-collapse">
+                    <thead className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+                      <tr>
+                        <th className="p-3 font-black uppercase text-[10px] tracking-wider text-slate-500">Item</th>
+                        <th className="p-3 font-black uppercase text-[10px] tracking-wider text-slate-500 text-center">Qty</th>
+                        <th className="p-3 font-black uppercase text-[10px] tracking-wider text-slate-500 text-right">Cost</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {/* Hinges */}
+                      {hingeQuantity > 0 && (
+                        <tr className="hover:bg-slate-50/50 transition-colors">
+                          <td className="p-3 font-bold text-slate-900 dark:text-white">Soft-Close Hinges</td>
+                          <td className="p-3 text-center font-black text-amber-600">{hingeQuantity}</td>
+                          <td className="p-3 text-right font-medium">{currency}{hingeTotalCost.toFixed(2)}</td>
+                        </tr>
+                      )}
+                      {/* Handles */}
+                      {handleQuantity > 0 && (
+                        <tr className="hover:bg-slate-50/50 transition-colors">
+                          <td className="p-3 font-bold text-slate-900 dark:text-white">Handle/Knob Set</td>
+                          <td className="p-3 text-center font-black text-amber-600">{handleQuantity}</td>
+                          <td className="p-3 text-right font-medium">{currency}{handleTotalCost.toFixed(2)}</td>
+                        </tr>
+                      )}
+                      {/* Slides */}
+                      {drawerSlideQuantity > 0 && (
+                        <tr className="hover:bg-slate-50/50 transition-colors">
+                          <td className="p-3 font-bold text-slate-900 dark:text-white">Drawer Slides (Pairs)</td>
+                          <td className="p-3 text-center font-black text-amber-600">{drawerSlideQuantity}</td>
+                          <td className="p-3 text-right font-medium">{currency}{drawerSlideTotalCost.toFixed(2)}</td>
+                        </tr>
+                      )}
+                      {/* Legs */}
+                      {totalLegs > 0 && (
+                        <tr className="hover:bg-slate-50/50 transition-colors">
+                          <td className="p-3 font-bold text-slate-900 dark:text-white">Adjustable Legs</td>
+                          <td className="p-3 text-center font-black text-amber-600">{totalLegs}</td>
+                          <td className="p-3 text-right font-medium">{currency}{(totalLegs * (accessories.find(a => a.name.toLowerCase().includes('adjustable leg'))?.default_amount || 2)).toFixed(2)}</td>
+                        </tr>
+                      )}
+                      {/* Other Accessories */}
+                      {accessories
+                        .filter(acc =>
+                          !acc.name.toLowerCase().includes('hinge') &&
+                          !acc.name.toLowerCase().includes('handle') &&
+                          !acc.name.toLowerCase().includes('knob') &&
+                          !acc.name.toLowerCase().includes('drawer slide') &&
+                          !acc.name.toLowerCase().includes('slide') &&
+                          !acc.name.toLowerCase().includes('adjustable leg') &&
+                          !acc.name.toLowerCase().includes('wall hanger') &&
+                          !acc.name.toLowerCase().includes('installation nail')
+                        )
+                        .map((acc) => (
+                          <tr key={acc.id} className="hover:bg-slate-50/50 transition-colors">
+                            <td className="p-3 font-bold text-slate-900 dark:text-white">{acc.name}</td>
+                            <td className="p-3 text-center font-black text-amber-600">1</td>
+                            <td className="p-3 text-right font-medium">{currency}{acc.default_amount.toFixed(2)}</td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
+
+
 
           {/* CUT PLAN VIEW */}
           <div className={activeView === 'cutplan' ? 'block' : 'hidden print:block print:break-before-page'}>
@@ -519,8 +478,8 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
               </Button>
             </div>
             {/* Screen view - grid layout */}
-            <div className="max-w-6xl mx-auto">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">{cutPlan.sheets.map((sheet, i) => (
+            <div className="max-w-full px-2 sm:px-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6">{cutPlan.sheets.map((sheet, i) => (
                 <div key={i} className="relative border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
                   <CutPlanVisualizer sheet={sheet} index={i} settings={project.settings} />
                   <Button

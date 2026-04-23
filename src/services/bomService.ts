@@ -1304,15 +1304,4 @@ export const buildProjectConstructionData = (project: Project): ConstructionPlan
   return data;
 };
 
-export const exportProjectToConstructionJSON = (project: Project) => {
-  const data = buildProjectConstructionData(project);
 
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.setAttribute("href", url);
-  link.setAttribute("download", `${project.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_construction.json`);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-};
