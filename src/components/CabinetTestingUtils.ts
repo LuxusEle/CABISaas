@@ -137,13 +137,13 @@ export const DEFAULT_SETTINGS: TestingSettings = {
   golaLCutoutHeight: 59,
   golaCCutoutHeight: 73.5,
   golaTopGap: 30,
-  tallLowerSectionHeight: 870,
+  tallLowerSectionHeight: 720,
   tallUpperSectionHeight: 720,
   showLowerShelves: true,
   numLowerShelves: 2,
   showLowerDoors: true,
   lowerDoorOpenAngle: 0,
-  lowerSectionDrawerStackHeight: 870,
+  lowerSectionDrawerStackHeight: 720,
   enableTallUpperGola: false,
   showUpperDoors: true,
   blindPanelWidth: 400,
@@ -538,6 +538,8 @@ export const getCabinetTestingSettings = (
     grooveDepth: globalSettings.grooveDepth ?? 5,
     backPanelThickness: globalSettings.backPanelThickness ?? 6,
     doorMaterialThickness: globalSettings.doorMaterialThickness ?? 18,
+    tallLowerSectionHeight: globalSettings.baseHeight ? (globalSettings.baseHeight - (globalSettings.toeKickHeight ?? 0)) : DEFAULT_SETTINGS.tallLowerSectionHeight,
+    tallUpperSectionHeight: globalSettings.wallHeight || DEFAULT_SETTINGS.tallUpperSectionHeight,
     wallBottomRecess: globalSettings.wallBottomRecess ?? 0,
   };
 
@@ -557,7 +559,15 @@ export const getCabinetTestingSettings = (
     }
   }
 
-  // 4. Override with previously saved unit-specific advancedSettings
+  // 4. Preset-specific defaults
+  if (unit.preset === 'Sink Unit') {
+    merged.showBackPanel = false;
+    merged.showShelves = false;
+    merged.showDrawers = false;
+    merged.numShelves = 0;
+  }
+
+  // 5. Override with previously saved unit-specific advancedSettings
   if (unit.advancedSettings) {
     merged = { ...merged, ...unit.advancedSettings };
     // Always respect the current width from the layout
@@ -582,7 +592,7 @@ export const getCabinetTestingSettings = (
 
   merged.preset = unit.preset;
 
-  // 5. Ensure shelf depth is sane relative to current cabinet depth
+  // 6. Ensure shelf depth is sane relative to current cabinet depth
   // This prevents shelves sticking out when depth is reduced in sidebar or moving between zones
   const minClearance = 2;
   const doorSpace = merged.showDoors ? (merged.doorMaterialThickness + 2) : 0;
@@ -592,12 +602,7 @@ export const getCabinetTestingSettings = (
     merged.shelfDepth = maxShelfDepth;
   }
 
-  // 6. Hardcode Sink Unit defaults for all views
-  if (unit.preset === 'Sink Unit') {
-    merged.showBackPanel = false;
-    merged.showShelves = false;
-    merged.showDrawers = false;
-  }
+
 
   return merged;
 };

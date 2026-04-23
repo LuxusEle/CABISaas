@@ -356,7 +356,7 @@ export const WallCabinetTesting: React.FC<Props> = ({ settings }) => {
         );
       })}
 
-      {showShelves && numShelves > 0 && skeletonView && settings.preset !== 'Cooker Hood' && Array.from({ length: numShelves }).map((_, i) => {
+      {showShelves && numShelves > 0 && skeletonView && Array.from({ length: numShelves }).map((_, i) => {
         const availableHeight = innerHeight - panelThickness * 2;
         const spacing = availableHeight / (numShelves + 1);
         const shelfY = -innerHeight / 2 + panelThickness + spacing * (i + 1);
@@ -369,7 +369,7 @@ export const WallCabinetTesting: React.FC<Props> = ({ settings }) => {
         );
       })}
 
-      {showShelves && numShelves > 0 && !skeletonView && settings.preset !== 'Cooker Hood' && Array.from({ length: numShelves }).map((_, i) => {
+      {showShelves && numShelves > 0 && !skeletonView && Array.from({ length: numShelves }).map((_, i) => {
         const availableHeight = innerHeight - panelThickness * 2;
         const spacing = availableHeight / (numShelves + 1);
         const shelfY = -innerHeight / 2 + panelThickness + spacing * (i + 1);

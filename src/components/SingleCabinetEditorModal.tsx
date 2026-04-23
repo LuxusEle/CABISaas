@@ -83,6 +83,9 @@ export const SingleCabinetEditorModal: React.FC<Props> = ({ isOpen, cabinet, glo
         grooveDepth: globalSettings.grooveDepth,
         backPanelThickness: globalSettings.backPanelThickness,
         doorMaterialThickness: globalSettings.doorMaterialThickness,
+        tallLowerSectionHeight: globalSettings.baseHeight ? (globalSettings.baseHeight - (globalSettings.toeKickHeight ?? 0)) : DEFAULT_SETTINGS.tallLowerSectionHeight,
+        tallUpperSectionHeight: globalSettings.wallHeight || DEFAULT_SETTINGS.tallUpperSectionHeight,
+        lowerSectionDrawerStackHeight: globalSettings.baseHeight ? (globalSettings.baseHeight - (globalSettings.toeKickHeight ?? 0)) : DEFAULT_SETTINGS.lowerSectionDrawerStackHeight,
       };
 
       // Override with previously saved advancedSettings
@@ -98,6 +101,13 @@ export const SingleCabinetEditorModal: React.FC<Props> = ({ isOpen, cabinet, glo
           baseSettings.showDrawers = false;
           baseSettings.showDoors = true;
           baseSettings.shelfDepth = initialDepth - baseSettings.panelThickness - baseSettings.backPanelThickness;
+        }
+
+        if (cabinet.preset === 'Sink Unit') {
+          baseSettings.showShelves = false;
+          baseSettings.showDrawers = false;
+          baseSettings.showBackPanel = false;
+          baseSettings.numShelves = 0;
         }
         setSettings(baseSettings);
       }

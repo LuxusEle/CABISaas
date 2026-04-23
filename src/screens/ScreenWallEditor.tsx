@@ -905,7 +905,7 @@ const ScreenWallEditor = ({
                           <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Show Doors</span>
                           <input 
                             type="checkbox" 
-                            checked={cab.advancedSettings?.showDoors ?? true}
+                            checked={cab.advancedSettings?.showDoors ?? (cab.preset === PresetType.SINK_UNIT ? true : true)}
                             onChange={(e) => {
                               const checked = e.target.checked;
                               const updates: Partial<TestingSettings> = { showDoors: checked };
@@ -922,7 +922,7 @@ const ScreenWallEditor = ({
                             <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Shelves</span>
                             <input 
                               type="checkbox" 
-                              checked={cab.advancedSettings?.showShelves ?? true}
+                              checked={cab.advancedSettings?.showShelves ?? (cab.preset === PresetType.SINK_UNIT ? false : true)}
                               onChange={(e) => {
                                 const checked = e.target.checked;
                                 const updates: Partial<TestingSettings> = { showShelves: checked };
@@ -935,12 +935,18 @@ const ScreenWallEditor = ({
                           {(cab.advancedSettings?.showShelves ?? true) && (
                             <div className="flex items-center gap-3">
                               <button 
-                                onClick={() => updateSelectedAdvancedSetting({ numShelves: Math.max(0, (cab.advancedSettings?.numShelves ?? 2) - 1) })}
+                                onClick={() => {
+                                  const current = cab.advancedSettings?.numShelves ?? (cab.preset === PresetType.SINK_UNIT ? 0 : 2);
+                                  updateSelectedAdvancedSetting({ numShelves: Math.max(0, current - 1) });
+                                }}
                                 className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 shadow-sm"
                               >-</button>
-                              <span className="flex-1 text-center font-bold">{cab.advancedSettings?.numShelves ?? 2}</span>
+                              <span className="flex-1 text-center font-bold">{cab.advancedSettings?.numShelves ?? (cab.preset === PresetType.SINK_UNIT ? 0 : 2)}</span>
                               <button 
-                                onClick={() => updateSelectedAdvancedSetting({ numShelves: (cab.advancedSettings?.numShelves ?? 2) + 1 })}
+                                onClick={() => {
+                                  const current = cab.advancedSettings?.numShelves ?? (cab.preset === PresetType.SINK_UNIT ? 0 : 2);
+                                  updateSelectedAdvancedSetting({ numShelves: current + 1 });
+                                }}
                                 className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 shadow-sm"
                               >+</button>
                             </div>
@@ -970,12 +976,18 @@ const ScreenWallEditor = ({
                             {(cab.advancedSettings?.showDrawers ?? false) && (
                               <div className="flex items-center gap-3">
                                 <button 
-                                  onClick={() => updateSelectedAdvancedSetting({ numDrawers: Math.max(0, (cab.advancedSettings?.numDrawers ?? 3) - 1) })}
+                                  onClick={() => {
+                                    const current = cab.advancedSettings?.numDrawers ?? (cab.preset === PresetType.SINK_UNIT ? 0 : 3);
+                                    updateSelectedAdvancedSetting({ numDrawers: Math.max(0, current - 1) });
+                                  }}
                                   className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 shadow-sm"
                                 >-</button>
-                                <span className="flex-1 text-center font-bold">{cab.advancedSettings?.numDrawers ?? 3}</span>
+                                <span className="flex-1 text-center font-bold">{cab.advancedSettings?.numDrawers ?? (cab.preset === PresetType.SINK_UNIT ? 0 : 3)}</span>
                                 <button 
-                                  onClick={() => updateSelectedAdvancedSetting({ numDrawers: (cab.advancedSettings?.numDrawers ?? 3) + 1 })}
+                                  onClick={() => {
+                                    const current = cab.advancedSettings?.numDrawers ?? (cab.preset === PresetType.SINK_UNIT ? 0 : 3);
+                                    updateSelectedAdvancedSetting({ numDrawers: current + 1 });
+                                  }}
                                   className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 shadow-sm"
                                 >+</button>
                               </div>
