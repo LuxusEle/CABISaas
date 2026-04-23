@@ -57,7 +57,7 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
     : 0;
 
   const isLowerGolaActive = settings.enableGola && (showLowerDoors || (showDrawers && numDrawers > 0));
-  const isUpperGolaActive = settings.enableTallUpperGola && showDoors;
+  const isUpperGolaActive = settings.enableGola && showDoors;
   const golaVerticalGap = isLowerGolaActive ? 13 : doorOuterGap;
   const golaTopGap = isLowerGolaActive ? settings.golaTopGap : doorOuterGap;
 
@@ -774,7 +774,7 @@ export const exportTallCabinetDXF = async (settings: TestingSettings, zip: JSZip
     ? (lowerSectionDrawerStackHeight - doorOuterGap * (numDrawers + 1)) / numDrawers 
     : 0;
 
-  const isUpperGolaActive_DXF = settings.enableTallUpperGola && showDoors;
+  const isUpperGolaActive_DXF = settings.enableGola && showDoors;
   const actualDoorHeight = tallUpperSectionHeight - doorOuterGap + (isUpperGolaActive_DXF ? settings.doorOverride : 0);
 
   const addPanelToZip = (name: string, width: number, height: number, holesInput: { y: number, z: number, r: number, through?: boolean }[] = [], grooveInput?: { x: number, y: number, w: number, h: number, depth: number }, mirrorX: boolean = false, golaCutouts?: { x: number, y: number, w: number, h: number }[]) => {
