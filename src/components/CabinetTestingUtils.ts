@@ -63,7 +63,6 @@ export interface TestingSettings {
   drawerBackClearance: number;
   golaCutoutDepth: number;
   opacity: number;
-
   golaLCutoutDepth: number;
   golaLCutoutHeight: number;
   golaCCutoutHeight: number;
@@ -78,6 +77,8 @@ export interface TestingSettings {
   lowerSectionDrawerStackHeight: number;
   enableTallUpperGola: boolean;
   showUpperDoors: boolean;
+  lowerDoorOpenAngle: number;
+  isSelected: boolean;
   preset?: string;
 }
 
@@ -134,7 +135,6 @@ export const DEFAULT_SETTINGS: TestingSettings = {
   golaCutoutDepth: 26,
   golaLCutoutDepth: 26,
   opacity: 1,
-  lowerDoorOpenAngle: 0,
   isSelected: false,
   golaLCutoutHeight: 59,
   golaCCutoutHeight: 73.5,
@@ -149,9 +149,7 @@ export const DEFAULT_SETTINGS: TestingSettings = {
   enableTallUpperGola: false,
   showUpperDoors: true,
   blindPanelWidth: 400,
-  blindCornerSide: 'left',
-  opacity: 1,
-  isSelected: false
+  blindCornerSide: 'left'
 };
 
 export const RUBY_DOOR_THRESHOLD = 599.5;

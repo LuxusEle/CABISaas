@@ -97,7 +97,8 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
     const boxHeight = drawerHeightEach * drawerBoxHeightRatio;
 
     const dividerY = tallLowerSectionHeight - innerHeight / 2;
-    const drawerZoneBottom = dividerY - lowerSectionDrawerStackHeight;
+    const isAtBottom = (dividerY - lowerSectionDrawerStackHeight) <= -innerHeight / 2 + panelThickness + 0.1;
+    const drawerZoneBottom = isAtBottom ? -innerHeight / 2 : Math.max(-innerHeight / 2 + panelThickness, dividerY - lowerSectionDrawerStackHeight);
 
     let drawerFrontHeights = Array(numDrawers).fill(drawerHeightEach);
     let drawerYPositions = Array(numDrawers).fill(0);
@@ -105,26 +106,35 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
 
     if (isLowerGolaActive && numDrawers > 0) {
       const golaGapTotal = golaVerticalGap * 2;
-      const totalAvailablePool = lowerSectionDrawerStackHeight - golaTopGap - doorOuterGap;
+      const totalAvailablePool = (isAtBottom ? lowerSectionDrawerStackHeight + panelThickness : lowerSectionDrawerStackHeight) - golaTopGap - doorOuterGap;
       const numGaps = numDrawers - 1;
       const totalGapSpace = numGaps * golaGapTotal;
       const eachFrontH = totalAvailablePool > 0 ? (totalAvailablePool - totalGapSpace) / numDrawers : 0;
 
+      let currentY = drawerZoneBottom + doorOuterGap;
       for (let i = 0; i < numDrawers; i++) {
-        drawerFrontHeights[i] = eachFrontH;
-        let yBase = drawerZoneBottom + doorOuterGap;
-        for (let j = 0; j < i; j++) {
-          yBase += drawerFrontHeights[j] + golaGapTotal;
-        }
-        drawerYPositions[i] = yBase + drawerFrontHeights[i] / 2;
+        drawerFrontHeights[i] = (i === 0 && isAtBottom) ? eachFrontH + panelThickness : eachFrontH;
+        drawerYPositions[i] = currentY + drawerFrontHeights[i] / 2;
+        currentY += drawerFrontHeights[i] + golaGapTotal;
         if (i < numDrawers - 1) {
-          gapHeights.push(yBase + drawerFrontHeights[i] + golaVerticalGap);
+          gapHeights.push(currentY - golaGapTotal + drawerFrontHeights[i] / 2 + golaVerticalGap); // Adjusted gap calculation if needed
+          // Actually, currentY already moved past the gap. Let's stick to the previous logic for gaps.
         }
       }
+      // Re-calculating gapHeights properly
+      gapHeights.length = 0;
+      let tempY = drawerZoneBottom + doorOuterGap;
+      for (let i = 0; i < numDrawers - 1; i++) {
+        tempY += drawerFrontHeights[i] + golaVerticalGap;
+        gapHeights.push(tempY);
+        tempY += golaVerticalGap;
+      }
     } else {
+      let currentY = drawerZoneBottom + doorOuterGap;
       for (let i = 0; i < numDrawers; i++) {
-        drawerFrontHeights[i] = drawerHeightEach;
-        drawerYPositions[i] = drawerZoneBottom + doorOuterGap + i * (drawerHeightEach + doorOuterGap) + drawerHeightEach / 2;
+        drawerFrontHeights[i] = (i === 0 && isAtBottom) ? drawerHeightEach + panelThickness : drawerHeightEach;
+        drawerYPositions[i] = currentY + drawerFrontHeights[i] / 2;
+        currentY += drawerFrontHeights[i] + doorOuterGap;
       }
     }
 
@@ -169,8 +179,6 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
     positions.push({ y: holeY, z: backZ, r: shelfR, through: false });
 
     if (showDrawers) {
-      const drawerZoneBottom = dividerY - lowerSectionDrawerStackHeight;
-      const dH = (lowerSectionDrawerStackHeight - (isGolaActive ? settings.golaTopGap : doorOuterGap) - doorOuterGap - (numDrawers - 1) * (golaVerticalGap * 2)) / numDrawers;
       for (let i = 0; i < numDrawers; i++) {
         // Use the same coordinate logic as drawerData for holes
         const hH = (isGolaActive && numDrawers > 0) ? drawerData.drawerYPositions[i] - (drawerData.drawerFrontHeights[i] / 2) + (drawerData.drawerFrontHeights[i] / 2) - settings.nailHoleShelfDistance : 0; // Logic fix needed
@@ -200,7 +208,7 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
       }
     }
 
-    if (showLowerShelves && numLowerShelves > 0) {
+    if (showLowerShelves && !showDrawers && numLowerShelves > 0) {
       const bottomSectionStart = -innerHeight / 2 + panelThickness;
       const drawerZoneBottom = (-innerHeight / 2 + tallLowerSectionHeight) - (showDrawers ? lowerSectionDrawerStackHeight : 0);
       const bottomSectionEnd = drawerZoneBottom - doorOuterGap;
@@ -568,7 +576,7 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
         );
       })}
 
-      {showLowerDoors && actualNumDoors > 0 && Array.from({ length: actualNumDoors }).map((_, i) => {
+      {showLowerDoors && !showDrawers && actualNumDoors > 0 && Array.from({ length: actualNumDoors }).map((_, i) => {
         const doorX = actualNumDoors === 1 ? 0 : (i === 0 ? -doorWidth / 2 - doorInnerGap / 2 : doorWidth / 2 + doorInnerGap / 2);
         const handleXOffset = actualNumDoors === 1 ? doorWidth / 2 - 30 : (i === 0 ? doorWidth / 2 - 30 : -doorWidth / 2 + 30);
         const hingeXOffset = actualNumDoors === 1 ? -doorWidth / 2 + hingeHorizontalOffset : (i === 0 ? -doorWidth / 2 + hingeHorizontalOffset : doorWidth / 2 - hingeHorizontalOffset);
@@ -699,7 +707,7 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
           </mesh>
         );
       })}
-      {showLowerShelves && numLowerShelves > 0 && Array.from({ length: numLowerShelves }).map((_, i) => {
+      {showLowerShelves && !showDrawers && numLowerShelves > 0 && Array.from({ length: numLowerShelves }).map((_, i) => {
         const bottomSectionStart = -innerHeight / 2 + panelThickness;
         const drawerZoneBottom = (-innerHeight / 2 + tallLowerSectionHeight) - (showDrawers ? lowerSectionDrawerStackHeight : 0);
         const bottomSectionEnd = drawerZoneBottom - doorOuterGap;
@@ -735,7 +743,7 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
           </lineSegments>
         );
       })}
-      {showLowerShelves && numLowerShelves > 0 && skeletonView && Array.from({ length: numLowerShelves }).map((_, i) => {
+      {showLowerShelves && !showDrawers && numLowerShelves > 0 && skeletonView && Array.from({ length: numLowerShelves }).map((_, i) => {
         const bottomSectionStart = -innerHeight / 2 + panelThickness;
         const drawerZoneBottom = (-innerHeight / 2 + tallLowerSectionHeight) - (showDrawers ? lowerSectionDrawerStackHeight : 0);
         const bottomSectionEnd = drawerZoneBottom - doorOuterGap;
