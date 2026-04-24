@@ -6,7 +6,6 @@ import * as THREE from 'three';
 import { Project, CabinetType, CabinetUnit, Zone, Obstacle, ProjectSettings } from '../../types';
 import { Cabinet } from './Cabinet';
 import { Wall } from './Wall';
-import { EffectComposer, SSAO } from '@react-three/postprocessing';
 // @ts-ignore
 import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js';
 
@@ -429,27 +428,13 @@ const Scene = ({
         </>
       )}
       
-      {isStudio && (
-        <EffectComposer>
-          <SSAO 
-            samples={25} 
-            radius={50} 
-            intensity={20} 
-            luminanceInfluence={0.5} 
-            worldDistanceThreshold={10000}
-            worldDistanceFalloff={1000}
-            worldProximityThreshold={10000}
-            worldProximityFalloff={1000}
-          />
-        </EffectComposer>
-      )}
-
       <ContactShadows 
         position={[0, -0.1, 0]} 
         opacity={0.4} 
         scale={10000} 
         blur={2} 
         far={4} 
+        frames={1}
       />
       
       {!isStudio && (

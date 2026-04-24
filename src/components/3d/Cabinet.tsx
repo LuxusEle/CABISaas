@@ -145,6 +145,12 @@ export const Cabinet: React.FC<Props> = ({
     return undefined;
   }, [rawWoodTexture]);
 
+  React.useEffect(() => {
+    return () => {
+      if (woodTexture) woodTexture.dispose();
+    };
+  }, [woodTexture]);
+
   // Merge legacy project settings and advanced testing settings
   const testingSettings = useMemo(() => {
     const s = getCabinetTestingSettings(unit, settings || {}, width, height, depth);

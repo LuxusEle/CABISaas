@@ -56,6 +56,13 @@ export const Wall: React.FC<Props> = ({
     return undefined;
   }, [rawWoodTexture]);
 
+  React.useEffect(() => {
+    return () => {
+      if (plasterTexture) plasterTexture.dispose();
+      if (woodTexture) woodTexture.dispose();
+    };
+  }, [plasterTexture, woodTexture]);
+
   const wallThickness = 50;
   const wallDepth = wallThickness;
 
