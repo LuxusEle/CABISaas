@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Zone, CabinetUnit, Obstacle, PresetType, CabinetType, ProjectSettings } from '../types';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { getActiveColor, isOpenCabinet } from '../services/cabinetColors';
+import { Zone, CabinetUnit, PresetType, CabinetType, ProjectSettings } from '../types';
+import { getActiveColor } from '../services/cabinetColors';
 
 interface Props {
   zone: Zone;
@@ -14,6 +13,9 @@ interface Props {
   onDragEnd?: () => void;
   onSwapCabinets?: (index1: number, index2: number) => void;
   hideArrows?: boolean;
+  selectedCabinet?: { zoneId: string, index: number } | null;
+  draggedCabinet?: CabinetUnit | null;
+  onDropCabinet?: (zoneId: string, fromLeft: number, cabinet: CabinetUnit) => void;
 }
 
 export const WallVisualizer: React.FC<Props> = ({
@@ -21,7 +23,10 @@ export const WallVisualizer: React.FC<Props> = ({
   onCabinetClick, onObstacleClick,
   onCabinetMove, onObstacleMove, onDragEnd,
   onSwapCabinets,
-  hideArrows = false
+  hideArrows = false,
+  selectedCabinet,
+  draggedCabinet,
+  onDropCabinet
 }) => {
   const [panning, setPanning] = useState<{
     startClientX: number;
@@ -216,27 +221,31 @@ export const WallVisualizer: React.FC<Props> = ({
     // Use project settings with fallbacks
     const baseHeight = settings?.baseHeight || 870;
     const wallHeight = settings?.wallHeight || 720;
-    const tallHeight = settings?.tallHeight || 2100;
+    const tallHeight = (settings?.tallHeight === 2100 || !settings?.tallHeight) ? (baseHeight + counterThickness + (settings?.wallCabinetElevation || 450) + wallHeight) : settings.tallHeight;
     const toeKick = settings?.toeKickHeight || 100;
     const counterThickness = settings?.counterThickness || 40;
     
-    let h = baseHeight;
-    let y = height - toeKick - baseHeight;
+    let h = baseHeight - toeKick;
+    let y = height - baseHeight;
 
-    if (isTall) { h = tallHeight; y = (height || 2400) - toeKick - tallHeight; }
+    if (isTall) { 
+        h = tallHeight - toeKick; 
+        y = (height || 2400) - tallHeight; 
+    }
     else if (isWall) { 
-      h = wallHeight; 
-      // Wall cabinet sits above counter top using settings
-      const wallElevation = settings?.wallCabinetElevation || 450;
-      y = (height || 2400) - toeKick - baseHeight - counterThickness - wallElevation - wallHeight;
+        h = wallHeight; 
+        // Wall cabinet sits above counter top using settings
+        const wallElevation = settings?.wallCabinetElevation || 450;
+        y = (height || 2400) - baseHeight - counterThickness - wallElevation - wallHeight;
     }
 
     const x = unit.fromLeft;
     const w = unit.width;
     const isAuto = unit.isAutoFilled;
+    const isSelected = selectedCabinet?.zoneId === zone.id && selectedCabinet?.index === index;
     const activeColor = getActiveColor(unit.preset);
-    const strokeColor = activeColor.stroke;
-    const fillColor = activeColor.fill;
+    const strokeColor = isSelected ? '#3b82f6' : activeColor.stroke;
+    const fillColor = isSelected ? 'rgba(59, 130, 246, 0.2)' : activeColor.fill;
 
     // Check if can swap left/right - show arrows for immediate neighbors with compatible types
     // Sort cabinets by position to find immediate neighbors
@@ -323,9 +332,32 @@ export const WallVisualizer: React.FC<Props> = ({
           <rect x={x} y={y} width={w} height={h} rx="2" fill={fillColor} stroke={strokeColor} strokeWidth="2" />
           
           {/* Cabinet Label */}
-          <text x={x + w / 2} y={y + h / 2} textAnchor="middle" dominantBaseline="middle" fontSize="12" fontWeight="bold" fill={strokeColor} pointerEvents="none">
-            {unit.label}
-          </text>
+          <g>
+            {isSelected && (
+              <rect
+                x={x + w / 2 - (((unit.label || unit.preset).length) * 4 + 10)}
+                y={y + h / 2 - 12}
+                width={((unit.label || unit.preset).length) * 8 + 20}
+                height={24}
+                rx="4"
+                fill="#3b82f6"
+                className="animate-pulse"
+              />
+            )}
+            <text 
+              x={x + w / 2} 
+              y={y + h / 2} 
+              textAnchor="middle" 
+              dominantBaseline="middle" 
+              fontSize={isSelected ? "14" : "12"} 
+              fontWeight="bold" 
+              fill={isSelected ? "#ffffff" : strokeColor} 
+              pointerEvents="none"
+              className={isSelected ? "drop-shadow-sm" : ""}
+            >
+              {unit.label || unit.preset.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+            </text>
+          </g>
           
           {/* Width Label - Outside (for editing view) */}
           {!hideArrows && (
@@ -423,6 +455,13 @@ export const WallVisualizer: React.FC<Props> = ({
           width={viewBox.width}
           height={viewBox.height}
           fill="transparent"
+          onPointerUp={(e) => {
+            if (draggedCabinet && onDropCabinet) {
+              const { x: svgX } = clientToSvg(e.clientX, e.clientY);
+              // Snap to grid or just use the mouse X
+              onDropCabinet(zone.id, Math.max(0, Math.round(svgX)), draggedCabinet);
+            }
+          }}
           onMouseDown={handlePanStart}
           onTouchStart={handlePanStart}
           style={{ cursor: panning ? 'grabbing' : 'grab' }}

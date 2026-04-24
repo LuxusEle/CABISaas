@@ -62,6 +62,7 @@ export interface TestingSettings {
   drawerBoxHeightRatio: number;
   drawerBackClearance: number;
   golaCutoutDepth: number;
+  opacity: number;
   golaLCutoutDepth: number;
   golaLCutoutHeight: number;
   golaCCutoutHeight: number;
@@ -73,12 +74,12 @@ export interface TestingSettings {
   showLowerShelves: boolean;
   numLowerShelves: number;
   showLowerDoors: boolean;
-  lowerDoorOpenAngle: number;
   lowerSectionDrawerStackHeight: number;
   enableTallUpperGola: boolean;
+  showUpperDoors: boolean;
+  lowerDoorOpenAngle: number;
+  isSelected: boolean;
   preset?: string;
-  opacity?: number;
-  isSelected?: boolean;
 }
 
 export const DEFAULT_SETTINGS: TestingSettings = {
@@ -133,21 +134,22 @@ export const DEFAULT_SETTINGS: TestingSettings = {
   drawerOpenDistances: [0, 0, 0, 0, 0],
   golaCutoutDepth: 26,
   golaLCutoutDepth: 26,
+  opacity: 1,
+  isSelected: false,
   golaLCutoutHeight: 59,
   golaCCutoutHeight: 73.5,
   golaTopGap: 30,
-  tallLowerSectionHeight: 800,
-  tallUpperSectionHeight: 1000,
-  showLowerShelves: false,
-  numLowerShelves: 0,
-  showLowerDoors: false,
+  tallLowerSectionHeight: 720,
+  tallUpperSectionHeight: 720,
+  showLowerShelves: true,
+  numLowerShelves: 2,
+  showLowerDoors: true,
   lowerDoorOpenAngle: 0,
-  lowerSectionDrawerStackHeight: 800,
+  lowerSectionDrawerStackHeight: 720,
   enableTallUpperGola: false,
+  showUpperDoors: true,
   blindPanelWidth: 400,
-  blindCornerSide: 'left',
-  opacity: 1,
-  isSelected: false
+  blindCornerSide: 'left'
 };
 
 export const RUBY_DOOR_THRESHOLD = 599.5;
@@ -536,6 +538,9 @@ export const getCabinetTestingSettings = (
     grooveDepth: globalSettings.grooveDepth ?? 5,
     backPanelThickness: globalSettings.backPanelThickness ?? 6,
     doorMaterialThickness: globalSettings.doorMaterialThickness ?? 18,
+    tallLowerSectionHeight: globalSettings.baseHeight ? (globalSettings.baseHeight - (globalSettings.toeKickHeight ?? 100)) : DEFAULT_SETTINGS.tallLowerSectionHeight,
+    tallUpperSectionHeight: globalSettings.wallHeight || DEFAULT_SETTINGS.tallUpperSectionHeight,
+    lowerSectionDrawerStackHeight: globalSettings.baseHeight ? (globalSettings.baseHeight - (globalSettings.toeKickHeight ?? 100)) : DEFAULT_SETTINGS.lowerSectionDrawerStackHeight,
     wallBottomRecess: globalSettings.wallBottomRecess ?? 0,
   };
 
@@ -555,7 +560,15 @@ export const getCabinetTestingSettings = (
     }
   }
 
-  // 4. Override with previously saved unit-specific advancedSettings
+  // 4. Preset-specific defaults
+  if (unit.preset === 'Sink Unit') {
+    merged.showBackPanel = false;
+    merged.showShelves = false;
+    merged.showDrawers = false;
+    merged.numShelves = 0;
+  }
+
+  // 5. Override with previously saved unit-specific advancedSettings
   if (unit.advancedSettings) {
     merged = { ...merged, ...unit.advancedSettings };
     // Always respect the current width from the layout
@@ -571,13 +584,16 @@ export const getCabinetTestingSettings = (
     } else if (typeStr === 'tall') {
       merged.showDrawers = false;
       merged.showDoors = true;
+      merged.showLowerDoors = true;
+      merged.showLowerShelves = true;
+      merged.numLowerShelves = 2;
       merged.shelfDepth = initialDepth - merged.panelThickness - merged.backPanelThickness;
     }
   }
 
   merged.preset = unit.preset;
 
-  // 5. Ensure shelf depth is sane relative to current cabinet depth
+  // 6. Ensure shelf depth is sane relative to current cabinet depth
   // This prevents shelves sticking out when depth is reduced in sidebar or moving between zones
   const minClearance = 2;
   const doorSpace = merged.showDoors ? (merged.doorMaterialThickness + 2) : 0;
@@ -587,12 +603,7 @@ export const getCabinetTestingSettings = (
     merged.shelfDepth = maxShelfDepth;
   }
 
-  // 6. Hardcode Sink Unit defaults for all views
-  if (unit.preset === 'Sink Unit') {
-    merged.showBackPanel = false;
-    merged.showShelves = false;
-    merged.showDrawers = false;
-  }
+
 
   return merged;
 };

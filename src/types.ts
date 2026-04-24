@@ -82,6 +82,17 @@ export interface ProjectSettings {
   backPanelThickness: number;  // Back panel thickness - default: 6mm
   doorMaterialThickness: number; // Door material thickness - default: 18mm
   wallCabinetElevation: number; // Gap from counter top to wall cabinet bottom - default: 450mm
+  
+  // Manufacturing Settings
+  nailHoleDiameter: number;     // Nail hole diameter - default: 3mm
+  nailHoleDepth: number;        // Nail hole depth - default: 10mm
+  shelfHoleDiameter: number;    // Shelf hole diameter - default: 5mm
+  nailHoleShelfDistance: number; // Distance from shelf to nail hole - default: 20mm
+  golaLCutoutHeight: number;    // Gola L-cutout height - default: 55mm
+  golaLCutoutDepth: number;     // Gola L-cutout depth - default: 20mm
+  golaCCutoutHeight: number;    // Gola C-cutout height - default: 73.5mm
+  golaCutoutDepth: number;      // Gola C-cutout depth - default: 20mm
+  drawerBackClearance: number;  // Drawer back clearance - default: 20mm
 
   // Costing
   costs: CostSettings;
@@ -112,6 +123,7 @@ export interface Obstacle {
   fromLeft: number;
   width: number;
   height: number;
+  fromBottom?: number;
   sillHeight?: number; // Distance from floor to bottom of window
   elevation?: number; // Distance from floor (alias or used for other types)
   depth?: number;
@@ -160,6 +172,8 @@ export interface CabinetUnit {
   preset: PresetType;
   type: CabinetType;
   width: number;
+  height?: number;
+  depth?: number;
   qty: number;
   fromLeft: number;
   isAutoFilled?: boolean;
@@ -294,8 +308,7 @@ export interface SubscriptionPlan {
   features: string[];
   maxProjects: number;
   maxUsers?: number;
-  twocheckoutProductId: string | null;
-  paypalPlanId: string | null;
+  paddlePriceId: string | null;
 }
 
 export interface UserSubscription {
@@ -306,10 +319,8 @@ export interface UserSubscription {
   current_period_start: string;
   current_period_end: string;
   cancel_at_period_end: boolean;
-  twocheckout_subscription_id?: string;
-  paypal_subscription_id?: string;
-  paypal_order_id?: string;
-  paypal_payer_id?: string;
+  paddle_subscription_id?: string;
+  paddle_customer_id?: string;
   created_at?: string;
   updated_at?: string;
 }

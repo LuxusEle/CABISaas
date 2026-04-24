@@ -18,6 +18,7 @@ export const generateSheetDXF = (sheet: SheetLayout, settings: ProjectSettings):
   const layerKerf = writer.tables.layerTable.addLayer('KERF', 1, 'CONTINUOUS');
   const layerLabels = writer.tables.layerTable.addLayer('LABELS', 2, 'CONTINUOUS');
   const layerDimensions = writer.tables.layerTable.addLayer('DIMENSIONS', 4, 'CONTINUOUS');
+  const layerMachining = writer.tables.layerTable.addLayer('MACHINING', 1, 'CONTINUOUS'); // Red color
 
   const modelSpace = writer.modelSpace;
 
@@ -91,6 +92,97 @@ export const generateSheetDXF = (sheet: SheetLayout, settings: ProjectSettings):
       dimText,
       { layerName: layerDimensions.name }
     );
+
+    // Gola Machining Export
+    part.features?.forEach((feature) => {
+      if (feature === 'gola-top-l') {
+        const gWidth = 55;
+        const gHeight = 55;
+        const gX = part.rotated ? part.x + part.width - gWidth : part.x;
+        const gY = part.y;
+        
+        modelSpace.addLWPolyline(
+          [
+            { point: { x: gX, y: gY } },
+            { point: { x: gX + gWidth, y: gY } },
+            { point: { x: gX + gWidth, y: gY + gHeight } },
+            { point: { x: gX, y: gY + gHeight } },
+            { point: { x: gX, y: gY } }
+          ],
+          { flags: LWPolylineFlags.Closed, layerName: layerMachining.name }
+        );
+      } else if (feature.startsWith('gola-mid-c:')) {
+        const gh = parseFloat(feature.split(':')[1]);
+        const thickness = settings.thickness || 18;
+        const yOffsetFromBottom = gh - thickness / 2;
+        const totalLen = part.rotated ? part.width : part.length;
+        const yPosFromTop = totalLen - yOffsetFromBottom;
+        
+        const gWidth = part.rotated ? 73.5 : 35;
+        const gHeight = part.rotated ? 35 : 73.5;
+        const gX = part.rotated ? part.x + yPosFromTop - 36.75 : part.x;
+        const gY = part.rotated ? part.y : part.y + yPosFromTop - 36.75;
+
+        modelSpace.addLWPolyline(
+          [
+            { point: { x: gX, y: gY } },
+            { point: { x: gX + gWidth, y: gY } },
+            { point: { x: gX + gWidth, y: gY + gHeight } },
+            { point: { x: gX, y: gY + gHeight } },
+            { point: { x: gX, y: gY } }
+          ],
+          { flags: LWPolylineFlags.Closed, layerName: layerMachining.name }
+        );
+      } else if (feature === 'groove-back') {
+        const thickness = settings.thickness || 18;
+        const grooveWidth = (settings.backPanelThickness || 6) + 2;
+        
+        let gX, gY, gW, gH;
+        if (part.rotated) {
+          gX = part.x;
+          gY = part.y + part.length - thickness - grooveWidth;
+          gW = part.width;
+          gH = grooveWidth;
+        } else {
+          gX = part.x + part.width - thickness - grooveWidth;
+          gY = part.y;
+          gW = grooveWidth;
+          gH = part.length;
+        }
+
+        modelSpace.addLWPolyline(
+          [
+            { point: { x: gX, y: gY } },
+            { point: { x: gX + gW, y: gY } },
+            { point: { x: gX + gW, y: gY + gH } },
+            { point: { x: gX, y: gY + gH } },
+            { point: { x: gX, y: gY } }
+          ],
+          { flags: LWPolylineFlags.Closed, layerName: layerMachining.name }
+        );
+      } else if (feature === 'nail-holes') {
+        const technicalR = (settings.nailHoleDiameter || 3) / 2;
+        const thickness = settings.thickness || 18;
+        
+        // Basic nail holes at corners
+        const holePositions = [
+          { x: 50, y: 50 },
+          { x: part.width - 50, y: 50 },
+          { x: part.width - 50, y: part.length - 50 },
+          { x: 50, y: part.length - 50 }
+        ];
+
+        holePositions.forEach(hp => {
+          const segments = 16;
+          const pts = [];
+          for (let i = 0; i <= segments; i++) {
+            const angle = (i / segments) * 2 * Math.PI;
+            pts.push({ point: { x: part.x + hp.x + technicalR * Math.cos(angle), y: part.y + hp.y + technicalR * Math.sin(angle) } });
+          }
+          modelSpace.addLWPolyline(pts, { flags: LWPolylineFlags.Closed, layerName: layerMachining.name });
+        });
+      }
+    });
   });
 
   return writer.stringify();

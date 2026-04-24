@@ -134,6 +134,59 @@ export const CutPlanVisualizer: React.FC<Props> = ({ sheet, settings, index }) =
                       />
                     );
                   }
+                  if (feature === 'groove-back') {
+                    const thickness = settings.thickness || 18;
+                    const grooveWidth = (settings.backPanelThickness || 6) + 2;
+                    let gX, gY, gW, gH;
+                    if (part.rotated) {
+                      gX = part.x;
+                      gY = part.y + part.length - thickness - grooveWidth;
+                      gW = part.width;
+                      gH = grooveWidth;
+                    } else {
+                      gX = part.x + part.width - thickness - grooveWidth;
+                      gY = part.y;
+                      gW = grooveWidth;
+                      gH = part.length;
+                    }
+                    return (
+                      <rect 
+                        key={`groove-${fIdx}`}
+                        x={gX}
+                        y={gY}
+                        width={gW}
+                        height={gH}
+                        fill="#94a3b8"
+                        fillOpacity="0.3"
+                        stroke="#64748b"
+                        strokeWidth="0.5"
+                        strokeDasharray="2,2"
+                      />
+                    );
+                  }
+                  if (feature === 'nail-holes') {
+                    const technicalR = (settings.nailHoleDiameter || 3) / 2;
+                    const holePositions = [
+                      { x: 50, y: 50 },
+                      { x: part.width - 50, y: 50 },
+                      { x: part.width - 50, y: part.length - 50 },
+                      { x: 50, y: part.length - 50 }
+                    ];
+                    return (
+                      <g key={`nails-${fIdx}`}>
+                        {holePositions.map((hp, hIdx) => (
+                          <circle 
+                            key={`nail-${hIdx}`}
+                            cx={part.x + hp.x}
+                            cy={part.y + hp.y}
+                            r={technicalR}
+                            fill="#ef4444"
+                            fillOpacity="0.5"
+                          />
+                        ))}
+                      </g>
+                    );
+                  }
                   return null;
                 })}
                 

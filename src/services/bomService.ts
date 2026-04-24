@@ -570,6 +570,12 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
           yBase += drawerFrontH + golaGapTotal;
         }
       }
+      if (t.showBackPanel) {
+        f.push('groove-back');
+      }
+      if (t.showNailHoles) {
+        f.push('nail-holes');
+      }
       return f;
     })()
   });
@@ -584,8 +590,9 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
     material: carcassMaterial, 
     category: 'carcass', 
     label: labelPrefix, 
-    cabinetId: unit.id, 
-    cabinetLabel: unit.label 
+    cabinetId: unit.id,
+    cabinetLabel: unit.label,
+    features: t.showBackPanel ? ['groove-back'] : []
   });
   
   // Top/Stretchers
@@ -985,6 +992,8 @@ export const ensureProjectSettings = (project: Project): Project => {
     settings: {
       ...defaults.settings,
       ...project.settings,
+      // Migration: Snap old 2100mm default to new 2080mm aligned standard
+      tallHeight: project.settings?.tallHeight === 2100 ? 2080 : (project.settings?.tallHeight || defaults.settings.tallHeight),
       costs: {
         ...defaults.settings.costs,
         ...(project.settings?.costs || {})
@@ -1015,7 +1024,7 @@ export const createNewProject = (logoUrl?: string): Project => ({
     // Dimensions - Updated to match Ruby CBX defaults
     baseHeight: 870,    // Ruby: 870mm (includes plinth)
     wallHeight: 720,    // Ruby: 720mm
-    tallHeight: 2100,  // Ruby: 2100mm
+    tallHeight: 2080,  // Ruby: 2080mm (aligned)
     depthBase: 560,    // Ruby: 560mm
     depthWall: 350,    // Ruby: 350mm
     depthTall: 560,    // Ruby: 560mm
@@ -1037,6 +1046,15 @@ export const createNewProject = (logoUrl?: string): Project => ({
     backPanelThickness: 6,    // Ruby: 6mm
     doorMaterialThickness: 18, // Ruby: 18mm
     wallCabinetElevation: 450, // Gap from counter top to wall cabinet bottom - default: 450mm
+    nailHoleDiameter: 3,
+    nailHoleDepth: 10,
+    shelfHoleDiameter: 5,
+    nailHoleShelfDistance: 20,
+    golaLCutoutHeight: 55,
+    golaLCutoutDepth: 20,
+    golaCCutoutHeight: 73.5,
+    golaCutoutDepth: 20,
+    drawerBackClearance: 20,
     costs: {
       pricePerSheet: 85.00,
       pricePerHardwareUnit: 5.00,
@@ -1288,15 +1306,4 @@ export const buildProjectConstructionData = (project: Project): ConstructionPlan
   return data;
 };
 
-export const exportProjectToConstructionJSON = (project: Project) => {
-  const data = buildProjectConstructionData(project);
 
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.setAttribute("href", url);
-  link.setAttribute("download", `${project.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_construction.json`);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-};

@@ -5,9 +5,10 @@ interface RealisticSinkProps {
   width: number;
   depth: number;
   cabinetHeight: number;
+  opacity?: number;
 }
 
-export const RealisticSink: React.FC<RealisticSinkProps> = ({ width, depth, cabinetHeight }) => {
+export const RealisticSink: React.FC<RealisticSinkProps> = ({ width, depth, cabinetHeight, opacity = 1 }) => {
   const plateWidth = width * 0.95;
   const plateDepth = depth * 0.9;
   const bowlWidth = Math.min(width * 0.5, 450);
@@ -44,14 +45,28 @@ export const RealisticSink: React.FC<RealisticSinkProps> = ({ width, depth, cabi
             { depth: thickness, bevelEnabled: true, bevelThickness: 2, bevelSize: 2 }
           ]} 
         />
-        <meshStandardMaterial color="#b1b1b1" metalness={0.8} roughness={0.4} />
+        <meshStandardMaterial 
+          color="#b1b1b1" 
+          metalness={0.8} 
+          roughness={0.4} 
+          transparent={opacity < 1}
+          opacity={opacity}
+          depthWrite={opacity < 1 ? false : true}
+        />
       </mesh>
 
       {/* 2. Drainer Ribs (Decorative) */}
       {width > 600 && Array.from({ length: 8 }).map((_, i) => (
         <mesh key={i} position={[plateWidth * 0.25, 1, -bowlDepth/3 + i * 25]} rotation={[-Math.PI/2, 0, 0]}>
           <capsuleGeometry args={[2, plateWidth * 0.3, 4, 8]} />
-          <meshStandardMaterial color="#c0c0c0" metalness={0.8} roughness={0.4} />
+          <meshStandardMaterial 
+            color="#c0c0c0" 
+            metalness={0.8} 
+            roughness={0.4} 
+            transparent={opacity < 1}
+            opacity={opacity}
+            depthWrite={opacity < 1 ? false : true}
+          />
         </mesh>
       ))}
 
@@ -60,29 +75,71 @@ export const RealisticSink: React.FC<RealisticSinkProps> = ({ width, depth, cabi
         {/* Bottom */}
         <mesh position={[0, -bowlHeight/2 + thickness, 0]} receiveShadow>
           <boxGeometry args={[bowlWidth, thickness, bowlDepth]} />
-          <meshStandardMaterial color="#a0a0a0" metalness={0.6} roughness={0.5} />
+          <meshStandardMaterial 
+            color="#a0a0a0" 
+            metalness={0.6} 
+            roughness={0.5} 
+            transparent={opacity < 1}
+            opacity={opacity}
+            depthWrite={opacity < 1 ? false : true}
+          />
         </mesh>
         {/* Walls */}
         <mesh position={[-bowlWidth/2 + thickness/2, 0, 0]} castShadow receiveShadow>
           <boxGeometry args={[thickness, bowlHeight, bowlDepth]} />
-          <meshStandardMaterial color="#b0b0b0" metalness={0.6} roughness={0.5} />
+          <meshStandardMaterial 
+            color="#b0b0b0" 
+            metalness={0.6} 
+            roughness={0.5} 
+            transparent={opacity < 1}
+            opacity={opacity}
+            depthWrite={opacity < 1 ? false : true}
+          />
         </mesh>
         <mesh position={[bowlWidth/2 - thickness/2, 0, 0]} castShadow receiveShadow>
           <boxGeometry args={[thickness, bowlHeight, bowlDepth]} />
-          <meshStandardMaterial color="#b0b0b0" metalness={0.6} roughness={0.5} />
+          <meshStandardMaterial 
+            color="#b0b0b0" 
+            metalness={0.6} 
+            roughness={0.5} 
+            transparent={opacity < 1}
+            opacity={opacity}
+            depthWrite={opacity < 1 ? false : true}
+          />
         </mesh>
         <mesh position={[0, 0, -bowlDepth/2 + thickness/2]} castShadow receiveShadow>
           <boxGeometry args={[bowlWidth, bowlHeight, thickness]} />
-          <meshStandardMaterial color="#b0b0b0" metalness={0.6} roughness={0.5} />
+          <meshStandardMaterial 
+            color="#b0b0b0" 
+            metalness={0.6} 
+            roughness={0.5} 
+            transparent={opacity < 1}
+            opacity={opacity}
+            depthWrite={opacity < 1 ? false : true}
+          />
         </mesh>
         <mesh position={[0, 0, bowlDepth/2 - thickness/2]} castShadow receiveShadow>
           <boxGeometry args={[bowlWidth, bowlHeight, thickness]} />
-          <meshStandardMaterial color="#b0b0b0" metalness={0.6} roughness={0.5} />
+          <meshStandardMaterial 
+            color="#b0b0b0" 
+            metalness={0.6} 
+            roughness={0.5} 
+            transparent={opacity < 1}
+            opacity={opacity}
+            depthWrite={opacity < 1 ? false : true}
+          />
         </mesh>
         {/* Drain Hole detail */}
         <mesh position={[0, -bowlHeight/2 + thickness + 0.5, 0]} rotation={[-Math.PI/2, 0, 0]}>
           <circleGeometry args={[25, 32]} />
-          <meshStandardMaterial color="#1e1e1e" metalness={0.8} roughness={0.1} />
+          <meshStandardMaterial 
+            color="#1e1e1e" 
+            metalness={0.8} 
+            roughness={0.1} 
+            transparent={opacity < 1}
+            opacity={opacity}
+            depthWrite={opacity < 1 ? false : true}
+          />
         </mesh>
       </group>
 
@@ -91,27 +148,62 @@ export const RealisticSink: React.FC<RealisticSinkProps> = ({ width, depth, cabi
         {/* Base */}
         <mesh position={[0, 10, 0]} castShadow>
           <cylinderGeometry args={[15, 18, 20, 32]} />
-          <meshStandardMaterial color="#d8d8d8" metalness={0.8} roughness={0.2} />
+          <meshStandardMaterial 
+            color="#d8d8d8" 
+            metalness={0.8} 
+            roughness={0.2} 
+            transparent={opacity < 1}
+            opacity={opacity}
+            depthWrite={opacity < 1 ? false : true}
+          />
         </mesh>
         {/* Main Vertical Pipe */}
         <mesh position={[0, 100, 0]} castShadow>
           <cylinderGeometry args={[10, 10, 180, 32]} />
-          <meshStandardMaterial color="#d8d8d8" metalness={0.8} roughness={0.2} />
+          <meshStandardMaterial 
+            color="#d8d8d8" 
+            metalness={0.8} 
+            roughness={0.2} 
+            transparent={opacity < 1}
+            opacity={opacity}
+            depthWrite={opacity < 1 ? false : true}
+          />
         </mesh>
         {/* The Curve (Gooseneck) */}
         <mesh position={[0, 190, 40]} rotation={[0, Math.PI/2, 0]} castShadow>
           <torusGeometry args={[40, 10, 16, 100, Math.PI]} />
-          <meshStandardMaterial color="#d8d8d8" metalness={0.8} roughness={0.2} />
+          <meshStandardMaterial 
+            color="#d8d8d8" 
+            metalness={0.8} 
+            roughness={0.2} 
+            transparent={opacity < 1}
+            opacity={opacity}
+            depthWrite={opacity < 1 ? false : true}
+          />
         </mesh>
         {/* Spout End */}
         <mesh position={[0, 175, 80]} castShadow>
           <cylinderGeometry args={[10, 12, 30, 32]} />
-          <meshStandardMaterial color="#d8d8d8" metalness={0.8} roughness={0.2} />
+          <meshStandardMaterial 
+            color="#d8d8d8" 
+            metalness={0.8} 
+            roughness={0.2} 
+            transparent={opacity < 1}
+            opacity={opacity}
+            depthWrite={opacity < 1 ? false : true}
+          />
         </mesh>
         {/* Handle */}
         <mesh position={[20, 40, 0]} rotation={[0, 0, -Math.PI/4]} castShadow>
            <capsuleGeometry args={[5, 40, 4, 8]} />
-           <meshStandardMaterial color="#c0c0c0" metalness={0.8} roughness={0.2} />
+           <meshStandardMaterial 
+             color="#c0c0c0" 
+             metalness={0.8} 
+             roughness={0.2} 
+             transparent={opacity < 1}
+             opacity={opacity}
+             depthWrite={opacity < 1 ? false : true}
+           />
         </mesh>
       </group>
     </group>

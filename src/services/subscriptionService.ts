@@ -14,8 +14,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       'Community support'
     ],
     maxProjects: 3,
-    twocheckoutProductId: null,
-    paypalPlanId: null
+    paddlePriceId: null
   },
   {
     id: 'pro',
@@ -32,8 +31,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       'Material management'
     ],
     maxProjects: -1,
-    twocheckoutProductId: null,
-    paypalPlanId: 'P-PRO-29-MONTHLY'
+    paddlePriceId: import.meta.env.VITE_PADDLE_PRO_PRICE_ID || null
   }
 ];
 
@@ -50,17 +48,19 @@ export const subscriptionService = {
       .from('subscriptions')
       .select('*')
       .eq('user_id', userData.user.id)
-      .single();
+      .order('created_at', { ascending: false })
+      .limit(1);
 
     if (error) {
-      if (error.code === 'PGRST116') {
-        return this.createFreeSubscription(userData.user.id);
-      }
       console.error('Error fetching subscription:', error);
       return null;
     }
 
-    return data;
+    if (!data || data.length === 0) {
+      return this.createFreeSubscription(userData.user.id);
+    }
+
+    return data[0];
   },
 
   async createFreeSubscription(userId: string): Promise<UserSubscription> {
@@ -80,6 +80,15 @@ export const subscriptionService = {
       .single();
 
     if (error) {
+      if (error.code === '23505') { // Unique constraint violation
+        // Row already exists, just fetch it
+        const { data: existing } = await supabase
+          .from('subscriptions')
+          .select('*')
+          .eq('user_id', userId)
+          .single();
+        return existing;
+      }
       console.error('Error creating free subscription:', error);
       throw error;
     }
@@ -87,98 +96,63 @@ export const subscriptionService = {
     return data;
   },
 
-  async initiatePayPalSubscription(planId: string): Promise<{ subscriptionId: string; approvalUrl: string } | null> {
+  async initiatePaddleSubscription(planId: string): Promise<void> {
     const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) return null;
+    if (!userData.user) throw new Error('User not logged in');
 
     const plan = SUBSCRIPTION_PLANS.find(p => p.id === planId);
-    if (!plan || plan.id === 'free') return null;
+    if (!plan || !plan.paddlePriceId) throw new Error('Invalid plan or missing Paddle Price ID');
 
-    try {
-      const { data, error } = await supabase.functions.invoke('create-paypal-subscription', {
-        body: { planId: plan.id }
-      });
+    const { openPaddleCheckout } = await import('./paddle');
 
-      if (error) {
-        console.error('Error creating PayPal subscription:', error);
-        return null;
-      }
-
-      return data;
-    } catch (err) {
-      console.error('PayPal subscription error:', err);
-      return null;
-    }
+    openPaddleCheckout({
+      priceId: plan.paddlePriceId,
+      userId: userData.user.id,
+      userEmail: userData.user.email,
+    });
   },
 
   async cancelSubscription(): Promise<boolean> {
+    // In Paddle, we usually prefer directing users to the Customer Portal
+    return this.manageSubscription();
+  },
+
+  async manageSubscription(): Promise<boolean> {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) return false;
 
-    const { data: subscription } = await supabase
+    const { data: sub } = await supabase
       .from('subscriptions')
-      .select('paypal_subscription_id')
+      .select('paddle_customer_id')
       .eq('user_id', userData.user.id)
       .single();
 
-    if (subscription?.paypal_subscription_id) {
-      try {
-        const { error } = await supabase.functions.invoke('cancel-paypal-subscription', {
-          body: { subscriptionId: subscription.paypal_subscription_id }
-        });
-        
-        if (error) {
-          console.error('Error cancelling PayPal subscription:', error);
-        }
-      } catch (err) {
-        console.error('Cancel subscription error:', err);
-      }
-    }
-
-    const { error } = await supabase
-      .from('subscriptions')
-      .update({ 
-        cancel_at_period_end: true,
-        updated_at: new Date().toISOString()
-      })
-      .eq('user_id', userData.user.id);
-
-    if (error) {
-      console.error('Error cancelling subscription:', error);
+    if (!sub?.paddle_customer_id) {
+      alert('Could not find your customer record. Please contact support.');
       return false;
     }
 
+    const { openPaddleCheckout } = await import('./paddle');
+    
+    openPaddleCheckout({
+      customerId: sub.paddle_customer_id,
+      userId: userData.user.id,
+      // In Paddle v2, opening with a customer ID allows them to see their billing
+      onClose: () => {
+        window.location.reload();
+      }
+    });
+    
     return true;
   },
 
   async resumeSubscription(): Promise<boolean> {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) return false;
-
-    const { error } = await supabase
-      .from('subscriptions')
-      .update({ 
-        cancel_at_period_end: false,
-        updated_at: new Date().toISOString()
-      })
-      .eq('user_id', userData.user.id);
-
-    if (error) {
-      console.error('Error resuming subscription:', error);
-      return false;
-    }
-
-    return true;
+    return this.manageSubscription();
   },
 
   async canCreateProject(): Promise<boolean> {
-    const subscription = await this.getUserSubscription();
-    if (!subscription) return false;
-
-    const plan = SUBSCRIPTION_PLANS.find(p => p.id === subscription.plan_id);
-    if (!plan) return false;
-
-    if (plan.maxProjects === -1) return true;
+    const isPro = await this.isPro();
+    if (isPro) return true;
 
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) return false;
@@ -188,7 +162,20 @@ export const subscriptionService = {
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userData.user.id);
 
-    return (count || 0) < plan.maxProjects;
+    return (count || 0) < 3;
+  },
+
+  async isPro(): Promise<boolean> {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) return false;
+
+    const { data: sub } = await supabase
+      .from('subscriptions')
+      .select('plan_id, status')
+      .eq('user_id', userData.user.id)
+      .single();
+
+    return sub?.plan_id === 'pro' && sub?.status === 'active';
   },
 
   async getCurrentPlan(): Promise<SubscriptionPlan | null> {

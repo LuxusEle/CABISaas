@@ -16,19 +16,21 @@ interface Props {
   onPointerMove?: (e: any) => void;
   onPointerOut?: (e: any) => void;
   onPointerUp?: (e: any) => void;
+  opacity?: number;
 }
 
 export const Wall: React.FC<Props> = ({ 
   position, width, height, rotation, 
   obstacles = [], wallIndex = 0, isActive = false, 
   onClick, lightTheme = false, showGrid = false,
-  onPointerMove, onPointerOut, onPointerUp
+  onPointerMove, onPointerOut, onPointerUp,
+  opacity = 1
 }) => {
   const wallThickness = 50;
   const wallDepth = wallThickness;
 
   const activeColor = lightTheme ? '#cbd5e1' : '#94a3b8';
-  const activeOpacity = lightTheme ? 0.8 : 0.3;
+  const activeOpacity = (lightTheme ? 0.8 : 0.3) * opacity;
 
   const openings = obstacles.filter(o => o.type === 'window' || o.type === 'door');
   const protrudingObstacles = obstacles.filter(o => (o.type === 'column' || o.type === 'pipe') && !o.id.startsWith('corner_'));
@@ -51,7 +53,7 @@ export const Wall: React.FC<Props> = ({
           onPointerUp={onPointerUp}
         >
           <boxGeometry args={[width, height, wallDepth]} />
-          <meshStandardMaterial color={activeColor} roughness={0.9} transparent opacity={activeOpacity} />
+          <meshStandardMaterial color={activeColor} roughness={0.9} transparent opacity={activeOpacity} depthWrite={opacity < 1 ? false : true} />
         </mesh>
       );
       return segments;
@@ -83,7 +85,7 @@ export const Wall: React.FC<Props> = ({
             onPointerUp={onPointerUp}
           >
             <boxGeometry args={[segWidth, height, wallDepth]} />
-            <meshStandardMaterial color={activeColor} roughness={0.9} transparent opacity={activeOpacity} />
+            <meshStandardMaterial color={activeColor} roughness={0.9} transparent opacity={activeOpacity} depthWrite={opacity < 1 ? false : true} />
           </mesh>
         );
       }
@@ -101,7 +103,7 @@ export const Wall: React.FC<Props> = ({
             onPointerUp={onPointerUp}
           >
             <boxGeometry args={[openingWidth, aboveHeight, wallDepth]} />
-            <meshStandardMaterial color={activeColor} roughness={0.9} transparent opacity={activeOpacity} />
+            <meshStandardMaterial color={activeColor} roughness={0.9} transparent opacity={activeOpacity} depthWrite={opacity < 1 ? false : true} />
           </mesh>
         );
       }
@@ -119,7 +121,7 @@ export const Wall: React.FC<Props> = ({
             onPointerUp={onPointerUp}
           >
             <boxGeometry args={[openingWidth, belowHeight, wallDepth]} />
-            <meshStandardMaterial color={activeColor} roughness={0.9} transparent opacity={activeOpacity} />
+            <meshStandardMaterial color={activeColor} roughness={0.9} transparent opacity={activeOpacity} depthWrite={opacity < 1 ? false : true} />
           </mesh>
         );
       }
@@ -140,7 +142,7 @@ export const Wall: React.FC<Props> = ({
           onPointerUp={onPointerUp}
         >
           <boxGeometry args={[segWidth, height, wallDepth]} />
-          <meshStandardMaterial color={activeColor} roughness={0.9} transparent opacity={activeOpacity} />
+          <meshStandardMaterial color={activeColor} roughness={0.9} transparent opacity={activeOpacity} depthWrite={opacity < 1 ? false : true} />
         </mesh>
       );
     }
@@ -170,16 +172,23 @@ export const Wall: React.FC<Props> = ({
             <group key={`opening-${index}`}>
               <mesh position={[opening.fromLeft + openingWidth / 2, openingY, -wallDepth / 2]}>
                 <boxGeometry args={[openingWidth + 8, openingHeight + 8, wallDepth + 4]} />
-                <meshStandardMaterial color={lightTheme ? '#64748b' : '#020617'} roughness={0.8} />
+                <meshStandardMaterial 
+                  color={lightTheme ? '#64748b' : '#020617'} 
+                  roughness={0.8} 
+                  transparent={opacity < 1}
+                  opacity={opacity}
+                  depthWrite={opacity < 1 ? false : true}
+                />
               </mesh>
               <mesh position={[opening.fromLeft + openingWidth / 2, openingY, -wallDepth / 2]}>
                 <boxGeometry args={[openingWidth - 4, openingHeight - 4, wallDepth - 4]} />
                 <meshStandardMaterial 
                   color="#93c5fd" 
                   transparent 
-                  opacity={0.4} 
+                  opacity={0.4 * opacity} 
                   roughness={0.1}
                   metalness={0.0}
+                  depthWrite={opacity < 1 ? false : true}
                 />
               </mesh>
             </group>
@@ -191,11 +200,23 @@ export const Wall: React.FC<Props> = ({
             <group key={`opening-${index}`}>
               <mesh position={[opening.fromLeft + openingWidth / 2, openingY, -wallDepth / 2]}>
                 <boxGeometry args={[openingWidth + 8, openingHeight + 8, wallDepth + 4]} />
-                <meshStandardMaterial color={lightTheme ? '#64748b' : '#020617'} roughness={0.8} />
+                <meshStandardMaterial 
+                  color={lightTheme ? '#64748b' : '#020617'} 
+                  roughness={0.8} 
+                  transparent={opacity < 1}
+                  opacity={opacity}
+                  depthWrite={opacity < 1 ? false : true}
+                />
               </mesh>
               <mesh position={[opening.fromLeft + openingWidth / 2, openingY, -wallDepth / 2]}>
                 <boxGeometry args={[openingWidth - 4, openingHeight - 4, wallDepth - 4]} />
-                <meshStandardMaterial color={lightTheme ? '#cbd5e1' : '#0f172a'} roughness={0.9} />
+                <meshStandardMaterial 
+                  color={lightTheme ? '#cbd5e1' : '#0f172a'} 
+                  roughness={0.9} 
+                  transparent={opacity < 1}
+                  opacity={opacity}
+                  depthWrite={opacity < 1 ? false : true}
+                />
               </mesh>
             </group>
           );
@@ -217,8 +238,9 @@ export const Wall: React.FC<Props> = ({
           color={lightTheme ? '#f1f5f9' : '#e2e8f0'} 
           roughness={0.8} 
           transparent 
-          opacity={showGrid ? 0.4 : (lightTheme ? 0.5 : 0.2)} 
+          opacity={(showGrid ? 0.4 : (lightTheme ? 0.5 : 0.2)) * opacity} 
           side={2} 
+          depthWrite={opacity < 1 ? false : true}
         />
       </mesh>
 
@@ -258,6 +280,9 @@ export const Wall: React.FC<Props> = ({
                 ? (lightTheme ? '#94a3b8' : '#0f172a') 
                 : (lightTheme ? '#a8a29e' : '#1c1917')} 
               roughness={0.7} 
+              transparent={opacity < 1}
+              opacity={opacity}
+              depthWrite={opacity < 1 ? false : true}
             />
           </mesh>
         );

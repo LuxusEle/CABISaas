@@ -296,7 +296,7 @@ export const CabinetTestingPage: React.FC<{ isDark?: boolean }> = ({ isDark = tr
                         <span className="text-blue-400">{settings.doorOpenAngle}°</span>
                       </label>
                       <input 
-                        type="range" min="0" max="110" step="1" 
+                        type="range" min="0" max="45" step="1" 
                         value={settings.doorOpenAngle} 
                         onChange={(e) => updateSetting('doorOpenAngle', parseInt(e.target.value))} 
                         className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500" 
@@ -362,7 +362,7 @@ export const CabinetTestingPage: React.FC<{ isDark?: boolean }> = ({ isDark = tr
                         <span className="text-amber-400">{settings.lowerDoorOpenAngle}°</span>
                       </label>
                       <input 
-                        type="range" min="0" max="110" step="1" 
+                        type="range" min="0" max="45" step="1" 
                         value={settings.lowerDoorOpenAngle} 
                         onChange={(e) => updateSetting('lowerDoorOpenAngle', parseInt(e.target.value))} 
                         className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-500" 
@@ -441,7 +441,7 @@ export const CabinetTestingPage: React.FC<{ isDark?: boolean }> = ({ isDark = tr
                         <span className="text-blue-500">{settings.doorOpenAngle}°</span>
                       </label>
                       <input 
-                        type="range" min="0" max="110" step="1" 
+                        type="range" min="0" max="45" step="1" 
                         value={settings.doorOpenAngle} 
                         onChange={(e) => updateSetting('doorOpenAngle', parseInt(e.target.value))} 
                         className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500" 
@@ -456,7 +456,7 @@ export const CabinetTestingPage: React.FC<{ isDark?: boolean }> = ({ isDark = tr
                       <span className="text-blue-500">{settings.doorOpenAngle}°</span>
                     </label>
                     <input 
-                      type="range" min="0" max="110" step="1" 
+                      type="range" min="0" max="45" step="1" 
                       value={settings.doorOpenAngle} 
                       onChange={(e) => updateSetting('doorOpenAngle', parseInt(e.target.value))} 
                       className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500" 

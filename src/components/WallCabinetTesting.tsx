@@ -325,7 +325,7 @@ export const WallCabinetTesting: React.FC<Props> = ({ settings }) => {
             <group position={[pivotX, 0, 0]} rotation={[0, rotationDirection * doorAngle, 0]}>
               <mesh position={[-pivotX, 0, doorMaterialThickness / 2]} castShadow receiveShadow visible={!skeletonView}>
                 <primitive object={doorGeos[i]} attach="geometry" />
-                <meshStandardMaterial color={doorColor} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
+                <meshStandardMaterial color={doorColor} roughness={0.4} metalness={0} transparent={true} opacity={settings.opacity} side={THREE.DoubleSide} depthWrite={settings.opacity < 1 ? false : true} />
               </mesh>
               {skeletonView && (
                 <lineSegments position={[-pivotX, 0, doorMaterialThickness / 2]}>
@@ -336,18 +336,18 @@ export const WallCabinetTesting: React.FC<Props> = ({ settings }) => {
               {shouldShow('door') && !isGolaActive && (
                 <mesh position={[handleXOffset - pivotX, -doorHeight / 2 + 50, doorMaterialThickness + 5]} rotation={[0, 0, Math.PI / 2]} castShadow>
                   <cylinderGeometry args={[3, 3, 60, 16]} />
-                  <meshStandardMaterial color="#4a5568" metalness={0.8} roughness={0.2} />
+                  <meshStandardMaterial color="#4a5568" metalness={0.8} roughness={0.2} transparent={settings.opacity < 1} opacity={settings.opacity} />
                 </mesh>
               )}
               {showHinges && (
                 <>
                   <mesh position={[hingeXOffset - pivotX, doorHeight / 2 - hingeVerticalOffset, -hingeDepth / 2]} rotation={[Math.PI / 2, 0, 0]} castShadow>
                     <cylinderGeometry args={[hingeDiameter / 2, hingeDiameter / 2, hingeDepth, 16]} />
-                    <meshStandardMaterial color="#333333" metalness={0.9} roughness={0.1} />
+                    <meshStandardMaterial color="#333333" metalness={0.9} roughness={0.1} transparent={settings.opacity < 1} opacity={settings.opacity} />
                   </mesh>
                   <mesh position={[hingeXOffset - pivotX, -doorHeight / 2 + hingeVerticalOffset + (isGolaActive ? settings.doorOverride : 0), -hingeDepth / 2]} rotation={[Math.PI / 2, 0, 0]} castShadow>
                     <cylinderGeometry args={[hingeDiameter / 2, hingeDiameter / 2, hingeDepth, 16]} />
-                    <meshStandardMaterial color="#333333" metalness={0.9} roughness={0.1} />
+                    <meshStandardMaterial color="#333333" metalness={0.9} roughness={0.1} transparent={settings.opacity < 1} opacity={settings.opacity} />
                   </mesh>
                 </>
               )}
@@ -356,7 +356,7 @@ export const WallCabinetTesting: React.FC<Props> = ({ settings }) => {
         );
       })}
 
-      {showShelves && numShelves > 0 && skeletonView && settings.preset !== 'Cooker Hood' && Array.from({ length: numShelves }).map((_, i) => {
+      {showShelves && numShelves > 0 && skeletonView && Array.from({ length: numShelves }).map((_, i) => {
         const availableHeight = innerHeight - panelThickness * 2;
         const spacing = availableHeight / (numShelves + 1);
         const shelfY = -innerHeight / 2 + panelThickness + spacing * (i + 1);
@@ -369,7 +369,7 @@ export const WallCabinetTesting: React.FC<Props> = ({ settings }) => {
         );
       })}
 
-      {showShelves && numShelves > 0 && !skeletonView && settings.preset !== 'Cooker Hood' && Array.from({ length: numShelves }).map((_, i) => {
+      {showShelves && numShelves > 0 && !skeletonView && Array.from({ length: numShelves }).map((_, i) => {
         const availableHeight = innerHeight - panelThickness * 2;
         const spacing = availableHeight / (numShelves + 1);
         const shelfY = -innerHeight / 2 + panelThickness + spacing * (i + 1);

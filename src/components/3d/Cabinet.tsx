@@ -28,6 +28,7 @@ interface Props {
   forceGola?: boolean;
   opacity?: number;
   isSelected?: boolean;
+  skeletonView?: boolean;
 }
 
 const DimensionLine: React.FC<{
@@ -97,7 +98,8 @@ export const Cabinet: React.FC<Props> = ({
   doorOpenAngle,
   forceGola,
   opacity = 1,
-  isSelected = false
+  isSelected = false,
+  skeletonView = false
 }) => {
   const [hovered, setHovered] = React.useState(false);
 
@@ -113,7 +115,7 @@ export const Cabinet: React.FC<Props> = ({
   // Use effective dimensions (layout sizes)
   const width = unit.width;
   const depth = unit.advancedSettings?.depth || (isWall ? (settings?.depthWall || 350) : isTall ? (settings?.depthTall || 560) : (settings?.depthBase || 560));
-  const height = isTall ? (settings?.tallHeight || 2100) : isWall ? (settings?.wallHeight || 720) : (settings?.baseHeight || 870);
+  const height = isTall ? ((settings?.tallHeight === 2100 || !settings?.tallHeight) ? ((settings?.baseHeight || 870) + (settings?.counterThickness || 40) + (settings?.wallCabinetElevation || 450) + (settings?.wallHeight || 720)) : settings.tallHeight) : isWall ? (settings?.wallHeight || 720) : (settings?.baseHeight || 870);
   
   const baseHeight = settings?.baseHeight || 870;
   const counterThickness = settings?.counterThickness || 40;
@@ -132,12 +134,13 @@ export const Cabinet: React.FC<Props> = ({
     if (forceGola !== undefined) s.enableGola = forceGola;
     if (opacity !== undefined) s.opacity = opacity;
     s.isSelected = isSelected;
+    if (skeletonView !== undefined) s.skeletonView = skeletonView;
     if (doorOpenAngle !== undefined) {
       s.doorOpenAngle = doorOpenAngle;
       s.lowerDoorOpenAngle = doorOpenAngle;
     }
     return s;
-  }, [unit, settings, width, height, depth, doorOpenAngle, forceGola, opacity, isSelected]);
+  }, [unit, settings, width, height, depth, doorOpenAngle, forceGola, opacity, isSelected, skeletonView]);
 
   return (
     <group 
@@ -157,15 +160,15 @@ export const Cabinet: React.FC<Props> = ({
         <mesh position={[width / 2, zBase + height / 2, depth / 2]}>
           <boxGeometry args={[width + 6, height + 6, depth + 6]} />
           <meshStandardMaterial 
-            color="#fbbf24" 
+            color="#3b82f6" 
             transparent 
             opacity={0.15} 
-            emissive="#fbbf24"
+            emissive="#3b82f6"
             emissiveIntensity={1.5}
             side={THREE.DoubleSide}
           />
           <Outlines 
-            color="#fbbf24" 
+            color="#3b82f6" 
             thickness={4}
             screenspace
             transparent
@@ -216,7 +219,14 @@ export const Cabinet: React.FC<Props> = ({
         <group position={[width / 2, zBase + height, depth / 2]}>
           <mesh position={[0, counterThickness / 2, 0]} castShadow receiveShadow>
             <boxGeometry args={[width + 20, counterThickness, depth + 20]} />
-            <meshStandardMaterial color="#9ca3af" roughness={0.3} metalness={0.1} />
+            <meshStandardMaterial 
+              color="#9ca3af" 
+              roughness={0.3} 
+              metalness={0.1} 
+              transparent={testingSettings.opacity < 1} 
+              opacity={testingSettings.opacity}
+              depthWrite={testingSettings.opacity < 1 ? false : true}
+            />
           </mesh>
         </group>
       )}
@@ -244,13 +254,11 @@ export const Cabinet: React.FC<Props> = ({
         </group>
       )}
 
-      {label && (
-        <Html position={[width / 2, zBase + height + 50, depth / 2]} center style={{ pointerEvents: 'none', whiteSpace: 'nowrap' }}>
-          <div className={`transition-all duration-300 transform ${isSelected ? 'bg-amber-600 scale-125 ring-2 ring-white shadow-[0_0_20px_rgba(245,158,11,0.5)] px-3 py-1.5' : 'bg-amber-500/90 px-2 py-1'} text-white rounded text-xs font-bold`}>
-            {label}
-          </div>
-        </Html>
-      )}
+      <Html position={[width / 2, zBase + height + 50, depth / 2]} center style={{ pointerEvents: 'none', whiteSpace: 'nowrap' }}>
+        <div className={`transition-all duration-300 transform ${isSelected ? 'bg-blue-600 scale-125 ring-2 ring-white shadow-[0_0_20px_rgba(59,130,246,0.5)] px-3 py-1.5' : 'bg-slate-500/90 px-2 py-1'} text-white rounded text-xs font-bold`}>
+          {label || unit.label || unit.preset.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+        </div>
+      </Html>
     </group>
   );
 };
