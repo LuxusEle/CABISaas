@@ -79,7 +79,9 @@ export interface TestingSettings {
   showUpperDoors: boolean;
   lowerDoorOpenAngle: number;
   isSelected: boolean;
+  isStudio?: boolean;
   preset?: string;
+  woodTexture?: THREE.Texture;
 }
 
 export const DEFAULT_SETTINGS: TestingSettings = {
@@ -196,9 +198,38 @@ export const createDoorWithHingeHoles = (
   backGeo.translate(0, 0, -doorThickness / 2 + hingeDepth);
 
   let mergedGeo = BufferGeometryUtils.mergeGeometries([frontGeo, backGeo]);
-  mergedGeo = BufferGeometryUtils.mergeVertices(mergedGeo);
   mergedGeo.center();
+
+  mergedGeo.computeVertexNormals();
+  mergedGeo.computeBoundingBox();
   
+  const bbox = mergedGeo.boundingBox;
+  if (!bbox) return mergedGeo;
+
+  const newPositions = mergedGeo.attributes.position;
+  const normals = mergedGeo.attributes.normal;
+  const uvs = new Float32Array(newPositions.count * 2);
+  for (let i = 0; i < newPositions.count; i++) {
+    const x = newPositions.getX(i) - bbox.min.x;
+    const y = newPositions.getY(i) - bbox.min.y;
+    const z = newPositions.getZ(i) - bbox.min.z;
+    const nx = Math.abs(normals.getX(i));
+    const ny = Math.abs(normals.getY(i));
+    const nz = Math.abs(normals.getZ(i));
+
+    if (nx > ny && nx > nz) {
+      uvs[i * 2] = z;
+      uvs[i * 2 + 1] = y;
+    } else if (ny > nx && ny > nz) {
+      uvs[i * 2] = x;
+      uvs[i * 2 + 1] = z;
+    } else {
+      uvs[i * 2] = x;
+      uvs[i * 2 + 1] = y;
+    }
+  }
+  mergedGeo.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+
   return mergedGeo;
 };
 
@@ -291,8 +322,6 @@ export const createGroovedPanelGeo = (
     ? BufferGeometryUtils.mergeGeometries(segments) 
     : segments[0];
 
-  finalGeo = BufferGeometryUtils.mergeVertices(finalGeo);
-
   const positions = finalGeo.attributes.position;
   for (let i = 0; i < positions.count; i++) {
     const u = positions.getX(i);
@@ -307,6 +336,35 @@ export const createGroovedPanelGeo = (
   }
 
   finalGeo.computeVertexNormals();
+  finalGeo.computeBoundingBox();
+  
+  const bbox = finalGeo.boundingBox;
+  if (!bbox) return finalGeo;
+  
+  const newPositions = finalGeo.attributes.position;
+  const normals = finalGeo.attributes.normal;
+  const uvs = new Float32Array(newPositions.count * 2);
+  for (let i = 0; i < newPositions.count; i++) {
+    const x = newPositions.getX(i) - bbox.min.x;
+    const y = newPositions.getY(i) - bbox.min.y;
+    const z = newPositions.getZ(i) - bbox.min.z;
+    const nx = Math.abs(normals.getX(i));
+    const ny = Math.abs(normals.getY(i));
+    const nz = Math.abs(normals.getZ(i));
+
+    if (nx > ny && nx > nz) {
+      uvs[i * 2] = z;
+      uvs[i * 2 + 1] = y;
+    } else if (ny > nx && ny > nz) {
+      uvs[i * 2] = x;
+      uvs[i * 2 + 1] = z;
+    } else {
+      uvs[i * 2] = x;
+      uvs[i * 2 + 1] = y;
+    }
+  }
+  finalGeo.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+
   return finalGeo;
 };
 
@@ -454,8 +512,6 @@ export const createPanelWithHolesGeo = (
     ? BufferGeometryUtils.mergeGeometries(layers) 
     : layers[0];
   
-  mergedGeo = BufferGeometryUtils.mergeVertices(mergedGeo);
-  
   const positions = mergedGeo.attributes.position;
   for (let i = 0; i < positions.count; i++) {
     const depthVal = positions.getX(i);
@@ -480,6 +536,36 @@ export const createPanelWithHolesGeo = (
   }
   
   mergedGeo.computeVertexNormals();
+  mergedGeo.computeBoundingBox();
+  
+  const bbox = mergedGeo.boundingBox;
+  if (!bbox) return mergedGeo;
+  
+  // Apply box projection UVs to fix texture mapping after swizzling
+  const newPositions = mergedGeo.attributes.position;
+  const normals = mergedGeo.attributes.normal;
+  const uvs = new Float32Array(newPositions.count * 2);
+  for (let i = 0; i < newPositions.count; i++) {
+    const x = newPositions.getX(i) - bbox.min.x;
+    const y = newPositions.getY(i) - bbox.min.y;
+    const z = newPositions.getZ(i) - bbox.min.z;
+    const nx = Math.abs(normals.getX(i));
+    const ny = Math.abs(normals.getY(i));
+    const nz = Math.abs(normals.getZ(i));
+
+    if (nx > ny && nx > nz) {
+      uvs[i * 2] = z;
+      uvs[i * 2 + 1] = y;
+    } else if (ny > nx && ny > nz) {
+      uvs[i * 2] = x;
+      uvs[i * 2 + 1] = z;
+    } else {
+      uvs[i * 2] = x;
+      uvs[i * 2 + 1] = y;
+    }
+  }
+  mergedGeo.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+
   return mergedGeo;
 };
 

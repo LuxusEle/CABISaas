@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Html, Outlines } from '@react-three/drei';
 import * as THREE from 'three';
+import { useLoader } from '@react-three/fiber';
 import { CabinetUnit, CabinetType, ProjectSettings } from '../../types';
 import { getCabinetTestingSettings } from '../CabinetTestingUtils';
 import { BaseCabinetTesting } from '../BaseCabinetTesting';
@@ -29,6 +30,7 @@ interface Props {
   opacity?: number;
   isSelected?: boolean;
   skeletonView?: boolean;
+  isStudio?: boolean;
 }
 
 const DimensionLine: React.FC<{
@@ -99,7 +101,8 @@ export const Cabinet: React.FC<Props> = ({
   forceGola,
   opacity = 1,
   isSelected = false,
-  skeletonView = false
+  skeletonView = false,
+  isStudio = false
 }) => {
   const [hovered, setHovered] = React.useState(false);
 
@@ -128,6 +131,20 @@ export const Cabinet: React.FC<Props> = ({
 
   const isCooker = unit.preset === PresetType.COOKER_HOB || (unit.preset === PresetType.BASE_DRAWER_3 && width >= 800);
 
+  const rawWoodTexture = isStudio ? useLoader(THREE.TextureLoader, '/textures/wood_light.png') : undefined;
+  
+  const woodTexture = React.useMemo(() => {
+    if (rawWoodTexture) {
+      const tex = rawWoodTexture.clone();
+      tex.wrapS = tex.wrapT = THREE.MirroredRepeatWrapping;
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.repeat.set(1/4000, 1/4000);
+      tex.needsUpdate = true;
+      return tex;
+    }
+    return undefined;
+  }, [rawWoodTexture]);
+
   // Merge legacy project settings and advanced testing settings
   const testingSettings = useMemo(() => {
     const s = getCabinetTestingSettings(unit, settings || {}, width, height, depth);
@@ -135,12 +152,16 @@ export const Cabinet: React.FC<Props> = ({
     if (opacity !== undefined) s.opacity = opacity;
     s.isSelected = isSelected;
     if (skeletonView !== undefined) s.skeletonView = skeletonView;
+    if (isStudio !== undefined) s.isStudio = isStudio;
     if (doorOpenAngle !== undefined) {
       s.doorOpenAngle = doorOpenAngle;
       s.lowerDoorOpenAngle = doorOpenAngle;
     }
+    if (woodTexture) {
+      s.woodTexture = woodTexture;
+    }
     return s;
-  }, [unit, settings, width, height, depth, doorOpenAngle, forceGola, opacity, isSelected, skeletonView]);
+  }, [unit, settings, width, height, depth, doorOpenAngle, forceGola, opacity, isSelected, skeletonView, isStudio, woodTexture]);
 
   return (
     <group 
@@ -206,6 +227,24 @@ export const Cabinet: React.FC<Props> = ({
           ) : (
             <WallCabinetTesting settings={testingSettings} />
           )}
+          
+          {/* LED Strip Lighting (Under-cabinet) */}
+          {isStudio && (
+            <group position={[width / 2, 0, depth / 2]}>
+              <mesh position={[0, -2, -depth / 2 + 30]}>
+                <boxGeometry args={[width - 20, 4, 15]} />
+                <meshBasicMaterial color="#fffbeb" />
+              </mesh>
+              <rectAreaLight 
+                position={[0, -2, -depth / 2 + 30]} 
+                width={width - 20} 
+                height={20} 
+                intensity={50} 
+                color="#fffbeb" 
+                rotation={[-Math.PI / 2, 0, 0]}
+              />
+            </group>
+          )}
         </group>
       )}
       {isTall && (
@@ -220,9 +259,9 @@ export const Cabinet: React.FC<Props> = ({
           <mesh position={[0, counterThickness / 2, 0]} castShadow receiveShadow>
             <boxGeometry args={[width + 20, counterThickness, depth + 20]} />
             <meshStandardMaterial 
-              color="#9ca3af" 
-              roughness={0.3} 
-              metalness={0.1} 
+              color={isStudio ? "#f8fafc" : "#9ca3af"} 
+              roughness={isStudio ? 0.05 : 0.3} 
+              metalness={isStudio ? 0.1 : 0.1} 
               transparent={testingSettings.opacity < 1} 
               opacity={testingSettings.opacity}
               depthWrite={testingSettings.opacity < 1 ? false : true}
@@ -254,11 +293,13 @@ export const Cabinet: React.FC<Props> = ({
         </group>
       )}
 
-      <Html position={[width / 2, zBase + height + 50, depth / 2]} center style={{ pointerEvents: 'none', whiteSpace: 'nowrap' }}>
-        <div className={`transition-all duration-300 transform ${isSelected ? 'bg-blue-600 scale-125 ring-2 ring-white shadow-[0_0_20px_rgba(59,130,246,0.5)] px-3 py-1.5' : 'bg-slate-500/90 px-2 py-1'} text-white rounded text-xs font-bold`}>
-          {label || unit.label || unit.preset.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
-        </div>
-      </Html>
+      {!isStudio && (
+        <Html position={[width / 2, zBase + height + 50, depth / 2]} center style={{ pointerEvents: 'none', whiteSpace: 'nowrap' }}>
+          <div className={`transition-all duration-300 transform ${isSelected ? 'bg-blue-600 scale-125 ring-2 ring-white shadow-[0_0_20px_rgba(59,130,246,0.5)] px-3 py-1.5' : 'bg-slate-500/90 px-2 py-1'} text-white rounded text-xs font-bold`}>
+            {label || unit.label || unit.preset.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+          </div>
+        </Html>
+      )}
     </group>
   );
 };

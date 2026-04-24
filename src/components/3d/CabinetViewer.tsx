@@ -2,11 +2,15 @@
 import React, { Suspense, useRef, useState, useMemo, useEffect } from 'react';
 import { Canvas, useThree, useLoader } from '@react-three/fiber';
 import { OrbitControls, Grid, Html, useProgress, PerspectiveCamera, Environment, ContactShadows } from '@react-three/drei';
-import { RotateCcw } from 'lucide-react';
 import * as THREE from 'three';
 import { Project, CabinetType, CabinetUnit, Zone, Obstacle, ProjectSettings } from '../../types';
 import { Cabinet } from './Cabinet';
 import { Wall } from './Wall';
+import { EffectComposer, SSAO } from '@react-three/postprocessing';
+// @ts-ignore
+import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js';
+
+RectAreaLightUniformsLib.init();
 
 interface Props {
   project: Project;
@@ -28,6 +32,7 @@ interface Props {
   onShowHardwareChange?: (show: boolean) => void;
   opacity?: number;
   skeletonView?: boolean;
+  isStudio?: boolean;
 }
 
 const LoadingFallback = () => {
@@ -144,7 +149,8 @@ const Scene = ({
   selectedCabinet,
   onCabinetSelect,
   opacity,
-  skeletonView
+  skeletonView,
+  isStudio
 }: { 
   project: Project; 
   showHardware: boolean; 
@@ -163,6 +169,7 @@ const Scene = ({
   onCabinetSelect?: (zoneId: string, index: number) => void;
   opacity?: number;
   skeletonView?: boolean;
+  isStudio?: boolean;
 }) => {
   const [previewPos, setPreviewPos] = useState<{ wallIndex: number; fromLeft: number; width: number } | null>(null);
   const activeZones = (showEmptyWalls || !!draggedCabinet)
@@ -406,18 +413,37 @@ const Scene = ({
         lightTheme={lightTheme}
       />
       
-      <ambientLight intensity={0.5} />
-      <Environment preset="city" />
-      <directionalLight
-        position={[sceneBounds.center[0] + 1000, 2000, sceneBounds.center[2] + 1000]}
-        intensity={1}
-        castShadow
-      />
-      <directionalLight
-        position={[sceneBounds.center[0] - 500, 1000, sceneBounds.center[2] - 500]}
-        intensity={0.5}
-      />
+      <ambientLight intensity={isStudio ? 0.4 : 0.5} />
+      {!isStudio && (
+        <>
+          <Environment preset="city" />
+          <directionalLight
+            position={[sceneBounds.center[0] + 1000, 2000, sceneBounds.center[2] + 1000]}
+            intensity={1}
+            castShadow
+          />
+          <directionalLight
+            position={[sceneBounds.center[0] - 500, 1000, sceneBounds.center[2] - 500]}
+            intensity={0.5}
+          />
+        </>
+      )}
       
+      {isStudio && (
+        <EffectComposer>
+          <SSAO 
+            samples={25} 
+            radius={50} 
+            intensity={20} 
+            luminanceInfluence={0.5} 
+            worldDistanceThreshold={10000}
+            worldDistanceFalloff={1000}
+            worldProximityThreshold={10000}
+            worldProximityFalloff={1000}
+          />
+        </EffectComposer>
+      )}
+
       <ContactShadows 
         position={[0, -0.1, 0]} 
         opacity={0.4} 
@@ -426,17 +452,22 @@ const Scene = ({
         far={4} 
       />
       
-      <Grid
-        args={[20000, 20000]}
-        cellSize={100}
-        cellThickness={0.5}
-        cellColor={lightTheme ? '#94a3b8' : '#374151'}
-        sectionSize={500}
-        sectionThickness={1}
-        sectionColor={lightTheme ? '#64748b' : '#1f2937'}
-        fadeDistance={10000}
-        position={[0, -0.5, 0]}
-      />
+      {!isStudio && (
+        <Grid
+          args={[20000, 20000]}
+          cellSize={100}
+          cellThickness={0.5}
+          cellColor={lightTheme ? '#94a3b8' : '#374151'}
+          sectionSize={500}
+          sectionThickness={1}
+          sectionColor={lightTheme ? '#64748b' : '#1f2937'}
+          fadeDistance={10000}
+          position={[0, -0.5, 0]}
+        />
+      )}
+
+      {isStudio && <StudioEnvironment center={sceneBounds.center} />}
+
 
       {layoutData.wallPositions.map(({ zone, position, width, height, rotation }, index) => (
         <Wall
@@ -539,6 +570,7 @@ const Scene = ({
           lightTheme={lightTheme}
           showGrid={!!draggedCabinet}
           opacity={opacity}
+          isStudio={isStudio}
         />
       ))}
 
@@ -564,6 +596,7 @@ const Scene = ({
           opacity={0.5}
           doorOpenAngle={doorOpenAngle}
           skeletonView={skeletonView}
+          isStudio={isStudio}
         />
       )}
 
@@ -587,6 +620,7 @@ const Scene = ({
             doorOpenAngle={doorOpenAngle}
             forceGola={forceGola}
             opacity={opacity}
+            isStudio={isStudio}
           />
         );
       })}
@@ -737,7 +771,8 @@ export const CabinetViewer: React.FC<Props> = ({
   onDoorOpenAngleChange,
   onShowHardwareChange,
   opacity,
-  skeletonView
+  skeletonView,
+  isStudio = false
 }) => {
   // Link forceGola to project settings for persistence
   const forceGola = project.settings.advancedTestingSettings?.enableGola ?? false;
@@ -833,9 +868,35 @@ export const CabinetViewer: React.FC<Props> = ({
             onCabinetSelect={onCabinetSelect}
             opacity={opacity}
             skeletonView={skeletonView}
+            isStudio={isStudio}
           />
         </Suspense>
       </Canvas>
     </div>
+  );
+};
+
+const StudioEnvironment = ({ center }: { center: [number, number, number] }) => {
+  const floorTexture = useLoader(THREE.TextureLoader, '/textures/floor.png');
+  
+  if (floorTexture) {
+    floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping;
+    floorTexture.repeat.set(10, 10);
+  }
+
+  return (
+    <group>
+      {/* Floor */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[center[0], -0.5, center[2]]} receiveShadow>
+        <planeGeometry args={[20000, 20000]} />
+        <meshStandardMaterial map={floorTexture} color="#888888" roughness={0.6} metalness={0.1} />
+      </mesh>
+      
+      {/* Uniform Hemispherical Fill */}
+      <hemisphereLight args={['#ffffff', '#888888', 0.6]} />
+      
+      {/* Environment for reflections, 'city' is very diffuse and soft */}
+      <Environment preset="city" />
+    </group>
   );
 };

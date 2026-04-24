@@ -72,7 +72,7 @@ const ScreenWallEditor = ({
   const [isoDoorOpenAngle, setIsoDoorOpenAngle] = useState(0);
   const [searchParams] = useSearchParams();
   const initialMode = searchParams.get('view') === 'iso' ? 'iso' : 'elevation';
-  const [visualMode, setVisualMode] = useState<'elevation' | 'iso'>(initialMode);
+  const [visualMode, setVisualMode] = useState<'elevation' | 'iso' | 'studio'>(initialMode as any);
   const [isTableVisible, setIsTableVisible] = useState(false);
   const [draggingCabinet, setDraggingCabinet] = useState<CabinetUnit | null>(null);
   const [draggingPosition, setDraggingPosition] = useState<{ x: number, y: number } | null>(null);
@@ -400,6 +400,7 @@ const ScreenWallEditor = ({
                    <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl p-1 border dark:border-slate-700">
                     <Button size="xs" variant={visualMode === 'elevation' ? 'primary' : 'secondary'} onClick={() => setVisualMode('elevation')} className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${visualMode === 'elevation' ? 'bg-white dark:bg-slate-700 text-amber-500 shadow-md' : 'bg-transparent text-slate-400 border-none shadow-none'}`}>Elevation</Button>
                     <Button size="xs" variant={visualMode === 'iso' ? 'primary' : 'secondary'} onClick={() => setVisualMode('iso')} className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${visualMode === 'iso' ? 'bg-white dark:bg-slate-700 text-amber-500 shadow-md' : 'bg-transparent text-slate-400 border-none shadow-none'}`}>3D Design</Button>
+                    <Button size="xs" variant={visualMode === 'studio' ? 'primary' : 'secondary'} onClick={() => setVisualMode('studio')} className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${visualMode === 'studio' ? 'bg-white dark:bg-slate-700 text-amber-500 shadow-md' : 'bg-transparent text-slate-400 border-none shadow-none'}`}>Studio</Button>
                   </div>
                   
                   <div className="flex items-center gap-2">
@@ -476,6 +477,7 @@ const ScreenWallEditor = ({
                     draggedCabinet={draggingCabinet}
                     onDropCabinet={handleDropCabinet}
                     skeletonView={isSkeleton}
+                    isStudio={visualMode === 'studio'}
                   />
                 )}
               </div>
@@ -562,6 +564,7 @@ const ScreenWallEditor = ({
                 </Button>
                 <Button size="xs" variant={visualMode === 'elevation' ? 'primary' : 'secondary'} onClick={() => setVisualMode('elevation')} className={`${visualMode === 'elevation' ? 'shadow-md' : 'shadow-sm hover:shadow'} border transition-all min-h-[36px] px-2 text-xs`}>Elv</Button>
                 <Button size="xs" variant={visualMode === 'iso' ? 'primary' : 'secondary'} onClick={() => setVisualMode('iso')} className={`${visualMode === 'iso' ? 'shadow-md' : 'shadow-sm hover:shadow'} border transition-all min-h-[36px] px-2 text-xs`}>3D</Button>
+                <Button size="xs" variant={visualMode === 'studio' ? 'primary' : 'secondary'} onClick={() => setVisualMode('studio')} className={`${visualMode === 'studio' ? 'shadow-md' : 'shadow-sm hover:shadow'} border transition-all min-h-[36px] px-2 text-xs`}>Studio</Button>
                 <div className="w-px h-5 bg-slate-400 dark:bg-slate-600 mx-1" />
                 <Button 
                   size="xs" 
@@ -640,6 +643,7 @@ const ScreenWallEditor = ({
                     selectedCabinet={selectedCabinet}
                     opacity={isTransparent ? 0.4 : 1}
                     skeletonView={isSkeleton}
+                    isStudio={visualMode === 'studio'}
                   />
                 )}
             </div>
