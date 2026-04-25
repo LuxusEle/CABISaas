@@ -30,7 +30,7 @@ export const Wall: React.FC<Props> = ({
   opacity = 1, isStudio = false
 }) => {
   const rawPlasterTexture = isStudio ? useLoader(THREE.TextureLoader, '/textures/wall.png') : undefined;
-  const rawWoodTexture = isStudio ? useLoader(THREE.TextureLoader, '/textures/wood_light.png') : undefined;
+  const rawWoodTexture = isStudio ? useLoader(THREE.TextureLoader, '/textures/wood.png') : undefined;
 
   const plasterTexture = React.useMemo(() => {
     if (rawPlasterTexture) {

@@ -131,7 +131,7 @@ export const Cabinet: React.FC<Props> = ({
 
   const isCooker = unit.preset === PresetType.COOKER_HOB || (unit.preset === PresetType.BASE_DRAWER_3 && width >= 800);
 
-  const rawWoodTexture = isStudio ? useLoader(THREE.TextureLoader, '/textures/wood_light.png') : undefined;
+  const rawWoodTexture = isStudio ? useLoader(THREE.TextureLoader, '/textures/wood.png') : undefined;
   
   const woodTexture = React.useMemo(() => {
     if (rawWoodTexture) {
