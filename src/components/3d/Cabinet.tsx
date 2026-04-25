@@ -138,7 +138,7 @@ export const Cabinet: React.FC<Props> = ({
       const tex = rawWoodTexture.clone();
       tex.wrapS = tex.wrapT = THREE.MirroredRepeatWrapping;
       tex.colorSpace = THREE.SRGBColorSpace;
-      tex.repeat.set(1/4000, 1/4000);
+      tex.repeat.set(1/8000, 1/8000);
       tex.needsUpdate = true;
       return tex;
     }
