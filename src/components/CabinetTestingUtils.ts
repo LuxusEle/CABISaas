@@ -81,7 +81,9 @@ export interface TestingSettings {
   isSelected: boolean;
   isStudio?: boolean;
   preset?: string;
-  woodTexture?: THREE.Texture;
+  carcassTexture?: THREE.Texture;
+  doorTexture?: THREE.Texture;
+  shelfTexture?: THREE.Texture;
 }
 
 export const DEFAULT_SETTINGS: TestingSettings = {

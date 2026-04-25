@@ -105,18 +105,43 @@ export const MaterialAllocationPanel: React.FC<MaterialAllocationPanelProps> = (
                   </td>
                   <td className="px-3 py-4 text-slate-500 text-xs">Sides, top, bottom panels</td>
                   <td className="px-3 py-4">
-                    <select
-                      value={allocation.carcassMaterial}
-                      onChange={(e) => handleChange('carcassMaterial', e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm"
-                    >
-                      <option value="">Select material...</option>
-                      {sheetTypes.map((type) => (
-                        <option key={type.id} value={type.name}>
-                          {type.name} ({type.thickness}mm)
-                        </option>
-                      ))}
-                    </select>
+                    <div className="flex gap-2 items-center">
+                      <select
+                        value={allocation.carcassMaterial}
+                        onChange={(e) => handleChange('carcassMaterial', e.target.value)}
+                        className="flex-1 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm"
+                      >
+                        <option value="">Select material...</option>
+                        {sheetTypes.map((type) => (
+                          <option key={type.id} value={type.name}>
+                            {type.name} ({type.thickness}mm)
+                          </option>
+                        ))}
+                      </select>
+                      <label className="cursor-pointer p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors border border-slate-200 dark:border-slate-600" title="Upload Texture">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const url = URL.createObjectURL(file);
+                              onUpdate({
+                                materialSettings: {
+                                  ...settings.materialSettings,
+                                  textureUrls: {
+                                    ...(settings.materialSettings?.textureUrls || {}),
+                                    [allocation.carcassMaterial || 'carcass']: url
+                                  }
+                                } as any
+                              });
+                            }
+                          }}
+                        />
+                        <Box className="w-4 h-4 text-slate-400" />
+                      </label>
+                    </div>
                   </td>
                 </tr>
 
@@ -130,18 +155,43 @@ export const MaterialAllocationPanel: React.FC<MaterialAllocationPanelProps> = (
                   </td>
                   <td className="px-3 py-4 text-slate-500 text-xs">Cabinet door fronts</td>
                   <td className="px-3 py-4">
-                    <select
-                      value={allocation.doorMaterial}
-                      onChange={(e) => handleChange('doorMaterial', e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm"
-                    >
-                      <option value="">Select material...</option>
-                      {sheetTypes.map((type) => (
-                        <option key={type.id} value={type.name}>
-                          {type.name} ({type.thickness}mm)
-                        </option>
-                      ))}
-                    </select>
+                    <div className="flex gap-2 items-center">
+                      <select
+                        value={allocation.doorMaterial}
+                        onChange={(e) => handleChange('doorMaterial', e.target.value)}
+                        className="flex-1 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm"
+                      >
+                        <option value="">Select material...</option>
+                        {sheetTypes.map((type) => (
+                          <option key={type.id} value={type.name}>
+                            {type.name} ({type.thickness}mm)
+                          </option>
+                        ))}
+                      </select>
+                      <label className="cursor-pointer p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors border border-slate-200 dark:border-slate-600" title="Upload Texture">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const url = URL.createObjectURL(file);
+                              onUpdate({
+                                materialSettings: {
+                                  ...settings.materialSettings,
+                                  textureUrls: {
+                                    ...(settings.materialSettings?.textureUrls || {}),
+                                    [allocation.doorMaterial || 'door']: url
+                                  }
+                                } as any
+                              });
+                            }
+                          }}
+                        />
+                        <Square className="w-4 h-4 text-slate-400" />
+                      </label>
+                    </div>
                   </td>
                 </tr>
 
@@ -205,19 +255,44 @@ export const MaterialAllocationPanel: React.FC<MaterialAllocationPanelProps> = (
                   </td>
                   <td className="px-3 py-4 text-slate-500 text-xs">Adjustable and fixed shelves</td>
                   <td className="px-3 py-4">
-                    <select
-                      value={allocation.shelfMaterial}
-                      onChange={(e) => handleChange('shelfMaterial', e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm"
-                    >
-                      <option value="">Select material...</option>
-                      <option value="">Same as Carcass ({allocation.carcassMaterial || 'Not set'})</option>
-                      {sheetTypes.map((type) => (
-                        <option key={type.id} value={type.name}>
-                          {type.name} ({type.thickness}mm)
-                        </option>
-                      ))}
-                    </select>
+                    <div className="flex gap-2 items-center">
+                      <select
+                        value={allocation.shelfMaterial}
+                        onChange={(e) => handleChange('shelfMaterial', e.target.value)}
+                        className="flex-1 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm"
+                      >
+                        <option value="">Select material...</option>
+                        <option value="">Same as Carcass ({allocation.carcassMaterial || 'Not set'})</option>
+                        {sheetTypes.map((type) => (
+                          <option key={type.id} value={type.name}>
+                            {type.name} ({type.thickness}mm)
+                          </option>
+                        ))}
+                      </select>
+                      <label className="cursor-pointer p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors border border-slate-200 dark:border-slate-600" title="Upload Texture">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const url = URL.createObjectURL(file);
+                              onUpdate({
+                                materialSettings: {
+                                  ...settings.materialSettings,
+                                  textureUrls: {
+                                    ...(settings.materialSettings?.textureUrls || {}),
+                                    [allocation.shelfMaterial || 'shelf']: url
+                                  }
+                                } as any
+                              });
+                            }
+                          }}
+                        />
+                        <Layers className="w-4 h-4 text-slate-400" />
+                      </label>
+                    </div>
                   </td>
                 </tr>
               </tbody>

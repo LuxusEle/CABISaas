@@ -383,7 +383,7 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
       {shouldShow('bottomPanel') && (
         <mesh position={[0 + getOffset('bottomPanel')[0], -innerHeight / 2 + panelThickness / 2 + getOffset('bottomPanel')[1], 0 + getOffset('bottomPanel')[2]]} castShadow receiveShadow visible={!skeletonView}>
           <primitive object={bottomPanelGeo} attach="geometry" />
-          <meshStandardMaterial color={settings.isStudio && settings.woodTexture ? '#ffffff' : getPanelColor('bottomPanel')} map={settings.isStudio ? settings.woodTexture : undefined} roughness={0.4} metalness={0} side={THREE.DoubleSide} transparent={settings.opacity < 1} opacity={settings.opacity} />
+          <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : getPanelColor('bottomPanel')} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.4} metalness={0} side={THREE.DoubleSide} transparent={settings.opacity < 1} opacity={settings.opacity} />
         </mesh>
       )}
       {skeletonView && shouldShow('bottomPanel') && (
@@ -396,7 +396,7 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
       {shouldShow('leftPanel') && (
         <mesh position={[-width / 2 + panelThickness / 2 + getOffset('leftPanel')[0], panelThickness / 2 + getOffset('leftPanel')[1], 0 + getOffset('leftPanel')[2]]} castShadow receiveShadow visible={!skeletonView}>
           <primitive object={leftPanelGeo} attach="geometry" />
-          <meshStandardMaterial color={settings.isStudio && settings.woodTexture ? '#ffffff' : getPanelColor('leftPanel')} map={settings.isStudio ? settings.woodTexture : undefined} roughness={0.4} metalness={0} side={THREE.DoubleSide} transparent={settings.opacity < 1} opacity={settings.opacity} />
+          <meshStandardMaterial color={settings.isStudio && (settings.shelfTexture || settings.carcassTexture) ? '#ffffff' : getPanelColor('leftPanel')} map={settings.isStudio ? (settings.shelfTexture || settings.carcassTexture) : undefined} roughness={0.4} metalness={0} side={THREE.DoubleSide} transparent={settings.opacity < 1} opacity={settings.opacity} />
         </mesh>
       )}
       {skeletonView && shouldShow('leftPanel') && (
@@ -409,7 +409,7 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
       {shouldShow('rightPanel') && (
         <mesh position={[width / 2 - panelThickness / 2 + getOffset('rightPanel')[0], panelThickness / 2 + getOffset('rightPanel')[1], 0 + getOffset('rightPanel')[2]]} castShadow receiveShadow visible={!skeletonView}>
           <primitive object={rightPanelGeo} attach="geometry" />
-          <meshStandardMaterial color={settings.isStudio && settings.woodTexture ? '#ffffff' : getPanelColor('rightPanel')} map={settings.isStudio ? settings.woodTexture : undefined} roughness={0.4} metalness={0} side={THREE.DoubleSide} transparent={settings.opacity < 1} opacity={settings.opacity} />
+          <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : getPanelColor('rightPanel')} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.4} metalness={0} side={THREE.DoubleSide} transparent={settings.opacity < 1} opacity={settings.opacity} />
         </mesh>
       )}
       {skeletonView && shouldShow('rightPanel') && (
@@ -422,7 +422,7 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
       {showBackPanel && shouldShow('backPanel') && (
         <mesh position={[0 + getOffset('backPanel')[0], 0 + getOffset('backPanel')[1], -innerDepth / 2 + panelThickness + backPanelThickness / 2 + getOffset('backPanel')[2]]} castShadow receiveShadow visible={!skeletonView}>
           <boxGeometry args={[backPanelWidth, backPanelHeight, backPanelThickness]} />
-          <meshStandardMaterial color={settings.isStudio && settings.woodTexture ? '#ffffff' : getPanelColor('backPanel')} map={settings.isStudio ? settings.woodTexture : undefined} roughness={0.5} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
+          <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : getPanelColor('backPanel')} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.5} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
         </mesh>
       )}
       {showBackPanel && skeletonView && shouldShow('backPanel') && (
@@ -435,13 +435,13 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
       {showBackStretchers && shouldShow('backStretcherTop') && (
         <mesh position={[0 + getOffset('backStretcherTop')[0], innerHeight / 2 - panelThickness - backStretcherHeight / 2 + getOffset('backStretcherTop')[1], -innerDepth / 2 + panelThickness / 2 + getOffset('backStretcherTop')[2]]} castShadow receiveShadow visible={!skeletonView}>
           <boxGeometry args={[innerWidth - panelThickness * 2, backStretcherHeight, panelThickness]} />
-          <meshStandardMaterial color={settings.isStudio && settings.woodTexture ? '#ffffff' : getPanelColor('backStretcherTop')} map={settings.isStudio ? settings.woodTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
+          <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : getPanelColor('backStretcherTop')} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
         </mesh>
       )}
       {showBackStretchers && shouldShow('backStretcherBottom') && (
         <mesh position={[0 + getOffset('backStretcherBottom')[0], -innerHeight / 2 + panelThickness + backStretcherHeight / 2 + getOffset('backStretcherBottom')[1], -innerDepth / 2 + panelThickness / 2 + getOffset('backStretcherBottom')[2]]} castShadow receiveShadow visible={!skeletonView}>
           <boxGeometry args={[innerWidth - panelThickness * 2, backStretcherHeight, panelThickness]} />
-          <meshStandardMaterial color={settings.isStudio && settings.woodTexture ? '#ffffff' : getPanelColor('backStretcherBottom')} map={settings.isStudio ? settings.woodTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
+          <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : getPanelColor('backStretcherBottom')} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
         </mesh>
       )}
       {showBackStretchers && skeletonView && shouldShow('backStretcherTop') && (
@@ -460,13 +460,13 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
       {showBackStretchers && shouldShow('topStretcherFront') && (
         <mesh position={[0 + getOffset('topStretcherFront')[0], innerHeight / 2 - panelThickness / 2 + getOffset('topStretcherFront')[1], depth / 2 - topStretcherWidth / 2 - golaLDepthOffset + getOffset('topStretcherFront')[2]]} castShadow receiveShadow visible={!skeletonView}>
           <boxGeometry args={[innerWidth - panelThickness * 2, panelThickness, topStretcherWidth]} />
-          <meshStandardMaterial color={settings.isStudio && settings.woodTexture ? '#ffffff' : getPanelColor('topStretcher')} map={settings.isStudio ? settings.woodTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
+          <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : getPanelColor('topStretcher')} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
         </mesh>
       )}
       {showBackStretchers && shouldShow('topStretcherBack') && (
         <mesh position={[0 + getOffset('topStretcherBack')[0], innerHeight / 2 - panelThickness / 2 + getOffset('topStretcherBack')[1], -innerDepth / 2 + topStretcherWidth / 2 + getOffset('topStretcherBack')[2]]} castShadow receiveShadow visible={!skeletonView}>
           <primitive object={topStretcherBackGeo} attach="geometry" />
-          <meshStandardMaterial color={settings.isStudio && settings.woodTexture ? '#ffffff' : getPanelColor('topStretcherBack')} map={settings.isStudio ? settings.woodTexture : undefined} roughness={0.4} metalness={0} side={THREE.DoubleSide} transparent={settings.opacity < 1} opacity={settings.opacity} />
+          <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : getPanelColor('topStretcherBack')} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.4} metalness={0} side={THREE.DoubleSide} transparent={settings.opacity < 1} opacity={settings.opacity} />
         </mesh>
       )}
       {showBackStretchers && skeletonView && shouldShow('topStretcherFront') && (
@@ -485,7 +485,7 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
       {toeKickHeight > 0 && shouldShow('toeKick') && (
         <mesh position={[0 + getOffset('toeKick')[0], -innerHeight / 2 - toeKickHeight / 2 + getOffset('toeKick')[1], depth / 2 - 50 - panelThickness / 2 + getOffset('toeKick')[2]]} castShadow receiveShadow visible={!skeletonView}>
           <boxGeometry args={[width, toeKickHeight, panelThickness]} />
-          <meshStandardMaterial color={settings.isStudio && settings.woodTexture ? '#ffffff' : toeKickColor} map={settings.isStudio ? settings.woodTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
+          <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : toeKickColor} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
         </mesh>
       )}
       {toeKickHeight > 0 && skeletonView && shouldShow('toeKick') && (
@@ -510,7 +510,7 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
             <group position={[pivotX, 0, 0]} rotation={[0, rotationDirection * doorAngle, 0]}>
               <mesh position={[-pivotX, 0, doorMaterialThickness / 2]} castShadow receiveShadow visible={!skeletonView}>
                 <primitive object={doorGeos[i]} attach="geometry" />
-                <meshStandardMaterial color={settings.isStudio && settings.woodTexture ? '#ffffff' : doorColor} map={settings.isStudio ? settings.woodTexture : undefined} roughness={0.4} metalness={0} transparent={true} opacity={settings.opacity} side={THREE.DoubleSide} depthWrite={settings.opacity < 1 ? false : true} />
+                <meshStandardMaterial color={settings.isStudio && settings.doorTexture ? '#ffffff' : doorColor} map={settings.isStudio ? settings.doorTexture : undefined} roughness={0.4} metalness={0} transparent={true} opacity={settings.opacity} side={THREE.DoubleSide} depthWrite={settings.opacity < 1 ? false : true} />
               </mesh>
               {skeletonView && (
                 <lineSegments position={[-pivotX, 0, doorMaterialThickness / 2]}>
@@ -548,7 +548,7 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
           <group key={`drawer-${i}`} position={[getOffset('drawer', i)[0], getOffset('drawer', i)[1], getOffset('drawer', i)[2] + (settings.drawerOpenDistances[i] || 0)]}>
             <mesh position={[0, drawerYPositions[i], depth / 2 + doorMaterialThickness / 2]} rotation={[0, -Math.PI / 2, 0]} castShadow receiveShadow visible={!skeletonView}>
               <primitive object={frontGeo} attach="geometry" />
-              <meshStandardMaterial color={settings.isStudio && settings.woodTexture ? '#ffffff' : doorColor} map={settings.isStudio ? settings.woodTexture : undefined} roughness={0.4} metalness={0} side={THREE.DoubleSide} transparent={true} opacity={settings.opacity} depthWrite={settings.opacity < 1 ? false : true} />
+              <meshStandardMaterial color={settings.isStudio && settings.doorTexture ? '#ffffff' : doorColor} map={settings.isStudio ? settings.doorTexture : undefined} roughness={0.4} metalness={0} side={THREE.DoubleSide} transparent={true} opacity={settings.opacity} depthWrite={settings.opacity < 1 ? false : true} />
             </mesh>
             {!settings.enableGola && (
               <mesh position={[0, drawerYPositions[i], depth / 2 + doorMaterialThickness + 5]} rotation={[0, 0, Math.PI / 2]} castShadow>
@@ -559,19 +559,19 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
             {shouldShow('drawerBottom') && (
               <mesh position={[0, drawerYPositions[i] - boxH / 2 + drawerBottomThickness / 2, boxZOffset + drawerBackThickness / 2]} castShadow receiveShadow visible={!skeletonView}>
                 <boxGeometry args={[boxWidth - panelThickness * 2, drawerBottomThickness, boxDepth - drawerBackThickness]} />
-                <meshStandardMaterial color={settings.isStudio && settings.woodTexture ? '#ffffff' : showDifferentPanelColors ? panelColors.drawerBottom : shelfColor} map={settings.isStudio ? settings.woodTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
+                <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : showDifferentPanelColors ? panelColors.drawerBottom : shelfColor} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
               </mesh>
             )}
             {[-1, 1].map(side => shouldShow('drawerSide') && (
               <mesh key={side} position={[side * (boxWidth / 2 - panelThickness / 2), drawerYPositions[i], boxZOffset]} castShadow receiveShadow visible={!skeletonView}>
                 <primitive object={side === -1 ? sideLGeo : sideRGeo} attach="geometry" />
-                <meshStandardMaterial color={settings.isStudio && settings.woodTexture ? '#ffffff' : showDifferentPanelColors ? panelColors.drawerSide : shelfColor} map={settings.isStudio ? settings.woodTexture : undefined} roughness={0.4} metalness={0} side={THREE.DoubleSide} transparent={settings.opacity < 1} opacity={settings.opacity} />
+                <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : showDifferentPanelColors ? panelColors.drawerSide : shelfColor} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.4} metalness={0} side={THREE.DoubleSide} transparent={settings.opacity < 1} opacity={settings.opacity} />
               </mesh>
             ))}
             {shouldShow('drawerBack') && (
               <mesh position={[0, drawerYPositions[i], boxZOffset - boxDepth / 2 + drawerBackThickness / 2]} castShadow receiveShadow visible={!skeletonView}>
                 <boxGeometry args={[boxWidth - panelThickness * 2, boxH, drawerBackThickness]} />
-                <meshStandardMaterial color={settings.isStudio && settings.woodTexture ? '#ffffff' : showDifferentPanelColors ? panelColors.drawerBack : shelfColor} map={settings.isStudio ? settings.woodTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
+                <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : showDifferentPanelColors ? panelColors.drawerBack : shelfColor} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
               </mesh>
             )}
 
@@ -631,7 +631,7 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
             receiveShadow
           >
             <primitive object={shelfGeo.clone()} attach="geometry" />
-            <meshStandardMaterial color={settings.isStudio && settings.woodTexture ? '#ffffff' : shelfColor} map={settings.isStudio ? settings.woodTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
+            <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : shelfColor} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
           </mesh>
         );
       })}

@@ -131,43 +131,81 @@ export const Cabinet: React.FC<Props> = ({
 
   const isCooker = unit.preset === PresetType.COOKER_HOB || (unit.preset === PresetType.BASE_DRAWER_3 && width >= 800);
 
-  const rawWoodTexture = isStudio ? useLoader(THREE.TextureLoader, '/textures/wood.png') : undefined;
+  const carcassUrl = settings?.materialSettings?.textureUrls?.[settings?.materialSettings?.carcassMaterial || 'carcass'] || '/textures/wood.png';
+  const doorUrl = settings?.materialSettings?.textureUrls?.[settings?.materialSettings?.doorMaterial || 'door'] || carcassUrl;
+  const shelfUrl = settings?.materialSettings?.textureUrls?.[settings?.materialSettings?.shelfMaterial || 'shelf'] || carcassUrl;
+
+  const rawCarcassTexture = isStudio ? useLoader(THREE.TextureLoader, carcassUrl) : undefined;
+  const rawDoorTexture = isStudio ? useLoader(THREE.TextureLoader, doorUrl) : undefined;
+  const rawShelfTexture = isStudio ? useLoader(THREE.TextureLoader, shelfUrl) : undefined;
   
-  const woodTexture = React.useMemo(() => {
-    if (rawWoodTexture) {
-      const tex = rawWoodTexture.clone();
+  const carcassTexture = React.useMemo(() => {
+    if (rawCarcassTexture) {
+      const tex = rawCarcassTexture.clone();
       tex.wrapS = tex.wrapT = THREE.MirroredRepeatWrapping;
       tex.colorSpace = THREE.SRGBColorSpace;
-      tex.repeat.set(1/8000, 1/8000);
+      tex.repeat.set(1/2500, 1/2500);
+      tex.anisotropy = 16;
       tex.needsUpdate = true;
       return tex;
     }
     return undefined;
-  }, [rawWoodTexture]);
+  }, [rawCarcassTexture]);
+
+  const doorTexture = React.useMemo(() => {
+    if (rawDoorTexture) {
+      const tex = rawDoorTexture.clone();
+      tex.wrapS = tex.wrapT = THREE.MirroredRepeatWrapping;
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.repeat.set(1/2500, 1/2500);
+      tex.anisotropy = 16;
+      tex.needsUpdate = true;
+      return tex;
+    }
+    return undefined;
+  }, [rawDoorTexture]);
+
+  const shelfTexture = React.useMemo(() => {
+    if (rawShelfTexture) {
+      const tex = rawShelfTexture.clone();
+      tex.wrapS = tex.wrapT = THREE.MirroredRepeatWrapping;
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.repeat.set(1/2500, 1/2500);
+      tex.anisotropy = 16;
+      tex.needsUpdate = true;
+      return tex;
+    }
+    return undefined;
+  }, [rawShelfTexture]);
 
   React.useEffect(() => {
     return () => {
-      if (woodTexture) woodTexture.dispose();
+      if (carcassTexture) carcassTexture.dispose();
+      if (doorTexture) doorTexture.dispose();
+      if (shelfTexture) shelfTexture.dispose();
     };
-  }, [woodTexture]);
+  }, [carcassTexture, doorTexture, shelfTexture]);
 
   // Merge legacy project settings and advanced testing settings
   const testingSettings = useMemo(() => {
-    const s = getCabinetTestingSettings(unit, settings || {}, width, height, depth);
+    const s = {
+      ...getCabinetTestingSettings(unit, settings || {} as ProjectSettings, width, height, depth),
+      ...(unit.advancedSettings || {}),
+      isSelected,
+      isStudio,
+      carcassTexture,
+      doorTexture,
+      shelfTexture
+    };
     if (forceGola !== undefined) s.enableGola = forceGola;
     if (opacity !== undefined) s.opacity = opacity;
-    s.isSelected = isSelected;
     if (skeletonView !== undefined) s.skeletonView = skeletonView;
-    if (isStudio !== undefined) s.isStudio = isStudio;
     if (doorOpenAngle !== undefined) {
       s.doorOpenAngle = doorOpenAngle;
       s.lowerDoorOpenAngle = doorOpenAngle;
     }
-    if (woodTexture) {
-      s.woodTexture = woodTexture;
-    }
     return s;
-  }, [unit, settings, width, height, depth, doorOpenAngle, forceGola, opacity, isSelected, skeletonView, isStudio, woodTexture]);
+  }, [unit, settings, width, height, depth, doorOpenAngle, forceGola, opacity, isSelected, skeletonView, isStudio, carcassTexture, doorTexture]);
 
   return (
     <group 

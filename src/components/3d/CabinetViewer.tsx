@@ -1035,6 +1035,7 @@ export const CabinetViewer: React.FC<Props> = ({
       <Canvas
         shadows
         camera={{ fov: 50 }}
+        dpr={[1, 2]}
         style={{ background: lightTheme ? '#f3f4f6' : '#1e293b' }}
       >
         <PerspectiveCamera 
