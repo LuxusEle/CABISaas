@@ -632,7 +632,7 @@ const Scene = ({
       )}
 
       {layoutData.cabinetPositions.map(({ unit, zone, position, rotation, wallIndex, cabinetIndex, label }) => {
-        const isSelected = selectedCabinet?.zoneId === zone.id && selectedCabinet?.index === cabinetIndex;
+        const isSelected = !isStudio && selectedCabinet?.zoneId === zone.id && selectedCabinet?.index === cabinetIndex;
         return (
           <Cabinet
             key={unit.id}
@@ -645,7 +645,7 @@ const Scene = ({
             settings={project.settings}
             isSelected={isSelected}
             skeletonView={skeletonView}
-            onClick={() => {
+            onClick={isStudio ? undefined : () => {
               onCabinetSelect?.(zone.id, cabinetIndex);
             }}
             doorOpenAngle={doorOpenAngle}

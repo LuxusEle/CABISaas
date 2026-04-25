@@ -630,7 +630,7 @@ const ScreenWallEditor = ({
                   <CabinetViewer 
                     project={project} 
                     activeWallId={activeTab} 
-                    onCabinetSelect={(zoneId, i) => setSelectedCabinet({ zoneId, index: i })}
+                    onCabinetSelect={visualMode === 'studio' ? undefined : ((zoneId, i) => setSelectedCabinet({ zoneId, index: i }))}
                     onSettingsUpdate={(settings) => setProject(prev => ({ ...prev, settings: { ...prev.settings, ...settings } }))}
                     viewMode={isoViewMode}
                     onViewModeChange={setIsoViewMode}
@@ -640,7 +640,7 @@ const ScreenWallEditor = ({
                     lightTheme={!isDark}
                     draggedCabinet={draggingCabinet}
                     onDropCabinet={handleDropCabinet}
-                    selectedCabinet={selectedCabinet}
+                    selectedCabinet={visualMode === 'studio' ? null : selectedCabinet}
                     opacity={isTransparent ? 0.4 : 1}
                     skeletonView={isSkeleton}
                     isStudio={visualMode === 'studio'}
@@ -694,7 +694,7 @@ const ScreenWallEditor = ({
         </div>
 
         {/* Desktop Sidebar: Presets or Selected Cabinet Editor */}
-        <div className="hidden md:flex w-80 h-full bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 flex-col overflow-hidden shrink-0">
+        <div className={`hidden md:flex w-80 h-full bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 flex-col overflow-hidden shrink-0 ${visualMode === 'studio' ? '!hidden' : ''}`}>
           {selectedCabinet ? (
             <div className="flex-1 flex flex-col p-4 space-y-6 overflow-y-auto">
               <div className="flex items-center justify-between">

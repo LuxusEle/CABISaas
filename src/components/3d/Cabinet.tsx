@@ -173,15 +173,15 @@ export const Cabinet: React.FC<Props> = ({
     <group 
       position={position} 
       rotation={[0, rotation, 0]}
-      onClick={(e) => {
+      onClick={!isStudio ? (e) => {
         e.stopPropagation();
         onClick?.();
-      }}
-      onPointerOver={(e) => {
+      } : undefined}
+      onPointerOver={!isStudio ? (e) => {
         e.stopPropagation();
         setHovered(true);
-      }}
-      onPointerOut={() => setHovered(false)}
+      } : undefined}
+      onPointerOut={!isStudio ? () => setHovered(false) : undefined}
     >
       {isSelected && (
         <mesh position={[width / 2, zBase + height / 2, depth / 2]}>
