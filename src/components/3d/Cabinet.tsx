@@ -300,7 +300,7 @@ export const Cabinet: React.FC<Props> = ({
       )}
 
       {!isStudio && (
-        <Html position={[width / 2, zBase + height + 50, depth / 2]} center style={{ pointerEvents: 'none', whiteSpace: 'nowrap' }}>
+        <Html position={[width / 2, zBase + height + 200, depth / 2]} center style={{ pointerEvents: 'none', whiteSpace: 'nowrap' }}>
           <div className={`transition-all duration-300 transform ${isSelected ? 'bg-blue-600 scale-125 ring-2 ring-white shadow-[0_0_20px_rgba(59,130,246,0.5)] px-3 py-1.5' : 'bg-slate-500/90 px-2 py-1'} text-white rounded text-xs font-bold`}>
             {label || unit.label || unit.preset.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
           </div>

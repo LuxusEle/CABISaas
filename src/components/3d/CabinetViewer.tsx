@@ -1,7 +1,7 @@
 /// <reference types="@react-three/fiber" />
 import React, { Suspense, useRef, useState, useMemo, useEffect } from 'react';
 import { Canvas, useThree, useLoader } from '@react-three/fiber';
-import { OrbitControls, Grid, Html, useProgress, PerspectiveCamera, Environment, ContactShadows } from '@react-three/drei';
+import { OrbitControls, Grid, Html, useProgress, PerspectiveCamera, Environment, ContactShadows, Line } from '@react-three/drei';
 import * as THREE from 'three';
 import { Video } from 'lucide-react';
 import { Project, CabinetType, CabinetUnit, Zone, Obstacle, ProjectSettings } from '../../types';
@@ -133,6 +133,72 @@ const CameraController = ({
       autoRotate={isRecording}
       autoRotateSpeed={2.0}
     />
+  );
+};
+
+export const Dimension3D = ({ 
+  start, 
+  end, 
+  label, 
+  color = "#64748b", 
+  offset = 150, 
+  isVertical = false 
+}: { 
+  start: [number, number, number], 
+  end: [number, number, number], 
+  label: string, 
+  color?: string,
+  offset?: number,
+  isVertical?: boolean
+}) => {
+  const points = useMemo(() => {
+    const s = new THREE.Vector3(...start);
+    const e = new THREE.Vector3(...end);
+    
+    // Calculate offset direction
+    let offDir = isVertical ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 0, 1);
+    const lineStart = s.clone().add(offDir.clone().multiplyScalar(offset));
+    const lineEnd = e.clone().add(offDir.clone().multiplyScalar(offset));
+    
+    return [lineStart, lineEnd];
+  }, [start, end, offset, isVertical]);
+
+  return (
+    <group>
+      <Line
+        points={points}
+        color={color}
+        lineWidth={2}
+        transparent
+        opacity={0.8}
+      />
+      {/* Tick marks */}
+      <mesh position={points[0]}>
+        <boxGeometry args={[10, 10, 10]} />
+        <meshBasicMaterial color={color} />
+      </mesh>
+      <mesh position={points[1]}>
+        <boxGeometry args={[10, 10, 10]} />
+        <meshBasicMaterial color={color} />
+      </mesh>
+      <Html position={new THREE.Vector3().addVectors(points[0], points[1]).multiplyScalar(0.5)} center>
+        <div style={{
+          padding: '2px 8px',
+          background: 'rgba(255,255,255,0.95)',
+          border: `1px solid ${color}`,
+          borderRadius: '4px',
+          fontSize: '12px',
+          fontWeight: 'black',
+          color: color,
+          whiteSpace: 'nowrap',
+          pointerEvents: 'none',
+          boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
+          fontFamily: 'monospace'
+        }}>
+          {label}mm
+        </div>
+      </Html>
+    </group>
   );
 };
 
@@ -634,25 +700,91 @@ const Scene = ({
       {layoutData.cabinetPositions.map(({ unit, zone, position, rotation, wallIndex, cabinetIndex, label }) => {
         const isSelected = !isStudio && selectedCabinet?.zoneId === zone.id && selectedCabinet?.index === cabinetIndex;
         return (
-          <Cabinet
-            key={unit.id}
-            unit={unit}
-            position={position}
-            rotation={rotation}
-            showHardware={showHardware}
-            wallIndex={wallIndex}
-            label={label}
-            settings={project.settings}
-            isSelected={isSelected}
-            skeletonView={skeletonView}
-            onClick={isStudio ? undefined : () => {
-              onCabinetSelect?.(zone.id, cabinetIndex);
-            }}
-            doorOpenAngle={doorOpenAngle}
-            forceGola={forceGola}
-            opacity={opacity}
-            isStudio={isStudio}
-          />
+          <group key={unit.id} position={position} rotation={[0, rotation, 0]}>
+            <Cabinet
+              unit={unit}
+              position={[0, 0, 0]}
+              rotation={0}
+              showHardware={showHardware}
+              wallIndex={wallIndex}
+              label={label}
+              settings={project.settings}
+              isSelected={isSelected}
+              skeletonView={skeletonView}
+              onClick={isStudio ? undefined : () => {
+                onCabinetSelect?.(zone.id, cabinetIndex);
+              }}
+              doorOpenAngle={doorOpenAngle}
+              forceGola={forceGola}
+              opacity={opacity}
+              isStudio={isStudio}
+            />
+            {!isStudio && isSelected && (() => {
+              const baseH = project.settings.baseHeight || 870;
+              const ct = project.settings.counterThickness || 40;
+              const wallElev = project.settings.wallCabinetElevation || 450;
+              const wallH = project.settings.wallHeight || 720;
+              const tallH = project.settings.tallHeight || 2100;
+              
+              const yBase = unit.type === CabinetType.WALL ? (baseH + ct + wallElev) : 0;
+              const h = unit.type === CabinetType.TALL ? ((project.settings.tallHeight === 2100 || !project.settings.tallHeight) ? (baseH + ct + wallElev + wallH) : tallH) : unit.type === CabinetType.WALL ? wallH : baseH;
+              const d = unit.depth || (unit.type === CabinetType.WALL ? 300 : 560);
+              
+              return (
+                <>
+                  {/* Width Dimension (Top Front) - AMBER */}
+                  <Dimension3D 
+                    start={[0, yBase + h, d]} 
+                    end={[unit.width, yBase + h, d]} 
+                    label={unit.width.toString()} 
+                    offset={120}
+                    color="#f59e0b"
+                  />
+                  {/* Height Dimension (Front Left) - RED */}
+                  <Dimension3D 
+                    start={[0, yBase, d]} 
+                    end={[0, yBase + h, d]} 
+                    label={h.toString()} 
+                    offset={-50}
+                    color="#ef4444"
+                    isVertical
+                  />
+                  {/* Depth Dimension (Top Left Edge) - GREEN */}
+                  <Dimension3D 
+                    start={[0, yBase + h, 0]} 
+                    end={[0, yBase + h, d]} 
+                    label={d.toString()} 
+                    offset={-50}
+                    color="#10b981"
+                  />
+                </>
+              );
+            })()}
+          </group>
+        );
+      })}
+
+      {/* Wall dimensions for the active wall */}
+      {!isStudio && activeWallId && layoutData.wallPositions.map((wp, i) => {
+        if (wp.zone.id !== activeWallId) return null;
+        return (
+          <group key={`wall-dim-${wp.zone.id}`} position={wp.position} rotation={[0, wp.rotation, 0]}>
+            {/* Total Wall Length */}
+            <Dimension3D 
+              start={[0, wp.height, 20]} 
+              end={[wp.width, wp.height, 20]} 
+              label={wp.width.toString()} 
+              offset={100}
+            />
+            {/* Wall Height */}
+            <Dimension3D 
+              start={[0, 0, 0]} 
+              end={[0, wp.height, 0]} 
+              label={wp.height.toString()} 
+              offset={-100}
+              isVertical
+            />
+          </group>
         );
       })}
 
@@ -782,6 +914,7 @@ const Scene = ({
     </>
   );
 };
+
 
 export const CabinetViewer: React.FC<Props> = ({ 
   project, 

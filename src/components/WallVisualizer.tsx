@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Zone, CabinetUnit, PresetType, CabinetType, ProjectSettings } from '../types';
 import { getActiveColor } from '../services/cabinetColors';
+import { div } from 'three/tsl';
 
 interface Props {
   zone: Zone;
@@ -361,8 +362,8 @@ export const WallVisualizer: React.FC<Props> = ({
           
           {/* Width Label - Outside (for editing view) */}
           {!hideArrows && (
-            <text x={x + w / 2} y={y + h + 20} textAnchor="middle" fontSize="10" fill="#64748b" pointerEvents="none">
-              {unit.width}mm
+            <text x={x + w / 2} y={y + h + 40} textAnchor="middle" fontSize="24" fontWeight="bold" fill="#475569" pointerEvents="none" className="font-mono">
+              {unit.width}
             </text>
           )}
           
@@ -418,6 +419,9 @@ export const WallVisualizer: React.FC<Props> = ({
           <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="3" markerHeight="3" orient="auto-start-reverse">
             <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--wall-border)" />
           </marker>
+          <marker id="tick" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="45">
+            <line x1="0" y1="5" x2="10" y2="5" stroke="var(--wall-border)" strokeWidth="2" />
+          </marker>
           <pattern id="gridPattern" width="50" height="50" patternUnits="userSpaceOnUse"><path d="M 50 0 L 0 0 0 50" fill="none" stroke="var(--grid-line)" strokeWidth="1" /></pattern>
         </defs>
         <rect
@@ -462,16 +466,16 @@ export const WallVisualizer: React.FC<Props> = ({
           onTouchStart={handlePanStart}
           style={{ cursor: panning ? 'grabbing' : 'grab' }}
         />
-        <line x1="0" y1={height + 50} x2={zone.totalLength} y2={height + 50} stroke="var(--wall-border)" strokeWidth="1" markerEnd="url(#arrow)" markerStart="url(#arrow)" className="print:stroke-black" />
-        <text x={zone.totalLength / 2} y={height + 90} textAnchor="middle" fill="var(--obs-stroke)" fontSize="40" className="print:fill-black font-mono">TOTAL {zone.totalLength}mm</text>
+        <line x1="0" y1={height + 80} x2={zone.totalLength} y2={height + 80} stroke="var(--wall-border)" strokeWidth="2" markerEnd="url(#tick)" markerStart="url(#tick)" className="print:stroke-black" />
+        <text x={zone.totalLength / 2} y={height + 130} textAnchor="middle" fill="var(--obs-stroke)" fontSize="50" fontWeight="black" className="print:fill-black font-mono">TOTAL {zone.totalLength}mm</text>
 
         {[...zone.cabinets]
           .map((c, idx) => ({ c, idx, x: c.fromLeft }))
           .sort((a, b) => a.x - b.x)
           .map(({ c, idx, x }) => (
             <g key={'dim' + c.id}>
-              <line x1={x} y1="-50" x2={x + c.width} y2="-50" stroke="var(--wall-border)" strokeWidth="1" markerEnd="url(#arrow)" markerStart="url(#arrow)" />
-              <text x={x + c.width / 2} y="-70" textAnchor="middle" fontSize="30" fill="var(--wall-border)" className="font-mono">{c.width}</text>
+              <line x1={x} y1="-80" x2={x + c.width} y2="-80" stroke="var(--wall-border)" strokeWidth="2" markerEnd="url(#tick)" markerStart="url(#tick)" />
+              <text x={x + c.width / 2} y="-110" textAnchor="middle" fontSize="36" fontWeight="bold" fill="var(--wall-border)" className="font-mono">{c.width}</text>
             </g>
           ))}
 
@@ -541,6 +545,35 @@ export const WallVisualizer: React.FC<Props> = ({
             </g>
           );
         })}
+        {/* Vertical Height Dimensions */}
+        {(() => {
+          const baseH = settings?.baseHeight || 870;
+          const ct = settings?.counterThickness || 40;
+          const wallElev = settings?.wallCabinetElevation || 450;
+          const wallH = settings?.wallHeight || 720;
+          
+          const points = [
+            { y: height, label: '0' },
+            { y: height - baseH - ct, label: (baseH + ct).toString() },
+            { y: height - baseH - ct - wallElev, label: (baseH + ct + wallElev).toString() },
+            { y: height - baseH - ct - wallElev - wallH, label: (baseH + ct + wallElev + wallH).toString() },
+            { y: 0, label: height.toString() }
+          ].sort((a, b) => b.y - a.y);
+
+          return (
+            <g>
+              <line x1="-150" y1="0" x2="-150" y2={height} stroke="var(--wall-border)" strokeWidth="2" markerStart="url(#tick)" markerEnd="url(#tick)" />
+              {points.map((p, i) => (
+                <g key={'vdim' + i}>
+                  <line x1="-180" y1={p.y} x2="-120" y2={p.y} stroke="var(--wall-border)" strokeWidth="1" />
+                  <text x="-200" y={p.y} textAnchor="end" dominantBaseline="middle" fontSize="30" fontWeight="bold" fill="var(--wall-border)" className="font-mono">{p.label}</text>
+                </g>
+              ))}
+              <text x="-350" y={height / 2} textAnchor="middle" transform={`rotate(-90, -350, ${height / 2})`} fill="var(--wall-border)" fontSize="40" fontWeight="black" className="font-mono uppercase">Height mm</text>
+            </g>
+          );
+        })()}
+
         {zone.cabinets.map((unit, idx) => renderCabinetDetail(unit, idx))}
       </svg>
     </div>
