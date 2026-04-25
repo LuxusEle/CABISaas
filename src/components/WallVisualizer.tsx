@@ -221,9 +221,9 @@ export const WallVisualizer: React.FC<Props> = ({
     // Use project settings with fallbacks
     const baseHeight = settings?.baseHeight || 870;
     const wallHeight = settings?.wallHeight || 720;
+    const counterThickness = settings?.counterThickness || 40;
     const tallHeight = (settings?.tallHeight === 2100 || !settings?.tallHeight) ? (baseHeight + counterThickness + (settings?.wallCabinetElevation || 450) + wallHeight) : settings.tallHeight;
     const toeKick = settings?.toeKickHeight || 100;
-    const counterThickness = settings?.counterThickness || 40;
     
     let h = baseHeight - toeKick;
     let y = height - baseHeight;
@@ -386,35 +386,7 @@ export const WallVisualizer: React.FC<Props> = ({
           {details}
         </g>
 
-        {/* Left Arrow Button - Inside left edge of cabinet (points LEFT) */}
-        {!hideArrows && canSwapLeft && (
-          <g
-            onClick={(e) => {
-              e.stopPropagation();
-              handleSwapCabinet(index, 'left');
-            }}
-            className="cursor-pointer"
-            style={{ pointerEvents: 'all' }}
-          >
-            <rect x={x + 2} y={y + h/2 - 48} width="80" height="96" rx="8" fill="rgba(245, 158, 11, 0.9)" stroke="#f59e0b" strokeWidth="3" />
-            <path d={`M${x + 56} ${y + h/2 - 24} L${x + 56} ${y + h/2 + 24} L${x + 16} ${y + h/2} Z`} fill="white" />
-          </g>
-        )}
-
-        {/* Right Arrow Button - Inside right edge of cabinet (points RIGHT) */}
-        {!hideArrows && canSwapRight && (
-          <g
-            onClick={(e) => {
-              e.stopPropagation();
-              handleSwapCabinet(index, 'right');
-            }}
-            className="cursor-pointer"
-            style={{ pointerEvents: 'all' }}
-          >
-            <rect x={x + w - 82} y={y + h/2 - 48} width="80" height="96" rx="8" fill="rgba(245, 158, 11, 0.9)" stroke="#f59e0b" strokeWidth="3" />
-            <path d={`M${x + w - 56} ${y + h/2 - 24} L${x + w - 56} ${y + h/2 + 24} L${x + w - 16} ${y + h/2} Z`} fill="white" />
-          </g>
-        )}
+        {/* Swap arrows removed as per user request */}
       </g>
     );
   };
@@ -433,7 +405,7 @@ export const WallVisualizer: React.FC<Props> = ({
         }
       `}</style>
 
-      <div className="absolute top-2 left-2 text-[10px] text-slate-400 font-mono z-10 px-2 rounded opacity-50 print-hidden">ELEVATION VIEW - Click arrows to swap cabinets</div>
+      <div className="absolute top-2 left-2 text-[10px] text-slate-400 font-mono z-10 px-2 rounded opacity-50 print-hidden">ELEVATION VIEW</div>
 
       <svg
         ref={svgRef}
@@ -512,11 +484,11 @@ export const WallVisualizer: React.FC<Props> = ({
             const ct = settings?.counterThickness || 40;
             return (
             <g key={'ct' + c.id}>
-              <rect x={x} y={height - tk - baseH - ct} width={c.width} height={ct} fill="#475569" className="Print:fill-slate-200" />
+              <rect x={x} y={height - baseH - ct} width={c.width} height={ct} fill="#475569" className="Print:fill-slate-200" />
               {c.preset === PresetType.BASE_DRAWER_3 && (
                 <g>
-                  <rect x={x + 50} y={height - tk - baseH - ct - 5} width={c.width - 100} height={5} fill="#1e293b" rx="2" />
-                  <text x={x + c.width / 2} y={height - tk - baseH - ct - 10} textAnchor="middle" fontSize="12" fill="#475569" className="font-bold print:fill-black">HOB / COOKER</text>
+                  <rect x={x + 50} y={height - baseH - ct - 5} width={c.width - 100} height={5} fill="#1e293b" rx="2" />
+                  <text x={x + c.width / 2} y={height - baseH - ct - 10} textAnchor="middle" fontSize="12" fill="#475569" className="font-bold print:fill-black">HOB / COOKER</text>
                 </g>
               )}
             </g>
