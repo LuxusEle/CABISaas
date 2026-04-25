@@ -3,6 +3,7 @@ import React, { Suspense, useRef, useState, useMemo, useEffect } from 'react';
 import { Canvas, useThree, useLoader } from '@react-three/fiber';
 import { OrbitControls, Grid, Html, useProgress, PerspectiveCamera, Environment, ContactShadows } from '@react-three/drei';
 import * as THREE from 'three';
+import { Video } from 'lucide-react';
 import { Project, CabinetType, CabinetUnit, Zone, Obstacle, ProjectSettings } from '../../types';
 import { Cabinet } from './Cabinet';
 import { Wall } from './Wall';
@@ -47,12 +48,14 @@ const CameraController = ({
   targetView, 
   sceneCenter, 
   sceneSize,
-  lightTheme
+  lightTheme,
+  isRecording
 }: { 
   targetView: string; 
   sceneCenter: [number, number, number];
   sceneSize: { width: number; depth: number; height: number };
   lightTheme?: boolean;
+  isRecording?: boolean;
 }) => {
   const { camera } = useThree();
   const controlsRef = useRef<any>(null);
@@ -101,7 +104,7 @@ const CameraController = ({
           
           camera.position.set(...position);
           camera.lookAt(...target);
-          if (controlsRef.current) {
+          if (controlsRef.current && typeof controlsRef.current.update === 'function') {
             controlsRef.current.target.set(...target);
             controlsRef.current.update();
           }
@@ -127,6 +130,8 @@ const CameraController = ({
       maxPolarAngle={Math.PI / 2.1}
       enableZoom={true}
       enablePan={true}
+      autoRotate={isRecording}
+      autoRotateSpeed={2.0}
     />
   );
 };
@@ -149,27 +154,10 @@ const Scene = ({
   onCabinetSelect,
   opacity,
   skeletonView,
-  isStudio
-}: { 
-  project: Project; 
-  showHardware: boolean; 
-  viewMode: string;
-  showEmptyWalls?: boolean;
-  onSceneBounds: (bounds: { center: [number, number, number]; size: { width: number; depth: number; height: number } }) => void;
-  onWallClick?: (wallId: string) => void;
-  onCabinetClick?: (zoneId: string, cabinetIndex: number) => void;
-  activeWallId?: string;
-  lightTheme?: boolean;
-  doorOpenAngle?: number;
-  forceGola?: boolean;
-  draggedCabinet?: CabinetUnit | null;
-  onDropCabinet?: (zoneId: string, fromLeft: number, cabinet: CabinetUnit, targetWidth?: number) => void;
-  selectedCabinet?: { zoneId: string, index: number } | null;
-  onCabinetSelect?: (zoneId: string, index: number) => void;
-  opacity?: number;
-  skeletonView?: boolean;
-  isStudio?: boolean;
-}) => {
+  isStudio,
+  isRecording,
+  onRecordingComplete
+}: any) => {
   const [previewPos, setPreviewPos] = useState<{ wallIndex: number; fromLeft: number; width: number } | null>(null);
   const activeZones = (showEmptyWalls || !!draggedCabinet)
     ? project.zones.filter(z => z.active)
@@ -212,7 +200,6 @@ const Scene = ({
     const wallCEnd = wallLengths[2] || 0;
     
     activeZones.forEach((zone, wallIndex) => {
-      const wallLength = zone.totalLength;
       const wallHeight = zone.wallHeight || 2400;
       
       wallCounters[wallIndex] = { B: 0, T: 0, W: 0 };
@@ -399,6 +386,64 @@ const Scene = ({
     };
   }, [layoutData, showEmptyWalls]);
 
+  const { gl } = useThree();
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+
+  useEffect(() => {
+    if (isRecording) {
+      let isCancelled = false;
+      try {
+        // @ts-ignore
+        const stream = gl.domElement.captureStream(30);
+        
+        // Some browsers need a specific mimeType for MediaRecorder
+        const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') 
+          ? 'video/webm;codecs=vp9' 
+          : 'video/webm';
+          
+        const mediaRecorder = new MediaRecorder(stream, { mimeType });
+        mediaRecorderRef.current = mediaRecorder;
+        chunksRef.current = [];
+
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) chunksRef.current.push(e.data);
+        };
+
+        mediaRecorder.onstop = () => {
+          if (isCancelled) return;
+          const blob = new Blob(chunksRef.current, { type: mimeType });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'kitchen_showcase.webm';
+          a.click();
+          URL.revokeObjectURL(url);
+          onRecordingComplete();
+        };
+
+        mediaRecorder.start();
+
+        const timerId = setTimeout(() => {
+          if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+            mediaRecorderRef.current.stop();
+          }
+        }, 5000);
+
+        return () => {
+          isCancelled = true;
+          clearTimeout(timerId);
+          if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+            mediaRecorderRef.current.stop();
+          }
+        };
+      } catch (err) {
+        console.error('Failed to capture video', err);
+        onRecordingComplete();
+      }
+    }
+  }, [isRecording, gl, onRecordingComplete]);
+
   useEffect(() => {
     onSceneBounds(sceneBounds);
   }, [sceneBounds, onSceneBounds]);
@@ -410,6 +455,7 @@ const Scene = ({
         sceneCenter={sceneBounds.center} 
         sceneSize={sceneBounds.size}
         lightTheme={lightTheme}
+        isRecording={isRecording}
       />
       
       <ambientLight intensity={isStudio ? 0.4 : 0.5} />
@@ -783,6 +829,12 @@ export const CabinetViewer: React.FC<Props> = ({
     setSceneBounds(bounds);
   };
 
+  const [isRecording, setIsRecording] = useState(false);
+  
+  const handleRecordingComplete = React.useCallback(() => {
+    setIsRecording(false);
+  }, []);
+
   const activeZones = showEmptyWalls 
     ? project.zones.filter(z => z.active)
     : project.zones.filter(z => z.active && z.cabinets.length > 0);
@@ -820,7 +872,31 @@ export const CabinetViewer: React.FC<Props> = ({
               Left: Rotate | Right: Pan | Scroll: Zoom
             </div>
           </div>
-
+          {isStudio && (
+            <button
+              onClick={() => setIsRecording(true)}
+              disabled={isRecording}
+              className={`absolute top-4 right-4 z-10 flex items-center gap-2 px-4 py-2 rounded-md font-medium text-sm transition-all shadow-lg backdrop-blur-md border ${
+                isRecording 
+                  ? 'bg-red-500/80 text-white border-red-500/50 cursor-not-allowed animate-pulse' 
+                  : lightTheme 
+                    ? 'bg-white/80 text-slate-800 border-slate-200/50 hover:bg-white' 
+                    : 'bg-slate-800/80 text-white border-slate-700/50 hover:bg-slate-700'
+              }`}
+            >
+              {isRecording ? (
+                <>
+                  <div className="w-2 h-2 bg-white rounded-full"></div>
+                  Recording (5s)...
+                </>
+              ) : (
+                <>
+                  <Video className="w-4 h-4" />
+                  Record Showcase
+                </>
+              )}
+            </button>
+          )}
         </>
 
       <Canvas
@@ -853,6 +929,8 @@ export const CabinetViewer: React.FC<Props> = ({
             onCabinetSelect={onCabinetSelect}
             opacity={opacity}
             skeletonView={skeletonView}
+            isRecording={isRecording}
+            onRecordingComplete={handleRecordingComplete}
             isStudio={isStudio}
           />
         </Suspense>
