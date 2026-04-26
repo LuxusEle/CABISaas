@@ -131,9 +131,9 @@ export const Cabinet: React.FC<Props> = ({
 
   const isCooker = unit.preset === PresetType.COOKER_HOB || (unit.preset === PresetType.BASE_DRAWER_3 && width >= 800);
 
-  const carcassUrl = settings?.materialSettings?.textureUrls?.[settings?.materialSettings?.carcassMaterial || 'carcass'] || '/textures/wood.png';
-  const doorUrl = settings?.materialSettings?.textureUrls?.[settings?.materialSettings?.doorMaterial || 'door'] || carcassUrl;
-  const shelfUrl = settings?.materialSettings?.textureUrls?.[settings?.materialSettings?.shelfMaterial || 'shelf'] || carcassUrl;
+  const carcassUrl = settings?.materialSettings?.textureUrls?.['carcass'] || '/textures/wood.png';
+  const doorUrl = settings?.materialSettings?.textureUrls?.['door'] || carcassUrl;
+  const shelfUrl = settings?.materialSettings?.textureUrls?.['shelf'] || carcassUrl;
 
   const rawCarcassTexture = isStudio ? useLoader(THREE.TextureLoader, carcassUrl) : undefined;
   const rawDoorTexture = isStudio ? useLoader(THREE.TextureLoader, doorUrl) : undefined;
