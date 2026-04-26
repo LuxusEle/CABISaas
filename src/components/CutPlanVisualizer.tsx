@@ -113,20 +113,24 @@ export const CutPlanVisualizer: React.FC<Props> = ({ sheet, settings, index }) =
                       />
                     );
                   }
-                  if (feature.startsWith('gola-mid-c:')) {
+                  if (feature.startsWith('gola-mid-c:') || feature.startsWith('gola-mid-l:')) {
+                    const isLCut = feature.startsWith('gola-mid-l:');
                     const gh = parseFloat(feature.split(':')[1]);
                     // Side panel height in design is innerHeight - panelThickness
                     // gh is from cabinet bottom (above toe kick)
                     const yOffsetFromBottom = gh - (settings.thickness || 18)/2;
                     const yPosFromTop = (part.rotated ? part.width : part.length) - yOffsetFromBottom;
                     
+                    const cutDim = isLCut ? 55 : 73.5;
+                    const cutOffset = cutDim / 2;
+
                     return (
                       <rect 
                         key={`gola-${fIdx}`}
-                        x={part.rotated ? part.x + yPosFromTop - 36.75 : part.x}
-                        y={part.rotated ? part.y : part.y + yPosFromTop - 36.75}
-                        width={part.rotated ? 73.5 : 35}
-                        height={part.rotated ? 35 : 73.5}
+                        x={part.rotated ? part.x + yPosFromTop - cutOffset : part.x}
+                        y={part.rotated ? part.y : part.y + yPosFromTop - cutOffset}
+                        width={part.rotated ? cutDim : (isLCut ? 20 : 35)}
+                        height={part.rotated ? (isLCut ? 20 : 35) : cutDim}
                         fill="#cbd5e1"
                         stroke="#94a3b8"
                         strokeWidth="1"
