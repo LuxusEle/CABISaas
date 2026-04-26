@@ -17,6 +17,8 @@ interface Props {
   selectedCabinet?: { zoneId: string, index: number } | null;
   draggedCabinet?: CabinetUnit | null;
   onDropCabinet?: (zoneId: string, fromLeft: number, cabinet: CabinetUnit) => void;
+  isStatic?: boolean;
+  forceWhite?: boolean;
 }
 
 export const WallVisualizer: React.FC<Props> = ({
@@ -27,7 +29,9 @@ export const WallVisualizer: React.FC<Props> = ({
   hideArrows = false,
   selectedCabinet,
   draggedCabinet,
-  onDropCabinet
+  onDropCabinet,
+  isStatic = false,
+  forceWhite = false
 }) => {
   const [panning, setPanning] = useState<{
     startClientX: number;
@@ -347,14 +351,15 @@ export const WallVisualizer: React.FC<Props> = ({
             )}
             <text 
               x={x + w / 2} 
-              y={y + h / 2} 
+              y={y + h / 2 - (hideArrows ? 20 : 0)} 
               textAnchor="middle" 
               dominantBaseline="middle" 
-              fontSize={isSelected ? "14" : "12"} 
-              fontWeight="bold" 
+              fontSize={hideArrows || isStatic ? Math.min(80, Math.max(30, w / 6)) : (isSelected ? "14" : "12")} 
+              fontWeight="black" 
               fill={isSelected ? "#ffffff" : strokeColor} 
               pointerEvents="none"
               className={isSelected ? "drop-shadow-sm" : ""}
+              style={{ fontSize: hideArrows || isStatic ? `${Math.min(80, Math.max(30, w / 6))}px` : undefined }}
             >
               {unit.label || unit.preset.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
             </text>
@@ -371,16 +376,17 @@ export const WallVisualizer: React.FC<Props> = ({
           {hideArrows && w > 60 && (
             <text 
               x={x + w / 2} 
-              y={y + h / 2} 
+              y={y + h / 2 + 40} 
               textAnchor="middle" 
               dominantBaseline="middle" 
-              fontSize={Math.min(48, Math.max(24, w / 4))} 
+              fontSize={Math.min(32, Math.max(16, w / 10))} 
               fontWeight="bold" 
               fill={strokeColor} 
               pointerEvents="none"
-              style={{ fontSize: `${Math.min(48, Math.max(24, w / 4))}px` }}
+              opacity="0.5"
+              style={{ fontSize: `${Math.min(32, Math.max(16, w / 10))}px` }}
             >
-              {unit.width}
+              {unit.width}mm
             </text>
           )}
           
@@ -397,6 +403,17 @@ export const WallVisualizer: React.FC<Props> = ({
       <style>{`
         :root { --bg-wall: #ffffff; --bg-void: #f1f5f9; --grid-line: #e2e8f0; --wall-border: #94a3b8; --cab-stroke: #f59e0b; --cab-fill: rgba(245, 158, 11, 0.2); --obs-stroke: #64748b; --obs-fill: #e2e8f0; --text-color: #f59e0b; }
         .dark { --bg-wall: #0F172A; --bg-void: #020617; --grid-line: #1e293b; --wall-border: #64748b; --cab-stroke: #fbbf24; --cab-fill: rgba(251, 191, 36, 0.1); --obs-stroke: #475569; --obs-fill: #1e293b; --text-color: #fbbf24; }
+        .force-light { 
+          --bg-wall: #f8fafc; 
+          --bg-void: #fff; 
+          --grid-line: #e2e8f0; 
+          --wall-border: #64748b; 
+          --cab-stroke: #475569; 
+          --cab-fill: #f1f5f9; 
+          --obs-stroke: #94a3b8; 
+          --obs-fill: #f8fafc; 
+          --text-color: #1e293b; 
+        }
         @media print { 
           .print-hidden { display: none; } 
           .bg-slate-50, .dark .bg-slate-950 { background-color: white !important; } 
@@ -411,9 +428,9 @@ export const WallVisualizer: React.FC<Props> = ({
       <svg
         ref={svgRef}
         viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
-        className="w-full h-full bg-[var(--bg-void)] touch-none block"
+        className={`w-full h-full ${forceWhite ? 'bg-white force-light' : 'bg-[var(--bg-void)]'} touch-none block`}
         preserveAspectRatio="xMidYMid meet"
-        onWheel={handleWheel}
+        onWheel={isStatic ? undefined : handleWheel}
       >
         <defs>
           <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="3" markerHeight="3" orient="auto-start-reverse">
@@ -438,9 +455,9 @@ export const WallVisualizer: React.FC<Props> = ({
               onDropCabinet(zone.id, Math.max(0, Math.round(svgX)), draggedCabinet);
             }
           }}
-          onMouseDown={handlePanStart}
-          onTouchStart={handlePanStart}
-          style={{ cursor: panning ? 'grabbing' : 'grab' }}
+          onMouseDown={isStatic ? undefined : handlePanStart}
+          onTouchStart={isStatic ? undefined : handlePanStart}
+          style={{ cursor: isStatic ? 'default' : (panning ? 'grabbing' : 'grab') }}
         />
         <rect
           data-pan="true"

@@ -532,10 +532,10 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
 
           {/* WALL PLAN VIEW */}
           <div className={activeView === 'wallplan' ? 'block' : 'hidden print:block print:break-before-page'}>
-            <div className="max-w-4xl mx-auto">
-              <div className="space-y-12 print:space-y-0">
+            <div className="max-w-[1600px] mx-auto px-4">
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 print:block print:space-y-0">
                 {project.zones.filter(z => z.active).map((zone, zoneIndex) => (
-                  <div key={zone.id} className={`${zoneIndex > 0 ? 'print:break-before-page' : ''}`}>
+                  <div key={zone.id} className={`${zoneIndex > 0 ? 'print:break-before-page' : ''} h-full`}>
                     {/* PRINT VIEW: Table first, then visualization */}
                     <div className="hidden print:block">
                       {/* Page 1: Unit Schedule Table */}
@@ -576,9 +576,44 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
                       </div>
                     </div>
 
-                    {/* SCREEN VIEW: Kitchen Plan Canvas - Same as Plan Page */}
-                    <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border dark:border-slate-800 print:border-none print:shadow-none print:p-0">
-                      <KitchenPlanCanvas data={buildProjectConstructionData(project)} scalePxPerMeter={120} />
+                    {/* SCREEN VIEW: Elevation Grid Item (A4 Style) */}
+                    <div className="print:hidden h-full flex flex-col bg-[#fafafa] rounded-none shadow-2xl border-2 border-slate-300 relative overflow-hidden group">
+                      {/* Technical Drawing Frame */}
+                      <div className="absolute inset-4 border border-slate-400/30 pointer-events-none" />
+                      <div className="absolute inset-5 border border-slate-400/20 pointer-events-none" />
+                      
+                      <div className="px-10 py-6 flex justify-between items-start z-10">
+                        <div>
+                          <h3 className="text-xl font-serif font-black text-slate-800 uppercase tracking-widest">{zone.id}</h3>
+                          <div className="h-0.5 w-12 bg-amber-500 mt-1" />
+                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2">ELEVATION PLAN / ARCHITECTURAL DRAWING</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[9px] font-black text-slate-300 uppercase italic">SCALE: NTS</p>
+                          <p className="text-[9px] font-black text-slate-300 uppercase">UNIT: MM</p>
+                        </div>
+                      </div>
+
+                      <div className="p-8 flex-1 flex items-center justify-center min-h-[550px] relative">
+                        {/* Block all interactions to make it look like a drawing */}
+                        <div className="absolute inset-0 z-20 cursor-default" />
+                        
+                        <div className="w-full h-full">
+                          <WallVisualizer 
+                            zone={zone} 
+                            height={zone.wallHeight || 2400} 
+                            settings={project.settings} 
+                            isStatic={true} 
+                            forceWhite={true} 
+                          />
+                        </div>
+                      </div>
+                      
+                      {/* Technical Footer Info */}
+                      <div className="px-10 py-4 flex justify-between items-center bg-slate-100/50 border-t border-slate-200">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Project: {project.name || 'Standard Kitchen'}</span>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Page: {zoneIndex + 1}</span>
+                      </div>
                     </div>
                   </div>
                 ))}
