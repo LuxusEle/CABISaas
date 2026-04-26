@@ -21,7 +21,7 @@ interface Props {
   activeWallId?: string;
   lightTheme?: boolean;
   draggedCabinet?: CabinetUnit | null;
-  onDropCabinet?: (zoneId: string, fromLeft: number, cabinet: CabinetUnit) => void;
+  onDropCabinet?: (zoneId: string, fromLeft: number, cabinet: CabinetUnit, targetWidth?: number) => void;
   selectedCabinet?: { zoneId: string, index: number } | null;
   onCabinetSelect?: (zoneId: string, index: number) => void;
   onSettingsUpdate?: (settings: Partial<ProjectSettings>) => void;
@@ -64,12 +64,24 @@ const CameraController = ({
   const initialFitRef = useRef<boolean>(false);
   
   const maxDim = Math.max(sceneSize.width, sceneSize.depth, sceneSize.height);
-  const distance = Math.max(maxDim * 0.85, 2500); // Zoomed in slightly to fit window better
+  const distance = isRecording ? Math.max(maxDim * 0.65, 1800) : Math.max(maxDim * 0.85, 2500); 
   const centerY = sceneCenter[1];
 
   const viewPositions = useMemo(() => ({
     front: { 
       position: [sceneCenter[0], centerY, sceneCenter[2] + distance] as [number, number, number], 
+      target: sceneCenter 
+    },
+    back: { 
+      position: [sceneCenter[0], centerY, sceneCenter[2] - distance] as [number, number, number], 
+      target: sceneCenter 
+    },
+    left: { 
+      position: [sceneCenter[0] - distance, centerY, sceneCenter[2]] as [number, number, number], 
+      target: sceneCenter 
+    },
+    right: { 
+      position: [sceneCenter[0] + distance, centerY, sceneCenter[2]] as [number, number, number], 
       target: sceneCenter 
     },
     side: { 
@@ -131,7 +143,7 @@ const CameraController = ({
       enableZoom={true}
       enablePan={true}
       autoRotate={isRecording}
-      autoRotateSpeed={2.0}
+      autoRotateSpeed={isRecording ? 12.0 : 2.0}
     />
   );
 };
@@ -220,10 +232,33 @@ const Scene = ({
   onCabinetSelect,
   opacity,
   skeletonView,
-  isStudio,
   isRecording,
-  onRecordingComplete
-}: any) => {
+  onRecordingComplete,
+  onViewModeChange,
+  isStudio
+}: { 
+  project: Project; 
+  showHardware?: boolean; 
+  viewMode: string;
+  showEmptyWalls?: boolean;
+  onSceneBounds: (bounds: any) => void;
+  onWallClick?: (id: string) => void;
+  onCabinetClick?: (zoneId: string, index: number) => void;
+  activeWallId?: string;
+  lightTheme?: boolean;
+  doorOpenAngle?: number;
+  forceGola?: boolean;
+  draggedCabinet?: CabinetUnit | null;
+  onDropCabinet?: (zoneId: string, fromLeft: number, cabinet: CabinetUnit, targetWidth?: number) => void;
+  selectedCabinet?: { zoneId: string, index: number } | null;
+  onCabinetSelect?: (zoneId: string, index: number) => void;
+  opacity?: number;
+  skeletonView?: boolean;
+  isRecording?: boolean;
+  onRecordingComplete: () => void;
+  onViewModeChange: (mode: string) => void;
+  isStudio?: boolean;
+}) => {
   const [previewPos, setPreviewPos] = useState<{ wallIndex: number; fromLeft: number; width: number } | null>(null);
   const activeZones = (showEmptyWalls || !!draggedCabinet)
     ? project.zones.filter(z => z.active)
@@ -490,11 +525,33 @@ const Scene = ({
 
         mediaRecorder.start();
 
+        // Sequence: Top -> Active Walls -> Isometric
+        const activeZones = project.zones.filter(z => z.active);
+        const wallViewMap: Record<string, string> = {
+          'Wall A': 'front',
+          'Wall B': 'left',
+          'Wall C': 'back',
+          'Wall D': 'right'
+        };
+        const wallViews = activeZones.map(z => wallViewMap[z.id] || 'front');
+        
+        // Remove duplicates and combine
+        const sequence = Array.from(new Set(['top', ...wallViews, 'isometric']));
+        const phaseDuration = 1800; // ms
+        
+        sequence.forEach((view, index) => {
+          setTimeout(() => {
+            if (!isCancelled) onViewModeChange(view);
+          }, index * phaseDuration);
+        });
+
+        const totalDuration = sequence.length * phaseDuration;
+
         const timerId = setTimeout(() => {
           if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
             mediaRecorderRef.current.stop();
           }
-        }, 5000);
+        }, totalDuration + 500);
 
         return () => {
           isCancelled = true;
@@ -508,7 +565,7 @@ const Scene = ({
         onRecordingComplete();
       }
     }
-  }, [isRecording, gl, onRecordingComplete]);
+  }, [isRecording, gl, onRecordingComplete, onViewModeChange, project.zones]);
 
   useEffect(() => {
     onSceneBounds(sceneBounds);
@@ -1020,7 +1077,7 @@ export const CabinetViewer: React.FC<Props> = ({
               {isRecording ? (
                 <>
                   <div className="w-2 h-2 bg-white rounded-full"></div>
-                  Recording (5s)...
+                  Recording Showcase...
                 </>
               ) : (
                 <>
@@ -1049,6 +1106,7 @@ export const CabinetViewer: React.FC<Props> = ({
             project={project} 
             showHardware={showHardware} 
             viewMode={viewMode}
+            onViewModeChange={onViewModeChange}
             showEmptyWalls={showEmptyWalls}
             onSceneBounds={handleSceneBounds}
             onWallClick={onWallClick}
