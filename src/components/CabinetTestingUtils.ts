@@ -1,6 +1,24 @@
 import * as THREE from 'three';
 import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
 
+// Global Geometry Cache for Performance Optimization
+const geometryCache = new Map<string, THREE.BufferGeometry>();
+
+export const clearGeometryCache = () => {
+  geometryCache.forEach(geo => geo.dispose());
+  geometryCache.clear();
+};
+
+export const getCachedGeometry = (type: string, params: any, creator: () => THREE.BufferGeometry) => {
+  const key = `${type}-${JSON.stringify(params)}`;
+  if (geometryCache.has(key)) {
+    return geometryCache.get(key)!;
+  }
+  const geo = creator();
+  geometryCache.set(key, geo);
+  return geo;
+};
+
 export const woodPalette = {
   carcass: '#b08968',    // Medium wood brown
   door: '#7f5539',       // Darker wood brown (distinct)
@@ -168,8 +186,8 @@ export const createDoorWithHingeHoles = (
   hingeVerticalOffsetTop: number,
   hingeVerticalOffsetBottom: number
 ) => {
-  const hingeDepth = hingeDepthVal;
-  const backThickness = doorThickness - hingeDepth;
+    const hingeDepth = hingeDepthVal;
+    const backThickness = doorThickness - hingeDepth;
 
   const shape = new THREE.Shape();
   shape.moveTo(-doorWidth / 2, -doorHeight / 2);
@@ -186,7 +204,7 @@ export const createDoorWithHingeHoles = (
   hingeHole2.absarc(hingeXOffset, -doorHeight / 2 + hingeVerticalOffsetBottom, hingeRadius, 0, Math.PI * 2, false);
   shape.holes.push(hingeHole2);
 
-  const frontGeo = new THREE.ExtrudeGeometry(shape, { depth: hingeDepth, bevelEnabled: false });
+  const frontGeo = new THREE.ExtrudeGeometry(shape, { depth: hingeDepth, bevelEnabled: false, curveSegments: 8 });
   frontGeo.translate(0, 0, -doorThickness / 2);
 
   const backShape = new THREE.Shape();
@@ -196,7 +214,7 @@ export const createDoorWithHingeHoles = (
   backShape.lineTo(-doorWidth / 2, doorHeight / 2);
   backShape.lineTo(-doorWidth / 2, -doorHeight / 2);
 
-  const backGeo = new THREE.ExtrudeGeometry(backShape, { depth: backThickness, bevelEnabled: false });
+  const backGeo = new THREE.ExtrudeGeometry(backShape, { depth: backThickness, bevelEnabled: false, curveSegments: 8 });
   backGeo.translate(0, 0, -doorThickness / 2 + hingeDepth);
 
   let mergedGeo = BufferGeometryUtils.mergeGeometries([frontGeo, backGeo]);
@@ -246,7 +264,7 @@ export const createGroovedPanelGeo = (
   grooveStartOffset: number = 0,
   grooveEndOffset: number = 0
 ) => {
-  let shapeWidth, shapeHeight, totalLength;
+    let shapeWidth, shapeHeight, totalLength;
   
   if (grooveFace === 'px' || grooveFace === 'nx') {
     shapeWidth = sizeZ;
@@ -301,21 +319,21 @@ export const createGroovedPanelGeo = (
   let currentZ = 0;
 
   if (grooveStartOffset > 0) {
-    const geo = new THREE.ExtrudeGeometry(getShape(false), { depth: grooveStartOffset, bevelEnabled: false });
+    const geo = new THREE.ExtrudeGeometry(getShape(false), { depth: grooveStartOffset, bevelEnabled: false, curveSegments: 6 });
     segments.push(geo);
     currentZ += grooveStartOffset;
   }
 
   const mainLength = totalLength - grooveStartOffset - grooveEndOffset;
   if (mainLength > 0) {
-    const geo = new THREE.ExtrudeGeometry(getShape(true), { depth: mainLength, bevelEnabled: false });
+    const geo = new THREE.ExtrudeGeometry(getShape(true), { depth: mainLength, bevelEnabled: false, curveSegments: 6 });
     if (currentZ > 0) geo.translate(0, 0, currentZ);
     segments.push(geo);
     currentZ += mainLength;
   }
 
   if (grooveEndOffset > 0) {
-    const geo = new THREE.ExtrudeGeometry(getShape(false), { depth: grooveEndOffset, bevelEnabled: false });
+    const geo = new THREE.ExtrudeGeometry(getShape(false), { depth: grooveEndOffset, bevelEnabled: false, curveSegments: 6 });
     if (currentZ > 0) geo.translate(0, 0, currentZ);
     segments.push(geo);
   }
@@ -384,7 +402,7 @@ export const createPanelWithHolesGeo = (
   grooveEndOffset: number = 0,
   notches: { u: number, v: number, width: number, height: number, alignV: 'top' | 'bottom' | 'center' }[] = []
 ) => {
-  const uMin = -sizeZ / 2;
+    const uMin = -sizeZ / 2;
   const uMax = sizeZ / 2;
   const vMin = -sizeY / 2;
   const vMax = sizeY / 2;
@@ -477,34 +495,34 @@ export const createPanelWithHolesGeo = (
   const backThickness = sizeX - maxD;
   
   if (backThickness > 0) {
-    layers.push(new THREE.ExtrudeGeometry(createBaseShape(false, false, true), { depth: backThickness, bevelEnabled: false }));
+    layers.push(new THREE.ExtrudeGeometry(createBaseShape(false, false, true), { depth: backThickness, bevelEnabled: false, curveSegments: 6 }));
   }
   
   if (hDepth > gDepth) {
     const midThickness = hDepth - gDepth;
-    const midGeo = new THREE.ExtrudeGeometry(createBaseShape(false, true, true), { depth: midThickness, bevelEnabled: false });
+    const midGeo = new THREE.ExtrudeGeometry(createBaseShape(false, true, true), { depth: midThickness, bevelEnabled: false, curveSegments: 6 });
     midGeo.translate(0, 0, backThickness);
     layers.push(midGeo);
     
     if (gDepth > 0) {
-      const innerGeo = new THREE.ExtrudeGeometry(createBaseShape(true, true, true), { depth: gDepth, bevelEnabled: false });
+      const innerGeo = new THREE.ExtrudeGeometry(createBaseShape(true, true, true), { depth: gDepth, bevelEnabled: false, curveSegments: 6 });
       innerGeo.translate(0, 0, backThickness + midThickness);
       layers.push(innerGeo);
     }
   } else if (gDepth > hDepth) {
     const midThickness = gDepth - hDepth;
-    const midGeo = new THREE.ExtrudeGeometry(createBaseShape(true, false, true), { depth: midThickness, bevelEnabled: false });
+    const midGeo = new THREE.ExtrudeGeometry(createBaseShape(true, false, true), { depth: midThickness, bevelEnabled: false, curveSegments: 6 });
     midGeo.translate(0, 0, backThickness);
     layers.push(midGeo);
     
     if (hDepth > 0) {
-      const innerGeo = new THREE.ExtrudeGeometry(createBaseShape(true, true, true), { depth: hDepth, bevelEnabled: false });
+      const innerGeo = new THREE.ExtrudeGeometry(createBaseShape(true, true, true), { depth: hDepth, bevelEnabled: false, curveSegments: 6 });
       innerGeo.translate(0, 0, backThickness + midThickness);
       layers.push(innerGeo);
     }
   } else {
     if (hDepth > 0) {
-      const innerGeo = new THREE.ExtrudeGeometry(createBaseShape(true, true, true), { depth: hDepth, bevelEnabled: false });
+      const innerGeo = new THREE.ExtrudeGeometry(createBaseShape(true, true, true), { depth: hDepth, bevelEnabled: false, curveSegments: 6 });
       innerGeo.translate(0, 0, backThickness);
       layers.push(innerGeo);
     }
