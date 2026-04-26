@@ -703,50 +703,56 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
               Sink, tap, cooker, and hood to be provided by the customer unless mentioned above.
             </div>
 
-            {/* Summary & Bank Info */}
-            <div className="pt-12 grid grid-cols-1 sm:grid-cols-2 gap-12 items-end">
-              <div className="space-y-8">
-                <div className="space-y-2">
-                  <div className="text-xs text-slate-400 font-medium italic">Looking forward for your business.</div>
-                  <div className="p-6 bg-slate-50 rounded-xl border border-slate-100 space-y-3">
-                    <div className="text-slate-900 font-black uppercase text-xs tracking-[0.2em] border-b border-slate-200 pb-2">{project.company || 'COMPANY'}</div>
-                    <div className="space-y-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                      <div className="flex justify-between"><span className="text-slate-400">Bank Name</span> <span className="text-slate-700">Seylan Bank</span></div>
-                      <div className="flex justify-between"><span className="text-slate-400">Account</span> <span className="text-slate-700">021 013 279 542 001</span></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-400 font-bold uppercase tracking-widest">Sub Total</span>
-                    <span className="font-bold text-slate-700">{formatCurrency(costs.totalPrice)}</span>
-                  </div>
-                  <div className="h-px bg-slate-100 w-full"></div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-900 font-black uppercase tracking-[0.2em] text-sm">Grand Total</span>
-                    <div className="text-right">
-                      <span className="text-3xl font-black text-slate-900">{formatCurrency(costs.totalPrice)}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+            {/* PAGE BREAK / DIVIDER */}
+            <div className="border-t-2 border-dashed border-slate-200 my-12 relative">
+               <span className="absolute left-1/2 -top-3 -translate-x-1/2 bg-white px-4 text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">Page 02 - Materials</span>
             </div>
 
-            {/* Terms Section in Preview */}
-            <div className="pt-12 border-t border-slate-100">
-              <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.3em] mb-4">Terms & Conditions</h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-[8px] leading-relaxed text-slate-400 uppercase font-bold">
-                <div>1. Advance of 85% required to commence project.</div>
-                <div>2. Project starts after duly signed documents received.</div>
-                <div>3. 30 days allocated for production from final clarification.</div>
-                <div>4. Client must provide uninterrupted site access.</div>
-                <div>5. Material and design are final after production starts.</div>
-                <div>6. Full payment for accessories required to start.</div>
-                <div>7. Production completed upon full payment.</div>
-                <div>8. Linear foot fixing charges apply if assembly by Infinity.</div>
+            {/* MATERIAL SELECTIONS SECTION (PAGE 2) */}
+            <div className="space-y-8">
+              <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.3em] mb-4">Material Selections</h4>
+              <div className="border border-slate-100 rounded-xl overflow-hidden">
+                <table className="w-full text-xs text-left">
+                  <thead>
+                    <tr className="bg-slate-50 text-slate-400 font-bold uppercase text-[9px] tracking-widest">
+                      <th className="p-4">Cabinet Part</th>
+                      <th className="p-4">Material / Finish Name</th>
+                      <th className="p-4 text-center">Preview</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {(() => {
+                      const matSettings = project.settings.materialSettings;
+                      const textures = matSettings?.textureUrls || {};
+                      
+                      const selections = [
+                        { label: 'Carcass (Internal)', name: matSettings?.carcassMaterial, img: textures['carcass'] },
+                        { label: 'Door & Fronts', name: matSettings?.doorMaterial, img: textures['door'] || textures['carcass'] },
+                        { label: 'Shelves', name: matSettings?.shelfMaterial, img: textures['shelf'] || textures['carcass'] },
+                        { label: 'Back Panels', name: matSettings?.backMaterial, img: textures['back'] || textures['carcass'] },
+                        { label: 'Drawer Boxes', name: matSettings?.drawerMaterial, img: textures['drawer'] || textures['carcass'] },
+                      ];
+
+                      return selections.map((mat, i) => (
+                        <tr key={i} className="hover:bg-slate-50/30 transition-colors">
+                          <td className="p-4 font-black text-slate-700 uppercase tracking-tight">{mat.label}</td>
+                          <td className="p-4 text-slate-500 font-bold">{mat.name || 'Standard Selection'}</td>
+                          <td className="p-4">
+                            <div className="flex justify-center">
+                              {mat.img ? (
+                                <div className="w-16 h-10 rounded border border-slate-200 overflow-hidden shadow-sm">
+                                  <img src={mat.img} alt={mat.name} className="w-full h-full object-cover" />
+                                </div>
+                              ) : (
+                                <div className="w-16 h-10 rounded bg-slate-100 border border-dashed border-slate-300" />
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ));
+                    })()}
+                  </tbody>
+                </table>
               </div>
             </div>
 
