@@ -1,7 +1,7 @@
 /// <reference types="@react-three/fiber" />
 import React, { Suspense, useRef, useState, useMemo, useEffect } from 'react';
-import { Canvas, useThree, useLoader } from '@react-three/fiber';
-import { OrbitControls, Grid, Html, useProgress, PerspectiveCamera, Environment, ContactShadows, Line } from '@react-three/drei';
+import { Canvas, useThree } from '@react-three/fiber';
+import { OrbitControls, Grid, Html, useProgress, PerspectiveCamera, Environment, ContactShadows, Line, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import { Video } from 'lucide-react';
 import { Project, CabinetType, CabinetUnit, Zone, Obstacle, ProjectSettings } from '../../types';
@@ -11,6 +11,9 @@ import { Wall } from './Wall';
 import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js';
 
 RectAreaLightUniformsLib.init();
+
+// Pre-warm assets to prevent "cold start" hangups on complex projects
+useTexture.preload('/textures/wood.png');
 
 interface Props {
   project: Project;
@@ -582,20 +585,29 @@ const Scene = ({
         isRecording={isRecording}
       />
       
-      <color attach="background" args={[isStudio ? '#1a1a1a' : (lightTheme ? '#f3f4f6' : '#1e293b')]} />
+      <color attach="background" args={[isStudio ? '#1a1a1a' : (lightTheme ? '#f3f4f6' : '#2d3748')]} />
       
-      <ambientLight intensity={isStudio ? 0.4 : 0.5} />
+      <ambientLight intensity={isStudio ? 0.4 : 1.2} />
       {!isStudio && (
         <>
-          <Environment preset="city" />
+          {/* Symmetrical 4-Corner Lighting for perfectly even walls */}
           <directionalLight
-            position={[sceneBounds.center[0] + 1000, 2000, sceneBounds.center[2] + 1000]}
-            intensity={1}
+            position={[sceneBounds.center[0] + 4000, 5000, sceneBounds.center[2] + 4000]}
+            intensity={0.6}
             castShadow
+            shadow-mapSize={[1024, 1024]}
           />
           <directionalLight
-            position={[sceneBounds.center[0] - 500, 1000, sceneBounds.center[2] - 500]}
-            intensity={0.5}
+            position={[sceneBounds.center[0] - 4000, 5000, sceneBounds.center[2] + 4000]}
+            intensity={0.6}
+          />
+          <directionalLight
+            position={[sceneBounds.center[0] + 4000, 5000, sceneBounds.center[2] - 4000]}
+            intensity={0.6}
+          />
+          <directionalLight
+            position={[sceneBounds.center[0] - 4000, 5000, sceneBounds.center[2] - 4000]}
+            intensity={0.6}
           />
         </>
       )}
