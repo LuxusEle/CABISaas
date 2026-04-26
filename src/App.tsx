@@ -405,7 +405,7 @@ export default function App() {
 
       <style>{`
         @media print {
-          @page { size: landscape; margin: 0; }
+          @page { size: A4 portrait; margin: 10mm; }
           body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
           #root, #main-content, .overflow-y-auto, .overflow-hidden {
             position: relative; height: auto !important; overflow: visible !important;
