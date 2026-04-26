@@ -1,6 +1,8 @@
 import { supabase } from './supabaseClient';
 import type { Project } from '../types';
 
+let cachedProjectsList: any[] | null = null;
+
 export const projectService = {
   /**
    * Create a new project in the database
@@ -41,7 +43,42 @@ export const projectService = {
   },
 
   /**
-   * Get all projects for the current user
+   * Get project metadata for the list view (fast)
+   */
+  async getProjectsList(): Promise<{ data: any[] | null; error: any }> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { data: null, error: new Error('Not authenticated') };
+
+    const { data, error } = await supabase
+      .from('projects')
+      .select('id, name, designer, company, updated_at')
+      .eq('user_id', user.id)
+      .order('updated_at', { ascending: false });
+
+    if (error) return { data: null, error };
+
+    const mappedData = data.map(row => ({
+      id: row.id,
+      name: row.name,
+      designer: row.designer || '',
+      company: row.company || '',
+      updated_at: row.updated_at
+    }));
+
+    cachedProjectsList = mappedData;
+
+    return {
+      data: mappedData,
+      error: null,
+    };
+  },
+
+  getCachedProjectsList(): any[] | null {
+    return cachedProjectsList;
+  },
+
+  /**
+   * Get all projects for the current user (Full data)
    */
   async getProjects(): Promise<{ data: Project[] | null; error: any }> {
     const { data: { user } } = await supabase.auth.getUser();
