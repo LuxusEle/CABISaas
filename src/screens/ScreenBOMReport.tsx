@@ -220,12 +220,34 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
   const quotationSpecifications = useMemo(() => {
     const specs: string[] = [];
 
-    // 1. Materials
-    materialSummary.forEach(m => {
-      specs.push(`Carcass & Face material: ${m.material}`);
+    // 1. Materials Detail
+    if (project.settings.materialSettings) {
+      const ms = project.settings.materialSettings;
+      if (ms.carcassMaterial) specs.push(`Carcass Material: ${ms.carcassMaterial}`);
+      if (ms.doorMaterial) specs.push(`Door/Front Material: ${ms.doorMaterial}`);
+      if (ms.shelfMaterial) specs.push(`Internal Shelf Material: ${ms.shelfMaterial}`);
+      if (ms.backMaterial) specs.push(`Back Panel Material: ${ms.backMaterial}`);
+      if (ms.drawerMaterial) specs.push(`Drawer Box Material: ${ms.drawerMaterial}`);
+    } else {
+      materialSummary.forEach(m => {
+        specs.push(`Main material: ${m.material}`);
+      });
+    }
+
+    // 2. Cabinet Summary
+    const cabSummary: Record<string, number> = {};
+    project.zones.forEach(z => {
+      z.cabinets.forEach(c => {
+        const key = `${c.preset} (${c.width}mm)`;
+        cabSummary[key] = (cabSummary[key] || 0) + 1;
+      });
     });
 
-    // 2. Hardware/Accessories from BOM table logic
+    Object.entries(cabSummary).forEach(([desc, qty]) => {
+      specs.push(`${qty}x ${desc}`);
+    });
+
+    // 3. Hardware/Accessories from BOM table logic
     const hardwareItems = [
       { name: 'Soft-Close Hinges', qty: hingeQuantity },
       { name: `Handle/Knob`, qty: handleQuantity },
@@ -250,14 +272,13 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
     });
 
     return specs;
-  }, [materialSummary, hingeQuantity, handleQuantity, drawerSlideQuantity, accessories]);
+  }, [project.settings.materialSettings, project.zones, materialSummary, hingeQuantity, handleQuantity, drawerSlideQuantity, accessories]);
 
   const handlePrint = () => {
     setTimeout(() => window.print(), 100);
   };
-
-  const handlePrintQuotation = () => {
-    generateQuotationPDF(project, quotationSpecifications, costs, currency, isUserPro, {
+  const handlePrintQuotation = async () => {
+    await generateQuotationPDF(project, quotationSpecifications, costs, currency, isUserPro, {
       companyAddress: ['Katuwawala Road', 'Borelesgamuwa', 'Western Province', 'Sri Lanka'],
       phone: '0777163564',
       email: 'luxuselemente@gmail.com',
