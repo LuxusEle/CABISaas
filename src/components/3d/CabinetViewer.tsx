@@ -140,8 +140,9 @@ const CameraController = ({
       minDistance={200}
       maxDistance={maxDim * 5}
       maxPolarAngle={Math.PI / 2.1}
-      enableZoom={true}
-      enablePan={true}
+      enableRotate={!isRecording}
+      enableZoom={!isRecording}
+      enablePan={!isRecording}
       autoRotate={isRecording}
       autoRotateSpeed={isRecording ? 12.0 : 2.0}
     />
@@ -1039,6 +1040,19 @@ export const CabinetViewer: React.FC<Props> = ({
     }
   }, [hasContent, sceneBounds.size.width]);
 
+  // Block page refresh/close while recording
+  useEffect(() => {
+    if (!isRecording) return;
+    
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = 'Recording is in progress. Are you sure you want to leave?';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isRecording]);
+
   if (!hasContent) {
     return (
       <div className={`w-full h-full flex items-center justify-center bg-gradient-to-br ${lightTheme ? 'from-slate-50 to-slate-100' : 'from-slate-800 to-slate-900'}`}>
@@ -1088,6 +1102,19 @@ export const CabinetViewer: React.FC<Props> = ({
                 </>
               )}
             </button>
+          )}
+          {isRecording && (
+            <div 
+              className="fixed inset-0 z-[9999] cursor-wait touch-none" 
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              onPointerDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+            />
           )}
         </>
 
