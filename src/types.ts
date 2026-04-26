@@ -165,6 +165,7 @@ export interface ProjectMaterialSettings {
     thickness: number;
     pricePerSheet: number;
   }>;
+  textureUrls?: Record<string, string>;
 }
 
 export interface CabinetUnit {

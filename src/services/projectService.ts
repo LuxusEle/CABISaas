@@ -9,6 +9,13 @@ export const projectService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { data: null, error: new Error('Not authenticated') };
 
+    // Enforce project limit
+    const { subscriptionService } = await import('./subscriptionService');
+    const canCreate = await subscriptionService.canCreateProject();
+    if (!canCreate) {
+      return { data: null, error: new Error('Project limit reached. Please upgrade to Pro.') };
+    }
+
     const { data, error } = await supabase
       .from('projects')
       .insert({

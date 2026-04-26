@@ -1,12 +1,16 @@
 /// <reference types="@react-three/fiber" />
 import React, { Suspense, useRef, useState, useMemo, useEffect } from 'react';
 import { Canvas, useThree, useLoader } from '@react-three/fiber';
-import { OrbitControls, Grid, Html, useProgress, PerspectiveCamera, Environment, ContactShadows } from '@react-three/drei';
-import { RotateCcw } from 'lucide-react';
+import { OrbitControls, Grid, Html, useProgress, PerspectiveCamera, Environment, ContactShadows, Line } from '@react-three/drei';
 import * as THREE from 'three';
+import { Video } from 'lucide-react';
 import { Project, CabinetType, CabinetUnit, Zone, Obstacle, ProjectSettings } from '../../types';
 import { Cabinet } from './Cabinet';
 import { Wall } from './Wall';
+// @ts-ignore
+import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js';
+
+RectAreaLightUniformsLib.init();
 
 interface Props {
   project: Project;
@@ -17,7 +21,7 @@ interface Props {
   activeWallId?: string;
   lightTheme?: boolean;
   draggedCabinet?: CabinetUnit | null;
-  onDropCabinet?: (zoneId: string, fromLeft: number, cabinet: CabinetUnit) => void;
+  onDropCabinet?: (zoneId: string, fromLeft: number, cabinet: CabinetUnit, targetWidth?: number) => void;
   selectedCabinet?: { zoneId: string, index: number } | null;
   onCabinetSelect?: (zoneId: string, index: number) => void;
   onSettingsUpdate?: (settings: Partial<ProjectSettings>) => void;
@@ -28,6 +32,7 @@ interface Props {
   onShowHardwareChange?: (show: boolean) => void;
   opacity?: number;
   skeletonView?: boolean;
+  isStudio?: boolean;
 }
 
 const LoadingFallback = () => {
@@ -43,12 +48,14 @@ const CameraController = ({
   targetView, 
   sceneCenter, 
   sceneSize,
-  lightTheme
+  lightTheme,
+  isRecording
 }: { 
   targetView: string; 
   sceneCenter: [number, number, number];
   sceneSize: { width: number; depth: number; height: number };
   lightTheme?: boolean;
+  isRecording?: boolean;
 }) => {
   const { camera } = useThree();
   const controlsRef = useRef<any>(null);
@@ -57,12 +64,24 @@ const CameraController = ({
   const initialFitRef = useRef<boolean>(false);
   
   const maxDim = Math.max(sceneSize.width, sceneSize.depth, sceneSize.height);
-  const distance = Math.max(maxDim * 0.85, 2500); // Zoomed in slightly to fit window better
+  const distance = isRecording ? Math.max(maxDim * 0.65, 1800) : Math.max(maxDim * 0.85, 2500); 
   const centerY = sceneCenter[1];
 
   const viewPositions = useMemo(() => ({
     front: { 
       position: [sceneCenter[0], centerY, sceneCenter[2] + distance] as [number, number, number], 
+      target: sceneCenter 
+    },
+    back: { 
+      position: [sceneCenter[0], centerY, sceneCenter[2] - distance] as [number, number, number], 
+      target: sceneCenter 
+    },
+    left: { 
+      position: [sceneCenter[0] - distance, centerY, sceneCenter[2]] as [number, number, number], 
+      target: sceneCenter 
+    },
+    right: { 
+      position: [sceneCenter[0] + distance, centerY, sceneCenter[2]] as [number, number, number], 
       target: sceneCenter 
     },
     side: { 
@@ -97,7 +116,7 @@ const CameraController = ({
           
           camera.position.set(...position);
           camera.lookAt(...target);
-          if (controlsRef.current) {
+          if (controlsRef.current && typeof controlsRef.current.update === 'function') {
             controlsRef.current.target.set(...target);
             controlsRef.current.update();
           }
@@ -123,7 +142,75 @@ const CameraController = ({
       maxPolarAngle={Math.PI / 2.1}
       enableZoom={true}
       enablePan={true}
+      autoRotate={isRecording}
+      autoRotateSpeed={isRecording ? 12.0 : 2.0}
     />
+  );
+};
+
+export const Dimension3D = ({ 
+  start, 
+  end, 
+  label, 
+  color = "#64748b", 
+  offset = 150, 
+  isVertical = false 
+}: { 
+  start: [number, number, number], 
+  end: [number, number, number], 
+  label: string, 
+  color?: string,
+  offset?: number,
+  isVertical?: boolean
+}) => {
+  const points = useMemo(() => {
+    const s = new THREE.Vector3(...start);
+    const e = new THREE.Vector3(...end);
+    
+    // Calculate offset direction
+    let offDir = isVertical ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 0, 1);
+    const lineStart = s.clone().add(offDir.clone().multiplyScalar(offset));
+    const lineEnd = e.clone().add(offDir.clone().multiplyScalar(offset));
+    
+    return [lineStart, lineEnd];
+  }, [start, end, offset, isVertical]);
+
+  return (
+    <group>
+      <Line
+        points={points}
+        color={color}
+        lineWidth={2}
+        transparent
+        opacity={0.8}
+      />
+      {/* Tick marks */}
+      <mesh position={points[0]}>
+        <boxGeometry args={[10, 10, 10]} />
+        <meshBasicMaterial color={color} />
+      </mesh>
+      <mesh position={points[1]}>
+        <boxGeometry args={[10, 10, 10]} />
+        <meshBasicMaterial color={color} />
+      </mesh>
+      <Html position={new THREE.Vector3().addVectors(points[0], points[1]).multiplyScalar(0.5)} center>
+        <div style={{
+          padding: '2px 8px',
+          background: 'rgba(255,255,255,0.95)',
+          border: `1px solid ${color}`,
+          borderRadius: '4px',
+          fontSize: '12px',
+          fontWeight: 'black',
+          color: color,
+          whiteSpace: 'nowrap',
+          pointerEvents: 'none',
+          boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
+          fontFamily: 'monospace'
+        }}>
+          {label}mm
+        </div>
+      </Html>
+    </group>
   );
 };
 
@@ -144,15 +231,19 @@ const Scene = ({
   selectedCabinet,
   onCabinetSelect,
   opacity,
-  skeletonView
+  skeletonView,
+  isRecording,
+  onRecordingComplete,
+  onViewModeChange,
+  isStudio
 }: { 
   project: Project; 
-  showHardware: boolean; 
+  showHardware?: boolean; 
   viewMode: string;
   showEmptyWalls?: boolean;
-  onSceneBounds: (bounds: { center: [number, number, number]; size: { width: number; depth: number; height: number } }) => void;
-  onWallClick?: (wallId: string) => void;
-  onCabinetClick?: (zoneId: string, cabinetIndex: number) => void;
+  onSceneBounds: (bounds: any) => void;
+  onWallClick?: (id: string) => void;
+  onCabinetClick?: (zoneId: string, index: number) => void;
   activeWallId?: string;
   lightTheme?: boolean;
   doorOpenAngle?: number;
@@ -163,6 +254,10 @@ const Scene = ({
   onCabinetSelect?: (zoneId: string, index: number) => void;
   opacity?: number;
   skeletonView?: boolean;
+  isRecording?: boolean;
+  onRecordingComplete: () => void;
+  onViewModeChange: (mode: string) => void;
+  isStudio?: boolean;
 }) => {
   const [previewPos, setPreviewPos] = useState<{ wallIndex: number; fromLeft: number; width: number } | null>(null);
   const activeZones = (showEmptyWalls || !!draggedCabinet)
@@ -206,7 +301,6 @@ const Scene = ({
     const wallCEnd = wallLengths[2] || 0;
     
     activeZones.forEach((zone, wallIndex) => {
-      const wallLength = zone.totalLength;
       const wallHeight = zone.wallHeight || 2400;
       
       wallCounters[wallIndex] = { B: 0, T: 0, W: 0 };
@@ -393,6 +487,86 @@ const Scene = ({
     };
   }, [layoutData, showEmptyWalls]);
 
+  const { gl } = useThree();
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+
+  useEffect(() => {
+    if (isRecording) {
+      let isCancelled = false;
+      try {
+        // @ts-ignore
+        const stream = gl.domElement.captureStream(30);
+        
+        // Some browsers need a specific mimeType for MediaRecorder
+        const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') 
+          ? 'video/webm;codecs=vp9' 
+          : 'video/webm';
+          
+        const mediaRecorder = new MediaRecorder(stream, { mimeType });
+        mediaRecorderRef.current = mediaRecorder;
+        chunksRef.current = [];
+
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) chunksRef.current.push(e.data);
+        };
+
+        mediaRecorder.onstop = () => {
+          if (isCancelled) return;
+          const blob = new Blob(chunksRef.current, { type: mimeType });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'kitchen_showcase.webm';
+          a.click();
+          URL.revokeObjectURL(url);
+          onRecordingComplete();
+        };
+
+        mediaRecorder.start();
+
+        // Sequence: Top -> Active Walls -> Isometric
+        const activeZones = project.zones.filter(z => z.active);
+        const wallViewMap: Record<string, string> = {
+          'Wall A': 'front',
+          'Wall B': 'left',
+          'Wall C': 'back',
+          'Wall D': 'right'
+        };
+        const wallViews = activeZones.map(z => wallViewMap[z.id] || 'front');
+        
+        // Remove duplicates and combine
+        const sequence = Array.from(new Set(['top', ...wallViews, 'isometric']));
+        const phaseDuration = 1800; // ms
+        
+        sequence.forEach((view, index) => {
+          setTimeout(() => {
+            if (!isCancelled) onViewModeChange(view);
+          }, index * phaseDuration);
+        });
+
+        const totalDuration = sequence.length * phaseDuration;
+
+        const timerId = setTimeout(() => {
+          if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+            mediaRecorderRef.current.stop();
+          }
+        }, totalDuration + 500);
+
+        return () => {
+          isCancelled = true;
+          clearTimeout(timerId);
+          if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+            mediaRecorderRef.current.stop();
+          }
+        };
+      } catch (err) {
+        console.error('Failed to capture video', err);
+        onRecordingComplete();
+      }
+    }
+  }, [isRecording, gl, onRecordingComplete, onViewModeChange, project.zones]);
+
   useEffect(() => {
     onSceneBounds(sceneBounds);
   }, [sceneBounds, onSceneBounds]);
@@ -404,19 +578,24 @@ const Scene = ({
         sceneCenter={sceneBounds.center} 
         sceneSize={sceneBounds.size}
         lightTheme={lightTheme}
+        isRecording={isRecording}
       />
       
-      <ambientLight intensity={0.5} />
-      <Environment preset="city" />
-      <directionalLight
-        position={[sceneBounds.center[0] + 1000, 2000, sceneBounds.center[2] + 1000]}
-        intensity={1}
-        castShadow
-      />
-      <directionalLight
-        position={[sceneBounds.center[0] - 500, 1000, sceneBounds.center[2] - 500]}
-        intensity={0.5}
-      />
+      <ambientLight intensity={isStudio ? 0.4 : 0.5} />
+      {!isStudio && (
+        <>
+          <Environment preset="city" />
+          <directionalLight
+            position={[sceneBounds.center[0] + 1000, 2000, sceneBounds.center[2] + 1000]}
+            intensity={1}
+            castShadow
+          />
+          <directionalLight
+            position={[sceneBounds.center[0] - 500, 1000, sceneBounds.center[2] - 500]}
+            intensity={0.5}
+          />
+        </>
+      )}
       
       <ContactShadows 
         position={[0, -0.1, 0]} 
@@ -424,19 +603,25 @@ const Scene = ({
         scale={10000} 
         blur={2} 
         far={4} 
+        frames={1}
       />
       
-      <Grid
-        args={[20000, 20000]}
-        cellSize={100}
-        cellThickness={0.5}
-        cellColor={lightTheme ? '#94a3b8' : '#374151'}
-        sectionSize={500}
-        sectionThickness={1}
-        sectionColor={lightTheme ? '#64748b' : '#1f2937'}
-        fadeDistance={10000}
-        position={[0, -0.5, 0]}
-      />
+      {!isStudio && (
+        <Grid
+          args={[20000, 20000]}
+          cellSize={100}
+          cellThickness={0.5}
+          cellColor={lightTheme ? '#94a3b8' : '#374151'}
+          sectionSize={500}
+          sectionThickness={1}
+          sectionColor={lightTheme ? '#64748b' : '#1f2937'}
+          fadeDistance={10000}
+          position={[0, -0.5, 0]}
+        />
+      )}
+
+      {isStudio && <StudioEnvironment center={sceneBounds.center} />}
+
 
       {layoutData.wallPositions.map(({ zone, position, width, height, rotation }, index) => (
         <Wall
@@ -539,6 +724,7 @@ const Scene = ({
           lightTheme={lightTheme}
           showGrid={!!draggedCabinet}
           opacity={opacity}
+          isStudio={isStudio}
         />
       ))}
 
@@ -564,30 +750,98 @@ const Scene = ({
           opacity={0.5}
           doorOpenAngle={doorOpenAngle}
           skeletonView={skeletonView}
+          isStudio={isStudio}
         />
       )}
 
       {layoutData.cabinetPositions.map(({ unit, zone, position, rotation, wallIndex, cabinetIndex, label }) => {
-        const isSelected = selectedCabinet?.zoneId === zone.id && selectedCabinet?.index === cabinetIndex;
+        const isSelected = !isStudio && selectedCabinet?.zoneId === zone.id && selectedCabinet?.index === cabinetIndex;
         return (
-          <Cabinet
-            key={unit.id}
-            unit={unit}
-            position={position}
-            rotation={rotation}
-            showHardware={showHardware}
-            wallIndex={wallIndex}
-            label={label}
-            settings={project.settings}
-            isSelected={isSelected}
-            skeletonView={skeletonView}
-            onClick={() => {
-              onCabinetSelect?.(zone.id, cabinetIndex);
-            }}
-            doorOpenAngle={doorOpenAngle}
-            forceGola={forceGola}
-            opacity={opacity}
-          />
+          <group key={unit.id} position={position} rotation={[0, rotation, 0]}>
+            <Cabinet
+              unit={unit}
+              position={[0, 0, 0]}
+              rotation={0}
+              showHardware={showHardware}
+              wallIndex={wallIndex}
+              label={label}
+              settings={project.settings}
+              isSelected={isSelected}
+              skeletonView={skeletonView}
+              onClick={isStudio ? undefined : () => {
+                onCabinetSelect?.(zone.id, cabinetIndex);
+              }}
+              doorOpenAngle={doorOpenAngle}
+              forceGola={forceGola}
+              opacity={opacity}
+              isStudio={isStudio}
+            />
+            {!isStudio && isSelected && (() => {
+              const baseH = project.settings.baseHeight || 870;
+              const ct = project.settings.counterThickness || 40;
+              const wallElev = project.settings.wallCabinetElevation || 450;
+              const wallH = project.settings.wallHeight || 720;
+              const tallH = project.settings.tallHeight || 2100;
+              
+              const yBase = unit.type === CabinetType.WALL ? (baseH + ct + wallElev) : 0;
+              const h = unit.type === CabinetType.TALL ? ((project.settings.tallHeight === 2100 || !project.settings.tallHeight) ? (baseH + ct + wallElev + wallH) : tallH) : unit.type === CabinetType.WALL ? wallH : baseH;
+              const d = unit.depth || (unit.type === CabinetType.WALL ? 300 : 560);
+              
+              return (
+                <>
+                  {/* Width Dimension (Top Front) - AMBER */}
+                  <Dimension3D 
+                    start={[0, yBase + h, d]} 
+                    end={[unit.width, yBase + h, d]} 
+                    label={unit.width.toString()} 
+                    offset={120}
+                    color="#f59e0b"
+                  />
+                  {/* Height Dimension (Front Left) - RED */}
+                  <Dimension3D 
+                    start={[0, yBase, d]} 
+                    end={[0, yBase + h, d]} 
+                    label={h.toString()} 
+                    offset={-50}
+                    color="#ef4444"
+                    isVertical
+                  />
+                  {/* Depth Dimension (Top Left Edge) - GREEN */}
+                  <Dimension3D 
+                    start={[0, yBase + h, 0]} 
+                    end={[0, yBase + h, d]} 
+                    label={d.toString()} 
+                    offset={-50}
+                    color="#10b981"
+                  />
+                </>
+              );
+            })()}
+          </group>
+        );
+      })}
+
+      {/* Wall dimensions for the active wall */}
+      {!isStudio && activeWallId && layoutData.wallPositions.map((wp, i) => {
+        if (wp.zone.id !== activeWallId) return null;
+        return (
+          <group key={`wall-dim-${wp.zone.id}`} position={wp.position} rotation={[0, wp.rotation, 0]}>
+            {/* Total Wall Length */}
+            <Dimension3D 
+              start={[0, wp.height, 20]} 
+              end={[wp.width, wp.height, 20]} 
+              label={wp.width.toString()} 
+              offset={100}
+            />
+            {/* Wall Height */}
+            <Dimension3D 
+              start={[0, 0, 0]} 
+              end={[0, wp.height, 0]} 
+              label={wp.height.toString()} 
+              offset={-100}
+              isVertical
+            />
+          </group>
         );
       })}
 
@@ -718,6 +972,7 @@ const Scene = ({
   );
 };
 
+
 export const CabinetViewer: React.FC<Props> = ({ 
   project, 
   showHardware = true, 
@@ -737,7 +992,8 @@ export const CabinetViewer: React.FC<Props> = ({
   onDoorOpenAngleChange,
   onShowHardwareChange,
   opacity,
-  skeletonView
+  skeletonView,
+  isStudio = false
 }) => {
   // Link forceGola to project settings for persistence
   const forceGola = project.settings.advancedTestingSettings?.enableGola ?? false;
@@ -762,6 +1018,12 @@ export const CabinetViewer: React.FC<Props> = ({
   const handleSceneBounds = (bounds: typeof sceneBounds) => {
     setSceneBounds(bounds);
   };
+
+  const [isRecording, setIsRecording] = useState(false);
+  
+  const handleRecordingComplete = React.useCallback(() => {
+    setIsRecording(false);
+  }, []);
 
   const activeZones = showEmptyWalls 
     ? project.zones.filter(z => z.active)
@@ -800,12 +1062,37 @@ export const CabinetViewer: React.FC<Props> = ({
               Left: Rotate | Right: Pan | Scroll: Zoom
             </div>
           </div>
-
+          {isStudio && (
+            <button
+              onClick={() => setIsRecording(true)}
+              disabled={isRecording}
+              className={`absolute top-4 right-4 z-10 flex items-center gap-2 px-4 py-2 rounded-md font-medium text-sm transition-all shadow-lg backdrop-blur-md border ${
+                isRecording 
+                  ? 'bg-red-500/80 text-white border-red-500/50 cursor-not-allowed animate-pulse' 
+                  : lightTheme 
+                    ? 'bg-white/80 text-slate-800 border-slate-200/50 hover:bg-white' 
+                    : 'bg-slate-800/80 text-white border-slate-700/50 hover:bg-slate-700'
+              }`}
+            >
+              {isRecording ? (
+                <>
+                  <div className="w-2 h-2 bg-white rounded-full"></div>
+                  Recording Showcase...
+                </>
+              ) : (
+                <>
+                  <Video className="w-4 h-4" />
+                  Record Showcase
+                </>
+              )}
+            </button>
+          )}
         </>
 
       <Canvas
         shadows
         camera={{ fov: 50 }}
+        dpr={[1, 2]}
         style={{ background: lightTheme ? '#f3f4f6' : '#1e293b' }}
       >
         <PerspectiveCamera 
@@ -819,6 +1106,7 @@ export const CabinetViewer: React.FC<Props> = ({
             project={project} 
             showHardware={showHardware} 
             viewMode={viewMode}
+            onViewModeChange={onViewModeChange}
             showEmptyWalls={showEmptyWalls}
             onSceneBounds={handleSceneBounds}
             onWallClick={onWallClick}
@@ -833,9 +1121,37 @@ export const CabinetViewer: React.FC<Props> = ({
             onCabinetSelect={onCabinetSelect}
             opacity={opacity}
             skeletonView={skeletonView}
+            isRecording={isRecording}
+            onRecordingComplete={handleRecordingComplete}
+            isStudio={isStudio}
           />
         </Suspense>
       </Canvas>
     </div>
+  );
+};
+
+const StudioEnvironment = ({ center }: { center: [number, number, number] }) => {
+  const floorTexture = useLoader(THREE.TextureLoader, '/textures/floor.png');
+  
+  if (floorTexture) {
+    floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping;
+    floorTexture.repeat.set(10, 10);
+  }
+
+  return (
+    <group>
+      {/* Floor */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[center[0], -0.5, center[2]]} receiveShadow>
+        <planeGeometry args={[20000, 20000]} />
+        <meshStandardMaterial map={floorTexture} color="#888888" roughness={0.6} metalness={0.1} />
+      </mesh>
+      
+      {/* Uniform Hemispherical Fill */}
+      <hemisphereLight args={['#ffffff', '#888888', 0.6]} />
+      
+      {/* Environment for reflections, 'city' is very diffuse and soft */}
+      <Environment preset="city" />
+    </group>
   );
 };

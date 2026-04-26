@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { SheetType, ProjectSettings } from '../types';
 import { sheetTypeService } from '../services/sheetTypeService';
-import { Layers, Box, Circle, Square, Settings2, ChevronDown, ChevronUp } from 'lucide-react';
+import { materialService } from '../services/materialService';
+import { supabase } from '../services/supabaseClient';
+import { Layers, Box, Circle, Square, Settings2, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 
 interface MaterialAllocationPanelProps {
   settings: ProjectSettings;
@@ -18,6 +20,7 @@ export const MaterialAllocationPanel: React.FC<MaterialAllocationPanelProps> = (
 }) => {
   const [sheetTypes, setSheetTypes] = useState<SheetType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isUploading, setIsUploading] = useState<string | null>(null);
   const [internalExpanded, setInternalExpanded] = useState(false);
 
   // Use external state if provided, otherwise use internal
@@ -53,6 +56,33 @@ export const MaterialAllocationPanel: React.FC<MaterialAllocationPanelProps> = (
         sheetSpecs: settings.materialSettings?.sheetSpecs || {}
       }
     });
+  };
+
+  const handleFileUpload = async (file: File, partKey: string) => {
+    try {
+      setIsUploading(partKey);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not logged in');
+
+      const oldUrl = settings.materialSettings?.textureUrls?.[partKey];
+      const result = await materialService.uploadTexture(file, user.id, partKey, oldUrl);
+
+      if (result) {
+        onUpdate({
+          materialSettings: {
+            ...settings.materialSettings,
+            textureUrls: {
+              ...(settings.materialSettings?.textureUrls || {}),
+              [partKey]: result.url
+            }
+          } as any
+        });
+      }
+    } catch (error) {
+      console.error('Upload failed:', error);
+    } finally {
+      setIsUploading(null);
+    }
   };
 
 
@@ -105,18 +135,33 @@ export const MaterialAllocationPanel: React.FC<MaterialAllocationPanelProps> = (
                   </td>
                   <td className="px-3 py-4 text-slate-500 text-xs">Sides, top, bottom panels</td>
                   <td className="px-3 py-4">
-                    <select
-                      value={allocation.carcassMaterial}
-                      onChange={(e) => handleChange('carcassMaterial', e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm"
-                    >
-                      <option value="">Select material...</option>
-                      {sheetTypes.map((type) => (
-                        <option key={type.id} value={type.name}>
-                          {type.name} ({type.thickness}mm)
-                        </option>
-                      ))}
-                    </select>
+                    <div className="flex gap-2 items-center">
+                      <select
+                        value={allocation.carcassMaterial}
+                        onChange={(e) => handleChange('carcassMaterial', e.target.value)}
+                        className="flex-1 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm"
+                      >
+                        <option value="">Select material...</option>
+                        {sheetTypes.map((type) => (
+                          <option key={type.id} value={type.name}>
+                            {type.name} ({type.thickness}mm)
+                          </option>
+                        ))}
+                      </select>
+                      <label className={`cursor-pointer p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors border border-slate-200 dark:border-slate-600 ${isUploading === 'carcass' ? 'opacity-50 pointer-events-none' : ''}`} title="Upload Texture">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          disabled={isUploading === 'carcass'}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleFileUpload(file, 'carcass');
+                          }}
+                        />
+                        {isUploading === 'carcass' ? <Loader2 className="w-4 h-4 animate-spin text-blue-500" /> : <Box className="w-4 h-4 text-slate-400" />}
+                      </label>
+                    </div>
                   </td>
                 </tr>
 
@@ -130,18 +175,33 @@ export const MaterialAllocationPanel: React.FC<MaterialAllocationPanelProps> = (
                   </td>
                   <td className="px-3 py-4 text-slate-500 text-xs">Cabinet door fronts</td>
                   <td className="px-3 py-4">
-                    <select
-                      value={allocation.doorMaterial}
-                      onChange={(e) => handleChange('doorMaterial', e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm"
-                    >
-                      <option value="">Select material...</option>
-                      {sheetTypes.map((type) => (
-                        <option key={type.id} value={type.name}>
-                          {type.name} ({type.thickness}mm)
-                        </option>
-                      ))}
-                    </select>
+                    <div className="flex gap-2 items-center">
+                      <select
+                        value={allocation.doorMaterial}
+                        onChange={(e) => handleChange('doorMaterial', e.target.value)}
+                        className="flex-1 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm"
+                      >
+                        <option value="">Select material...</option>
+                        {sheetTypes.map((type) => (
+                          <option key={type.id} value={type.name}>
+                            {type.name} ({type.thickness}mm)
+                          </option>
+                        ))}
+                      </select>
+                      <label className={`cursor-pointer p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors border border-slate-200 dark:border-slate-600 ${isUploading === 'door' ? 'opacity-50 pointer-events-none' : ''}`} title="Upload Texture">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          disabled={isUploading === 'door'}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleFileUpload(file, 'door');
+                          }}
+                        />
+                        {isUploading === 'door' ? <Loader2 className="w-4 h-4 animate-spin text-green-500" /> : <Square className="w-4 h-4 text-slate-400" />}
+                      </label>
+                    </div>
                   </td>
                 </tr>
 
@@ -205,19 +265,34 @@ export const MaterialAllocationPanel: React.FC<MaterialAllocationPanelProps> = (
                   </td>
                   <td className="px-3 py-4 text-slate-500 text-xs">Adjustable and fixed shelves</td>
                   <td className="px-3 py-4">
-                    <select
-                      value={allocation.shelfMaterial}
-                      onChange={(e) => handleChange('shelfMaterial', e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm"
-                    >
-                      <option value="">Select material...</option>
-                      <option value="">Same as Carcass ({allocation.carcassMaterial || 'Not set'})</option>
-                      {sheetTypes.map((type) => (
-                        <option key={type.id} value={type.name}>
-                          {type.name} ({type.thickness}mm)
-                        </option>
-                      ))}
-                    </select>
+                    <div className="flex gap-2 items-center">
+                      <select
+                        value={allocation.shelfMaterial}
+                        onChange={(e) => handleChange('shelfMaterial', e.target.value)}
+                        className="flex-1 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm"
+                      >
+                        <option value="">Select material...</option>
+                        <option value="">Same as Carcass ({allocation.carcassMaterial || 'Not set'})</option>
+                        {sheetTypes.map((type) => (
+                          <option key={type.id} value={type.name}>
+                            {type.name} ({type.thickness}mm)
+                          </option>
+                        ))}
+                      </select>
+                      <label className={`cursor-pointer p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors border border-slate-200 dark:border-slate-600 ${isUploading === 'shelf' ? 'opacity-50 pointer-events-none' : ''}`} title="Upload Texture">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          disabled={isUploading === 'shelf'}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleFileUpload(file, 'shelf');
+                          }}
+                        />
+                        {isUploading === 'shelf' ? <Loader2 className="w-4 h-4 animate-spin text-indigo-500" /> : <Layers className="w-4 h-4 text-slate-400" />}
+                      </label>
+                    </div>
                   </td>
                 </tr>
               </tbody>

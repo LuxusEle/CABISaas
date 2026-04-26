@@ -3,11 +3,7 @@ import { Download } from 'lucide-react';
 import JSZip from 'jszip';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Environment, ContactShadows } from '@react-three/drei';
-import { 
-  TestingSettings, 
-  DEFAULT_SETTINGS, 
-  RUBY_DOOR_THRESHOLD 
-} from './CabinetTestingUtils';
+import { TestingSettings, DEFAULT_SETTINGS, RUBY_DOOR_THRESHOLD } from './CabinetTestingUtils';
 import { BaseCabinetTesting, exportBaseCabinetDXF } from './BaseCabinetTesting';
 import { WallCabinetTesting, exportWallCabinetDXF } from './WallCabinetTesting';
 import { TallCabinetTesting, exportTallCabinetDXF } from './TallCabinetTesting';
@@ -592,6 +588,7 @@ export const CabinetTestingPage: React.FC<{ isDark?: boolean }> = ({ isDark = tr
           shadows 
           camera={{ position: [900, 600, 900], fov: 40, near: 1, far: 10000 }}
           gl={{ antialias: true }}
+          dpr={[1, 2]}
         >
           <color attach="background" args={[isDark ? '#1e293b' : '#f8fafc']} />
           <Environment preset="city" />
