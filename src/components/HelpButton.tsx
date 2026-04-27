@@ -45,6 +45,18 @@ export const HelpButton: React.FC = () => {
   const [currentPhraseIndex, setCurrentPhraseIndex] = useState(0);
   const [showPhrase, setShowPhrase] = useState(false);
 
+  // Visibility state controlled by global events
+  const [isHidden, setIsHidden] = useState(false);
+
+  useEffect(() => {
+    const handleVisibility = (e: any) => {
+      // If detail is true, we HIDE. If false, we SHOW.
+      setIsHidden(!!e.detail);
+    };
+    window.addEventListener('setHelpButtonVisibility', handleVisibility);
+    return () => window.removeEventListener('setHelpButtonVisibility', handleVisibility);
+  }, []);
+
   // Rotate phrases every 6 seconds
   useEffect(() => {
     const showTimer = setInterval(() => {
@@ -354,7 +366,6 @@ export const HelpButton: React.FC = () => {
       alert(`Failed to submit feedback: ${result.error}`);
     }
   };
-
   useEffect(() => {
     if (isAnnotating && screenshot && canvasRef.current && imageRef.current) {
       imageRef.current.onload = () => {
@@ -371,6 +382,8 @@ export const HelpButton: React.FC = () => {
   useEffect(() => {
     drawAnnotations();
   }, [annotations]);
+
+  if (isHidden) return null;
 
   return (
     <>

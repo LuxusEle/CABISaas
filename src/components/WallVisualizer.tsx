@@ -536,7 +536,6 @@ export const WallVisualizer: React.FC<Props> = ({
         }
       `}</style>
 
-      <div className="absolute top-2 left-2 text-[10px] text-slate-400 font-mono z-10 px-2 rounded opacity-50 print-hidden">ELEVATION VIEW</div>
 
       <svg
         ref={svgRef}

@@ -249,7 +249,7 @@ export default function App() {
   };
 
   return (
-    <div className="h-full w-full flex flex-col font-sans transition-colors duration-200 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
+    <div className="h-[100dvh] w-full flex flex-col font-sans transition-colors duration-200 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-hidden">
       {/* MOBILE HEADER */}
       <div className="md:hidden h-14 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 shrink-0 z-40 print:hidden">
         <img src="/landing.png" alt="CabEngine Logo" className="h-8 w-auto object-contain dark:invert-0 invert" />
@@ -265,7 +265,7 @@ export default function App() {
         </div>
       </div>
 
-      <div className="flex-1 flex overflow-hidden md:pb-0 pb-16">
+      <div className="flex-1 flex overflow-hidden">
         {/* DESKTOP SIDEBAR - Hidden on landing page */}
         {(location.pathname !== '/' && location.pathname !== '/terms' && location.pathname !== '/testing' && (location.pathname !== '/docs' || user)) && (
           <aside className="hidden md:flex w-20 flex-col items-center py-6 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 shrink-0 z-50 print:hidden">
@@ -391,9 +391,9 @@ export default function App() {
         </main>
       </div>
 
-      {/* MOBILE NAV */}
+      {/* MOBILE NAV - NOW A FLEX SIBLING FOR DYNAMIC HEIGHT */}
       {location.pathname !== '/' && location.pathname !== '/terms' && location.pathname !== '/testing' && (
-        <div className="md:hidden h-16 mobile-nav bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex items-stretch justify-around z-[100] shrink-0 print:hidden safe-area-bottom" style={{ position: 'fixed', bottom: 0, left: 0, right: 0 }}>
+        <div className="md:hidden min-h-[4rem] h-auto mobile-nav bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex items-stretch justify-around z-[100] shrink-0 print:hidden safe-area-bottom">
           <MobileNavButton active={location.pathname === '/dashboard'} path="/dashboard" icon={<Home size={20} />} label="Home" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
           <MobileNavButton active={location.pathname === '/setup'} path="/setup" icon={<Settings size={20} />} label="Setup" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
           <MobileNavButton active={location.pathname === '/walls'} path="/walls?view=iso" icon={<Box size={20} />} label="Editor" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
@@ -463,8 +463,8 @@ export default function App() {
         </div>
       )}
 
-      {/* Help Button - Available on all screens */}
-      <HelpButton />
+      {/* Help Button - Available on all screens except Editor */}
+      {location.pathname !== '/walls' && <HelpButton />}
     </div>
   );
 }

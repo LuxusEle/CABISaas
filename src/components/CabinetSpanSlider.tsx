@@ -110,12 +110,21 @@ export const CabinetSpanSlider: React.FC<CabinetSpanSliderProps> = ({
   };
 
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
+    const handleMouseMove = (e: MouseEvent | TouchEvent) => {
       if (!activeHandle || !containerRef.current) return;
 
+      const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
       const rect = containerRef.current.getBoundingClientRect();
-      const pixelsPerMm = rect.width / totalLength;
-      const dx = (e.clientX - startX) / pixelsPerMm;
+      const basePixelsPerMm = rect.width / totalLength;
+      
+      // Precision multiplier: 3x more precise than default
+      const precisionMultiplier = 3;
+      const dx = (clientX - startX) / (basePixelsPerMm * precisionMultiplier);
+
+      if ('touches' in e) {
+        // Prevent scrolling while dragging
+        e.preventDefault();
+      }
 
       if (activeHandle === 'left') {
         const newFromLeft = Math.max(0, Math.min(startFromLeft + startWidth - 150, startFromLeft + dx));
@@ -140,11 +149,15 @@ export const CabinetSpanSlider: React.FC<CabinetSpanSliderProps> = ({
     if (activeHandle) {
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
+      window.addEventListener('touchmove', handleMouseMove, { passive: false });
+      window.addEventListener('touchend', handleMouseUp);
     }
 
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('touchmove', handleMouseMove);
+      window.removeEventListener('touchend', handleMouseUp);
     };
   }, [activeHandle, startX, startFromLeft, startWidth, totalLength, onChange, onDragEnd]);
 
@@ -169,11 +182,17 @@ export const CabinetSpanSlider: React.FC<CabinetSpanSliderProps> = ({
       
       <div 
         ref={containerRef}
-        className="relative h-12 bg-slate-100 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden"
+        className={`relative h-12 bg-slate-100 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden transition-all duration-300 ${activeHandle ? 'h-16 -my-2 shadow-xl ring-4 ring-amber-500/10 z-50' : ''}`}
       >
         {/* Background Track */}
-        <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'linear-gradient(90deg, #64748b 1px, transparent 1px)', backgroundSize: '10%' }}></div>
+        <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'linear-gradient(90deg, #64748b 1px, transparent 1px)', backgroundSize: activeHandle ? '5%' : '10%' }}></div>
 
+        {activeHandle && (
+          <div className="absolute inset-x-0 top-1 flex justify-center pointer-events-none animate-bounce">
+            <span className="text-[7px] font-black bg-amber-500 text-white px-1.5 py-0.5 rounded-full uppercase tracking-tighter">Precision Mode 3x</span>
+          </div>
+        )}
+ 
         {/* Selected Area */}
         <div 
           className={`absolute top-0 bottom-0 bg-amber-500/10 border-x-2 border-amber-500 transition-colors cursor-grab active:cursor-grabbing ${activeHandle === 'middle' ? 'bg-amber-500/20' : ''}`}
@@ -184,29 +203,29 @@ export const CabinetSpanSlider: React.FC<CabinetSpanSliderProps> = ({
           {/* Middle Pattern */}
           <div className="absolute inset-0 opacity-20 pointer-events-none flex items-center justify-center">
             <div className="flex gap-1">
-              {[1, 2, 3].map(i => <div key={i} className="w-1 h-4 bg-amber-500 rounded-full"></div>)}
+              {[1, 2, 3].map(i => <div key={i} className={`w-1 bg-amber-500 rounded-full transition-all ${activeHandle ? 'h-6' : 'h-4'}`}></div>)}
             </div>
           </div>
         </div>
-
+ 
         {/* Left Handle */}
         <div 
-          className={`absolute top-0 bottom-0 w-6 -ml-3 cursor-ew-resize flex items-center justify-center group z-10`}
+          className={`absolute top-0 bottom-0 w-8 -ml-4 cursor-ew-resize flex items-center justify-center group z-10`}
           style={{ left: `${leftPercent}%` }}
           onMouseDown={(e) => handleMouseDown(e, 'left')}
           onTouchStart={(e) => handleTouchStart(e, 'left')}
         >
-          <div className={`w-2 h-8 rounded-full bg-amber-500 shadow-lg shadow-amber-500/30 group-hover:scale-y-110 transition-transform ${activeHandle === 'left' ? 'scale-y-125' : ''}`}></div>
+          <div className={`w-2.5 rounded-full bg-amber-500 shadow-lg shadow-amber-500/30 transition-all ${activeHandle === 'left' ? 'h-12 w-3' : 'h-8 group-hover:scale-y-110'}`}></div>
         </div>
-
+ 
         {/* Right Handle */}
         <div 
-          className={`absolute top-0 bottom-0 w-6 -ml-3 cursor-ew-resize flex items-center justify-center group z-10`}
+          className={`absolute top-0 bottom-0 w-8 -ml-4 cursor-ew-resize flex items-center justify-center group z-10`}
           style={{ left: `${leftPercent + widthPercent}%` }}
           onMouseDown={(e) => handleMouseDown(e, 'right')}
           onTouchStart={(e) => handleTouchStart(e, 'right')}
         >
-          <div className={`w-2 h-8 rounded-full bg-amber-500 shadow-lg shadow-amber-500/30 group-hover:scale-y-110 transition-transform ${activeHandle === 'right' ? 'scale-y-125' : ''}`}></div>
+          <div className={`w-2.5 rounded-full bg-amber-500 shadow-lg shadow-amber-500/30 transition-all ${activeHandle === 'right' ? 'h-12 w-3' : 'h-8 group-hover:scale-y-110'}`}></div>
         </div>
       </div>
 

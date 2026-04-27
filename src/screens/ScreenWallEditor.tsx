@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Box, DoorOpen, Settings, Settings2, RotateCcw, Lock, X, ArrowLeft, ArrowRight, Save, LayoutDashboard, Calculator, Zap, Menu, Layers, Table2 } from 'lucide-react';
+import { Plus, Box, DoorOpen, Settings, Settings2, RotateCcw, Lock, X, ArrowLeft, ArrowRight, Save, LayoutDashboard, Calculator, Zap, Menu, Layers, Table2, Maximize2 } from 'lucide-react';
 import { Screen, Project, Zone, PresetType, CabinetType, CabinetUnit, Obstacle, AutoFillOptions } from '../types';
 import { autoFillZone, resolveCollisions, resolveLocalCollisions } from '../services/bomService';
 import { Button } from '../components/Button';
@@ -57,7 +57,6 @@ const ScreenWallEditor = ({
   const resizingRef = useRef(false);
   const dragStartRef = useRef<{ startY: number; startHeight: number } | null>(null);
   const [showAdvancedCabinetEditor, setShowAdvancedCabinetEditor] = useState(false);
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [initialZoneCabinetsBackup, setInitialZoneCabinetsBackup] = useState<CabinetUnit[] | null>(null);
 
   // Undo/Redo history
@@ -208,16 +207,6 @@ const ScreenWallEditor = ({
     });
   };
 
-  const addZone = () => {
-    const names = ['Wall A', 'Wall B', 'Wall C', 'Island'];
-    const used = project.zones.map(z => z.id);
-    const next = names.find(n => !used.includes(n));
-    if (next) {
-      const newZone = { id: next, active: true, totalLength: 3000, wallHeight: 2400, obstacles: [], cabinets: [] };
-      setProject(prev => ({ ...prev, zones: [...prev.zones, newZone] }));
-      setActiveTab(next);
-    }
-  };
 
   const deleteZone = (id: string) => {
     if (project.zones.length > 1 && window.confirm(`Delete ${id}?`)) {
@@ -286,6 +275,17 @@ const ScreenWallEditor = ({
     }, false, selectedCabinet.zoneId);
   };
 
+  const handleResetCabinet = () => {
+    if (initialZoneCabinetsBackup && selectedCabinet) {
+      const originalCabinets = JSON.parse(JSON.stringify(initialZoneCabinetsBackup));
+      updateZone(z => ({ ...z, cabinets: originalCabinets }), false, selectedCabinet.zoneId);
+      
+      // Sync temp cabinet for editors
+      const cab = originalCabinets[selectedCabinet.index];
+      if (cab) setTempCabinet(JSON.parse(JSON.stringify(cab)));
+    }
+  };
+
   const handleAutoFill = (options: AutoFillOptions) => {
     saveToHistory();
     const result = autoFillZone(currentZone, project.settings, activeTab, options);
@@ -311,69 +311,23 @@ const ScreenWallEditor = ({
 
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 overflow-hidden relative">
-      {/* Mobile Bottom Sheet Overlay */}
-      {mobileSidebarOpen && (
-        <div className="fixed inset-0 z-40 md:hidden" onClick={() => setMobileSidebarOpen(false)}>
-          <div className="absolute inset-0 bg-black/60" />
-        </div>
-      )}
-
-      {/* Mobile Bottom Sheet - Menu Only */}
-      <div className={`fixed inset-x-0 bottom-0 z-50 md:hidden bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 transition-transform duration-300 transform rounded-t-3xl shadow-2xl ${mobileSidebarOpen ? 'translate-y-0' : 'translate-y-full'}`}>
-        <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto my-3" />
-        <div className="px-6 pb-12 pt-2">
-           <div className="grid grid-cols-2 gap-3 mb-6">
-             <button onClick={() => { setScreen(Screen.DASHBOARD); setMobileSidebarOpen(false); }} className="flex flex-col items-center justify-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl gap-2 transition-all hover:bg-slate-100">
-                <LayoutDashboard size={24} className="text-slate-400" />
-                <span className="text-xs font-bold text-slate-600">Projects</span>
-             </button>
-             <button onClick={() => { setScreen(Screen.PROJECT_SETUP); setMobileSidebarOpen(false); }} className="flex flex-col items-center justify-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl gap-2 transition-all hover:bg-slate-100">
-                <Settings size={24} className="text-slate-400" />
-                <span className="text-xs font-bold text-slate-600">Settings</span>
-             </button>
-             <button onClick={() => { setScreen(Screen.BOM_REPORT); setMobileSidebarOpen(false); }} className="flex flex-col items-center justify-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl gap-2 transition-all hover:bg-slate-100">
-                <Calculator size={24} className="text-slate-400" />
-                <span className="text-xs font-bold text-slate-600">BOM Export</span>
-             </button>
-             <button onClick={() => { setScreen(Screen.PRICING); setMobileSidebarOpen(false); }} className="flex flex-col items-center justify-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl gap-2 transition-all hover:bg-slate-100">
-                <Zap size={24} className="text-amber-500" />
-                <span className="text-xs font-bold text-slate-600">Plans</span>
-             </button>
-           </div>
-           <button onClick={() => setMobileSidebarOpen(false)} className="w-full py-4 bg-slate-900 dark:bg-white dark:text-slate-900 text-white font-black rounded-2xl">
-             Close Menu
-           </button>
-        </div>
-      </div>
 
       <div className="flex-1 flex overflow-hidden">
-        <div className="flex-1 flex flex-col min-w-0">
-          {/* Main Controls - Mobile Top Bar */}
-          <div className="md:hidden flex items-center justify-between p-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 z-10 shrink-0">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center shadow-lg shadow-amber-500/20">
-                <Box size={18} className="text-white" />
+        {/* DESKTOP LAYOUT - HIDDEN ON MOBILE */}
+        <div className="hidden md:flex flex-1 flex-col min-w-0">
+          {/* DESKTOP HEADER */}
+          <div className="hidden md:flex items-center justify-between px-6 py-4 border-b dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0">
+            <div className="flex items-center gap-4">
+              <div className="flex flex-col">
+                <h1 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight italic">Wall Editor</h1>
+                <p className="text-[10px] font-bold text-amber-500 uppercase tracking-widest leading-none">Design & Layout</p>
               </div>
-              <h1 className="font-black text-sm tracking-tighter italic dark:text-white uppercase">Cab<span className="text-amber-500">Engine</span></h1>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              {visualMode === 'iso' && (
-                <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 border dark:border-slate-700">
-                  <button onClick={() => setIsoViewMode('isometric')} className={`px-2 py-1 text-[10px] font-bold rounded-md transition-all ${isoViewMode === 'isometric' ? 'bg-white dark:bg-slate-700 text-amber-500 shadow-sm' : 'text-slate-400'}`}>ISO</button>
-                  <button onClick={() => setIsoViewMode('top')} className={`px-2 py-1 text-[10px] font-bold rounded-md transition-all ${isoViewMode === 'top' ? 'bg-white dark:bg-slate-700 text-amber-500 shadow-sm' : 'text-slate-400'}`}>TOP</button>
-                  <button onClick={() => setIsoViewMode('front')} className={`px-2 py-1 text-[10px] font-bold rounded-md transition-all ${isoViewMode === 'front' ? 'bg-white dark:bg-slate-700 text-amber-500 shadow-sm' : 'text-slate-400'}`}>FRO</button>
-                </div>
-              )}
-              <button onClick={() => setMobileSidebarOpen(true)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors dark:text-white">
-                <Menu size={20} />
-              </button>
             </div>
           </div>
 
-          <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+          <div className="hidden md:flex flex-1 flex-col md:flex-row overflow-hidden relative">
             {/* Main Visualizer Area */}
-            <div className="flex-1 flex flex-col relative min-w-0 bg-slate-50 dark:bg-slate-950 overflow-hidden">
+            <div className="hidden md:flex flex-1 flex-col relative min-w-0 bg-slate-50 dark:bg-slate-950 overflow-hidden">
               {/* Desktop: Tab Row */}
               <div className="hidden md:flex items-center justify-between px-6 pt-4 bg-white dark:bg-slate-900 border-b dark:border-slate-800 shrink-0">
                 <div className="flex items-center gap-1">
@@ -387,13 +341,6 @@ const ScreenWallEditor = ({
                       <span className="relative z-10">{z.id}</span>
                     </button>
                   ))}
-                  <button
-                    onClick={addZone}
-                    className="p-3 text-slate-300 hover:text-amber-500 transition-colors"
-                    title="Add Wall"
-                  >
-                    <Plus size={18} />
-                  </button>
                 </div>
 
                 <div className="flex items-center gap-4 pb-1">
@@ -524,201 +471,339 @@ const ScreenWallEditor = ({
             </div>
           </div>
 
-          {/* Mobile: Stack layout */}
-          <div className="md:hidden flex flex-col h-full pb-16">
-            {/* Tabs Row with Controls */}
-            <div className="flex items-center justify-between px-2 pt-2 gap-1 overflow-x-auto bg-slate-100 dark:bg-slate-900 shrink-0 border-b dark:border-slate-800">
-              {/* Left: Zone Tabs */}
-              <div className="flex items-center gap-1">
-                {project.zones.map(z => (
-                  <button
-                    key={z.id}
-                    onClick={() => setActiveTab(z.id)}
-                    className={`px-3 py-2 text-sm font-bold rounded-t-lg transition-all whitespace-nowrap min-h-[44px] ${activeTab === z.id ? 'bg-white dark:bg-slate-950 text-amber-500 shadow-sm border-t-2 border-amber-500' : 'text-slate-500 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300'}`}
-                  >
-                    {z.id}
-                  </button>
-                ))}
-                <button
-                  onClick={addZone}
-                  className="px-3 py-2 text-sm font-bold rounded-t-lg bg-slate-200 dark:bg-slate-800 text-slate-500 hover:text-amber-500 transition-colors min-h-[44px]"
-                >
-                  +
-                </button>
-              </div>
+        </div>
+        {/* END DESKTOP LAYOUT */}
 
-              {/* Right: View Controls and Undo/Redo */}
-              <div className="flex items-center gap-1">
-                <Button 
-                  size="xs" 
-                  variant={isDirty ? "primary" : "secondary"} 
-                  onClick={() => onSave()}
-                  disabled={isSaving || !isDirty}
-                  className={`min-h-[36px] px-2 transition-all duration-300 ${
-                    isDirty 
-                      ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-600' 
-                      : 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-50'
-                  }`}
-                >
-                  <Save size={14} className={isSaving ? 'animate-spin' : isDirty ? 'animate-pulse' : ''} />
-                </Button>
-                <Button size="xs" variant={visualMode === 'elevation' ? 'primary' : 'secondary'} onClick={() => setVisualMode('elevation')} className={`${visualMode === 'elevation' ? 'shadow-md' : 'shadow-sm hover:shadow'} border transition-all min-h-[36px] px-2 text-xs`}>Elv</Button>
-                <Button size="xs" variant={visualMode === 'iso' ? 'primary' : 'secondary'} onClick={() => setVisualMode('iso')} className={`${visualMode === 'iso' ? 'shadow-md' : 'shadow-sm hover:shadow'} border transition-all min-h-[36px] px-2 text-xs`}>3D</Button>
-                <Button size="xs" variant={visualMode === 'studio' ? 'primary' : 'secondary'} onClick={() => setVisualMode('studio')} className={`${visualMode === 'studio' ? 'shadow-md' : 'shadow-sm hover:shadow'} border transition-all min-h-[36px] px-2 text-xs`}>Studio</Button>
-                <div className="w-px h-5 bg-slate-400 dark:bg-slate-600 mx-1" />
-                <Button 
-                  size="xs" 
-                  variant={isTableVisible ? 'primary' : 'secondary'} 
-                  onClick={() => setIsTableVisible(!isTableVisible)}
-                  className="min-h-[36px] px-2 text-xs flex items-center gap-1.5"
-                >
-                  <Table2 size={14} />
-                  <span className="hidden sm:inline">{isTableVisible ? 'Hide Parts' : 'Show Parts'}</span>
-                </Button>
-                <div className="w-px h-5 bg-slate-400 dark:bg-slate-600 mx-1" />
-                <Button size="xs" variant="secondary" onClick={handleUndo} disabled={!canUndo} className={`bg-white hover:bg-amber-50 text-slate-700 border border-slate-300 shadow-sm hover:shadow hover:border-amber-300 dark:bg-slate-800 dark:text-amber-400 dark:border-slate-700 dark:hover:bg-slate-700 dark:hover:border-amber-600 transition-all min-h-[36px] px-2 ${!canUndo ? 'opacity-50' : ''}`}>
-                  <ArrowLeft size={14} />
-                </Button>
-                <Button size="xs" variant="secondary" onClick={handleRedo} disabled={!canRedo} className={`bg-white hover:bg-amber-50 text-slate-700 border border-slate-300 shadow-sm hover:shadow hover:border-amber-300 dark:bg-slate-800 dark:text-amber-400 dark:border-slate-700 dark:hover:bg-slate-700 dark:hover:border-amber-600 transition-all min-h-[36px] px-2 ${!canRedo ? 'opacity-50' : ''}`}>
-                  <ArrowRight size={14} />
-                </Button>
-                <div className="w-px h-5 bg-slate-400 dark:bg-slate-600 mx-1" />
-                <Button size="xs" variant="outline" onClick={() => {
-                  const newObs: Obstacle = { id: Math.random().toString(36).substr(2, 9), type: 'door', fromLeft: 0, width: 900, height: 2100, elevation: 0, depth: 150 } as any;
-                  updateZone(z => ({ ...z, obstacles: [...z.obstacles, newObs] }));
-                }} className="min-h-[36px] text-[10px] flex flex-col items-center justify-center">
-                  <DoorOpen size={14} /><span>Obs</span>
-                </Button>
-                <Button size="xs" variant="outline" onClick={() => {
-                   const newCab: CabinetUnit = {
-                    id: Math.random().toString(36).substr(2, 9),
-                    type: CabinetType.BASE,
-                    preset: PresetType.BASE_DOOR,
-                    label: '',
-                    width: 600,
-                    height: 720,
-                    depth: 560,
-                    qty: 1,
-                    fromLeft: 0,
-                    advancedSettings: { showDoors: true, showShelves: true, numShelves: 1 }
-                  };
-                  updateZone(z => resolveCollisions({ ...z, cabinets: [...z.cabinets, newCab] }));
-                }} className="min-h-[36px] text-[10px] flex flex-col items-center justify-center">
-                  <Box size={14} /><span>Cab</span>
-                </Button>
+        {/* Mobile: Stack layout */}
+        <div className="md:hidden flex-1 flex flex-col overflow-hidden">
+            {/* View Modes & Add Tools - Row 2 (Now Row 1) */}
+            <div className={`flex flex-col shrink-0 border-b dark:border-slate-800 bg-slate-50 dark:bg-slate-900 ${visualMode === 'studio' ? 'hidden' : ''}`}>
+              <div className="flex items-center justify-between px-2 py-2 gap-1 overflow-x-auto no-scrollbar">
+                <div className="flex items-center bg-slate-200 dark:bg-slate-800 rounded-lg p-0.5 border dark:border-slate-700">
+                  <button onClick={() => setVisualMode('elevation')} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${visualMode === 'elevation' ? 'bg-white dark:bg-slate-950 text-amber-500 shadow-sm' : 'text-slate-500'}`}>Elv</button>
+                  <button onClick={() => setVisualMode('iso')} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${visualMode === 'iso' ? 'bg-white dark:bg-slate-950 text-amber-500 shadow-sm' : 'text-slate-500'}`}>3D</button>
+                  <button onClick={() => setVisualMode('studio')} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${visualMode === 'studio' ? 'bg-white dark:bg-slate-950 text-amber-500 shadow-sm' : 'text-slate-500'}`}>Studio</button>
+                </div>
+
+                <div className="flex items-center gap-1 pr-1">
+                  <button onClick={handleUndo} disabled={!canUndo} className={`p-2 rounded-lg bg-white dark:bg-slate-800 border dark:border-slate-700 ${canUndo ? 'text-amber-500 shadow-sm' : 'text-slate-300 opacity-50'}`}>
+                    <ArrowLeft size={16} />
+                  </button>
+                  <button onClick={handleRedo} disabled={!canRedo} className={`p-2 rounded-lg bg-white dark:bg-slate-800 border dark:border-slate-700 ${canRedo ? 'text-amber-500 shadow-sm' : 'text-slate-300 opacity-50'}`}>
+                    <ArrowRight size={16} />
+                  </button>
+                  <button 
+                    onClick={() => onSave()}
+                    disabled={isSaving || !isDirty}
+                    className={`p-2 rounded-lg border transition-all ${isDirty ? 'bg-amber-500 text-white border-amber-600 shadow-md' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-200 opacity-50'}`}
+                  >
+                    <Save size={16} className={isSaving ? 'animate-spin' : ''} />
+                  </button>
+
+                  <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-1" />
+
+                  <button 
+                    onClick={() => setIsTableVisible(!isTableVisible)}
+                    className={`p-2.5 rounded-lg border transition-all ${isTableVisible ? 'bg-amber-500 text-white border-amber-600 shadow-md' : 'bg-white dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700 shadow-sm'}`}
+                    title="Toggle Parts List"
+                  >
+                    <Table2 size={18} />
+                  </button>
+                </div>
               </div>
             </div>
 
             {/* View Area - Mobile */}
-              {/* Mobile View Area - Elevation/3D */}
-              <div className="flex-1 relative bg-slate-100 dark:bg-slate-950 overflow-hidden">
-                {visualMode === 'elevation' ? (
-                  <WallVisualizer 
-                    zone={currentZone}
-                    height={2400}
-                    settings={project.settings}
-                    onCabinetClick={(i) => openEdit('cabinet', i)}
-                    onObstacleClick={(i) => openEdit('obstacle', i)}
-                    onCabinetMove={handleCabinetMove}
-                    onObstacleMove={handleObstacleMove}
-                    onSwapCabinets={handleSwapCabinets}
-                    onDragEnd={() => {}}
-                    selectedCabinet={selectedCabinet}
-                    draggedCabinet={draggingCabinet}
-                    onDropCabinet={handleDropCabinet}
-                  />
-                ) : (
-                  <CabinetViewer 
-                    project={project} 
-                    activeWallId={activeTab} 
-                    onCabinetSelect={visualMode === 'studio' ? undefined : ((zoneId, i) => setSelectedCabinet({ zoneId, index: i }))}
-                    onSettingsUpdate={(settings) => setProject(prev => ({ ...prev, settings: { ...prev.settings, ...settings } }))}
-                    viewMode={isoViewMode}
-                    onViewModeChange={setIsoViewMode}
-                    doorOpenAngle={isoDoorOpenAngle}
-                    onDoorOpenAngleChange={setIsoDoorOpenAngle}
-                    showHardware={true}
-                    lightTheme={!isDark}
-                    draggedCabinet={draggingCabinet}
-                    onDropCabinet={handleDropCabinet}
-                    selectedCabinet={visualMode === 'studio' ? null : selectedCabinet}
-                    opacity={isTransparent ? 0.4 : 1}
-                    skeletonView={isSkeleton}
-                    isStudio={visualMode === 'studio'}
-                  />
-                )}
+            {/* Mobile View Area - Elevation/3D */}
+            <div className="flex-1 relative bg-slate-100 dark:bg-slate-950 overflow-hidden border-b dark:border-slate-800">
+              {/* Floating Wall Tabs - Elevation Only */}
+              {visualMode === 'elevation' && (
+                <div className="absolute top-3 left-3 z-20 flex items-center gap-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-1 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl animate-in fade-in slide-in-from-top-2 duration-300">
+                  <div className="px-2 text-[8px] font-black uppercase text-slate-400 mr-1 italic tracking-tighter">Wall View</div>
+                  <div className="flex items-center gap-1 overflow-x-auto no-scrollbar max-w-[200px]">
+                    {project.zones.map(z => (
+                      <button 
+                        key={z.id} 
+                        onClick={() => setActiveTab(z.id)} 
+                        className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase transition-all whitespace-nowrap ${activeTab === z.id ? 'bg-amber-500 text-white shadow-md' : 'text-slate-500 bg-slate-100 dark:bg-slate-800'}`}
+                      >
+                        {z.id}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Floating ISO View Modes - 3D Only */}
+              {visualMode === 'iso' && (
+                <div className="absolute top-3 left-3 z-20 flex items-center bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-1 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl animate-in fade-in slide-in-from-top-2 duration-300">
+                   <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 border dark:border-slate-700">
+                     <button onClick={() => setIsoViewMode('isometric')} className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${isoViewMode === 'isometric' ? 'bg-white dark:bg-slate-700 text-amber-500 shadow-sm' : 'text-slate-400'}`}>ISO</button>
+                     <button onClick={() => setIsoViewMode('top')} className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${isoViewMode === 'top' ? 'bg-white dark:bg-slate-700 text-amber-500 shadow-sm' : 'text-slate-400'}`}>TOP</button>
+                     <button onClick={() => setIsoViewMode('front')} className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${isoViewMode === 'front' ? 'bg-white dark:bg-slate-700 text-amber-500 shadow-sm' : 'text-slate-400'}`}>FRO</button>
+                   </div>
+                </div>
+              )}
 
-                {/* MOBILE CABINET EDITOR BOTTOM SHEET */}
-                {selectedCabinet && (
-                  <div className="absolute inset-x-0 bottom-0 z-[60] animate-in slide-in-from-bottom duration-300">
-                    <div className="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 shadow-[0_-10px_40px_rgba(0,0,0,0.2)] rounded-t-[2rem] px-6 pb-8 pt-4">
-                      {/* Handle */}
-                      <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto mb-4" />
-                      
-                      <div className="flex items-center justify-between mb-4">
-                        <div>
-                          {(() => {
-                            const zone = project.zones.find(z => z.id === selectedCabinet.zoneId);
-                            const cab = zone?.cabinets[selectedCabinet.index];
-                            if (!cab) return null;
-                            return (
-                              <>
-                                <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight italic">Edit {cab.label || 'Cabinet'}</h3>
-                                <p className="text-[10px] font-bold text-amber-500 uppercase tracking-widest">{cab.preset}</p>
-                              </>
-                            );
-                          })()}
-                        </div>
-                        <button 
-                          onClick={() => setSelectedCabinet(null)}
-                          className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-500"
-                        >
-                          <X size={20} />
-                        </button>
-                      </div>
+              {/* Floating Exit - Studio Only */}
+              {visualMode === 'studio' && (
+                <div className="absolute top-3 left-3 z-20 flex items-center bg-white/50 dark:bg-slate-900/50 backdrop-blur-md p-1 rounded-xl border border-slate-200/30 dark:border-slate-800/30 shadow-lg animate-in fade-in slide-in-from-top-2 duration-300 hover:bg-white/90 dark:hover:bg-slate-900/90 transition-all">
+                   <button 
+                    onClick={() => setVisualMode('iso')} 
+                    className="flex items-center gap-2 px-3 py-1.5 text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 hover:text-amber-500 transition-colors"
+                   >
+                     <Maximize2 size={14} className="rotate-45" />
+                     <span>Exit Studio</span>
+                   </button>
+                </div>
+              )}
 
+              {visualMode === 'elevation' ? (
+                <WallVisualizer 
+                  zone={currentZone}
+                  height={2400}
+                  settings={project.settings}
+                  onCabinetClick={(i) => openEdit('cabinet', i)}
+                  onObstacleClick={(i) => openEdit('obstacle', i)}
+                  onCabinetMove={handleCabinetMove}
+                  onObstacleMove={handleObstacleMove}
+                  onSwapCabinets={handleSwapCabinets}
+                  onDragEnd={() => {}}
+                  selectedCabinet={selectedCabinet}
+                  draggedCabinet={draggingCabinet}
+                  onDropCabinet={handleDropCabinet}
+                />
+              ) : (
+                <CabinetViewer 
+                  project={project} 
+                  activeWallId={activeTab} 
+                  onCabinetSelect={visualMode === 'studio' ? undefined : ((zoneId, i) => setSelectedCabinet({ zoneId, index: i }))}
+                  onSettingsUpdate={(settings) => setProject(prev => ({ ...prev, settings: { ...prev.settings, ...settings } }))}
+                  viewMode={isoViewMode}
+                  onViewModeChange={setIsoViewMode}
+                  doorOpenAngle={isoDoorOpenAngle}
+                  onDoorOpenAngleChange={setIsoDoorOpenAngle}
+                  showHardware={true}
+                  lightTheme={!isDark}
+                  draggedCabinet={draggingCabinet}
+                  onDropCabinet={handleDropCabinet}
+                  selectedCabinet={visualMode === 'studio' ? null : selectedCabinet}
+                  opacity={isTransparent ? 0.4 : 1}
+                  skeletonView={isSkeleton}
+                  isStudio={visualMode === 'studio'}
+                />
+              )}
+
+            </div>
+ 
+            {/* MOBILE CABINET EDITOR BOTTOM MENU (INTEGRATED) */}
+            {selectedCabinet && (
+              <div className="shrink-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] z-20 animate-in slide-in-from-bottom duration-300">
+                <div className="px-4 pb-4 pt-2">
+                  {/* Handle */}
+                  <div className="w-10 h-1 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto mb-2" />
+                  
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
                       {(() => {
                         const zone = project.zones.find(z => z.id === selectedCabinet.zoneId);
                         const cab = zone?.cabinets[selectedCabinet.index];
                         if (!cab) return null;
                         return (
-                          <div className="space-y-4">
-                            <CabinetSpanSlider 
-                              totalLength={currentZone.totalLength}
-                              fromLeft={cab.fromLeft}
-                              width={cab.width}
-                              onChange={(updates) => updateSelectedCabinet(updates)}
-                            />
-                            
-                            <div className="grid grid-cols-2 gap-3 pt-2">
-                              <button 
-                                onClick={() => {
-                                  if (isUserPro) setShowAdvancedCabinetEditor(true);
-                                  else setScreen(Screen.PRICING);
-                                }}
-                                className="py-3 bg-slate-900 dark:bg-white dark:text-slate-900 text-white font-black uppercase tracking-widest text-[10px] rounded-xl flex items-center justify-center gap-2"
-                              >
-                                {isUserPro ? <Settings size={14} /> : <Lock size={14} />} Advanced Edit
-                              </button>
-                              <button 
-                                onClick={() => {
-                                  updateZone(z => {
-                                    const cabs = z.cabinets.filter((_, i) => i !== selectedCabinet.index);
-                                    return resolveCollisions({ ...z, cabinets: cabs });
-                                  }, false, selectedCabinet.zoneId);
-                                  setSelectedCabinet(null);
-                                }}
-                                className="py-3 bg-rose-500 text-white font-black uppercase tracking-widest text-[10px] rounded-xl flex items-center justify-center gap-2"
-                              >
-                                <X size={14} /> Delete
-                              </button>
-                            </div>
-                          </div>
+                          <>
+                            <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-tight italic">Edit {cab.label || 'Cabinet'}</h3>
+                            <p className="text-[9px] font-bold text-amber-500 uppercase tracking-widest leading-none">{cab.preset}</p>
+                          </>
                         );
                       })()}
                     </div>
+                    <button 
+                      onClick={() => setSelectedCabinet(null)}
+                      className="w-8 h-8 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-500"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+
+                  {(() => {
+                    const zone = project.zones.find(z => z.id === selectedCabinet.zoneId);
+                    const cab = zone?.cabinets[selectedCabinet.index];
+                    if (!cab) return null;
+                    return (
+                      <div className="space-y-2">
+                        {/* QUICK TOGGLES ROW (Doors, Shelves, Drawers) - WEIGHTED GRID */}
+                        <div className="grid grid-cols-4 gap-1.5 pb-1">
+                          {/* Doors - 1/4 Width */}
+                          <label className={`col-span-1 flex items-center justify-center gap-1 px-1 py-1.5 rounded-lg border transition-all ${cab.advancedSettings?.showDoors ?? (cab.preset === PresetType.SINK_UNIT ? true : true) ? 'bg-amber-500/10 border-amber-500/30 ring-1 ring-amber-500/20' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700 opacity-60'}`}>
+                            <input 
+                              type="checkbox" 
+                              checked={cab.advancedSettings?.showDoors ?? (cab.preset === PresetType.SINK_UNIT ? true : true)}
+                              onChange={(e) => {
+                                const checked = e.target.checked;
+                                const updates: Partial<TestingSettings> = { showDoors: checked };
+                                if (checked) updates.showDrawers = false;
+                                updateSelectedAdvancedSetting(updates);
+                              }}
+                              className="w-3 h-3 accent-amber-500"
+                            />
+                            <span className="text-[9px] font-black uppercase text-slate-600 dark:text-slate-300">Doors</span>
+                          </label>
+
+                          {/* Shelves - 1/2 Width if enabled, else 1/4 */}
+                          <div className={`${cab.advancedSettings?.showShelves ?? (cab.preset === PresetType.SINK_UNIT ? false : true) ? 'col-span-2' : cab.advancedSettings?.showDrawers ? 'col-span-1' : 'col-span-2'} flex items-center justify-center gap-1 px-1 py-1.5 rounded-lg border transition-all ${cab.advancedSettings?.showShelves ?? (cab.preset === PresetType.SINK_UNIT ? false : true) ? 'bg-amber-500/10 border-amber-500/30 ring-1 ring-amber-500/20' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700 opacity-60'}`}>
+                            <input 
+                              type="checkbox" 
+                              checked={cab.advancedSettings?.showShelves ?? (cab.preset === PresetType.SINK_UNIT ? false : true)}
+                              onChange={(e) => {
+                                const checked = e.target.checked;
+                                const updates: Partial<TestingSettings> = { showShelves: checked };
+                                if (checked) updates.showDrawers = false;
+                                updateSelectedAdvancedSetting(updates);
+                              }}
+                              className="w-3 h-3 accent-amber-500"
+                            />
+                            <span className="text-[9px] font-black uppercase text-slate-600 dark:text-slate-300">Shelves</span>
+                            {(cab.advancedSettings?.showShelves ?? (cab.preset === PresetType.SINK_UNIT ? false : true)) && (
+                              <div className="flex items-center gap-1 bg-white dark:bg-slate-700 rounded-md px-1 py-0.5 shadow-sm ml-0.5 border dark:border-slate-600">
+                                <button onClick={() => {
+                                  const current = cab.advancedSettings?.numShelves ?? (cab.preset === PresetType.SINK_UNIT ? 0 : 2);
+                                  updateSelectedAdvancedSetting({ numShelves: Math.max(0, current - 1) });
+                                }} className="w-4 h-4 flex items-center justify-center text-slate-400 hover:text-amber-500">-</button>
+                                <span className="text-[9px] font-bold w-3 text-center dark:text-white">{cab.advancedSettings?.numShelves ?? (cab.preset === PresetType.SINK_UNIT ? 0 : 2)}</span>
+                                <button onClick={() => {
+                                  const current = cab.advancedSettings?.numShelves ?? (cab.preset === PresetType.SINK_UNIT ? 0 : 2);
+                                  updateSelectedAdvancedSetting({ numShelves: current + 1 });
+                                }} className="w-4 h-4 flex items-center justify-center text-slate-400 hover:text-amber-500">+</button>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Drawers - 1/2 Width if enabled, else 1/4 */}
+                          <div className={`${cab.advancedSettings?.showDrawers ? 'col-span-2' : (cab.advancedSettings?.showShelves ?? (cab.preset === PresetType.SINK_UNIT ? false : true)) ? 'col-span-1' : 'col-span-1'} flex items-center justify-center gap-1 px-1 py-1.5 rounded-lg border transition-all ${cab.advancedSettings?.showDrawers ? 'bg-amber-500/10 border-amber-500/30 ring-1 ring-amber-500/20' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700 opacity-60'}`}>
+                            <input 
+                              type="checkbox" 
+                              checked={cab.advancedSettings?.showDrawers ?? false}
+                              onChange={(e) => {
+                                const checked = e.target.checked;
+                                const updates: Partial<TestingSettings> = { showDrawers: checked };
+                                if (checked) {
+                                  updates.showDoors = false;
+                                  updates.showShelves = false;
+                                }
+                                updateSelectedAdvancedSetting(updates);
+                              }}
+                              className="w-3 h-3 accent-amber-500"
+                            />
+                            <span className="text-[9px] font-black uppercase text-slate-600 dark:text-slate-300">Drawers</span>
+                            {(cab.advancedSettings?.showDrawers ?? false) && (
+                              <div className="flex items-center gap-1 bg-white dark:bg-slate-700 rounded-md px-1 py-0.5 shadow-sm ml-0.5 border dark:border-slate-600">
+                                <button onClick={() => {
+                                  const current = cab.advancedSettings?.numDrawers ?? (cab.preset === PresetType.SINK_UNIT ? 0 : 3);
+                                  updateSelectedAdvancedSetting({ numDrawers: Math.max(0, current - 1) });
+                                }} className="w-4 h-4 flex items-center justify-center text-slate-400 hover:text-amber-500">-</button>
+                                <span className="text-[9px] font-bold w-3 text-center dark:text-white">{cab.advancedSettings?.numDrawers ?? (cab.preset === PresetType.SINK_UNIT ? 0 : 3)}</span>
+                                <button onClick={() => {
+                                  const current = cab.advancedSettings?.numDrawers ?? (cab.preset === PresetType.SINK_UNIT ? 0 : 3);
+                                  updateSelectedAdvancedSetting({ numDrawers: current + 1 });
+                                }} className="w-4 h-4 flex items-center justify-center text-slate-400 hover:text-amber-500">+</button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <CabinetSpanSlider 
+                          totalLength={currentZone.totalLength}
+                          fromLeft={cab.fromLeft}
+                          width={cab.width}
+                          onChange={(updates) => updateSelectedCabinet(updates)}
+                        />
+                        
+                        <div className="grid grid-cols-3 gap-2">
+                          <button 
+                            onClick={() => {
+                              if (isUserPro) setShowAdvancedCabinetEditor(true);
+                              else setScreen(Screen.PRICING);
+                            }}
+                            className="py-2.5 bg-slate-900 dark:bg-white dark:text-slate-900 text-white font-black uppercase tracking-widest text-[9px] rounded-lg flex items-center justify-center gap-1.5"
+                          >
+                            {isUserPro ? <Settings size={12} /> : <Lock size={12} />} Advanced
+                          </button>
+                          <button 
+                            onClick={handleResetCabinet}
+                            className="py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-black uppercase tracking-widest text-[9px] rounded-lg flex items-center justify-center gap-1.5"
+                          >
+                            <RotateCcw size={12} /> Reset
+                          </button>
+                          <button 
+                            onClick={() => {
+                              updateZone(z => {
+                                const cabs = z.cabinets.filter((_, i) => i !== selectedCabinet.index);
+                                return resolveCollisions({ ...z, cabinets: cabs });
+                              }, false, selectedCabinet.zoneId);
+                              setSelectedCabinet(null);
+                            }}
+                            className="py-2.5 bg-rose-500 text-white font-black uppercase tracking-widest text-[9px] rounded-lg flex items-center justify-center gap-1.5"
+                          >
+                            <X size={12} /> Delete
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+            )}
+
+            {/* Mobile Sidebar Content - Ultra Compact */}
+            <div className={`shrink-0 overflow-hidden bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex flex-col ${visualMode === 'studio' || isTableVisible || !!selectedCabinet ? 'hidden' : ''}`}>
+              {/* Row 1: Add Units (4 in a row) */}
+              <div className="p-2 border-b border-slate-100 dark:border-slate-800">
+                <div className="grid grid-cols-4 gap-1.5">
+                  {[
+                    { type: CabinetType.BASE, preset: PresetType.BASE_DOOR, label: 'Base', icon: <Box size={18} /> },
+                    { type: CabinetType.WALL, preset: PresetType.WALL_STD, label: 'Wall', icon: <Layers size={18} /> },
+                    { type: CabinetType.TALL, preset: PresetType.TALL_UTILITY, label: 'Tall', icon: <Layers size={18} className="rotate-90" /> },
+                    { type: CabinetType.BASE, preset: PresetType.SINK_UNIT, label: 'Sink', icon: <Box size={18} className="text-blue-500" /> },
+                  ].map((proto, i) => (
+                    <button 
+                      key={i}
+                      onClick={() => {
+                        const { icon, ...protoData } = proto;
+                        handleDropCabinet(activeTab, 0, protoData as CabinetUnit);
+                      }}
+                      className="flex flex-col items-center justify-center p-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-xl transition-all active:scale-95"
+                    >
+                      <div className="text-slate-400 mb-1">{proto.icon}</div>
+                      <span className="text-[9px] font-black uppercase text-slate-500 tracking-tighter">{proto.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Row 2: Door Slider & View Toggles */}
+              <div className="px-3 py-2 space-y-2">
+                {visualMode === 'iso' && (
+                  <div className="flex items-center gap-4">
+                    <div className="flex-1 flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-xl border border-slate-100 dark:border-slate-700">
+                      <DoorOpen size={16} className="text-amber-500 shrink-0" />
+                      <input
+                        type="range" min="0" max="45" value={isoDoorOpenAngle}
+                        onChange={(e) => setIsoDoorOpenAngle(parseInt(e.target.value))}
+                        className="flex-1 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-500"
+                      />
+                      <span className="text-[10px] font-mono font-bold text-amber-500 min-w-[24px] text-right">{isoDoorOpenAngle}°</span>
+                    </div>
+                    
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => setIsTransparent(!isTransparent)} className={`p-2 rounded-lg border transition-all ${isTransparent ? 'bg-blue-500 text-white border-blue-600 shadow-sm' : 'bg-white dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700'}`}>
+                         <div className="w-4 h-4 flex items-center justify-center text-[8px] font-black">TR</div>
+                      </button>
+                      <button onClick={() => setIsSkeleton(!isSkeleton)} className={`p-2 rounded-lg border transition-all ${isSkeleton ? 'bg-blue-500 text-white border-blue-600 shadow-sm' : 'bg-white dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700'}`}>
+                         <div className="w-4 h-4 flex items-center justify-center text-[8px] font-black">SK</div>
+                      </button>
+                    </div>
                   </div>
                 )}
+              </div>
             </div>
 
             {/* Collapsible Table */}
@@ -764,7 +849,6 @@ const ScreenWallEditor = ({
               </div>
             )}
           </div>
-        </div>
 
         {/* Desktop Sidebar: Presets or Selected Cabinet Editor */}
         <div className={`hidden md:flex w-80 h-full bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 flex-col overflow-hidden shrink-0 ${visualMode === 'studio' ? '!hidden' : ''}`}>
@@ -789,16 +873,6 @@ const ScreenWallEditor = ({
                   JSON.stringify(zone.cabinets) !== JSON.stringify(initialZoneCabinetsBackup)
                 );
 
-                const handleResetCabinet = () => {
-                  if (initialZoneCabinetsBackup && selectedCabinet) {
-                    const originalCabinets = JSON.parse(JSON.stringify(initialZoneCabinetsBackup));
-                    updateZone(z => ({ ...z, cabinets: originalCabinets }), false, selectedCabinet.zoneId);
-                    
-                    // Sync temp cabinet for editors
-                    const cab = originalCabinets[selectedCabinet.index];
-                    if (cab) setTempCabinet(JSON.parse(JSON.stringify(cab)));
-                  }
-                };
 
                 return (
                   <div className="space-y-5">
