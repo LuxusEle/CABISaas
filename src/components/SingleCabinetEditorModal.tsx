@@ -187,7 +187,16 @@ export const SingleCabinetEditorModal: React.FC<Props> = ({ isOpen, cabinet, glo
             )}
 
             <Section>
-              <h3 className="text-[11px] font-bold text-amber-500 uppercase tracking-wider mb-3">Dimensions</h3>
+              <h3 className="text-[11px] font-bold text-amber-500 uppercase tracking-wider mb-3">Placement & Dimensions</h3>
+              <div className="flex items-center justify-between gap-4 mb-2">
+                <span className="text-[11px] text-slate-400 font-medium whitespace-nowrap">Position (From Left)</span>
+                <input
+                  type="number" 
+                  value={cabinet.fromLeft}
+                  onChange={(e) => onSave({ ...cabinet, fromLeft: parseInt(e.target.value) || 0 })}
+                  className="w-20 px-2 py-1 text-[11px] bg-slate-900 border border-slate-600 rounded text-amber-500 font-mono text-center outline-none focus:border-amber-500"
+                />
+              </div>
               <SettingRow label="Width" value={settings.width} onChange={v => updateSetting('width', v)} step={10} min={150} max={1800} />
               <SettingRow label="Height" value={settings.height} onChange={v => updateSetting('height', v)} step={10} min={300} max={2400} />
               <SettingRow label="Depth" value={settings.depth} onChange={v => updateSetting('depth', v)} step={10} min={200} max={800} />

@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
+import { Minus, Plus } from 'lucide-react';
 
 interface CabinetSpanSliderProps {
   totalLength: number;
@@ -7,6 +8,85 @@ interface CabinetSpanSliderProps {
   onChange: (updates: { fromLeft?: number; width?: number }) => void;
   onDragEnd?: () => void;
 }
+
+const NudgeInput = ({ label, value, onNudge, colorClass, subtitle }: any) => {
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    const handleNativeWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const delta = e.deltaY < 0 ? 1 : -1;
+      onNudge(delta);
+    };
+
+    el.addEventListener('wheel', handleNativeWheel, { passive: false });
+    return () => el.removeEventListener('wheel', handleNativeWheel);
+  }, [onNudge]);
+
+  const startNudging = (delta: number) => {
+    onNudge(delta);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    if (intervalRef.current) clearInterval(intervalRef.current);
+
+    timerRef.current = setTimeout(() => {
+      intervalRef.current = setInterval(() => {
+        onNudge(delta);
+      }, 40);
+    }, 250);
+  };
+
+  const stopNudging = () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    if (intervalRef.current) clearInterval(intervalRef.current);
+  };
+
+  return (
+    <div className="space-y-1">
+      <label className={`text-[8px] font-black uppercase tracking-widest block ${colorClass}`}>{label}</label>
+      <div 
+        ref={scrollRef}
+        className="flex items-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden focus-within:border-amber-500 transition-colors"
+      >
+        <button 
+          onMouseDown={() => startNudging(-1)}
+          onMouseUp={stopNudging}
+          onMouseLeave={stopNudging}
+          onTouchStart={() => startNudging(-1)}
+          onTouchEnd={stopNudging}
+          className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-amber-500 transition-colors border-r dark:border-slate-700 select-none"
+        >
+          <Minus size={12} />
+        </button>
+        <input 
+          type="number"
+          value={value}
+          onChange={(e) => {
+            const val = parseInt(e.target.value) || 0;
+            onNudge(val - value);
+          }}
+          className="w-full bg-transparent py-1.5 px-1 text-[11px] font-mono font-bold text-slate-900 dark:text-white outline-none text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none cursor-ns-resize"
+        />
+        <button 
+          onMouseDown={() => startNudging(1)}
+          onMouseUp={stopNudging}
+          onMouseLeave={stopNudging}
+          onTouchStart={() => startNudging(1)}
+          onTouchEnd={stopNudging}
+          className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-amber-500 transition-colors border-l dark:border-slate-700 select-none"
+        >
+          <Plus size={12} />
+        </button>
+      </div>
+      <p className="text-[7px] text-slate-400 font-medium italic">{subtitle}</p>
+    </div>
+  );
+};
 
 export const CabinetSpanSlider: React.FC<CabinetSpanSliderProps> = ({
   totalLength,
@@ -130,9 +210,46 @@ export const CabinetSpanSlider: React.FC<CabinetSpanSliderProps> = ({
         </div>
       </div>
 
-      <div className="flex justify-between text-[10px] font-mono text-slate-500">
-        <span>From Left: {fromLeft}mm</span>
-        <span>At: {fromLeft + width}mm</span>
+      <div className="grid grid-cols-3 gap-2 mt-4">
+        <NudgeInput 
+          label="Left Edge" 
+          value={fromLeft} 
+          colorClass="text-amber-500"
+          subtitle="Moves left"
+          onNudge={(delta: number) => {
+            const rightEdge = fromLeft + width;
+            const newFromLeft = Math.max(0, Math.min(rightEdge - 150, fromLeft + delta));
+            const newWidth = rightEdge - newFromLeft;
+            onChange({ fromLeft: newFromLeft, width: newWidth });
+          }}
+        />
+
+        <NudgeInput 
+          label="Width" 
+          value={width} 
+          colorClass="text-slate-400"
+          subtitle="Pins left"
+          onNudge={(delta: number) => {
+            onChange({ width: Math.max(150, Math.min(totalLength - fromLeft, width + delta)) });
+          }}
+        />
+
+        <NudgeInput 
+          label="Right Edge" 
+          value={fromLeft + width} 
+          colorClass="text-blue-500"
+          subtitle="Moves right"
+          onNudge={(delta: number) => {
+            const newWidth = Math.max(150, Math.min(totalLength - fromLeft, (fromLeft + width + delta) - fromLeft));
+            onChange({ width: newWidth });
+          }}
+        />
+      </div>
+
+      <div className="flex justify-between text-[9px] font-mono text-slate-400 pt-2 border-t dark:border-slate-800 mt-2">
+        <span>Wall Start: 0</span>
+        <span className="text-amber-500 font-black italic">Precision Control</span>
+        <span>End: {totalLength}</span>
       </div>
     </div>
   );
