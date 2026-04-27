@@ -139,9 +139,9 @@ export const CabinetEditModal: React.FC<CabinetEditModalProps> = ({
   const title = cabinetType === 'base' ? 'Base Cabinet' : cabinetType === 'wall' ? 'Wall Cabinet' : 'Tall Cabinet';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
+    <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center sm:p-4 bg-black/50 backdrop-blur-sm">
+      <div className="bg-white dark:bg-slate-800 rounded-t-[2rem] sm:rounded-2xl shadow-2xl w-full max-w-5xl h-[95vh] sm:h-auto sm:max-h-[90vh] overflow-hidden flex flex-col animate-in slide-in-from-bottom duration-300 sm:zoom-in-95 sm:duration-200">
+        <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700 shrink-0">
           <h3 className="text-lg font-black text-slate-900 dark:text-white">
             {title} Settings
           </h3>
@@ -150,8 +150,8 @@ export const CabinetEditModal: React.FC<CabinetEditModalProps> = ({
           </button>
         </div>
 
-        <div className="flex-1 flex overflow-hidden">
-          <div className="w-1/2 p-4 relative">
+        <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+          <div className="h-64 md:h-auto md:w-1/2 p-4 relative border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-700">
             {/* Dimension Labels around 3D viewer */}
             <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10 flex gap-4">
               <button
@@ -230,7 +230,7 @@ export const CabinetEditModal: React.FC<CabinetEditModalProps> = ({
             </p>
           </div>
 
-          <div className="w-1/2 p-4 border-l border-slate-200 dark:border-slate-700 overflow-y-auto">
+          <div className="flex-1 md:w-1/2 p-4 overflow-y-auto">
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">

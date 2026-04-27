@@ -292,7 +292,7 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
 
           {/* Centered Modal Overlay */}
           {activeModal && (
-            <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center sm:p-4 bg-slate-900/60 backdrop-blur-sm">
+            <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center sm:p-4 bg-slate-900/60 backdrop-blur-sm">
               <div 
                 className="bg-white dark:bg-slate-900 w-full max-w-4xl h-[95vh] sm:h-auto sm:max-h-[85vh] rounded-t-[2rem] sm:rounded-[2.5rem] shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-300 sm:zoom-in-95 sm:duration-200"
               >
@@ -396,9 +396,9 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
 
                   {activeModal === 'construction' && (
                     <div className="space-y-6 animate-in slide-in-from-bottom-4">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8">
+                      <div className="grid grid-cols-2 gap-3 sm:gap-8">
                         <NumberInput label="Kerf (mm)" value={project.settings.kerf} onChange={v => setProject({ ...project, settings: { ...project.settings, kerf: v } })} />
-                        <NumberInput label="Counter Thickness (mm)" value={project.settings.counterThickness} onChange={v => setProject({ ...project, settings: { ...project.settings, counterThickness: v } })} />
+                        <NumberInput label="Counter Thk (mm)" value={project.settings.counterThickness} onChange={v => setProject({ ...project, settings: { ...project.settings, counterThickness: v } })} />
                         <div className="col-span-full">
                           <MaterialAllocationPanel
                             settings={project.settings}

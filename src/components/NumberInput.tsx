@@ -28,20 +28,20 @@ export const NumberInput: React.FC<NumberInputProps> = ({
   return (
     <div className={`flex flex-col gap-1.5 w-full ${className}`}>
       <label className="text-slate-400 text-xs font-bold uppercase tracking-wider pl-1">{label}</label>
-      <div className="flex items-stretch gap-2 h-12 sm:h-14">
+      <div className="flex items-stretch gap-1.5 sm:gap-2 h-11 sm:h-12 md:h-14">
         {/* Decrement */}
         <button 
           onClick={handleDecrement}
-          className="w-11 sm:w-12 md:w-14 flex-none flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-500 dark:text-slate-300 active:bg-slate-200 dark:active:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors touch-manipulation"
+          className="w-10 sm:w-12 md:w-14 flex-none flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-500 dark:text-slate-300 active:bg-slate-200 dark:active:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors touch-manipulation"
           type="button"
           tabIndex={-1}
           aria-label={`Decrease ${label}`}
         >
-          <Minus size={18} className="sm:w-5 sm:h-5" />
+          <Minus size={16} className="sm:w-5 sm:h-5" />
         </button>
         
         {/* Input Area */}
-        <div className="flex-1 flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden px-2 sm:px-3 focus-within:ring-2 focus-within:ring-amber-500 focus-within:border-transparent transition-all">
+        <div className="flex-1 flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden px-1.5 sm:px-3 focus-within:ring-2 focus-within:ring-amber-500 focus-within:border-transparent transition-all">
           <input
             type="number"
             value={value}
@@ -59,12 +59,12 @@ export const NumberInput: React.FC<NumberInputProps> = ({
         {/* Increment */}
         <button 
           onClick={handleIncrement}
-          className="w-11 sm:w-12 md:w-14 flex-none flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-500 dark:text-slate-300 active:bg-slate-200 dark:active:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors touch-manipulation"
+          className="w-10 sm:w-12 md:w-14 flex-none flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-500 dark:text-slate-300 active:bg-slate-200 dark:active:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors touch-manipulation"
           type="button"
           tabIndex={-1}
           aria-label={`Increase ${label}`}
         >
-          <Plus size={18} className="sm:w-5 sm:h-5" />
+          <Plus size={16} className="sm:w-5 sm:h-5" />
         </button>
       </div>
     </div>

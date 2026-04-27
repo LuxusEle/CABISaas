@@ -119,27 +119,27 @@ export const MaterialAllocationPanel: React.FC<MaterialAllocationPanelProps> = (
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-[10px] uppercase tracking-widest text-slate-400 border-b dark:border-slate-700">
-                  <th className="px-3 py-3 text-left font-bold">Component</th>
-                  <th className="px-3 py-3 text-left font-bold">Description</th>
-                  <th className="px-3 py-3 text-left font-bold">Material</th>
+                  <th className="px-2 sm:px-3 py-3 text-left font-bold">Component</th>
+                  <th className="hidden md:table-cell px-3 py-3 text-left font-bold">Description</th>
+                  <th className="px-2 sm:px-3 py-3 text-left font-bold">Material</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                 {/* Carcass Material */}
                 <tr className="group hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                  <td className="px-3 py-4">
+                  <td className="px-2 sm:px-3 py-4">
                     <div className="flex items-center gap-2">
-                      <Box className="w-4 h-4 text-blue-500" />
-                      <span className="text-slate-900 dark:text-white font-bold">Carcass (Box)</span>
+                      <Box className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-500 shrink-0" />
+                      <span className="text-slate-900 dark:text-white font-bold text-xs sm:text-sm">Carcass (Box)</span>
                     </div>
                   </td>
-                  <td className="px-3 py-4 text-slate-500 text-xs">Sides, top, bottom panels</td>
-                  <td className="px-3 py-4">
-                    <div className="flex gap-2 items-center">
+                  <td className="hidden md:table-cell px-3 py-4 text-slate-500 text-xs">Sides, top, bottom panels</td>
+                  <td className="px-2 sm:px-3 py-4">
+                    <div className="flex gap-1.5 sm:gap-2 items-center">
                       <select
                         value={allocation.carcassMaterial}
                         onChange={(e) => handleChange('carcassMaterial', e.target.value)}
-                        className="flex-1 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm"
+                        className="flex-1 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-[11px] sm:text-sm"
                       >
                         <option value="">Select material...</option>
                         {sheetTypes.map((type) => (
@@ -167,19 +167,19 @@ export const MaterialAllocationPanel: React.FC<MaterialAllocationPanelProps> = (
 
                 {/* Door Material */}
                 <tr className="group hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                  <td className="px-3 py-4">
+                  <td className="px-2 sm:px-3 py-4">
                     <div className="flex items-center gap-2">
-                      <Square className="w-4 h-4 text-green-500" />
-                      <span className="text-slate-900 dark:text-white font-bold">Front Doors</span>
+                      <Square className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-500 shrink-0" />
+                      <span className="text-slate-900 dark:text-white font-bold text-xs sm:text-sm">Front Doors</span>
                     </div>
                   </td>
-                  <td className="px-3 py-4 text-slate-500 text-xs">Cabinet door fronts</td>
-                  <td className="px-3 py-4">
-                    <div className="flex gap-2 items-center">
+                  <td className="hidden md:table-cell px-3 py-4 text-slate-500 text-xs">Cabinet door fronts</td>
+                  <td className="px-2 sm:px-3 py-4">
+                    <div className="flex gap-1.5 sm:gap-2 items-center">
                       <select
                         value={allocation.doorMaterial}
                         onChange={(e) => handleChange('doorMaterial', e.target.value)}
-                        className="flex-1 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm"
+                        className="flex-1 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-[11px] sm:text-sm"
                       >
                         <option value="">Select material...</option>
                         {sheetTypes.map((type) => (
@@ -207,18 +207,18 @@ export const MaterialAllocationPanel: React.FC<MaterialAllocationPanelProps> = (
 
                 {/* Drawer Material */}
                 <tr className="group hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                  <td className="px-3 py-4">
+                  <td className="px-2 sm:px-3 py-4">
                     <div className="flex items-center gap-2">
-                      <Layers className="w-4 h-4 text-amber-500" />
-                      <span className="text-slate-900 dark:text-white font-bold">Drawer Boxes</span>
+                      <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 shrink-0" />
+                      <span className="text-slate-900 dark:text-white font-bold text-xs sm:text-sm">Drawer Boxes</span>
                     </div>
                   </td>
-                  <td className="px-3 py-4 text-slate-500 text-xs">Drawer bottoms and sides</td>
-                  <td className="px-3 py-4">
+                  <td className="hidden md:table-cell px-3 py-4 text-slate-500 text-xs">Drawer bottoms and sides</td>
+                  <td className="px-2 sm:px-3 py-4">
                     <select
                       value={allocation.drawerMaterial}
                       onChange={(e) => handleChange('drawerMaterial', e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm"
+                      className="w-full px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-[11px] sm:text-sm"
                     >
                       <option value="">Select material...</option>
                       {sheetTypes.map((type) => (
@@ -232,18 +232,18 @@ export const MaterialAllocationPanel: React.FC<MaterialAllocationPanelProps> = (
 
                 {/* Back Panel Material */}
                 <tr className="group hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                  <td className="px-3 py-4">
+                  <td className="px-2 sm:px-3 py-4">
                     <div className="flex items-center gap-2">
-                      <Circle className="w-4 h-4 text-purple-500" />
-                      <span className="text-slate-900 dark:text-white font-bold">Back Panels</span>
+                      <Circle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-500 shrink-0" />
+                      <span className="text-slate-900 dark:text-white font-bold text-xs sm:text-sm">Back Panels</span>
                     </div>
                   </td>
-                  <td className="px-3 py-4 text-slate-500 text-xs">Cabinet back panels</td>
-                  <td className="px-3 py-4">
+                  <td className="hidden md:table-cell px-3 py-4 text-slate-500 text-xs">Cabinet back panels</td>
+                  <td className="px-2 sm:px-3 py-4">
                     <select
                       value={allocation.backMaterial}
                       onChange={(e) => handleChange('backMaterial', e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm"
+                      className="w-full px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-[11px] sm:text-sm"
                     >
                       <option value="">Select material...</option>
                       {sheetTypes.filter(t => t.thickness <= 6).map((type) => (
@@ -257,19 +257,19 @@ export const MaterialAllocationPanel: React.FC<MaterialAllocationPanelProps> = (
 
                 {/* Shelf Material */}
                 <tr className="group hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                  <td className="px-3 py-4">
+                  <td className="px-2 sm:px-3 py-4">
                     <div className="flex items-center gap-2">
-                      <Layers className="w-4 h-4 text-cyan-500" />
-                      <span className="text-slate-900 dark:text-white font-bold">Shelves</span>
+                      <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-cyan-500 shrink-0" />
+                      <span className="text-slate-900 dark:text-white font-bold text-xs sm:text-sm">Shelves</span>
                     </div>
                   </td>
-                  <td className="px-3 py-4 text-slate-500 text-xs">Adjustable and fixed shelves</td>
-                  <td className="px-3 py-4">
-                    <div className="flex gap-2 items-center">
+                  <td className="hidden md:table-cell px-3 py-4 text-slate-500 text-xs">Adjustable and fixed shelves</td>
+                  <td className="px-2 sm:px-3 py-4">
+                    <div className="flex gap-1.5 sm:gap-2 items-center">
                       <select
                         value={allocation.shelfMaterial}
                         onChange={(e) => handleChange('shelfMaterial', e.target.value)}
-                        className="flex-1 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm"
+                        className="flex-1 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-[11px] sm:text-sm"
                       >
                         <option value="">Select material...</option>
                         <option value="">Same as Carcass ({allocation.carcassMaterial || 'Not set'})</option>
