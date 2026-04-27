@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Save, FileText, ChevronDown, Upload, DollarSign 
-} from 'lucide-react';
+import { Save, FileText, ChevronDown, Upload, DollarSign, Settings, Box, Lock } from 'lucide-react';
 import { Project } from '../types';
 import { Button } from '../components/Button';
 import { NumberInput } from '../components/NumberInput';
@@ -25,15 +23,14 @@ interface ScreenProjectSetupProps {
 
 const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark }: ScreenProjectSetupProps) => {
   const navigate = useNavigate();
-  // State to track which section is expanded - only one at a time
-  const [expandedSection, setExpandedSection] = useState<'projectInfo' | 'sheetTypes' | 'accessories' | 'allocation' | 'costs' | null>('projectInfo');
+  // State for centered modal
+  const [activeModal, setActiveModal] = useState<'project' | 'walls' | 'sheets' | 'hardware' | 'construction' | 'costs' | 'allocation' | null>(null);
 
-  // Cabinet Edit Modal
+  // Modal control states
+  const [showWallModal, setShowWallModal] = useState(false);
+  const isLayoutLocked = project.zones.some(z => z.cabinets && z.cabinets.length > 0);
   const [showCabinetModal, setShowCabinetModal] = useState(false);
   const [editingCabinetType, setEditingCabinetType] = useState<'base' | 'wall' | 'tall'>('base');
-
-  // Wall Edit Modal
-  const [showWallModal, setShowWallModal] = useState(false);
 
   // Logo upload state
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
@@ -63,20 +60,17 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       alert('Please upload an image file (PNG, JPG, GIF)');
       return;
     }
 
-    // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       alert('File size must be less than 5MB');
       return;
     }
 
     setIsUploadingLogo(true);
-
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -91,149 +85,227 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
           ...prev,
           settings: { ...prev.settings, logoUrl: result.url }
         }));
-      } else {
-        alert('Failed to upload logo. Please try again.');
       }
     } catch (error) {
       console.error('Error uploading logo:', error);
-      alert('Error uploading logo. Please try again.');
     } finally {
       setIsUploadingLogo(false);
     }
   };
 
-  // Handle logo removal
   const handleRemoveLogo = () => {
     setLogoPreview(null);
     setProject(prev => ({
       ...prev,
       settings: { ...prev.settings, logoUrl: undefined }
     }));
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
   };
 
-  const toggleSection = (section: 'projectInfo' | 'sheetTypes' | 'accessories' | 'allocation' | 'costs') => {
-    setExpandedSection(prev => prev === section ? null : section);
-  };
+  const SetupCard = ({ icon, title, subtitle, onClick, colorClass }: any) => (
+    <button
+      onClick={onClick}
+      className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:border-amber-500/50 dark:hover:border-amber-500/50 transition-all flex flex-col items-center text-center group relative overflow-hidden"
+    >
+      <div className={`w-16 h-16 rounded-2xl ${colorClass} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+        {icon}
+      </div>
+      <h3 className="text-lg font-black text-slate-900 dark:text-white mb-1 uppercase tracking-tight">{title}</h3>
+      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{subtitle}</p>
+      <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+        <ChevronDown size={20} className="-rotate-90 text-amber-500" />
+      </div>
+    </button>
+  );
 
   return (
-    <div className="flex flex-col h-full w-full overflow-hidden">
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-        <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8">
-          <div className="flex justify-between items-center mb-2 sm:mb-4">
-            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">Project Setup</h2>
-            <div className="flex items-center gap-3">
+    <div className="flex flex-col h-full w-full overflow-hidden bg-slate-50 dark:bg-slate-950">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-10">
+        <div className="max-w-6xl mx-auto">
+          {/* Header */}
+          <div className="flex justify-between items-center mb-10">
+            <div className="space-y-1">
+              <h2 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">Project <span className="text-amber-500">Setup</span></h2>
+              <p className="text-sm text-slate-500 font-medium">Configure your manufacturing standards and layout preferences</p>
+            </div>
+            <div className="flex items-center gap-4">
               {logoPreview && (
-                <img
-                  src={logoPreview}
-                  alt="Company Logo"
-                  className="h-10 sm:h-12 w-auto object-contain"
-                />
+                <img src={logoPreview} alt="Logo" className="h-10 sm:h-14 w-auto object-contain" />
               )}
-              <Button variant="primary" size="sm" onClick={onSave} className="min-h-[40px]">
-                <Save size={16} className="mr-2" /> Save
+              <Button variant="primary" size="lg" onClick={onSave} className="shadow-lg shadow-amber-500/20 px-8">
+                <Save size={18} className="mr-2" /> Save Changes
               </Button>
             </div>
           </div>
 
-          {/* Project Info & Dimensions - Combined Collapsible Menu */}
-          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-            {/* Header - Always visible */}
-            <div
-              className="flex justify-between items-center p-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
-              onClick={() => toggleSection('projectInfo')}
-            >
-              <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2 uppercase tracking-tight">
-                <FileText className="text-teal-500" /> Project Info & Dimensions
-              </h3>
-              <button className={`p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-transform duration-300 ${expandedSection === 'projectInfo' ? 'rotate-180' : ''}`}>
-                <ChevronDown size={20} />
-              </button>
-            </div>
+          {/* Setup Cards Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <SetupCard 
+              icon={<FileText size={32} className="text-teal-600 dark:text-teal-400" />}
+              title="Identity"
+              subtitle="Name, Company & Branding"
+              colorClass="bg-teal-50 dark:bg-teal-900/20"
+              onClick={() => setActiveModal('project')}
+            />
+            <SetupCard 
+              icon={isLayoutLocked ? <Lock size={32} className="text-slate-400" /> : <Upload size={32} className="text-blue-600 dark:text-blue-400" />}
+              title="Room Layout"
+              subtitle={isLayoutLocked ? "Room Layout (View Only)" : "Walls & Global Dimensions"}
+              colorClass={isLayoutLocked ? "bg-slate-100 dark:bg-slate-200/50" : "bg-blue-50 dark:bg-blue-900/20"}
+              onClick={() => setShowWallModal(true)}
+            />
+            <SetupCard 
+              icon={<Settings size={32} className="text-amber-600 dark:text-amber-400" />}
+              title="Materials"
+              subtitle="Sheet Types & Boards"
+              colorClass="bg-amber-50 dark:bg-amber-900/20"
+              onClick={() => setActiveModal('sheets')}
+            />
+            <SetupCard 
+              icon={<DollarSign size={32} className="text-green-600 dark:text-green-400" />}
+              title="Pricing"
+              subtitle="Costs, Labor & Margins"
+              colorClass="bg-green-50 dark:bg-green-900/20"
+              onClick={() => setActiveModal('costs')}
+            />
+            <SetupCard 
+              icon={<Box size={32} className="text-purple-600 dark:text-purple-400" />}
+              title="Construction"
+              subtitle="Kerf, Gola & Standards"
+              colorClass="bg-purple-50 dark:bg-purple-900/20"
+              onClick={() => setActiveModal('construction')}
+            />
+            <SetupCard 
+              icon={<Save size={32} className="text-rose-600 dark:text-rose-400" />}
+              title="Hardware"
+              subtitle="Accessories & Templates"
+              colorClass="bg-rose-50 dark:bg-rose-900/20"
+              onClick={() => setActiveModal('hardware')}
+            />
+          </div>
 
-            {/* Content - Collapsible with animation */}
-            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${expandedSection === 'projectInfo' ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
-              <div className="p-4 pt-0 space-y-6">
-                {/* Project Info Section */}
-                <div className="space-y-4">
-                  <h4 className="text-slate-500 font-bold uppercase text-xs tracking-wider">Project Info</h4>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-400">Project Name</label>
-                      <input className="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border dark:border-slate-700 dark:text-white text-sm sm:text-base min-h-[48px]" value={project.name} onChange={e => setProject({ ...project, name: e.target.value })} />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-400">Company Name</label>
-                      <input className="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border dark:border-slate-700 dark:text-white text-sm sm:text-base min-h-[48px]" value={project.company} onChange={e => setProject({ ...project, company: e.target.value })} />
-                    </div>
-                  </div>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-400">Currency Symbol</label>
-                      <input className="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border dark:border-slate-700 dark:text-white text-sm sm:text-base min-h-[48px]" value={project.settings.currency} onChange={e => setProject({ ...project, settings: { ...project.settings, currency: e.target.value } })} placeholder="$" />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-400">Company Logo</label>
-                      <div className="flex items-center gap-3">
-                        <div className="flex-1">
-                          <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/*"
-                            onChange={handleLogoUpload}
-                            className="hidden"
-                            id="logo-upload"
-                          />
-                          <label
-                            htmlFor="logo-upload"
-                            className={`flex items-center gap-2 px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-sm font-bold rounded-lg cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors ${isUploadingLogo ? 'opacity-50 pointer-events-none' : ''}`}
-                          >
-                            {isUploadingLogo ? (
-                              <>
-                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-slate-700 dark:border-slate-200" />
-                                Uploading...
-                              </>
-                            ) : (
-                              <>
-                                <Upload size={16} />
-                                {logoPreview ? 'Change Logo' : 'Upload Logo'}
-                              </>
-                            )}
+          {/* Centered Modal Overlay */}
+          {activeModal && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+              <div 
+                className="bg-white dark:bg-slate-900 w-full max-w-2xl max-h-[85vh] rounded-[2rem] shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
+              >
+                {/* Modal Header */}
+                <div className="p-6 border-b dark:border-slate-800 flex justify-between items-center shrink-0">
+                  <h3 className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-white">
+                    {activeModal === 'project' && 'Project Identity'}
+                    {activeModal === 'walls' && 'Room & Wall Setup'}
+                    {activeModal === 'sheets' && 'Material Library'}
+                    {activeModal === 'costs' && 'Financial Settings'}
+                    {activeModal === 'construction' && 'Construction Standards'}
+                    {activeModal === 'hardware' && 'Hardware & Accessories'}
+                  </h3>
+                  <button 
+                    onClick={() => setActiveModal(null)}
+                    className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  >
+                    <Save size={24} className="rotate-45" /> {/* Using Save icon rotated as an X for consistency if needed, or just X */}
+                  </button>
+                </div>
+
+                {/* Modal Content */}
+                <div className="flex-1 overflow-y-auto p-6">
+                  {activeModal === 'project' && (
+                    <div className="space-y-6">
+                      <div className="grid md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <label className="text-xs font-black uppercase text-slate-400">Project Name</label>
+                          <input className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border-2 border-transparent focus:border-amber-500 outline-none dark:text-white" value={project.name} onChange={e => setProject({ ...project, name: e.target.value })} />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-black uppercase text-slate-400">Company Name</label>
+                          <input className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border-2 border-transparent focus:border-amber-500 outline-none dark:text-white" value={project.company} onChange={e => setProject({ ...project, company: e.target.value })} />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-black uppercase text-slate-400">Branding Logo</label>
+                        <div className="p-6 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl flex flex-col items-center gap-4">
+                          {logoPreview ? (
+                            <div className="relative group">
+                              <img src={logoPreview} alt="Preview" className="h-24 w-auto object-contain" />
+                              <button onClick={handleRemoveLogo} className="absolute -top-2 -right-2 bg-rose-500 text-white p-1 rounded-full shadow-lg">
+                                <Save size={12} className="rotate-45" />
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="text-slate-400 text-center">
+                              <Upload size={32} className="mx-auto mb-2 opacity-50" />
+                              <p className="text-xs font-bold">No logo uploaded yet</p>
+                            </div>
+                          )}
+                          <input ref={fileInputRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" id="logo-modal" />
+                          <label htmlFor="logo-modal" className="px-6 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-sm font-black rounded-full cursor-pointer hover:scale-105 transition-transform">
+                            {isUploadingLogo ? 'UPLOADING...' : 'SELECT LOGO'}
                           </label>
-                          <p className="text-xs text-slate-500 mt-1">PNG, JPG, GIF (max 5MB)</p>
                         </div>
                       </div>
                     </div>
-                  </div>
+                  )}
+
+
+                  {activeModal === 'sheets' && (
+                    <SheetTypeManager 
+                      currency={project.settings.currency || '$'}
+                      sheetTypesExpanded={true}
+                      showSheetsOnly={true}
+                    />
+                  )}
+
+                  {activeModal === 'hardware' && (
+                    <SheetTypeManager 
+                      currency={project.settings.currency || '$'}
+                      accessoriesExpanded={true}
+                      showHardwareOnly={true}
+                    />
+                  )}
+
+                  {activeModal === 'costs' && (
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-1 gap-4">
+                        <NumberInput label="Labor Cost (LKR)" value={project.settings.costs?.laborCost ?? 0} onChange={v => setProject({ ...project, settings: { ...project.settings, costs: { ...project.settings.costs, laborCost: v } } })} />
+                        <NumberInput label="Transport Cost (LKR)" value={project.settings.costs?.transportCost ?? 0} onChange={v => setProject({ ...project, settings: { ...project.settings, costs: { ...project.settings.costs, transportCost: v } } })} />
+                        <NumberInput label="Profit Margin (%)" value={project.settings.costs?.marginPercent ?? 50} onChange={v => setProject({ ...project, settings: { ...project.settings, costs: { ...project.settings.costs, marginPercent: v } } })} />
+                      </div>
+                    </div>
+                  )}
+
+                  {activeModal === 'construction' && (
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <NumberInput label="Kerf (mm)" value={project.settings.kerf} onChange={v => setProject({ ...project, settings: { ...project.settings, kerf: v } })} />
+                        <NumberInput label="Counter Thickness (mm)" value={project.settings.counterThickness} onChange={v => setProject({ ...project, settings: { ...project.settings, counterThickness: v } })} />
+                        <div className="col-span-full">
+                          <MaterialAllocationPanel
+                            settings={project.settings}
+                            onUpdate={s => setProject({ ...project, settings: { ...project.settings, ...s } })}
+                            isExpanded={true}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {/* Dimensions & Nesting Section */}
-                <div className="space-y-4">
-                  <WallSetupCard 
-                    project={project}
-                    onClick={() => setShowWallModal(true)}
-                  />
-
-
-                  {/* Additional Settings */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-4 mt-4">
-                    <NumberInput label="Kerf (mm)" value={project.settings.kerf} onChange={(v) => setProject({ ...project, settings: { ...project.settings, kerf: v } })} step={1} />
-                    <NumberInput label="Counter Thickness (mm)" value={project.settings.counterThickness} onChange={(v) => setProject({ ...project, settings: { ...project.settings, counterThickness: v } })} step={5} />
-                  </div>
-
+                {/* Modal Footer */}
+                <div className="p-6 bg-slate-50 dark:bg-slate-800/50 flex justify-end shrink-0">
+                  <Button variant="primary" onClick={() => setActiveModal(null)} className="px-10">Done</Button>
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
-          {/* Wall Edit Modal */}
+          {/* Legacy Modals */}
           <WallEditModal
             isOpen={showWallModal}
             onClose={() => setShowWallModal(false)}
             project={project}
             isDark={isDark}
+            hideCabinets={true}
+            readOnly={isLayoutLocked}
             onSave={(newZones) => {
               const updatedProject = { ...project, zones: newZones };
               const result = generateRubyLayout(updatedProject);
@@ -246,7 +318,6 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
             }}
           />
 
-          {/* Cabinet Edit Modal */}
           <CabinetEditModal
             isOpen={showCabinetModal}
             onClose={() => setShowCabinetModal(false)}
@@ -256,71 +327,6 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
             onSave={(newSettings) => {
               setProject({ ...project, settings: newSettings });
             }}
-          />
-
-          {/* Sheet Types Manager */}
-          <SheetTypeManager
-            currency={project.settings.currency || '$'}
-            sheetTypesExpanded={expandedSection === 'sheetTypes'}
-            accessoriesExpanded={expandedSection === 'accessories'}
-            onToggleSheetTypes={() => toggleSection('sheetTypes')}
-            onToggleAccessories={() => toggleSection('accessories')}
-          />
-
-          {/* Cost Settings */}
-          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-            <div
-              className="flex justify-between items-center p-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
-              onClick={() => toggleSection('costs')}
-            >
-              <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2 uppercase tracking-tight">
-                <DollarSign className="text-green-500" /> Cost Settings
-              </h3>
-              <button className={`p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-transform duration-300 ${expandedSection === 'costs' ? 'rotate-180' : ''}`}>
-                <ChevronDown size={20} />
-              </button>
-            </div>
-            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${expandedSection === 'costs' ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}>
-              <div className="p-4 pt-0 space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Labor Cost (LKR)</label>
-                    <input
-                      type="number"
-                      value={project.settings.costs?.laborCost ?? 0}
-                      onChange={e => setProject({ ...project, settings: { ...project.settings, costs: { ...project.settings.costs, laborCost: Number(e.target.value) } } })}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Transport Cost (LKR)</label>
-                    <input
-                      type="number"
-                      value={project.settings.costs?.transportCost ?? 0}
-                      onChange={e => setProject({ ...project, settings: { ...project.settings, costs: { ...project.settings.costs, transportCost: Number(e.target.value) } } })}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Profit Margin (%)</label>
-                    <input
-                      type="number"
-                      value={project.settings.costs?.marginPercent ?? 50}
-                      onChange={e => setProject({ ...project, settings: { ...project.settings, costs: { ...project.settings.costs, marginPercent: Number(e.target.value) } } })}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Material Allocation */}
-          <MaterialAllocationPanel
-            settings={project.settings}
-            onUpdate={(settings) => setProject({ ...project, settings: { ...project.settings, ...settings } })}
-            isExpanded={expandedSection === 'allocation'}
-            onToggle={() => toggleSection('allocation')}
           />
         </div>
       </div>

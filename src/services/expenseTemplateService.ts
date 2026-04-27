@@ -10,7 +10,13 @@ export interface ExpenseTemplate {
   updated_at: string;
 }
 
+let cachedTemplates: ExpenseTemplate[] | null = null;
+
 export const expenseTemplateService = {
+  getCachedTemplates(): ExpenseTemplate[] | null {
+    return cachedTemplates;
+  },
+
   async getTemplates(): Promise<ExpenseTemplate[]> {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) return [];
@@ -27,7 +33,8 @@ export const expenseTemplateService = {
       return [];
     }
 
-    return data || [];
+    cachedTemplates = data || [];
+    return cachedTemplates;
   },
 
   async saveTemplate(name: string, defaultAmount: number = 0): Promise<ExpenseTemplate | null> {
@@ -58,6 +65,7 @@ export const expenseTemplateService = {
       return null;
     }
 
+    cachedTemplates = null; // Clear cache
     return data;
   },
 
@@ -72,6 +80,7 @@ export const expenseTemplateService = {
       return false;
     }
 
+    cachedTemplates = null; // Clear cache
     return true;
   },
 
@@ -86,6 +95,7 @@ export const expenseTemplateService = {
       return false;
     }
 
+    cachedTemplates = null; // Clear cache
     return true;
   },
 
@@ -104,6 +114,7 @@ export const expenseTemplateService = {
       return false;
     }
 
+    cachedTemplates = null; // Clear cache
     return true;
   },
 
@@ -117,6 +128,7 @@ export const expenseTemplateService = {
       console.error('Error updating expense price by name:', error);
       return false;
     }
+    cachedTemplates = null; // Clear cache
     return true;
   },
 
@@ -132,7 +144,9 @@ export const expenseTemplateService = {
       { name: 'Installation Nail', amount: 0.10 }
     ];
 
-    const existing = await this.getTemplates();
+    const existing = cachedTemplates || await this.getTemplates();
+    if (existing.length > 0) return; // Skip if items already exist
+
     for (const item of hardwareItems) {
       if (!existing.find(e => e.name === item.name)) {
         await this.saveTemplate(item.name, item.amount);

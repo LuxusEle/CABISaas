@@ -10,6 +10,8 @@ interface WallEditModalProps {
   project: Project;
   onSave: (newZones: Zone[]) => void;
   isDark?: boolean;
+  hideCabinets?: boolean;
+  readOnly?: boolean;
 }
 
 const DEFAULT_WALL_NAMES = ['Wall A', 'Wall B', 'Wall C', 'Wall D'];
@@ -20,12 +22,19 @@ export const WallEditModal: React.FC<WallEditModalProps> = ({
   project,
   onSave,
   isDark = true,
+  hideCabinets = false,
+  readOnly = false
 }) => {
   const [localZones, setLocalZones] = useState<Zone[]>(project.zones);
   const [activeTab, setActiveTab] = useState<string>('');
   
   // Create a temporary project object for the 3D viewer to render
-  const tempProject: Project = { ...project, zones: localZones };
+  const tempProject: Project = { 
+    ...project, 
+    zones: hideCabinets 
+      ? localZones.map(z => ({ ...z, cabinets: [] })) 
+      : localZones 
+  };
 
   const currentZoneIndex = localZones.findIndex(z => z.id === activeTab);
   const currentZone = currentZoneIndex >= 0 ? localZones[currentZoneIndex] : localZones[0];
@@ -195,7 +204,7 @@ export const WallEditModal: React.FC<WallEditModalProps> = ({
                   {zone.id}
                 </button>
               ))}
-              {localZones.length < 4 && (
+              {localZones.length < 4 && !readOnly && (
                 <button
                   onClick={handleAddWall}
                   className="px-4 py-2 text-sm font-bold rounded-t-lg bg-slate-200 dark:bg-slate-800 text-slate-500 hover:text-amber-500 transition-colors"
@@ -213,6 +222,7 @@ export const WallEditModal: React.FC<WallEditModalProps> = ({
                     <div className="flex items-center gap-2">
                       <input 
                         value={currentZone.id}
+                        disabled={readOnly}
                         onChange={(e) => {
                           const idx = localZones.findIndex(z => z.id === activeTab);
                           handleZoneChange(idx, 'id', e.target.value);
@@ -221,7 +231,7 @@ export const WallEditModal: React.FC<WallEditModalProps> = ({
                         className="font-bold text-lg text-slate-800 dark:text-white bg-transparent border-b border-transparent hover:border-slate-300 dark:hover:border-slate-600 focus:border-amber-500 outline-none pb-0.5 transition-colors"
                       />
                     </div>
-                    {localZones.length > 1 && (
+                    {localZones.length > 1 && !readOnly && (
                       <button
                         onClick={() => {
                           const idx = localZones.findIndex(z => z.id === activeTab);
@@ -245,6 +255,7 @@ export const WallEditModal: React.FC<WallEditModalProps> = ({
                         max="10000"
                         step="100"
                         value={currentZone.totalLength}
+                        disabled={readOnly}
                         onChange={(e) => {
                           const idx = localZones.findIndex(z => z.id === activeTab);
                           handleZoneChange(idx, 'totalLength', Number(e.target.value));
@@ -260,6 +271,7 @@ export const WallEditModal: React.FC<WallEditModalProps> = ({
                         max="4000"
                         step="100"
                         value={currentZone.wallHeight}
+                        disabled={readOnly}
                         onChange={(e) => {
                           const idx = localZones.findIndex(z => z.id === activeTab);
                           handleZoneChange(idx, 'wallHeight', Number(e.target.value));
@@ -275,67 +287,75 @@ export const WallEditModal: React.FC<WallEditModalProps> = ({
                       <div className="flex items-center gap-2">
                         <AlertTriangle size={14} className="text-amber-500" />
                         <span className="text-xs font-bold text-slate-600 dark:text-slate-400">Obstacles</span>
-                        <span className="text-xs text-slate-400">({currentZone.obstacles.length})</span>
+                        <span className="text-xs text-slate-400">({currentZone.obstacles.filter(o => !o.id.startsWith('corner_')).length})</span>
                       </div>
                       <div className="flex gap-1">
-                        <button
-                          onClick={() => {
-                            const idx = localZones.findIndex(z => z.id === activeTab);
-                            handleAddObstacle(idx, 'door');
-                          }}
-                          className="px-2 py-1 text-xs bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded text-slate-600 dark:text-slate-300"
-                          title="Add Door"
-                        >
-                          🚪
-                        </button>
-                        <button
-                          onClick={() => {
-                            const idx = localZones.findIndex(z => z.id === activeTab);
-                            handleAddObstacle(idx, 'window');
-                          }}
-                          className="px-2 py-1 text-xs bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded text-slate-600 dark:text-slate-300"
-                          title="Add Window"
-                        >
-                          🪟
-                        </button>
-                        <button
-                          onClick={() => {
-                            const idx = localZones.findIndex(z => z.id === activeTab);
-                            handleAddObstacle(idx, 'column');
-                          }}
-                          className="px-2 py-1 text-xs bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded text-slate-600 dark:text-slate-300"
-                          title="Add Column"
-                        >
-                          🧱
-                        </button>
-                        <button
-                          onClick={() => {
-                            const idx = localZones.findIndex(z => z.id === activeTab);
-                            handleAddObstacle(idx, 'pipe');
-                          }}
-                          className="px-2 py-1 text-xs bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded text-slate-600 dark:text-slate-300"
-                          title="Add Pipe"
-                        >
-                          🔧
-                        </button>
+                        {!readOnly && (
+                          <>
+                            <button
+                              onClick={() => {
+                                const idx = localZones.findIndex(z => z.id === activeTab);
+                                handleAddObstacle(idx, 'door');
+                              }}
+                              className="px-2 py-1 text-xs bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded text-slate-600 dark:text-slate-300"
+                              title="Add Door"
+                            >
+                              🚪
+                            </button>
+                            <button
+                              onClick={() => {
+                                const idx = localZones.findIndex(z => z.id === activeTab);
+                                handleAddObstacle(idx, 'window');
+                              }}
+                              className="px-2 py-1 text-xs bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded text-slate-600 dark:text-slate-300"
+                              title="Add Window"
+                            >
+                              🪟
+                            </button>
+                            <button
+                              onClick={() => {
+                                const idx = localZones.findIndex(z => z.id === activeTab);
+                                handleAddObstacle(idx, 'column');
+                              }}
+                              className="px-2 py-1 text-xs bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded text-slate-600 dark:text-slate-300"
+                              title="Add Column"
+                            >
+                              🧱
+                            </button>
+                            <button
+                              onClick={() => {
+                                const idx = localZones.findIndex(z => z.id === activeTab);
+                                handleAddObstacle(idx, 'pipe');
+                              }}
+                              className="px-2 py-1 text-xs bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded text-slate-600 dark:text-slate-300"
+                              title="Add Pipe"
+                            >
+                              🔧
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
 
                     {currentZone.obstacles.length > 0 && (
                       <div className="space-y-2">
-                        {currentZone.obstacles.map((obstacle, obsIndex) => (
+                        {currentZone.obstacles
+                          .filter(o => !o.id.startsWith('corner_'))
+                          .map((obstacle, obsIndex) => (
                           <div key={obstacle.id} className="bg-slate-50 dark:bg-slate-900 rounded-lg p-2 text-xs">
                             <div className="flex items-center justify-between mb-2">
                               <span className="font-bold text-slate-700 dark:text-slate-300 capitalize">{obstacle.type}</span>
-                              <button
-                                onClick={() => {
-                                  const idx = localZones.findIndex(z => z.id === activeTab);
-                                  handleRemoveObstacle(idx, obsIndex);
-                                }}
-                                className="p-1 text-slate-400 hover:text-red-500 rounded"
-                              >
-                                <Trash2 size={12} />
-                              </button>
+                              {!readOnly && (
+                                <button
+                                  onClick={() => {
+                                    const idx = localZones.findIndex(z => z.id === activeTab);
+                                    handleRemoveObstacle(idx, obsIndex);
+                                  }}
+                                  className="p-1 text-slate-400 hover:text-red-500 rounded"
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              )}
                             </div>
                             <div className="grid grid-cols-3 gap-2">
                               <div>
@@ -345,6 +365,7 @@ export const WallEditModal: React.FC<WallEditModalProps> = ({
                                   min="0"
                                   max={currentZone.totalLength}
                                   value={obstacle.fromLeft}
+                                  disabled={readOnly}
                                   onChange={(e) => {
                                     const idx = localZones.findIndex(z => z.id === activeTab);
                                     handleObstacleChange(idx, obsIndex, 'fromLeft', Number(e.target.value));
@@ -359,6 +380,7 @@ export const WallEditModal: React.FC<WallEditModalProps> = ({
                                   min="50"
                                   max={currentZone.totalLength}
                                   value={obstacle.width}
+                                  disabled={readOnly}
                                   onChange={(e) => {
                                     const idx = localZones.findIndex(z => z.id === activeTab);
                                     handleObstacleChange(idx, obsIndex, 'width', Number(e.target.value));
@@ -373,6 +395,7 @@ export const WallEditModal: React.FC<WallEditModalProps> = ({
                                   min="50"
                                   max={currentZone.wallHeight}
                                   value={obstacle.height}
+                                  disabled={readOnly}
                                   onChange={(e) => {
                                     const idx = localZones.findIndex(z => z.id === activeTab);
                                     handleObstacleChange(idx, obsIndex, 'height', Number(e.target.value));
@@ -388,6 +411,7 @@ export const WallEditModal: React.FC<WallEditModalProps> = ({
                                     min="0"
                                     max={currentZone.wallHeight}
                                     value={obstacle.sillHeight || 0}
+                                    disabled={readOnly}
                                     onChange={(e) => {
                                       const idx = localZones.findIndex(z => z.id === activeTab);
                                       handleObstacleChange(idx, obsIndex, 'sillHeight', Number(e.target.value));
@@ -404,6 +428,7 @@ export const WallEditModal: React.FC<WallEditModalProps> = ({
                                     min="0"
                                     max={currentZone.wallHeight}
                                     value={obstacle.elevation || 0}
+                                    disabled={readOnly}
                                     onChange={(e) => {
                                       const idx = localZones.findIndex(z => z.id === activeTab);
                                       handleObstacleChange(idx, obsIndex, 'elevation', Number(e.target.value));
@@ -420,6 +445,7 @@ export const WallEditModal: React.FC<WallEditModalProps> = ({
                                     min="50"
                                     max={500}
                                     value={obstacle.depth || 100}
+                                    disabled={readOnly}
                                     onChange={(e) => {
                                       const idx = localZones.findIndex(z => z.id === activeTab);
                                       handleObstacleChange(idx, obsIndex, 'depth', Number(e.target.value));
@@ -442,19 +468,30 @@ export const WallEditModal: React.FC<WallEditModalProps> = ({
 
         <div className="flex items-center justify-end p-4 border-t border-slate-200 dark:border-slate-700 shrink-0 bg-white dark:bg-slate-800">
           <div className="flex gap-3">
-            <button
-              onClick={onClose}
-              className="px-6 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg font-medium hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSave}
-              className="flex items-center gap-2 px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-bold shadow-md hover:shadow-lg transition-all"
-            >
-              <Wand2 size={18} />
-              Generate 3D Layout
-            </button>
+            {readOnly ? (
+              <button
+                onClick={onClose}
+                className="px-8 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-lg font-bold shadow-md hover:scale-105 transition-all"
+              >
+                Close Viewer
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={onClose}
+                  className="px-6 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg font-medium hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSave}
+                  className="flex items-center gap-2 px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-bold shadow-md hover:shadow-lg transition-all"
+                >
+                  <Wand2 size={18} />
+                  Generate 3D Layout
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>

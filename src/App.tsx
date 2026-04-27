@@ -184,15 +184,16 @@ export default function App() {
   const toggleTheme = () => setIsDark(!isDark);
 
   useEffect(() => {
-    // Skip auto-save if we're on Home screen or if project is just the initial blank one or already saving
-    if (screen === Screen.LANDING || !project.id || project.id.length < 20 || isSaving) return;
+    // Skip auto-save if we're on Home screen, Setup screen, or if project is just the initial blank one or already saving
+    const isSetupScreen = location.pathname === '/setup';
+    if (screen === Screen.LANDING || isSetupScreen || !project.id || project.id.length < 20 || isSaving) return;
 
     const timer = setTimeout(() => {
       handleSaveProject(project);
     }, 2000); // 2 second debounce
 
     return () => clearTimeout(timer);
-  }, [project, screen, isSaving]);
+  }, [project, screen, isSaving, location.pathname]);
 
   const handleSaveProject = async (projectToSave: Project) => {
     if (isSaving) return null;
@@ -234,12 +235,11 @@ export default function App() {
         logoUrl = await logoService.getUserLogo(user.id) || undefined;
       }
       const newProj = createNewProject(logoUrl);
-      const savedProj = await handleSaveProject(newProj);
-      if (savedProj) {
-        lastSavedProjectRef.current = JSON.stringify(savedProj);
-        setProject(savedProj);
-        navigate('/setup');
-      }
+      
+      // Just set state and navigate - do NOT save to database yet
+      lastSavedProjectRef.current = JSON.stringify(newProj);
+      setProject(newProj);
+      navigate('/setup');
     });
   };
 
