@@ -1,7 +1,13 @@
 import { supabase } from './supabaseClient';
 import { SheetType } from '../types';
 
+let cachedSheetTypes: SheetType[] | null = null;
+
 export const sheetTypeService = {
+  getCachedSheetTypes(): SheetType[] | null {
+    return cachedSheetTypes;
+  },
+
   async getSheetTypes(): Promise<SheetType[]> {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) return [];
@@ -18,7 +24,8 @@ export const sheetTypeService = {
       return [];
     }
 
-    return data || [];
+    cachedSheetTypes = data || [];
+    return cachedSheetTypes;
   },
 
   async saveSheetType(name: string, thickness: number, width: number, length: number, pricePerSheet: number): Promise<SheetType | null> {
@@ -46,6 +53,7 @@ export const sheetTypeService = {
       return null;
     }
 
+    cachedSheetTypes = null; // Clear cache
     return data;
   },
 
@@ -64,6 +72,7 @@ export const sheetTypeService = {
       return false;
     }
 
+    cachedSheetTypes = null; // Clear cache
     return true;
   },
 
@@ -78,6 +87,7 @@ export const sheetTypeService = {
       return false;
     }
 
+    cachedSheetTypes = null; // Clear cache
     return true;
   },
 
@@ -91,6 +101,7 @@ export const sheetTypeService = {
       console.error('Error updating price by name:', error);
       return false;
     }
+    cachedSheetTypes = null; // Clear cache
     return true;
   }
 };

@@ -29,40 +29,6 @@ export const Wall: React.FC<Props> = ({
   onPointerMove, onPointerOut, onPointerUp,
   opacity = 1, isStudio = false
 }) => {
-  const rawPlasterTexture = isStudio ? useLoader(THREE.TextureLoader, '/textures/wall.png') : undefined;
-  const rawWoodTexture = isStudio ? useLoader(THREE.TextureLoader, '/textures/wood.png') : undefined;
-
-  const plasterTexture = React.useMemo(() => {
-    if (rawPlasterTexture) {
-      const tex = rawPlasterTexture.clone();
-      tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-      tex.colorSpace = THREE.SRGBColorSpace;
-      tex.repeat.set(width / 1000, height / 1000);
-      tex.needsUpdate = true;
-      return tex;
-    }
-    return undefined;
-  }, [rawPlasterTexture, width, height]);
-
-  const woodTexture = React.useMemo(() => {
-    if (rawWoodTexture) {
-      const tex = rawWoodTexture.clone();
-      tex.wrapS = tex.wrapT = THREE.MirroredRepeatWrapping;
-      tex.colorSpace = THREE.SRGBColorSpace;
-      tex.repeat.set(1/8000, 1/8000);
-      tex.needsUpdate = true;
-      return tex;
-    }
-    return undefined;
-  }, [rawWoodTexture]);
-
-  React.useEffect(() => {
-    return () => {
-      if (plasterTexture) plasterTexture.dispose();
-      if (woodTexture) woodTexture.dispose();
-    };
-  }, [plasterTexture, woodTexture]);
-
   const wallThickness = 50;
   const wallDepth = wallThickness;
 
@@ -90,7 +56,7 @@ export const Wall: React.FC<Props> = ({
           onPointerUp={onPointerUp}
         >
           <boxGeometry args={[width, height, wallDepth]} />
-          <meshStandardMaterial color={isStudio ? '#555555' : activeColor} map={isStudio ? plasterTexture : undefined} roughness={isStudio ? 0.8 : 0.9} transparent opacity={activeOpacity} depthWrite={opacity < 1 ? false : true} />
+          <meshStandardMaterial color={isStudio ? '#333333' : activeColor} roughness={isStudio ? 0.8 : 0.9} transparent opacity={activeOpacity} depthWrite={opacity < 1 ? false : true} />
         </mesh>
       );
       return segments;
@@ -122,7 +88,7 @@ export const Wall: React.FC<Props> = ({
             onPointerUp={onPointerUp}
           >
             <boxGeometry args={[segWidth, height, wallDepth]} />
-            <meshStandardMaterial color={isStudio ? '#555555' : activeColor} map={isStudio ? plasterTexture : undefined} roughness={isStudio ? 0.8 : 0.9} transparent opacity={activeOpacity} depthWrite={opacity < 1 ? false : true} />
+            <meshStandardMaterial color={isStudio ? '#666666' : activeColor} roughness={isStudio ? 0.8 : 0.9} transparent opacity={activeOpacity} depthWrite={opacity < 1 ? false : true} />
           </mesh>
         );
       }
@@ -140,7 +106,7 @@ export const Wall: React.FC<Props> = ({
             onPointerUp={onPointerUp}
           >
             <boxGeometry args={[openingWidth, aboveHeight, wallDepth]} />
-            <meshStandardMaterial color={isStudio ? '#555555' : activeColor} map={isStudio ? plasterTexture : undefined} roughness={isStudio ? 0.8 : 0.9} transparent opacity={activeOpacity} depthWrite={opacity < 1 ? false : true} />
+            <meshStandardMaterial color={isStudio ? '#666666' : activeColor} roughness={isStudio ? 0.8 : 0.9} transparent opacity={activeOpacity} depthWrite={opacity < 1 ? false : true} />
           </mesh>
         );
       }
@@ -158,7 +124,7 @@ export const Wall: React.FC<Props> = ({
             onPointerUp={onPointerUp}
           >
             <boxGeometry args={[openingWidth, belowHeight, wallDepth]} />
-            <meshStandardMaterial color={isStudio ? '#555555' : activeColor} map={isStudio ? plasterTexture : undefined} roughness={isStudio ? 0.8 : 0.9} transparent opacity={activeOpacity} depthWrite={opacity < 1 ? false : true} />
+            <meshStandardMaterial color={isStudio ? '#666666' : activeColor} roughness={isStudio ? 0.8 : 0.9} transparent opacity={activeOpacity} depthWrite={opacity < 1 ? false : true} />
           </mesh>
         );
       }
@@ -179,7 +145,7 @@ export const Wall: React.FC<Props> = ({
           onPointerUp={onPointerUp}
         >
           <boxGeometry args={[segWidth, height, wallDepth]} />
-          <meshStandardMaterial color={isStudio ? '#555555' : activeColor} map={isStudio ? plasterTexture : undefined} roughness={isStudio ? 0.8 : 0.9} transparent opacity={activeOpacity} depthWrite={opacity < 1 ? false : true} />
+          <meshStandardMaterial color={isStudio ? '#666666' : activeColor} roughness={isStudio ? 0.8 : 0.9} transparent opacity={activeOpacity} depthWrite={opacity < 1 ? false : true} />
         </mesh>
       );
     }
@@ -263,26 +229,25 @@ export const Wall: React.FC<Props> = ({
               {/* Left Frame */}
               <mesh position={[opening.fromLeft + 4, openingY, -wallDepth / 2]}>
                 <boxGeometry args={[8, openingHeight + 8, wallDepth + 4]} />
-                <meshStandardMaterial color={isStudio ? '#333333' : (lightTheme ? '#64748b' : '#020617')} roughness={isStudio ? 0.5 : 0.8} transparent={opacity < 1} opacity={opacity} depthWrite={opacity < 1 ? false : true} />
+                <meshStandardMaterial color={isStudio ? '#666666' : (lightTheme ? '#64748b' : '#020617')} roughness={isStudio ? 0.5 : 0.8} transparent={opacity < 1} opacity={opacity} depthWrite={opacity < 1 ? false : true} />
               </mesh>
               {/* Right Frame */}
               <mesh position={[opening.fromLeft + openingWidth - 4, openingY, -wallDepth / 2]}>
                 <boxGeometry args={[8, openingHeight + 8, wallDepth + 4]} />
-                <meshStandardMaterial color={isStudio ? '#333333' : (lightTheme ? '#64748b' : '#020617')} roughness={isStudio ? 0.5 : 0.8} transparent={opacity < 1} opacity={opacity} depthWrite={opacity < 1 ? false : true} />
+                <meshStandardMaterial color={isStudio ? '#666666' : (lightTheme ? '#64748b' : '#020617')} roughness={isStudio ? 0.5 : 0.8} transparent={opacity < 1} opacity={opacity} depthWrite={opacity < 1 ? false : true} />
               </mesh>
               {/* Top Frame */}
               <mesh position={[opening.fromLeft + openingWidth / 2, openingY + openingHeight / 2, -wallDepth / 2]}>
                 <boxGeometry args={[openingWidth - 8, 8, wallDepth + 4]} />
-                <meshStandardMaterial color={isStudio ? '#333333' : (lightTheme ? '#64748b' : '#020617')} roughness={isStudio ? 0.5 : 0.8} transparent={opacity < 1} opacity={opacity} depthWrite={opacity < 1 ? false : true} />
+                <meshStandardMaterial color={isStudio ? '#666666' : (lightTheme ? '#64748b' : '#020617')} roughness={isStudio ? 0.5 : 0.8} transparent={opacity < 1} opacity={opacity} depthWrite={opacity < 1 ? false : true} />
               </mesh>
 
               {/* Door Panel */}
               <mesh position={[opening.fromLeft + openingWidth / 2, openingY, -wallDepth / 2]}>
                 <boxGeometry args={[openingWidth - 4, openingHeight - 4, wallDepth - 4]} />
                 <meshStandardMaterial 
-                  color={isStudio ? '#ffffff' : (lightTheme ? '#cbd5e1' : '#0f172a')} 
-                  map={isStudio ? woodTexture : undefined}
-                  roughness={isStudio ? 0.5 : 0.9} 
+                  color={isStudio ? '#f3f4f6' : (lightTheme ? '#cbd5e1' : '#0f172a')} 
+                  roughness={isStudio ? 0.3 : 0.9} 
                   metalness={isStudio ? 0.1 : 0}
                   transparent={opacity < 1}
                   opacity={opacity}
@@ -385,9 +350,9 @@ export const Wall: React.FC<Props> = ({
           >
             <boxGeometry args={[obsWidth, obsHeight, obsDepth]} />
             <meshStandardMaterial 
-              color={isStudio ? '#555555' : obstacle.type === 'column' 
+              color={isStudio ? '#666666' : obstacle.type === 'column' 
                 ? (lightTheme ? '#94a3b8' : '#0f172a') 
-                : (lightTheme ? '#a8a29e' : '#1c1917')} map={isStudio ? plasterTexture : undefined} 
+                : (lightTheme ? '#a8a29e' : '#1c1917')} 
               roughness={isStudio ? 0.8 : 0.7} 
               transparent={opacity < 1}
               opacity={opacity}

@@ -184,15 +184,16 @@ export default function App() {
   const toggleTheme = () => setIsDark(!isDark);
 
   useEffect(() => {
-    // Skip auto-save if we're on Home screen or if project is just the initial blank one or already saving
-    if (screen === Screen.LANDING || !project.id || project.id.length < 20 || isSaving) return;
+    // Skip auto-save if we're on Home screen, Setup screen, or if project is just the initial blank one or already saving
+    const isSetupScreen = location.pathname === '/setup';
+    if (screen === Screen.LANDING || isSetupScreen || !project.id || project.id.length < 20 || isSaving) return;
 
     const timer = setTimeout(() => {
       handleSaveProject(project);
     }, 2000); // 2 second debounce
 
     return () => clearTimeout(timer);
-  }, [project, screen, isSaving]);
+  }, [project, screen, isSaving, location.pathname]);
 
   const handleSaveProject = async (projectToSave: Project) => {
     if (isSaving) return null;
@@ -234,12 +235,11 @@ export default function App() {
         logoUrl = await logoService.getUserLogo(user.id) || undefined;
       }
       const newProj = createNewProject(logoUrl);
-      const savedProj = await handleSaveProject(newProj);
-      if (savedProj) {
-        lastSavedProjectRef.current = JSON.stringify(savedProj);
-        setProject(savedProj);
-        navigate('/setup');
-      }
+      
+      // Just set state and navigate - do NOT save to database yet
+      lastSavedProjectRef.current = JSON.stringify(newProj);
+      setProject(newProj);
+      navigate('/setup?step=project');
     });
   };
 
@@ -405,7 +405,7 @@ export default function App() {
 
       <style>{`
         @media print {
-          @page { size: landscape; margin: 0; }
+          @page { size: A4 portrait; margin: 10mm; }
           body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
           #root, #main-content, .overflow-y-auto, .overflow-hidden {
             position: relative; height: auto !important; overflow: visible !important;

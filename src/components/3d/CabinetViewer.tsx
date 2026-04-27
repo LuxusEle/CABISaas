@@ -1,7 +1,7 @@
 /// <reference types="@react-three/fiber" />
 import React, { Suspense, useRef, useState, useMemo, useEffect } from 'react';
-import { Canvas, useThree, useLoader } from '@react-three/fiber';
-import { OrbitControls, Grid, Html, useProgress, PerspectiveCamera, Environment, ContactShadows, Line } from '@react-three/drei';
+import { Canvas, useThree } from '@react-three/fiber';
+import { OrbitControls, Grid, Html, useProgress, PerspectiveCamera, Environment, ContactShadows, Line, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import { Video } from 'lucide-react';
 import { Project, CabinetType, CabinetUnit, Zone, Obstacle, ProjectSettings } from '../../types';
@@ -11,6 +11,9 @@ import { Wall } from './Wall';
 import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js';
 
 RectAreaLightUniformsLib.init();
+
+// Pre-warm assets to prevent "cold start" hangups on complex projects
+useTexture.preload('/textures/wood.png');
 
 interface Props {
   project: Project;
@@ -140,8 +143,9 @@ const CameraController = ({
       minDistance={200}
       maxDistance={maxDim * 5}
       maxPolarAngle={Math.PI / 2.1}
-      enableZoom={true}
-      enablePan={true}
+      enableRotate={!isRecording}
+      enableZoom={!isRecording}
+      enablePan={!isRecording}
       autoRotate={isRecording}
       autoRotateSpeed={isRecording ? 12.0 : 2.0}
     />
@@ -581,31 +585,41 @@ const Scene = ({
         isRecording={isRecording}
       />
       
-      <color attach="background" args={[lightTheme ? '#f3f4f6' : '#1e293b']} />
+      <color attach="background" args={[isStudio ? '#1a1a1a' : (lightTheme ? '#f3f4f6' : '#2d3748')]} />
       
-      <ambientLight intensity={isStudio ? 0.4 : 0.5} />
+      <ambientLight intensity={isStudio ? 0.4 : 1.2} />
       {!isStudio && (
         <>
-          <Environment preset="city" />
+          {/* Symmetrical 4-Corner Lighting for perfectly even walls */}
           <directionalLight
-            position={[sceneBounds.center[0] + 1000, 2000, sceneBounds.center[2] + 1000]}
-            intensity={1}
+            position={[sceneBounds.center[0] + 4000, 5000, sceneBounds.center[2] + 4000]}
+            intensity={0.6}
             castShadow
+            shadow-mapSize={[1024, 1024]}
           />
           <directionalLight
-            position={[sceneBounds.center[0] - 500, 1000, sceneBounds.center[2] - 500]}
-            intensity={0.5}
+            position={[sceneBounds.center[0] - 4000, 5000, sceneBounds.center[2] + 4000]}
+            intensity={0.6}
+          />
+          <directionalLight
+            position={[sceneBounds.center[0] + 4000, 5000, sceneBounds.center[2] - 4000]}
+            intensity={0.6}
+          />
+          <directionalLight
+            position={[sceneBounds.center[0] - 4000, 5000, sceneBounds.center[2] - 4000]}
+            intensity={0.6}
           />
         </>
       )}
       
       <ContactShadows 
-        position={[0, -0.1, 0]} 
+        position={[sceneBounds.center[0], -0.4, sceneBounds.center[2]]} 
         opacity={0.4} 
-        scale={10000} 
-        blur={2} 
+        scale={Math.max(sceneBounds.size.width, sceneBounds.size.depth) * 2} 
+        blur={1.5} 
         far={4} 
         frames={1}
+        resolution={512}
       />
       
       {!isStudio && (
@@ -622,7 +636,7 @@ const Scene = ({
         />
       )}
 
-      {isStudio && <StudioEnvironment center={sceneBounds.center} />}
+      {isStudio && <StudioEnvironment center={sceneBounds.center} size={sceneBounds.size} />}
 
 
       {layoutData.wallPositions.map(({ zone, position, width, height, rotation }, index) => (
@@ -1027,6 +1041,13 @@ export const CabinetViewer: React.FC<Props> = ({
     setIsRecording(false);
   }, []);
 
+  useEffect(() => {
+    return () => {
+      // Clear geometry cache on unmount to reclaim memory
+      import('../CabinetTestingUtils').then(m => m.clearGeometryCache());
+    };
+  }, []);
+
   const activeZones = showEmptyWalls 
     ? project.zones.filter(z => z.active)
     : project.zones.filter(z => z.active && z.cabinets.length > 0);
@@ -1038,6 +1059,19 @@ export const CabinetViewer: React.FC<Props> = ({
       return () => clearTimeout(timer);
     }
   }, [hasContent, sceneBounds.size.width]);
+
+  // Block page refresh/close while recording
+  useEffect(() => {
+    if (!isRecording) return;
+    
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = 'Recording is in progress. Are you sure you want to leave?';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isRecording]);
 
   if (!hasContent) {
     return (
@@ -1089,6 +1123,19 @@ export const CabinetViewer: React.FC<Props> = ({
               )}
             </button>
           )}
+          {isRecording && (
+            <div 
+              className="fixed inset-0 z-[9999] cursor-wait touch-none" 
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              onPointerDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+            />
+          )}
         </>
 
       <Canvas
@@ -1098,7 +1145,9 @@ export const CabinetViewer: React.FC<Props> = ({
         gl={{ 
           preserveDrawingBuffer: true,
           alpha: false,
-          antialias: true
+          antialias: true,
+          powerPreference: "high-performance",
+          precision: "lowp"
         }}
       >
         <PerspectiveCamera 
@@ -1137,24 +1186,20 @@ export const CabinetViewer: React.FC<Props> = ({
   );
 };
 
-const StudioEnvironment = ({ center }: { center: [number, number, number] }) => {
-  const floorTexture = useLoader(THREE.TextureLoader, '/textures/floor.png');
-  
-  if (floorTexture) {
-    floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping;
-    floorTexture.repeat.set(10, 10);
-  }
+const StudioEnvironment = ({ center, size }: { center: [number, number, number], size: { width: number, depth: number } }) => {
+  const floorW = Math.max(5000, size.width + 3000);
+  const floorD = Math.max(5000, size.depth + 3000);
 
   return (
     <group>
       {/* Floor */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[center[0], -0.5, center[2]]} receiveShadow>
-        <planeGeometry args={[20000, 20000]} />
-        <meshStandardMaterial map={floorTexture} color="#888888" roughness={0.6} metalness={0.1} />
+        <planeGeometry args={[floorW, floorD]} />
+        <meshStandardMaterial color="#1a1a1a" roughness={0.7} metalness={0.1} />
       </mesh>
       
       {/* Uniform Hemispherical Fill */}
-      <hemisphereLight args={['#ffffff', '#888888', 0.6]} />
+      <hemisphereLight args={['#ffffff', '#1a1a1a', 0.6]} />
       
       {/* Environment for reflections, 'city' is very diffuse and soft */}
       <Environment preset="city" />

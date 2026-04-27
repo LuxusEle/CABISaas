@@ -141,11 +141,11 @@ export const Cabinet: React.FC<Props> = ({
   
   const carcassTexture = React.useMemo(() => {
     if (rawCarcassTexture) {
-      const tex = rawCarcassTexture.clone();
+      const tex = rawCarcassTexture;
       tex.wrapS = tex.wrapT = THREE.MirroredRepeatWrapping;
       tex.colorSpace = THREE.SRGBColorSpace;
       tex.repeat.set(1/2500, 1/2500);
-      tex.anisotropy = 16;
+      tex.anisotropy = 8;
       tex.needsUpdate = true;
       return tex;
     }
@@ -154,11 +154,11 @@ export const Cabinet: React.FC<Props> = ({
 
   const doorTexture = React.useMemo(() => {
     if (rawDoorTexture) {
-      const tex = rawDoorTexture.clone();
+      const tex = rawDoorTexture;
       tex.wrapS = tex.wrapT = THREE.MirroredRepeatWrapping;
       tex.colorSpace = THREE.SRGBColorSpace;
       tex.repeat.set(1/2500, 1/2500);
-      tex.anisotropy = 16;
+      tex.anisotropy = 8;
       tex.needsUpdate = true;
       return tex;
     }
@@ -167,11 +167,11 @@ export const Cabinet: React.FC<Props> = ({
 
   const shelfTexture = React.useMemo(() => {
     if (rawShelfTexture) {
-      const tex = rawShelfTexture.clone();
+      const tex = rawShelfTexture;
       tex.wrapS = tex.wrapT = THREE.MirroredRepeatWrapping;
       tex.colorSpace = THREE.SRGBColorSpace;
       tex.repeat.set(1/2500, 1/2500);
-      tex.anisotropy = 16;
+      tex.anisotropy = 8;
       tex.needsUpdate = true;
       return tex;
     }
@@ -180,9 +180,7 @@ export const Cabinet: React.FC<Props> = ({
 
   React.useEffect(() => {
     return () => {
-      if (carcassTexture) carcassTexture.dispose();
-      if (doorTexture) doorTexture.dispose();
-      if (shelfTexture) shelfTexture.dispose();
+      // Note: We no longer dispose here as these are shared textures managed by useLoader
     };
   }, [carcassTexture, doorTexture, shelfTexture]);
 

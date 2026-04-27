@@ -17,6 +17,8 @@ interface Props {
   selectedCabinet?: { zoneId: string, index: number } | null;
   draggedCabinet?: CabinetUnit | null;
   onDropCabinet?: (zoneId: string, fromLeft: number, cabinet: CabinetUnit) => void;
+  isStatic?: boolean;
+  forceWhite?: boolean;
 }
 
 export const WallVisualizer: React.FC<Props> = ({
@@ -27,7 +29,9 @@ export const WallVisualizer: React.FC<Props> = ({
   hideArrows = false,
   selectedCabinet,
   draggedCabinet,
-  onDropCabinet
+  onDropCabinet,
+  isStatic = false,
+  forceWhite = false
 }) => {
   const [panning, setPanning] = useState<{
     startClientX: number;
@@ -275,51 +279,174 @@ export const WallVisualizer: React.FC<Props> = ({
       (unit.type === immediateRight.cab.type)
     ) : false;
 
-    let details = null;
-    switch (unit.preset) {
-      case PresetType.BASE_DRAWER_3:
-        const d1h = h * 0.2; const d2h = h * 0.4;
-        details = <g><line x1={x} y1={y + d1h} x2={x + w} y2={y + d1h} stroke={strokeColor} strokeWidth="1" /><line x1={x} y1={y + d1h + d2h} x2={x + w} y2={y + d1h + d2h} stroke={strokeColor} strokeWidth="1" /></g>;
-        break;
-      case PresetType.BASE_DOOR: case PresetType.WALL_STD:
-        details = <g><line x1={x + w / 2} y1={y} x2={x + w / 2} y2={y + h} stroke={strokeColor} strokeWidth="1" opacity="0.3" /><path d={`M${x + w} ${y} L${x + w / 2} ${y + h / 2} L${x + w} ${y + h}`} fill="none" stroke={strokeColor} strokeWidth="0.5" opacity="0.4" /></g>;
-        break;
-      case PresetType.FILLER:
-        details = <line x1={x + w / 2} y1={y} x2={x + w / 2} y2={y + h} stroke={strokeColor} strokeWidth="1" strokeDasharray="4,2" />;
-        break;
-      case PresetType.TALL_OVEN:
-        const ovenY = y + 720;
-        details = <rect x={x + 10} y={ovenY + 10} width={w - 20} height={600 - 20} rx="4" fill="none" stroke={strokeColor} strokeWidth="2" />;
-        break;
-      case PresetType.SINK_UNIT:
-        details = (
-          <g>
-            <rect x={x + 50} y={y - 10} width={w - 100} height={20} rx="2" fill="#94a3b8" />
-            <path d={`M${x + w / 2 - 20} ${y - 10} L${x + w / 2 + 20} ${y - 10} L${x + w / 2} ${y - 60} Z`} fill="#94a3b8" />
-            <path d={`M${x + w / 2} ${y - 60} Q${x + w / 2 + 20} ${y - 80} ${x + w / 2 + 30} ${y - 50}`} fill="none" stroke="#94a3b8" strokeWidth="4" />
-          </g>
-        );
-        break;
-      case PresetType.HOOD_UNIT:
-        details = (
-          <g>
-            <rect x={x} y={y + h - 50} width={w} height={50} fill="rgba(0,0,0,0.1)" stroke={strokeColor} strokeWidth="1" strokeDasharray="2,2" />
-            <text x={x + w / 2} y={y + h - 25} textAnchor="middle" fontSize="12" fill={strokeColor} opacity="0.6">200mm NOTCH</text>
-          </g>
-        );
-        break;
-      case PresetType.OPEN_BOX:
-        const shelf1Y = y + h * 0.33;
-        const shelf2Y = y + h * 0.66;
-        details = (
-          <g>
-            <rect x={x + 2} y={shelf1Y - 8} width={w - 4} height={16} fill={strokeColor} opacity="0.3" />
-            <rect x={x + 2} y={shelf2Y - 8} width={w - 4} height={16} fill={strokeColor} opacity="0.3" />
-            <text x={x + w / 2} y={y + h / 2} textAnchor="middle" fontSize="12" fill={strokeColor} opacity="0.6" fontWeight="bold">OPEN</text>
-          </g>
-        );
-        break;
+    // --- Visual detail logic to match 3D ISO models ---
+    const adv = unit.advancedSettings || {};
+    
+    // Align defaults with ScreenWallEditor sidebar logic
+    const isSink = unit.preset === PresetType.SINK_UNIT;
+    const isDrawerPreset = unit.preset === PresetType.BASE_DRAWER_3;
+    const isOpenBox = unit.preset === PresetType.OPEN_BOX;
+
+    const showDrawers = adv.showDrawers ?? false;
+    const numDrawers = adv.numDrawers ?? (isSink ? 0 : 3);
+    
+    const showShelves = adv.showShelves ?? (isSink ? false : true);
+    const numShelves = adv.numShelves ?? (isSink ? 0 : 2);
+    
+    const showDoors = adv.showDoors ?? true;
+
+    const detailLines: React.ReactNode[] = [];
+    const detailOpacity = "0.8"; // Increased for better visibility
+
+
+    if (isTall) {
+      // Tall cabinet sections
+      const lowerH = adv.tallLowerSectionHeight ?? (settings?.baseHeight || 870) - toeKick;
+      const upperH = adv.tallUpperSectionHeight ?? (settings?.wallHeight || 720);
+      const dividerY = y + h - lowerH;
+      
+      // Horizontal divider for tall cabinet sections
+      detailLines.push(<line key="tall-divider" x1={x} y1={dividerY} x2={x + w} y2={dividerY} stroke={strokeColor} strokeWidth="2" />);
+      
+      // Bottom panel of upper section
+      const upperBottomY = y + upperH;
+      // Only show if it's not effectively at the same position as the tall-divider
+      if (Math.abs(upperBottomY - dividerY) > 5) {
+        detailLines.push(<line key="tall-upper-bottom" x1={x} y1={upperBottomY} x2={x + w} y2={upperBottomY} stroke={strokeColor} strokeWidth="2" />);
+      }
+      
+      // Upper section shelves
+      if (adv.showShelves !== false && (adv.numShelves ?? 2) > 0) {
+        const ns = adv.numShelves ?? 2;
+        const spacing = upperH / ns;
+        for (let i = 0; i < ns; i++) {
+          const sy = y + spacing * i;
+          detailLines.push(<line key={`upper-shelf-${i}`} x1={x + 2} y1={sy} x2={x + w - 2} y2={sy} stroke={strokeColor} strokeWidth="3" strokeDasharray="8,4" opacity={detailOpacity} />);
+        }
+      }
+
+      // Lower section - drawers or shelves
+      if (adv.showDrawers) {
+        const nd = adv.numDrawers ?? 3;
+        const stackH = adv.lowerSectionDrawerStackHeight ?? lowerH;
+        const dh = stackH / nd;
+        const startY = y + h - stackH;
+        for (let i = 0; i < nd; i++) {
+          const dy = startY + dh * i;
+          // Drawer panel gap
+          if (i > 0) {
+            detailLines.push(<line key={`lower-drawer-line-${i}`} x1={x} y1={dy} x2={x + w} y2={dy} stroke={strokeColor} strokeWidth="2" />);
+          }
+          // Drawer handle indicator
+          detailLines.push(
+            <rect 
+              key={`lower-drawer-handle-${i}`} 
+              x={x + w / 2 - 20} 
+              y={dy + 30} 
+              width={40} 
+              height={3} 
+              fill={strokeColor} 
+              rx="1.5"
+              opacity="0.8"
+            />
+          );
+        }
+      } else if (adv.showLowerShelves !== false && (adv.numLowerShelves ?? 2) > 0) {
+        const nls = adv.numLowerShelves ?? 2;
+        const spacing = lowerH / (nls + 1);
+        for (let i = 1; i <= nls; i++) {
+          const sy = y + h - (spacing * i);
+          detailLines.push(<line key={`lower-shelf-${i}`} x1={x + 2} y1={sy} x2={x + w - 2} y2={sy} stroke={strokeColor} strokeWidth="3" strokeDasharray="8,4" opacity={detailOpacity} />);
+        }
+      }
+
+      // Upper door lines (V-lines)
+      if (adv.showDoors !== false) {
+        detailLines.push(<path key="upper-door-v" d={`M${x + w} ${y} L${x + w / 2} ${y + upperH / 2} L${x + w} ${y + upperH}`} fill="none" stroke={strokeColor} strokeWidth="1.5" opacity={detailOpacity} />);
+      }
+      // Lower door lines (V-lines)
+      if (adv.showLowerDoors !== false && !adv.showDrawers) {
+        detailLines.push(<path key="lower-door-v" d={`M${x + w} ${dividerY} L${x + w / 2} ${dividerY + lowerH / 2} L${x + w} ${y + h}`} fill="none" stroke={strokeColor} strokeWidth="1.5" opacity={detailOpacity} />);
+      }
+
+    } else if (unit.preset === PresetType.FILLER) {
+      detailLines.push(<line key="filler-line" x1={x + w / 2} y1={y} x2={x + w / 2} y2={y + h} stroke={strokeColor} strokeWidth="1" strokeDasharray="4,2" />);
+    } else if (unit.preset === PresetType.SINK_UNIT) {
+      detailLines.push(
+        <g key="sink-details">
+          <rect x={x + 50} y={y - 10} width={w - 100} height={20} rx="2" fill="#94a3b8" />
+          <path d={`M${x + w / 2 - 20} ${y - 10} L${x + w / 2 + 20} ${y - 10} L${x + w / 2} ${y - 60} Z`} fill="#94a3b8" />
+          <path d={`M${x + w / 2} ${y - 60} Q${x + w / 2 + 20} ${y - 80} ${x + w / 2 + 30} ${y - 50}`} fill="none" stroke="#94a3b8" strokeWidth="4" />
+          {/* Sink doors */}
+          <line x1={x + w / 2} y1={y} x2={x + w / 2} y2={y + h} stroke={strokeColor} strokeWidth="1" opacity="0.3" />
+          <path d={`M${x + w} ${y} L${x + w / 2} ${y + h / 2} L${x + w} ${y + h}`} fill="none" stroke={strokeColor} strokeWidth="0.5" opacity={detailOpacity} />
+        </g>
+      );
+    } else if (unit.preset === PresetType.HOOD_UNIT) {
+      detailLines.push(
+        <g key="hood-details">
+          <rect x={x} y={y + h - 50} width={w} height={50} fill="rgba(0,0,0,0.1)" stroke={strokeColor} strokeWidth="1" strokeDasharray="2,2" />
+          <text x={x + w / 2} y={y + h - 25} textAnchor="middle" fontSize="12" fill={strokeColor} opacity="0.6">200mm NOTCH</text>
+        </g>
+      );
+    } else {
+      // General Base/Wall cabinet logic
+      
+      // Drawers
+      if (showDrawers && numDrawers > 0) {
+        const dh = h / numDrawers;
+        for (let i = 0; i < numDrawers; i++) {
+          const dy = y + dh * i;
+          // Drawer panel gap
+          if (i > 0) {
+            detailLines.push(<line key={`drawer-line-${i}`} x1={x} y1={dy} x2={x + w} y2={dy} stroke={strokeColor} strokeWidth="2" />);
+          }
+          // Drawer handle indicator
+          detailLines.push(
+            <rect 
+              key={`drawer-handle-${i}`} 
+              x={x + w / 2 - 20} 
+              y={dy + 30} 
+              width={40} 
+              height={3} 
+              fill={strokeColor} 
+              rx="1.5"
+              opacity="0.8"
+            />
+          );
+        }
+      } 
+      // Shelves
+      else if (showShelves && numShelves > 0) {
+        const spacing = h / (numShelves + 1);
+        for (let i = 1; i <= numShelves; i++) {
+          const sy = y + spacing * i;
+          detailLines.push(
+            <line 
+              key={`shelf-line-${i}`} 
+              x1={x + 2} 
+              y1={sy} 
+              x2={x + w - 2} 
+              y2={sy} 
+              stroke={strokeColor} 
+              strokeWidth="3" 
+              strokeDasharray="8,4" 
+              opacity={detailOpacity} 
+            />
+          );
+        }
+      }
+      
+      // Doors (V-lines)
+      if (showDoors && !showDrawers) {
+        if (w >= 600) {
+          detailLines.push(<line key="door-split" x1={x + w / 2} y1={y} x2={x + w / 2} y2={y + h} stroke={strokeColor} strokeWidth="1" opacity="0.3" />);
+        }
+        detailLines.push(<path key="door-v" d={`M${x + w} ${y} L${x + w / 2} ${y + h / 2} L${x + w} ${y + h}`} fill="none" stroke={strokeColor} strokeWidth="1.5" opacity={detailOpacity} />);
+      }
     }
+    
+    const details = <g>{detailLines}</g>;
 
     return (
       <g key={unit.id}>
@@ -332,32 +459,22 @@ export const WallVisualizer: React.FC<Props> = ({
           {/* Cabinet Base */}
           <rect x={x} y={y} width={w} height={h} rx="2" fill={fillColor} stroke={strokeColor} strokeWidth="2" />
           
-          {/* Cabinet Label */}
+          {/* Cabinet Label - Selection highlight ONLY, no text as per user request */}
           <g>
             {isSelected && (
               <rect
-                x={x + w / 2 - (((unit.label || unit.preset).length) * 4 + 10)}
-                y={y + h / 2 - 12}
-                width={((unit.label || unit.preset).length) * 8 + 20}
-                height={24}
+                x={x + 5}
+                y={y + 5}
+                width={w - 10}
+                height={h - 10}
                 rx="4"
-                fill="#3b82f6"
+                fill="none"
+                stroke="#3b82f6"
+                strokeWidth="4"
+                strokeDasharray="10,5"
                 className="animate-pulse"
               />
             )}
-            <text 
-              x={x + w / 2} 
-              y={y + h / 2} 
-              textAnchor="middle" 
-              dominantBaseline="middle" 
-              fontSize={isSelected ? "14" : "12"} 
-              fontWeight="bold" 
-              fill={isSelected ? "#ffffff" : strokeColor} 
-              pointerEvents="none"
-              className={isSelected ? "drop-shadow-sm" : ""}
-            >
-              {unit.label || unit.preset.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
-            </text>
           </g>
           
           {/* Width Label - Outside (for editing view) */}
@@ -371,16 +488,17 @@ export const WallVisualizer: React.FC<Props> = ({
           {hideArrows && w > 60 && (
             <text 
               x={x + w / 2} 
-              y={y + h / 2} 
+              y={y + h / 2 + 40} 
               textAnchor="middle" 
               dominantBaseline="middle" 
-              fontSize={Math.min(48, Math.max(24, w / 4))} 
+              fontSize={Math.min(32, Math.max(16, w / 10))} 
               fontWeight="bold" 
               fill={strokeColor} 
               pointerEvents="none"
-              style={{ fontSize: `${Math.min(48, Math.max(24, w / 4))}px` }}
+              opacity="0.5"
+              style={{ fontSize: `${Math.min(32, Math.max(16, w / 10))}px` }}
             >
-              {unit.width}
+              {unit.width}mm
             </text>
           )}
           
@@ -390,6 +508,7 @@ export const WallVisualizer: React.FC<Props> = ({
         {/* Swap arrows removed as per user request */}
       </g>
     );
+
   };
 
   return (
@@ -397,6 +516,17 @@ export const WallVisualizer: React.FC<Props> = ({
       <style>{`
         :root { --bg-wall: #ffffff; --bg-void: #f1f5f9; --grid-line: #e2e8f0; --wall-border: #94a3b8; --cab-stroke: #f59e0b; --cab-fill: rgba(245, 158, 11, 0.2); --obs-stroke: #64748b; --obs-fill: #e2e8f0; --text-color: #f59e0b; }
         .dark { --bg-wall: #0F172A; --bg-void: #020617; --grid-line: #1e293b; --wall-border: #64748b; --cab-stroke: #fbbf24; --cab-fill: rgba(251, 191, 36, 0.1); --obs-stroke: #475569; --obs-fill: #1e293b; --text-color: #fbbf24; }
+        .force-light { 
+          --bg-wall: #f8fafc; 
+          --bg-void: #fff; 
+          --grid-line: #e2e8f0; 
+          --wall-border: #64748b; 
+          --cab-stroke: #475569; 
+          --cab-fill: #f1f5f9; 
+          --obs-stroke: #94a3b8; 
+          --obs-fill: #f8fafc; 
+          --text-color: #1e293b; 
+        }
         @media print { 
           .print-hidden { display: none; } 
           .bg-slate-50, .dark .bg-slate-950 { background-color: white !important; } 
@@ -411,9 +541,9 @@ export const WallVisualizer: React.FC<Props> = ({
       <svg
         ref={svgRef}
         viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
-        className="w-full h-full bg-[var(--bg-void)] touch-none block"
+        className={`w-full h-full ${forceWhite ? 'bg-white force-light' : 'bg-[var(--bg-void)]'} touch-none block`}
         preserveAspectRatio="xMidYMid meet"
-        onWheel={handleWheel}
+        onWheel={isStatic ? undefined : handleWheel}
       >
         <defs>
           <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="3" markerHeight="3" orient="auto-start-reverse">
@@ -438,9 +568,9 @@ export const WallVisualizer: React.FC<Props> = ({
               onDropCabinet(zone.id, Math.max(0, Math.round(svgX)), draggedCabinet);
             }
           }}
-          onMouseDown={handlePanStart}
-          onTouchStart={handlePanStart}
-          style={{ cursor: panning ? 'grabbing' : 'grab' }}
+          onMouseDown={isStatic ? undefined : handlePanStart}
+          onTouchStart={isStatic ? undefined : handlePanStart}
+          style={{ cursor: isStatic ? 'default' : (panning ? 'grabbing' : 'grab') }}
         />
         <rect
           data-pan="true"

@@ -164,6 +164,9 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
       positions.push({ y: topStretcherYTop - 80, z: zBack, r: technicalR, through: true });
       positions.push({ y: bottomStretcherYTop - 25, z: zBack, r: technicalR, through: true });
       positions.push({ y: bottomStretcherYTop - 80, z: zBack, r: technicalR, through: true });
+      // Middle Stretcher holes (centered at 0, top at 50)
+      positions.push({ y: 50 - 25, z: zBack, r: technicalR, through: true });
+      positions.push({ y: 50 - 80, z: zBack, r: technicalR, through: true });
     }
 
     const dividerY = tallLowerSectionHeight - innerHeight / 2;
@@ -525,6 +528,18 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
             <lineSegments position={[0, -innerHeight / 2 + panelThickness + settings.wallBottomRecess + 50, -innerDepth / 2 + panelThickness / 2 + getOffset('bottomStretcher')[2]]}>
               <edgesGeometry args={[new THREE.BoxGeometry(innerWidth - panelThickness * 2, 100, panelThickness)]} />
               <lineBasicMaterial color={getPanelColor('bottomStretcher')} linewidth={2} />
+            </lineSegments>
+          )}
+
+          {/* Middle Stretcher - centered vertically */}
+          <mesh position={[0, 0, -innerDepth / 2 + panelThickness / 2 + getOffset('topStretcher')[2]]} castShadow receiveShadow visible={!skeletonView}>
+            <boxGeometry args={[innerWidth - panelThickness * 2, 100, panelThickness]} />
+            <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : getPanelColor('topStretcher')} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
+          </mesh>
+          {skeletonView && (
+            <lineSegments position={[0, 0, -innerDepth / 2 + panelThickness / 2 + getOffset('topStretcher')[2]]}>
+              <edgesGeometry args={[new THREE.BoxGeometry(innerWidth - panelThickness * 2, 100, panelThickness)]} />
+              <lineBasicMaterial color={getPanelColor('topStretcher')} linewidth={2} />
             </lineSegments>
           )}
         </>

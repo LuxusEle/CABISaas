@@ -17,22 +17,49 @@ interface ScreenHomeProps {
 
 const ScreenHome = ({ onNewProject, onLoadProject, logoUrl, isUserPro }: ScreenHomeProps) => {
   const navigate = useNavigate();
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingProjectId, setLoadingProjectId] = useState<string | null>(null);
   const [canCreate, setCanCreate] = useState(true);
 
   useEffect(() => {
-    const loadData = async () => {
-      const [{ data }, canDo] = await Promise.all([
-        projectService.getProjects(),
-        subscriptionService.canCreateProject()
-      ]);
-      if (data) setProjects(data);
-      setCanCreate(canDo);
+    // Check for cached data first for instant display
+    const cached = projectService.getCachedProjectsList();
+    if (cached) {
+      setProjects(cached);
       setLoading(false);
-    };
-    loadData();
+    }
+
+    // Load fresh projects in background
+    projectService.getProjectsList().then(({ data }) => {
+      if (data) {
+        setProjects(data);
+        setLoading(false);
+      }
+    });
+
+    // Load subscription status in the background
+    subscriptionService.canCreateProject().then(canDo => {
+      setCanCreate(canDo);
+    });
   }, []);
+
+  const handleProjectClick = async (pMetadata: any) => {
+    if (loadingProjectId) return;
+    
+    setLoadingProjectId(pMetadata.id);
+    try {
+      const { data, error } = await projectService.getProject(pMetadata.id);
+      if (error) {
+        alert("Failed to load project details.");
+        console.error(error);
+      } else if (data) {
+        onLoadProject(data);
+      }
+    } finally {
+      setLoadingProjectId(null);
+    }
+  };
 
   const handleStartNew = () => {
     if (canCreate) {
@@ -84,23 +111,44 @@ const ScreenHome = ({ onNewProject, onLoadProject, logoUrl, isUserPro }: ScreenH
           </h2>
 
           {loading ? (
-            <div className="flex flex-col items-center justify-center h-48 sm:h-64 text-slate-400 gap-4">
-              <div className="w-8 h-8 border-4 border-amber-500/20 border-t-amber-500 rounded-full animate-spin" />
-              <p className="text-sm">Fetching your designs...</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="flex flex-col p-3 sm:p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 animate-pulse min-h-[80px]">
+                  <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-3/4 mb-2" />
+                  <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded w-1/4 mb-3" />
+                  <div className="mt-auto flex items-center justify-between">
+                    <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded w-1/3" />
+                    <div className="w-4 h-4 bg-slate-100 dark:bg-slate-800 rounded" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : projects.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               {projects.map(p => (
                 <button
                   key={p.id}
-                  onClick={() => onLoadProject(p)}
-                  className="flex flex-col text-left p-3 sm:p-4 rounded-xl border border-slate-100 dark:border-slate-800 hover:border-amber-300 dark:hover:border-amber-900 hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-all group min-h-[80px]"
+                  onClick={() => handleProjectClick(p)}
+                  disabled={!!loadingProjectId}
+                  className={`flex flex-col text-left p-3 sm:p-4 rounded-xl border border-slate-100 dark:border-slate-800 hover:border-amber-300 dark:hover:border-amber-900 hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-all group min-h-[80px] ${loadingProjectId === p.id ? 'animate-pulse bg-amber-50' : ''}`}
                 >
-                  <div className="font-bold text-slate-800 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 truncate mb-1 text-sm sm:text-base">{p.name}</div>
-                  <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-2">Edited {new Date().toLocaleDateString()}</div>
+                  <div className="font-bold text-slate-800 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 truncate mb-1 text-sm sm:text-base">
+                    {p.name}
+                  </div>
+                  <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-2">
+                    Edited {new Date(p.updated_at).toLocaleDateString()}
+                  </div>
                   <div className="mt-auto flex items-center justify-between">
-                    <div className="text-xs text-slate-500 dark:text-slate-400">{p.zones.reduce((acc, z) => acc + z.cabinets.length, 0)} Cabinets</div>
-                    <div className="text-amber-600 dark:text-amber-500"><Box size={14} /></div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">
+                      {loadingProjectId === p.id ? 'Loading layout...' : 'Click to open'}
+                    </div>
+                    <div className="text-amber-600 dark:text-amber-500">
+                      {loadingProjectId === p.id ? (
+                        <div className="w-3 h-3 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Box size={14} />
+                      )}
+                    </div>
                   </div>
                 </button>
               ))}

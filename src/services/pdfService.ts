@@ -15,7 +15,25 @@ interface Costs {
   totalPrice: number;
 }
 
-export const generateQuotationPDF = (
+// Helper to load images
+const loadImageBase64 = (url: string): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'Anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      ctx?.drawImage(img, 0, 0);
+      resolve(canvas.toDataURL('image/png'));
+    };
+    img.onerror = () => reject(new Error(`Failed to load image: ${url}`));
+    img.src = url;
+  });
+};
+
+export const generateQuotationPDF = async (
   project: Project,
   specifications: string[],
   costs: Costs,
@@ -94,7 +112,7 @@ export const generateQuotationPDF = (
   doc.setTextColor(40, 40, 40);
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
-  const customerName = isPro ? (project.company || 'Customer Name') : 'VALUED CUSTOMER';
+  const customerName = isPro ? (project.name || 'Customer Name') : 'VALUED CUSTOMER';
   doc.text(customerName, margin, yPos);
 
   doc.setFontSize(9);
@@ -138,18 +156,62 @@ export const generateQuotationPDF = (
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(112, 112, 112);
 
+  const colWidth = (pageWidth - margin * 2 - 10) / 2;
+  const startY = yPos;
+  let maxColumnY = yPos;
+
   specifications.forEach((spec, idx) => {
-    // Handle long text wrapping for specifications
-    const lines = doc.splitTextToSize(`${idx + 1}. ${spec}`, pageWidth - margin - (margin + 10));
-    lines.forEach((line: string) => {
-      if (yPos > summaryY - 10) { // Check if near footer
-        doc.addPage();
-        yPos = margin;
-      }
-      doc.text(line, margin + 10, yPos);
-      yPos += 4;
-    });
+    const col = idx % 2;
+    const x = margin + 10 + col * colWidth;
+    
+    // Reset yPos for the second column if needed
+    if (col === 0 && idx > 0) {
+      yPos = maxColumnY;
+    } else if (col === 1) {
+      yPos = Math.max(startY + Math.floor(idx / 2) * 5, yPos - (doc.splitTextToSize(specifications[idx-1], colWidth - 5).length * 4)); 
+      // Simplified: just use a fixed increment or track per column
+    }
+
+    // Better approach: track Y for each column independently
   });
+
+  // Re-writing the loop for better column management
+  let leftY = startY;
+  let rightY = startY;
+
+  specifications.forEach((spec, idx) => {
+    const isLeft = idx % 2 === 0;
+    const x = isLeft ? margin + 10 : margin + 10 + colWidth;
+    let currentY = isLeft ? leftY : rightY;
+
+    const lines = doc.splitTextToSize(`${(idx + 1).toString().padStart(2, '0')}. ${spec}`, colWidth - 5);
+    
+    if (currentY + lines.length * 4 > summaryY - 10) {
+      doc.addPage();
+      leftY = margin;
+      rightY = margin;
+      currentY = margin;
+    }
+
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(255, 165, 0); // Orange like preview
+    doc.text(`${(idx + 1).toString().padStart(2, '0')}.`, x, currentY);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(112, 112, 112);
+    
+    lines.forEach((line: string, lIdx: number) => {
+      // Remove the number from the first line for display if needed, but here we just print
+      const textToPrint = lIdx === 0 ? line.substring(4) : line;
+      doc.text(textToPrint, x + 6, currentY);
+      currentY += 4;
+    });
+
+    if (isLeft) leftY = currentY;
+    else rightY = currentY;
+  });
+
+  yPos = Math.max(leftY, rightY);
 
   yPos += 10;
 
@@ -200,7 +262,72 @@ export const generateQuotationPDF = (
   doc.setFontSize(14);
   doc.text(`${currency}${costs.totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, pageWidth - margin, summaryY + 28, { align: 'right' });
 
-  // Page 2: Terms & Conditions
+  // Page 2: Material Selections & Terms
+  doc.addPage();
+  yPos = margin;
+
+  // Material Selections Table
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(40, 40, 40);
+  doc.text('MATERIAL SELECTIONS', margin, yPos);
+  
+  yPos += 10;
+  doc.setDrawColor(200, 200, 200);
+  doc.line(margin, yPos, pageWidth - margin, yPos);
+  yPos += 5;
+
+  // Table Headers
+  doc.setFontSize(9);
+  doc.setTextColor(140, 140, 140);
+  doc.text('CABINET PART', margin + 5, yPos);
+  doc.text('MATERIAL NAME', margin + 50, yPos);
+  doc.text('VISUAL PREVIEW', pageWidth - margin - 30, yPos, { align: 'center' });
+
+  yPos += 5;
+  doc.line(margin, yPos, pageWidth - margin, yPos);
+  yPos += 10;
+
+  const parts = [
+    { label: 'Carcass', name: project.settings.materialSettings?.carcassMaterial, key: 'carcass' },
+    { label: 'Doors/Fronts', name: project.settings.materialSettings?.doorMaterial, key: 'door' },
+    { label: 'Shelves', name: project.settings.materialSettings?.shelfMaterial, key: 'shelf' }
+  ];
+
+  for (const part of parts) {
+    doc.setTextColor(40, 40, 40);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text(part.label, margin + 5, yPos + 10);
+
+    doc.setFont('helvetica', 'normal');
+    doc.text(part.name || 'Standard Wood', margin + 50, yPos + 10);
+
+    // Try to add image
+    const textureUrl = project.settings.materialSettings?.textureUrls?.[part.key];
+    if (textureUrl) {
+      try {
+        const base64 = await loadImageBase64(textureUrl);
+        doc.addImage(base64, 'PNG', pageWidth - margin - 45, yPos, 30, 20);
+      } catch (err) {
+        doc.setFontSize(8);
+        doc.setTextColor(200, 100, 100);
+        doc.text('(Image not available)', pageWidth - margin - 45, yPos + 10);
+      }
+    } else {
+      doc.setFontSize(8);
+      doc.setTextColor(150, 150, 150);
+      doc.text('Standard finish', pageWidth - margin - 45, yPos + 10);
+    }
+
+    yPos += 25;
+    doc.setDrawColor(240, 240, 240);
+    doc.line(margin, yPos - 2, pageWidth - margin, yPos - 2);
+  }
+
+  yPos += 10;
+
+  // Page 3: Terms & Conditions
   doc.addPage();
   yPos = margin;
 

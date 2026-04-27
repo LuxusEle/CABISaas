@@ -486,7 +486,6 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
   const { thickness: globalThickness } = settings;
   const labelPrefix = unit.label ? `${unit.label} ${unit.preset}` : `#${cabIndex + 1} ${unit.preset}`;
 
-  // Get materials from cabinet or use project defaults
   const materials = unit.materials || {};
   const projectMaterials = settings.materialSettings || {
     carcassMaterial: `${globalThickness}mm White`,
@@ -496,253 +495,214 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
     shelfMaterial: `${globalThickness}mm White`
   };
 
-  // Resolve materials with fallbacks
   const carcassMaterial = materials.carcassMaterial || projectMaterials.carcassMaterial || `${globalThickness}mm White`;
   const doorMaterial = materials.doorMaterial || projectMaterials.doorMaterial || `${globalThickness}mm White`;
   const drawerMaterial = materials.drawerMaterial || projectMaterials.drawerMaterial || '16mm White';
   const backMaterial = materials.backPanelMaterial || projectMaterials.backMaterial || '6mm MDF';
   const shelfMaterial = materials.shelfMaterial || projectMaterials.shelfMaterial || carcassMaterial;
 
-  // Get unified testing settings to respect all design toggles
   const t = getCabinetTestingSettings(unit, settings);
   const thickness = t.panelThickness;
-  
-  // Base Dimensions
   const height = t.height;
   const depth = t.depth;
   const width = t.width;
-  
-  // Inner widths/heights
   const innerWidth = width - 2 * thickness;
-  
-  // 0. FILLER LOGIC
+  const isTall = unit.type === CabinetType.TALL;
+
   if (unit.preset === PresetType.FILLER) {
     parts.push({
-      id: uuid(),
-      name: 'Filler Panel',
-      qty: 1,
-      width: width,
-      length: height,
-      material: carcassMaterial,
-      category: 'carcass',
-      label: labelPrefix,
-      cabinetId: unit.id,
-      cabinetLabel: unit.label
+      id: uuid(), name: 'Filler Panel', qty: 1, width: width, length: height,
+      material: carcassMaterial, category: 'carcass', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label
     });
     return parts;
   }
 
-  // 1. CARCASS PANELS
-  // Left/Right Sides
+  // 1. CARCASS SIDES
   parts.push({ 
     id: uuid(), 
     name: 'Side Panel', 
     qty: 2, 
     width: depth, 
-    length: height, 
+    length: height - (unit.type === CabinetType.BASE || isTall ? t.toeKickHeight : 0), 
     material: carcassMaterial, 
     category: 'carcass', 
     label: labelPrefix, 
     cabinetId: unit.id, 
     cabinetLabel: unit.label,
     features: (() => {
-      const f = t.enableGola ? ['gola-top-l'] : [];
-      if (t.enableGola && t.showDrawers && t.numDrawers > 1) {
-        // Calculate gap heights for C-cuts exactly like BaseCabinetTesting.tsx
-        const innerH = height - t.toeKickHeight;
+      // Gola logic: Only for Base cabinets and Lower section of Tall cabinets
+      // Note: 3D design does NOT have Gola for Wall cabinets or the physical top of Tall cabinets
+      const f: string[] = [];
+      const isBaseGola = !isTall && t.cabinetType === 'base' && t.enableGola;
+      
+      if (isBaseGola) {
+        f.push('gola-top-l');
+      }
+      
+      // Calculate Gola C-cuts (for drawers)
+      if (t.enableGola && t.showDrawers && t.numDrawers > 0) {
         const golaVerticalGap = 13;
         const golaTopGap = t.golaTopGap;
         const doorOuterGap = 3;
-        const panelThickness = thickness;
         const golaGapTotal = golaVerticalGap * 2;
-        const totalAvailablePool = (innerH - golaTopGap) - doorOuterGap - panelThickness;
-        const numGaps = t.numDrawers - 1;
-        const eachFrontH = (totalAvailablePool - numGaps * golaGapTotal) / t.numDrawers;
         
-        let yBase = doorOuterGap;
-        for (let i = 0; i < t.numDrawers - 1; i++) {
-          const drawerFrontH = (i === 0) ? eachFrontH + panelThickness : eachFrontH;
-          const gh = yBase + drawerFrontH + golaVerticalGap;
-          // Position relative to panel bottom (which is at -innerHeight/2 + panelThickness)
-          // Design uses: gh - (innerHeight + panelThickness) / 2 
-          // We'll store the raw gh and let visualizer handle it
-          f.push(`gola-mid-c:${gh}`);
-          yBase += drawerFrontH + golaGapTotal;
+        if (!isTall) {
+          const innerH = height - t.toeKickHeight;
+          const totalAvailablePool = (innerH - golaTopGap) - doorOuterGap - thickness;
+          const numGaps = t.numDrawers - 1;
+          const eachFrontH = (totalAvailablePool - numGaps * golaGapTotal) / t.numDrawers;
+          
+          let yBase = doorOuterGap;
+          for (let i = 0; i < t.numDrawers - 1; i++) {
+            const drawerFrontH = (i === 0) ? eachFrontH + thickness : eachFrontH;
+            const gh = yBase + drawerFrontH + golaVerticalGap;
+            f.push(`gola-mid-c:${gh}`);
+            yBase += drawerFrontH + golaGapTotal;
+          }
+        } else {
+          // Tall cabinet Gola logic
+          const stackH = t.lowerSectionDrawerStackHeight || 800;
+          const totalAvailablePool = (stackH - golaTopGap) - doorOuterGap - thickness;
+          const numGaps = t.numDrawers - 1;
+          const eachFrontH = (totalAvailablePool - (numGaps > 0 ? numGaps * golaGapTotal : 0)) / t.numDrawers;
+
+          let yBase = doorOuterGap;
+          for (let i = 0; i < t.numDrawers; i++) {
+            const drawerFrontH = (i === 0) ? eachFrontH + thickness : eachFrontH;
+            
+            if (i < t.numDrawers - 1) {
+              // C-cut between drawers
+              const gh = yBase + drawerFrontH + golaVerticalGap;
+              f.push(`gola-mid-c:${gh}`);
+            } else {
+              // L-cut at the very top of the stack (Bottom Section Top)
+              const gh = yBase + drawerFrontH + golaTopGap/2; // Approximate center of the L-cut gap
+              f.push(`gola-mid-l:${gh}`);
+            }
+            
+            yBase += drawerFrontH + golaGapTotal;
+          }
         }
       }
-      if (t.showBackPanel) {
-        f.push('groove-back');
-      }
-      if (t.showNailHoles) {
-        f.push('nail-holes');
-      }
+      
+      if (t.showBackPanel) f.push('groove-back');
+      if (t.showNailHoles) f.push('nail-holes');
       return f;
     })()
   });
   
   // Bottom Panel
   parts.push({ 
-    id: uuid(), 
-    name: 'Bottom Panel', 
-    qty: 1, 
-    width: depth, 
-    length: innerWidth, 
-    material: carcassMaterial, 
-    category: 'carcass', 
-    label: labelPrefix, 
-    cabinetId: unit.id,
-    cabinetLabel: unit.label,
+    id: uuid(), name: 'Bottom Panel', qty: 1, width: depth, length: innerWidth,
+    material: carcassMaterial, category: 'carcass', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label,
     features: t.showBackPanel ? ['groove-back'] : []
   });
   
-  // Top/Stretchers
-  if (t.cabinetType === 'wall') {
+  // Top/Divider logic
+  if (isTall) {
+    // Tall cabinets have a horizontal divider between sections
     parts.push({ 
-      id: uuid(), 
-      name: 'Top Panel', 
-      qty: 1, 
-      width: depth, 
-      length: innerWidth, 
-      material: carcassMaterial, 
-      category: 'carcass', 
-      label: labelPrefix, 
-      cabinetId: unit.id, 
-      cabinetLabel: unit.label 
+      id: uuid(), name: 'Horizontal Divider', qty: 1, width: depth, length: innerWidth,
+      material: carcassMaterial, category: 'carcass', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label
+    });
+    // Top Stretchers
+    parts.push({ 
+      id: uuid(), name: 'Top Stretcher', qty: 2, width: 100, length: innerWidth,
+      material: carcassMaterial, category: 'carcass', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label 
+    });
+  } else if (unit.type === CabinetType.WALL) {
+    parts.push({ 
+      id: uuid(), name: 'Top Panel', qty: 1, width: depth, length: innerWidth,
+      material: carcassMaterial, category: 'carcass', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label 
     });
   } else {
-    // Base/Tall often use stretchers
     parts.push({ 
-      id: uuid(), 
-      name: 'Top Stretcher', 
-      qty: 2, 
-      width: t.topStretcherWidth || 100, 
-      length: innerWidth, 
-      material: carcassMaterial, 
-      category: 'carcass', 
-      label: labelPrefix, 
-      cabinetId: unit.id, 
-      cabinetLabel: unit.label 
+      id: uuid(), name: 'Top Stretcher', qty: 2, width: 100, length: innerWidth,
+      material: carcassMaterial, category: 'carcass', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label 
     });
   }
   
   // 2. BACK PANEL
   if (t.showBackPanel) {
-    const backHeight = height - (t.cabinetType === 'base' ? t.toeKickHeight : 0);
+    const backHeight = height - (unit.type === CabinetType.BASE || isTall ? t.toeKickHeight : 0);
     parts.push({ 
-      id: uuid(), 
-      name: 'Back Panel', 
-      qty: 1, 
-      width: width - (2 * (thickness - t.grooveDepth)), 
-      length: backHeight, 
-      material: backMaterial, 
-      category: 'back', 
-      label: labelPrefix, 
-      cabinetId: unit.id, 
-      cabinetLabel: unit.label 
+      id: uuid(), name: 'Back Panel', qty: 1, width: width - (2 * (thickness - t.grooveDepth)), length: backHeight, 
+      material: backMaterial, category: 'back', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label 
     });
   }
   
   // 3. SHELVES
   if (t.showShelves && t.numShelves > 0) {
     parts.push({ 
-      id: uuid(), 
-      name: 'Shelf', 
-      qty: t.numShelves, 
-      width: t.shelfDepth || (depth - 20), 
-      length: innerWidth, 
-      material: shelfMaterial, 
-      category: 'shelf', 
-      label: labelPrefix, 
-      cabinetId: unit.id, 
-      cabinetLabel: unit.label 
+      id: uuid(), name: 'Shelf', qty: t.numShelves, width: t.shelfDepth || (depth - 20), length: innerWidth,
+      material: shelfMaterial, category: 'shelf', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label 
     });
   }
   
-  // 4. DOORS
-  if (t.showDoors) {
-    // Calculate door dimensions using Ruby CBX rules
-    const doorConfig = calculateDoors(width, height - (t.cabinetType === 'base' ? t.toeKickHeight : 0) - 4, settings);
+  // 4. DOORS (Handle Tall specifically)
+  if (isTall) {
+    if (t.showLowerDoors) {
+      const doorConfig = calculateDoors(width, t.tallLowerSectionHeight - 6, settings);
+      parts.push({ 
+        id: uuid(), name: 'Lower Door', qty: doorConfig.qty, width: doorConfig.width, length: doorConfig.length,
+        material: doorMaterial, category: 'door', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label 
+      });
+      parts.push({ id: uuid(), name: HW.HINGE, qty: doorConfig.hinges, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
+    }
+    if (t.showDoors) { // Upper Doors
+      const doorConfig = calculateDoors(width, t.tallUpperSectionHeight - 6, settings);
+      parts.push({ 
+        id: uuid(), name: 'Upper Door', qty: doorConfig.qty, width: doorConfig.width, length: doorConfig.length,
+        material: doorMaterial, category: 'door', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label 
+      });
+      parts.push({ id: uuid(), name: HW.HINGE, qty: doorConfig.hinges, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
+    }
+  } else if (t.showDoors) {
+    const doorConfig = calculateDoors(width, height - (unit.type === CabinetType.BASE ? t.toeKickHeight : 0) - 4, settings);
     parts.push({ 
-      id: uuid(), 
-      name: 'Door', 
-      qty: doorConfig.qty, 
-      width: doorConfig.width, 
-      length: doorConfig.length, 
-      material: doorMaterial, 
-      category: 'door', 
-      label: labelPrefix, 
-      cabinetId: unit.id, 
-      cabinetLabel: unit.label 
+      id: uuid(), name: 'Door', qty: doorConfig.qty, width: doorConfig.width, length: doorConfig.length,
+      material: doorMaterial, category: 'door', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label 
     });
-    
-    // Hardware for doors
     parts.push({ id: uuid(), name: HW.HINGE, qty: doorConfig.hinges, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
     parts.push({ id: uuid(), name: HW.HANDLE, qty: doorConfig.handles, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
   }
   
   // 5. DRAWERS
   if (t.showDrawers && t.numDrawers > 0) {
-    const drawerStackHeight = height - (t.cabinetType === 'base' ? t.toeKickHeight : 0);
-    const drawerFrontHeight = Math.round(drawerStackHeight / t.numDrawers) - t.drawerToDrawerGap;
+    const stackHeight = isTall ? (t.lowerSectionDrawerStackHeight || 800) : (height - t.toeKickHeight);
+    const drawerFrontHeight = Math.round(stackHeight / t.numDrawers) - t.drawerToDrawerGap;
     
-    // Fronts
     parts.push({ 
-      id: uuid(), 
-      name: 'Drawer Front', 
-      qty: t.numDrawers, 
-      width: width - (2 * t.doorOuterGap), 
-      length: drawerFrontHeight, 
-      material: doorMaterial, 
-      category: 'door', 
-      label: labelPrefix, 
-      cabinetId: unit.id, 
-      cabinetLabel: unit.label 
+      id: uuid(), name: 'Drawer Front', qty: t.numDrawers, width: width - (2 * t.doorOuterGap), length: drawerFrontHeight, 
+      material: doorMaterial, category: 'door', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label 
     });
     
     // Box Parts
-    // Bottoms
     parts.push({ 
-      id: uuid(), 
-      name: 'Drawer Bottom', 
-      qty: t.numDrawers, 
-      width: t.shelfDepth || (depth - 50), 
-      length: innerWidth - 26, 
-      material: drawerMaterial, 
-      category: 'drawer', 
-      label: labelPrefix, 
-      cabinetId: unit.id, 
-      cabinetLabel: unit.label 
+      id: uuid(), name: 'Drawer Bottom', qty: t.numDrawers, width: depth - 50, length: innerWidth - 26, 
+      material: drawerMaterial, category: 'drawer', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label 
+    });
+    parts.push({ 
+      id: uuid(), name: 'Drawer Side', qty: t.numDrawers * 2, width: depth - 10, length: 150, 
+      material: drawerMaterial, category: 'drawer', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label 
     });
     
-    // Sides
-    parts.push({ 
-      id: uuid(), 
-      name: 'Drawer Side', 
-      qty: t.numDrawers * 2, 
-      width: t.shelfDepth || (depth - 10), 
-      length: 150, 
-      material: drawerMaterial, 
-      category: 'drawer', 
-      label: labelPrefix, 
-      cabinetId: unit.id, 
-      cabinetLabel: unit.label 
-    });
-    
-    // Hardware for drawers
+    // Hardware
     parts.push({ id: uuid(), name: HW.SLIDE, qty: t.numDrawers, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
-    parts.push({ id: uuid(), name: HW.HANDLE, qty: t.numDrawers, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
+    if (!t.enableGola) {
+      parts.push({ id: uuid(), name: HW.HANDLE, qty: t.numDrawers, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
+    }
   }
   
-  // 6. GENERAL HARDWARE (Legs, Hangers)
-  if (t.cabinetType === 'base' || t.cabinetType === 'tall' || t.cabinetType === 'corner') {
-    parts.push({ id: uuid(), name: HW.LEG, qty: 4, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
+  // 6. GENERAL HARDWARE
+  if (unit.type === CabinetType.BASE || isTall) {
+    parts.push({ id: uuid(), name: HW.LEG, qty: isTall ? 6 : 4, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
   }
-  if (t.cabinetType === 'wall' || t.cabinetType === 'wall_corner') {
+  if (unit.type === CabinetType.WALL) {
     parts.push({ id: uuid(), name: HW.HANGER, qty: 1, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
   }
 
-  // General Connectors
-  const connectorsPerCabinet = 4;
+  const connectorsPerCabinet = isTall ? 12 : 8;
   parts.push({ id: uuid(), name: HW.CAM_LOCK, qty: connectorsPerCabinet, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
   parts.push({ id: uuid(), name: HW.CONFIRMAT, qty: connectorsPerCabinet, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
 

@@ -42,7 +42,7 @@ export const RealisticSink: React.FC<RealisticSinkProps> = ({ width, depth, cabi
               shape.holes.push(hole);
               return shape;
             })(),
-            { depth: thickness, bevelEnabled: true, bevelThickness: 2, bevelSize: 2 }
+            { depth: thickness, bevelEnabled: true, bevelThickness: 2, bevelSize: 2, curveSegments: 8 }
           ]} 
         />
         <meshStandardMaterial 
@@ -131,7 +131,7 @@ export const RealisticSink: React.FC<RealisticSinkProps> = ({ width, depth, cabi
         </mesh>
         {/* Drain Hole detail */}
         <mesh position={[0, -bowlHeight/2 + thickness + 0.5, 0]} rotation={[-Math.PI/2, 0, 0]}>
-          <circleGeometry args={[25, 32]} />
+          <circleGeometry args={[25, 16]} />
           <meshStandardMaterial 
             color="#1e1e1e" 
             metalness={0.8} 
@@ -147,7 +147,7 @@ export const RealisticSink: React.FC<RealisticSinkProps> = ({ width, depth, cabi
       <group position={[bowlX, 2, -bowlDepth/2 - 20]}>
         {/* Base */}
         <mesh position={[0, 10, 0]} castShadow>
-          <cylinderGeometry args={[15, 18, 20, 32]} />
+          <cylinderGeometry args={[15, 18, 20, 16]} />
           <meshStandardMaterial 
             color="#d8d8d8" 
             metalness={0.8} 
@@ -159,7 +159,7 @@ export const RealisticSink: React.FC<RealisticSinkProps> = ({ width, depth, cabi
         </mesh>
         {/* Main Vertical Pipe */}
         <mesh position={[0, 100, 0]} castShadow>
-          <cylinderGeometry args={[10, 10, 180, 32]} />
+          <cylinderGeometry args={[10, 10, 180, 16]} />
           <meshStandardMaterial 
             color="#d8d8d8" 
             metalness={0.8} 
@@ -171,7 +171,7 @@ export const RealisticSink: React.FC<RealisticSinkProps> = ({ width, depth, cabi
         </mesh>
         {/* The Curve (Gooseneck) */}
         <mesh position={[0, 190, 40]} rotation={[0, Math.PI/2, 0]} castShadow>
-          <torusGeometry args={[40, 10, 16, 100, Math.PI]} />
+          <torusGeometry args={[40, 10, 12, 32, Math.PI]} />
           <meshStandardMaterial 
             color="#d8d8d8" 
             metalness={0.8} 
@@ -183,7 +183,7 @@ export const RealisticSink: React.FC<RealisticSinkProps> = ({ width, depth, cabi
         </mesh>
         {/* Spout End */}
         <mesh position={[0, 175, 80]} castShadow>
-          <cylinderGeometry args={[10, 12, 30, 32]} />
+          <cylinderGeometry args={[10, 12, 30, 16]} />
           <meshStandardMaterial 
             color="#d8d8d8" 
             metalness={0.8} 
