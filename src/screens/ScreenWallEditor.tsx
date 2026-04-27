@@ -610,7 +610,8 @@ const ScreenWallEditor = ({
             </div>
 
             {/* View Area - Mobile */}
-             <div className="flex-1 relative bg-slate-100 dark:bg-slate-950 overflow-hidden">
+              {/* Mobile View Area - Elevation/3D */}
+              <div className="flex-1 relative bg-slate-100 dark:bg-slate-950 overflow-hidden">
                 {visualMode === 'elevation' ? (
                   <WallVisualizer 
                     zone={currentZone}
@@ -645,6 +646,78 @@ const ScreenWallEditor = ({
                     skeletonView={isSkeleton}
                     isStudio={visualMode === 'studio'}
                   />
+                )}
+
+                {/* MOBILE CABINET EDITOR BOTTOM SHEET */}
+                {selectedCabinet && (
+                  <div className="absolute inset-x-0 bottom-0 z-[60] animate-in slide-in-from-bottom duration-300">
+                    <div className="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 shadow-[0_-10px_40px_rgba(0,0,0,0.2)] rounded-t-[2rem] px-6 pb-8 pt-4">
+                      {/* Handle */}
+                      <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto mb-4" />
+                      
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          {(() => {
+                            const zone = project.zones.find(z => z.id === selectedCabinet.zoneId);
+                            const cab = zone?.cabinets[selectedCabinet.index];
+                            if (!cab) return null;
+                            return (
+                              <>
+                                <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight italic">Edit {cab.label || 'Cabinet'}</h3>
+                                <p className="text-[10px] font-bold text-amber-500 uppercase tracking-widest">{cab.preset}</p>
+                              </>
+                            );
+                          })()}
+                        </div>
+                        <button 
+                          onClick={() => setSelectedCabinet(null)}
+                          className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-500"
+                        >
+                          <X size={20} />
+                        </button>
+                      </div>
+
+                      {(() => {
+                        const zone = project.zones.find(z => z.id === selectedCabinet.zoneId);
+                        const cab = zone?.cabinets[selectedCabinet.index];
+                        if (!cab) return null;
+                        return (
+                          <div className="space-y-4">
+                            <CabinetSpanSlider 
+                              totalLength={currentZone.totalLength}
+                              fromLeft={cab.fromLeft}
+                              width={cab.width}
+                              onChange={(updates) => updateSelectedCabinet(updates)}
+                            />
+                            
+                            <div className="grid grid-cols-2 gap-3 pt-2">
+                              <button 
+                                onClick={() => {
+                                  if (isUserPro) setShowAdvancedCabinetEditor(true);
+                                  else setScreen(Screen.PRICING);
+                                }}
+                                className="py-3 bg-slate-900 dark:bg-white dark:text-slate-900 text-white font-black uppercase tracking-widest text-[10px] rounded-xl flex items-center justify-center gap-2"
+                              >
+                                {isUserPro ? <Settings size={14} /> : <Lock size={14} />} Advanced Edit
+                              </button>
+                              <button 
+                                onClick={() => {
+                                  updateZone(z => {
+                                    const cabs = z.cabinets.filter((_, i) => i !== selectedCabinet.index);
+                                    return resolveCollisions({ ...z, cabinets: cabs });
+                                  }, false, selectedCabinet.zoneId);
+                                  setSelectedCabinet(null);
+                                }}
+                                className="py-3 bg-rose-500 text-white font-black uppercase tracking-widest text-[10px] rounded-xl flex items-center justify-center gap-2"
+                              >
+                                <X size={14} /> Delete
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </div>
                 )}
             </div>
 

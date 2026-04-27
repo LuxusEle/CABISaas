@@ -188,72 +188,69 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
       <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-10">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 sm:mb-6">
             <div className="space-y-0.5">
               <div className="flex items-center gap-2">
-                <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">Project <span className="text-amber-500">Setup</span></h2>
-                <div className="px-2 py-0.5 bg-amber-500 text-white text-[8px] font-black rounded-full uppercase tracking-widest">Wizard</div>
+                <h2 className="text-xl sm:text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">Project <span className="text-amber-500">Setup</span></h2>
+                <div className="px-2 py-0.5 bg-amber-500 text-white text-[7px] sm:text-[8px] font-black rounded-full uppercase tracking-widest">Wizard</div>
               </div>
-              <p className="text-xs text-slate-500 font-medium italic">Complete the 3 required steps below</p>
+              <p className="text-[10px] sm:text-xs text-slate-500 font-medium italic">Complete the 3 required steps below</p>
             </div>
-            <div className="flex items-center gap-3">
-              {logoPreview && (
-                <img src={logoPreview} alt="Logo" className="h-8 w-auto object-contain hidden sm:block" />
-              )}
-              <Button variant="primary" size="sm" onClick={onSave} className="shadow-lg shadow-amber-500/20 px-6 py-2 h-auto text-xs uppercase font-black">
-                <Save size={14} className="mr-2" /> Save Draft
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Button variant="primary" size="sm" onClick={onSave} className="flex-1 sm:flex-none shadow-lg shadow-amber-500/20 px-4 py-2 h-auto text-[10px] uppercase font-black">
+                <Save size={12} className="mr-2" /> Save Draft
               </Button>
             </div>
           </div>
 
           {/* Setup Cards Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-3 sm:gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-2 sm:gap-6">
             <SetupCard 
-              icon={<FileText size={32} className="text-teal-600 dark:text-teal-400" />}
+              icon={<FileText size={24} className="text-teal-600 dark:text-teal-400" />}
               title="Identity"
-              subtitle="Project Name & Company"
+              subtitle="Name & Company"
               colorClass="bg-teal-50 dark:bg-teal-900/20"
               onClick={() => setActiveModal('project')}
               isDone={isIdentityDone}
               isRequired={true}
             />
             <SetupCard 
-              icon={isLayoutLocked ? <Lock size={32} className="text-slate-400" /> : <Upload size={32} className="text-blue-600 dark:text-blue-400" />}
+              icon={isLayoutLocked ? <Lock size={24} className="text-slate-400" /> : <Upload size={24} className="text-blue-600 dark:text-blue-400" />}
               title="Room Layout"
-              subtitle="Walls & Global Dimensions"
+              subtitle="Walls & Global"
               colorClass={isLayoutLocked ? "bg-slate-100 dark:bg-slate-200/50" : "bg-blue-50 dark:bg-blue-900/20"}
               onClick={() => setShowWallModal(true)}
               isDone={isWallsDone}
               isRequired={true}
             />
             <SetupCard 
-              icon={<Box size={32} className="text-purple-600 dark:text-purple-400" />}
+              icon={<Box size={24} className="text-purple-600 dark:text-purple-400" />}
               title="Construction"
-              subtitle="Kerf, Gola & Standards"
+              subtitle="Kerf & Standards"
               colorClass="bg-purple-50 dark:bg-purple-900/20"
               onClick={() => setActiveModal('construction')}
               isDone={isConstructionDone}
               isRequired={true}
             />
             <SetupCard 
-              icon={<Settings size={32} className="text-amber-600 dark:text-amber-400" />}
+              icon={<Settings size={24} className="text-amber-600 dark:text-amber-400" />}
               title="Materials"
-              subtitle="Sheet Types & Boards"
+              subtitle="Sheet Library"
               colorClass="bg-amber-50 dark:bg-amber-900/20"
               onClick={() => setActiveModal('sheets')}
               isDone={project.settings.thickness > 0}
             />
             <SetupCard 
-              icon={<Save size={32} className="text-rose-600 dark:text-rose-400" />}
+              icon={<Save size={24} className="text-rose-600 dark:text-rose-400" />}
               title="Hardware"
-              subtitle="Accessories & Templates"
+              subtitle="Templates"
               colorClass="bg-rose-50 dark:bg-rose-900/20"
               onClick={() => setActiveModal('hardware')}
             />
             <SetupCard 
-              icon={<DollarSign size={32} className="text-green-600 dark:text-green-400" />}
+              icon={<DollarSign size={24} className="text-green-600 dark:text-green-400" />}
               title="Pricing"
-              subtitle="Costs, Labor & Margins"
+              subtitle="Costs & Margins"
               colorClass="bg-green-50 dark:bg-green-900/20"
               onClick={() => setActiveModal('costs')}
               isDone={project.settings.costs?.laborCost > 0}
@@ -261,17 +258,17 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
           </div>
 
           {/* Action Area */}
-          <div className="mt-8 p-4 sm:p-6 bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-xl flex flex-col sm:flex-row items-center justify-between text-center sm:text-left gap-4 max-w-5xl mx-auto relative overflow-hidden">
-            <div className="flex items-center gap-4">
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${isReadyToGenerate ? 'bg-amber-500 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-300'}`}>
-                <Wand2 size={24} />
+          <div className="mt-6 p-4 bg-white dark:bg-slate-900 rounded-[1.5rem] sm:rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-xl flex flex-col sm:flex-row items-center justify-between text-center sm:text-left gap-3 max-w-5xl mx-auto relative overflow-hidden">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isReadyToGenerate ? 'bg-amber-500 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-300'}`}>
+                <Wand2 size={20} />
               </div>
               <div>
-                <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">Generate Full 3D Design</h3>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                <h3 className="text-sm sm:text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">Generate Full 3D Design</h3>
+                <p className="text-[9px] text-slate-500 dark:text-slate-400 font-medium">
                   {isReadyToGenerate 
-                    ? "Excellent! Everything is ready to calculate your layout."
-                    : "Complete Identity, Room Layout, and Construction to unlock."}
+                    ? "Ready to calculate layout."
+                    : "Complete required steps to unlock."}
                 </p>
               </div>
             </div>
@@ -279,41 +276,37 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
             <button
               onClick={handleGenerateLayout}
               disabled={!isReadyToGenerate}
-              className={`flex items-center gap-2 px-8 py-3 rounded-full text-xs font-black uppercase tracking-widest transition-all shrink-0 ${
+              className={`w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all shrink-0 ${
                 isReadyToGenerate 
-                  ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/40 hover:scale-105 active:scale-95 cursor-pointer' 
-                  : 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed opacity-50'
+                  ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/40' 
+                  : 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
               }`}
             >
               {isReadyToGenerate ? (
-                <>
-                  Start 3D Layout <ArrowRight size={14} />
-                </>
+                <>Start 3D Layout <ArrowRight size={14} /></>
               ) : (
-                <>
-                  <Lock size={14} /> Locked
-                </>
+                <><Lock size={14} /> Locked</>
               )}
             </button>
           </div>
 
           {/* Centered Modal Overlay */}
           {activeModal && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center sm:p-4 bg-slate-900/60 backdrop-blur-sm">
               <div 
-                className="bg-white dark:bg-slate-900 w-full max-w-4xl max-h-[85vh] rounded-[2.5rem] shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
+                className="bg-white dark:bg-slate-900 w-full max-w-4xl h-[95vh] sm:h-auto sm:max-h-[85vh] rounded-t-[2rem] sm:rounded-[2.5rem] shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-300 sm:zoom-in-95 sm:duration-200"
               >
                 {/* Modal Header */}
-                <div className="p-8 border-b dark:border-slate-800 flex justify-between items-center shrink-0">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-amber-500">
-                      {activeModal === 'project' && <FileText size={24} />}
-                      {activeModal === 'construction' && <Box size={24} />}
-                      {activeModal === 'sheets' && <Settings size={24} />}
-                      {activeModal === 'hardware' && <Save size={24} />}
-                      {activeModal === 'costs' && <DollarSign size={24} />}
+                <div className="p-4 sm:p-8 border-b dark:border-slate-800 flex justify-between items-center shrink-0">
+                  <div className="flex items-center gap-3 sm:gap-4">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-amber-500">
+                      {activeModal === 'project' && <FileText size={20} />}
+                      {activeModal === 'construction' && <Box size={20} />}
+                      {activeModal === 'sheets' && <Settings size={20} />}
+                      {activeModal === 'hardware' && <Save size={20} />}
+                      {activeModal === 'costs' && <DollarSign size={20} />}
                     </div>
-                    <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">
+                    <h3 className="text-lg sm:text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">
                       {activeModal === 'project' && 'Identity'}
                       {activeModal === 'walls' && 'Room Layout'}
                       {activeModal === 'sheets' && 'Material Library'}
@@ -324,47 +317,46 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
                   </div>
                   <button 
                     onClick={() => setActiveModal(null)}
-                    className="p-3 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-400"
+                    className="p-2 sm:p-3 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-400"
                   >
-                    <X size={24} />
+                    <X size={20} />
                   </button>
                 </div>
 
                 {/* Modal Content */}
-                <div className="flex-1 overflow-y-auto p-8">
+                <div className="flex-1 overflow-y-auto p-4 sm:p-8">
                   {activeModal === 'project' && (
-                    <div className="space-y-8 animate-in slide-in-from-bottom-4">
-                      <div className="grid md:grid-cols-2 gap-8">
-                        <div className="space-y-3">
-                          <label className="text-xs font-black uppercase text-slate-400 tracking-widest">Project Name</label>
-                          <input className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border-2 border-transparent focus:border-amber-500 outline-none dark:text-white font-bold" placeholder="e.g., Lakeview Kitchen" value={project.name} onChange={e => setProject({ ...project, name: e.target.value })} />
+                    <div className="space-y-6 sm:space-y-8">
+                      <div className="grid md:grid-cols-2 gap-4 sm:gap-8">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Project Name</label>
+                          <input className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border-2 border-transparent focus:border-amber-500 outline-none dark:text-white font-bold text-sm" placeholder="e.g., Lakeview Kitchen" value={project.name} onChange={e => setProject({ ...project, name: e.target.value })} />
                         </div>
-                        <div className="space-y-3">
-                          <label className="text-xs font-black uppercase text-slate-400 tracking-widest">Company Name</label>
-                          <input className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border-2 border-transparent focus:border-amber-500 outline-none dark:text-white font-bold" placeholder="Your Business" value={project.company} onChange={e => setProject({ ...project, company: e.target.value })} />
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Company Name</label>
+                          <input className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border-2 border-transparent focus:border-amber-500 outline-none dark:text-white font-bold text-sm" placeholder="Your Business" value={project.company} onChange={e => setProject({ ...project, company: e.target.value })} />
                         </div>
                       </div>
                       <div className="space-y-3">
-                        <label className="text-xs font-black uppercase text-slate-400 tracking-widest">Company Branding</label>
-                        <div className="p-8 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[2rem] flex flex-col items-center gap-6 bg-slate-50/50 dark:bg-slate-800/30">
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Company Branding</label>
+                        <div className="p-6 sm:p-8 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[2rem] flex flex-col items-center gap-4 bg-slate-50/50 dark:bg-slate-800/30">
                           {logoPreview ? (
                             <div className="relative group">
-                              <img src={logoPreview} alt="Preview" className="h-32 w-auto object-contain drop-shadow-xl" />
-                              <button onClick={handleRemoveLogo} className="absolute -top-3 -right-3 bg-rose-500 text-white p-2 rounded-full shadow-lg hover:scale-110 transition-transform">
-                                <X size={16} />
+                              <img src={logoPreview} alt="Preview" className="h-24 sm:h-32 w-auto object-contain drop-shadow-xl" />
+                              <button onClick={handleRemoveLogo} className="absolute -top-2 -right-2 bg-rose-500 text-white p-1.5 rounded-full shadow-lg">
+                                <X size={14} />
                               </button>
                             </div>
                           ) : (
                             <div className="text-slate-400 text-center">
-                              <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <Upload size={32} className="opacity-30" />
+                              <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-2">
+                                <Upload size={24} className="opacity-30" />
                               </div>
-                              <p className="text-sm font-bold">Drop your logo here</p>
-                              <p className="text-xs opacity-50 mt-1">PNG or JPG, max 5MB</p>
+                              <p className="text-xs font-bold">Drop logo here</p>
                             </div>
                           )}
                           <input ref={fileInputRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" id="logo-modal" />
-                          <label htmlFor="logo-modal" className="px-8 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-sm font-black rounded-full cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all">
+                          <label htmlFor="logo-modal" className="px-6 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[10px] font-black rounded-full cursor-pointer">
                             {isUploadingLogo ? 'UPLOADING...' : 'UPLOAD LOGO'}
                           </label>
                         </div>
@@ -393,8 +385,8 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
                   )}
 
                   {activeModal === 'costs' && (
-                    <div className="space-y-8 animate-in slide-in-from-bottom-4">
-                      <div className="grid grid-cols-1 gap-6">
+                    <div className="space-y-6 animate-in slide-in-from-bottom-4">
+                      <div className="grid grid-cols-1 gap-4">
                         <NumberInput label="Labor Cost (LKR)" value={project.settings.costs?.laborCost ?? 0} onChange={v => setProject({ ...project, settings: { ...project.settings, costs: { ...project.settings.costs, laborCost: v } } })} />
                         <NumberInput label="Transport Cost (LKR)" value={project.settings.costs?.transportCost ?? 0} onChange={v => setProject({ ...project, settings: { ...project.settings, costs: { ...project.settings.costs, transportCost: v } } })} />
                         <NumberInput label="Profit Margin (%)" value={project.settings.costs?.marginPercent ?? 50} onChange={v => setProject({ ...project, settings: { ...project.settings, costs: { ...project.settings.costs, marginPercent: v } } })} />
@@ -403,8 +395,8 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
                   )}
 
                   {activeModal === 'construction' && (
-                    <div className="space-y-8 animate-in slide-in-from-bottom-4">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                    <div className="space-y-6 animate-in slide-in-from-bottom-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8">
                         <NumberInput label="Kerf (mm)" value={project.settings.kerf} onChange={v => setProject({ ...project, settings: { ...project.settings, kerf: v } })} />
                         <NumberInput label="Counter Thickness (mm)" value={project.settings.counterThickness} onChange={v => setProject({ ...project, settings: { ...project.settings, counterThickness: v } })} />
                         <div className="col-span-full">
@@ -420,19 +412,19 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
                 </div>
 
                 {/* Modal Footer */}
-                <div className="p-8 bg-slate-50 dark:bg-slate-800/50 flex justify-between items-center shrink-0 border-t dark:border-slate-800">
-                  <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">
+                <div className="p-4 sm:p-8 bg-slate-50 dark:bg-slate-800/50 flex justify-between items-center shrink-0 border-t dark:border-slate-800">
+                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
                     {wizardSteps.indexOf(activeModal as string) + 1} / {wizardSteps.length}
                   </p>
-                  <div className="flex gap-4">
-                    <Button variant="secondary" onClick={() => setActiveModal(null)}>Cancel</Button>
+                  <div className="flex gap-2 sm:gap-4">
+                    <Button variant="secondary" size="sm" onClick={() => setActiveModal(null)} className="text-[10px] font-black uppercase">Cancel</Button>
                     <button 
                       onClick={handleNextStep} 
-                      className="px-10 py-3 bg-amber-500 hover:bg-amber-600 text-white font-black uppercase tracking-widest rounded-full shadow-lg shadow-amber-500/20 transition-all flex items-center gap-2 group"
+                      className="px-6 sm:px-10 py-2.5 sm:py-3 bg-amber-500 hover:bg-amber-600 text-white font-black uppercase tracking-widest rounded-full shadow-lg text-[10px] transition-all flex items-center gap-2 group"
                     >
                       {wizardSteps.indexOf(activeModal as string) < wizardSteps.length - 1 ? (
                         <>
-                          Next Step <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                          Next Step <ArrowRight size={14} />
                         </>
                       ) : (
                         'Done'
