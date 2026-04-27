@@ -766,11 +766,18 @@ const ScreenWallEditor = ({
                   ].map((proto, i) => (
                     <button 
                       key={i}
+                      onPointerDown={(e) => {
+                        e.preventDefault();
+                        (e.currentTarget as any).releasePointerCapture(e.pointerId);
+                        const { icon, ...protoData } = proto;
+                        setDraggingCabinet({ ...protoData, id: 'proto', width: 600, qty: 1, fromLeft: 0 } as any);
+                        setDraggingPosition({ x: e.clientX, y: e.clientY });
+                      }}
                       onClick={() => {
                         const { icon, ...protoData } = proto;
                         handleDropCabinet(activeTab, 0, protoData as CabinetUnit);
                       }}
-                      className="flex flex-col items-center justify-center p-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-xl transition-all active:scale-95"
+                      className="flex flex-col items-center justify-center p-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-xl transition-all active:scale-95 touch-none"
                     >
                       <div className="text-slate-400 mb-1">{proto.icon}</div>
                       <span className="text-[9px] font-black uppercase text-slate-500 tracking-tighter">{proto.label}</span>
@@ -1327,14 +1334,16 @@ const ScreenWallEditor = ({
                     key={i}
                     onPointerDown={(e) => {
                       e.preventDefault();
+                      (e.currentTarget as any).releasePointerCapture(e.pointerId);
                       const { icon, ...protoData } = proto;
                       setDraggingCabinet({ ...protoData, id: 'proto', width: 600, qty: 1, fromLeft: 0 } as any);
+                      setDraggingPosition({ x: e.clientX, y: e.clientY });
                     }}
                     onClick={() => {
                       const { icon, ...protoData } = proto;
                       handleDropCabinet(activeTab, 0, protoData as CabinetUnit);
                     }}
-                    className="group bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl p-4 cursor-grab active:cursor-grabbing hover:border-amber-500 dark:hover:border-amber-500 hover:shadow-lg transition-all flex items-center gap-3 select-none active:scale-95"
+                    className="group bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl p-4 cursor-grab active:cursor-grabbing hover:border-amber-500 dark:hover:border-amber-500 hover:shadow-lg transition-all flex items-center gap-3 select-none active:scale-95 touch-none"
                   >
                     <div className="w-10 h-10 rounded-lg bg-white dark:bg-slate-900 flex items-center justify-center text-slate-400 group-hover:text-amber-500 border dark:border-slate-700 shadow-sm transition-colors">
                       {proto.icon}

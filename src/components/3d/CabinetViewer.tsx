@@ -1,5 +1,5 @@
 /// <reference types="@react-three/fiber" />
-import React, { Suspense, useRef, useState, useMemo, useEffect } from 'react';
+import React, { Suspense, useRef, useState, useMemo, useEffect, useCallback } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls, Grid, Html, useProgress, PerspectiveCamera, Environment, ContactShadows, Line, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
@@ -53,13 +53,15 @@ const CameraController = ({
   sceneCenter, 
   sceneSize,
   lightTheme,
-  isRecording
+  isRecording,
+  isDragging
 }: { 
   targetView: string; 
   sceneCenter: [number, number, number];
   sceneSize: { width: number; depth: number; height: number };
   lightTheme?: boolean;
   isRecording?: boolean;
+  isDragging?: boolean;
 }) => {
   const { camera } = useThree();
   const controlsRef = useRef<any>(null);
@@ -144,9 +146,9 @@ const CameraController = ({
       minDistance={200}
       maxDistance={maxDim * 5}
       maxPolarAngle={Math.PI / 2.1}
-      enableRotate={!isRecording}
-      enableZoom={!isRecording}
-      enablePan={!isRecording}
+      enableRotate={!isRecording && !isDragging}
+      enableZoom={!isRecording && !isDragging}
+      enablePan={!isRecording && !isDragging}
       autoRotate={isRecording}
       autoRotateSpeed={isRecording ? 12.0 : 2.0}
     />
@@ -267,6 +269,8 @@ const Scene = ({
   isMobile?: boolean;
 }) => {
   const [previewPos, setPreviewPos] = useState<{ wallIndex: number; fromLeft: number; width: number } | null>(null);
+  const { raycaster, camera, scene, gl } = useThree();
+
   const activeZones = (showEmptyWalls || !!draggedCabinet)
     ? project.zones.filter(z => z.active)
     : project.zones.filter(z => z.active && z.cabinets.length > 0);
@@ -494,7 +498,148 @@ const Scene = ({
     };
   }, [layoutData, showEmptyWalls]);
 
-  const { gl } = useThree();
+  // Refactored move handler that can be called by R3F events or global listener
+  const updatePreview = useCallback((point: THREE.Vector3, targetWallIndex?: number) => {
+    if (!draggedCabinet) return null;
+
+    let bestMatch: { wallIndex: number, fromLeft: number, width: number } | null = null;
+
+    if (targetWallIndex !== undefined) {
+      // Direct wall hit logic
+      const wall = layoutData.wallPositions[targetWallIndex];
+      const wallMatrixInverse = new THREE.Matrix4().makeTranslation(...wall.position).multiply(new THREE.Matrix4().makeRotationY(wall.rotation)).invert();
+      const localPoint = point.clone().applyMatrix4(wallMatrixInverse);
+      
+      const targetX = localPoint.x;
+      
+      const occupied = [
+        ...layoutData.cabinetPositions.filter(cp => cp.wallIndex === targetWallIndex).map(cp => ({ start: cp.unit.fromLeft, end: cp.unit.fromLeft + cp.unit.width, type: cp.unit.type })),
+        ...wall.zone.obstacles.map(obs => ({ start: obs.fromLeft, end: obs.fromLeft + obs.width, obstacle: obs }))
+      ].filter(o => {
+          if ((o as any).obstacle) {
+            const obs = (o as any).obstacle;
+            if (obs.id === 'corner_base_offset' && draggedCabinet.type === CabinetType.WALL) return false;
+            if (obs.id === 'corner_wall_offset' && draggedCabinet.type === CabinetType.BASE) return false;
+            if (obs.type === 'door' || obs.type === 'column' || obs.type === 'pipe') return true;
+            if (obs.type === 'window') {
+              const sill = obs.sillHeight || 0;
+              const cabTop = (draggedCabinet.type === CabinetType.WALL) ? 2100 : (draggedCabinet.type === CabinetType.TALL ? 2100 : 870);
+              return sill < cabTop;
+            }
+            return true;
+          }
+          return (o as any).type === draggedCabinet.type || (o as any).type === CabinetType.TALL || draggedCabinet.type === CabinetType.TALL;
+      }).sort((a, b) => a.start - b.start);
+
+      const spans: { start: number; end: number }[] = [];
+      let curr = 0;
+      occupied.forEach(o => {
+        if (o.start > curr + 50) spans.push({ start: curr, end: o.start });
+        curr = Math.max(curr, o.end);
+      });
+      if (curr < wall.width - 50) spans.push({ start: curr, end: wall.width });
+      if (spans.length === 0 && occupied.length === 0) spans.push({ start: 0, end: wall.width });
+
+      const span = spans.find(s => targetX >= s.start && targetX <= s.end) || 
+                   [...spans].sort((a, b) => {
+                     const dA = Math.min(Math.abs(targetX - a.start), Math.abs(targetX - a.end));
+                     const dB = Math.min(Math.abs(targetX - b.start), Math.abs(targetX - b.end));
+                     return dA - dB;
+                   })[0] || { start: 0, end: wall.width };
+
+      let fl = Math.max(span.start, Math.round(targetX / 25) * 25);
+      if (fl + 100 > span.end) fl = Math.max(span.start, span.end - draggedCabinet.width);
+      
+      bestMatch = { wallIndex: targetWallIndex, fromLeft: fl, width: Math.min(draggedCabinet.width, span.end - fl) };
+    } else {
+      // Floor hit logic - find nearest wall
+      let minDist = Infinity;
+      layoutData.wallPositions.forEach((wall, idx) => {
+        let dist = 0;
+        switch(idx) {
+          case 0: dist = Math.abs(point.z); break;
+          case 1: dist = Math.abs(point.x - layoutData.wallPositions[0].width); break;
+          case 2: dist = Math.abs(point.z - (layoutData.wallPositions[1]?.width || 0)); break;
+          case 3: dist = Math.abs(point.x); break;
+        }
+        if (dist < minDist) {
+          minDist = dist;
+          // Recursively call with identified wall index
+          const result = updatePreview(point, idx);
+          if (result) bestMatch = result;
+        }
+      });
+    }
+
+    if (bestMatch) {
+      setPreviewPos(bestMatch);
+      return bestMatch;
+    }
+    return null;
+  }, [draggedCabinet, layoutData]);
+
+  const handleDrop = useCallback(() => {
+    if (draggedCabinet && previewPos) {
+      const wall = layoutData.wallPositions[previewPos.wallIndex];
+      onDropCabinet?.(wall.zone.id, previewPos.fromLeft, draggedCabinet, previewPos.width);
+    }
+    setPreviewPos(null);
+  }, [draggedCabinet, previewPos, layoutData, onDropCabinet]);
+
+  // Global listeners for robust mobile dragging
+  useEffect(() => {
+    if (!draggedCabinet) return;
+
+    const onGlobalMove = (e: PointerEvent) => {
+      const rect = gl.domElement.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      const y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      
+      const tempRaycaster = new THREE.Raycaster();
+      tempRaycaster.setFromCamera(new THREE.Vector2(x, y), camera);
+      
+      const intersects = tempRaycaster.intersectObjects(scene.children, true);
+      if (intersects.length > 0) {
+        // Try to find a wall mesh or the floor
+        const wallHit = intersects.find(i => {
+           let curr: THREE.Object3D | null = i.object;
+           while (curr) {
+             if (curr.name?.startsWith('wall-group-')) return true;
+             curr = curr.parent;
+           }
+           return false;
+        });
+
+        if (wallHit) {
+          let wallIdx = -1;
+          let curr: THREE.Object3D | null = wallHit.object;
+          while (curr) {
+            if (curr.name?.startsWith('wall-group-')) {
+              wallIdx = parseInt(curr.name.split('-')[2]);
+              break;
+            }
+            curr = curr.parent;
+          }
+          updatePreview(wallHit.point, wallIdx);
+        } else {
+          const floorHit = intersects.find(i => i.object.name === 'drag-floor');
+          if (floorHit) updatePreview(floorHit.point);
+        }
+      }
+    };
+
+    const onGlobalUp = () => {
+      handleDrop();
+    };
+
+    window.addEventListener('pointermove', onGlobalMove);
+    window.addEventListener('pointerup', onGlobalUp);
+    return () => {
+      window.removeEventListener('pointermove', onGlobalMove);
+      window.removeEventListener('pointerup', onGlobalUp);
+    };
+  }, [draggedCabinet, previewPos, camera, scene, gl, updatePreview, handleDrop]);
+
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
@@ -586,6 +731,7 @@ const Scene = ({
         sceneSize={sceneBounds.size}
         lightTheme={lightTheme}
         isRecording={isRecording}
+        isDragging={!!draggedCabinet}
       />
       
       <color attach="background" args={[isStudio ? '#1a1a1a' : (lightTheme ? '#f3f4f6' : '#2d3748')]} />
@@ -645,6 +791,7 @@ const Scene = ({
       {layoutData.wallPositions.map(({ zone, position, width, height, rotation }, index) => (
         <Wall
           key={`wall-${zone.id}`}
+          name={`wall-group-${index}`}
           position={position}
           width={width}
           height={height}
@@ -654,91 +801,12 @@ const Scene = ({
           isActive={activeWallId === zone.id}
           onClick={() => onWallClick?.(zone.id)}
           onPointerMove={(e) => {
-            if (!draggedCabinet) return;
             e.stopPropagation();
-            // Calculate fromLeft from the local X coordinate of the intersection
-            const point = e.point.clone();
-            const wallMatrixInverse = new THREE.Matrix4().makeTranslation(...position).multiply(new THREE.Matrix4().makeRotationY(rotation)).invert();
-            point.applyMatrix4(wallMatrixInverse);
-            
-            const targetX = point.x;
-            const snapThreshold = 100;
-            
-            // Find all empty spans on this wall (segments not occupied by relevant items)
-            const occupied = [
-              ...layoutData.cabinetPositions.filter(cp => cp.wallIndex === index).map(cp => ({ start: cp.unit.fromLeft, end: cp.unit.fromLeft + cp.unit.width, type: cp.unit.type })),
-              ...zone.obstacles.map(obs => ({ start: obs.fromLeft, end: obs.fromLeft + obs.width, obstacle: obs }))
-            ].filter(o => {
-               if ((o as any).obstacle) {
-                 const obs = (o as any).obstacle;
-                 
-                 // Ruby Rule: Wall cabinets only care about wall corner offsets, Base only care about base offsets
-                 if (obs.id === 'corner_base_offset' && draggedCabinet.type === CabinetType.WALL) return false;
-                 if (obs.id === 'corner_wall_offset' && draggedCabinet.type === CabinetType.BASE) return false;
-
-                 if (obs.type === 'door' || obs.type === 'column' || obs.type === 'pipe') return true;
-                 if (obs.type === 'window') {
-                   const sill = obs.sillHeight || 0;
-                   const cabTop = (draggedCabinet.type === CabinetType.WALL) ? 2100 : (draggedCabinet.type === CabinetType.TALL ? 2100 : 870);
-                   return sill < cabTop;
-                 }
-                 return true;
-               }
-               return (o as any).type === draggedCabinet.type || (o as any).type === CabinetType.TALL || draggedCabinet.type === CabinetType.TALL;
-            }).sort((a, b) => a.start - b.start);
-
-            const spans: { start: number; end: number }[] = [];
-            let curr = 0;
-            occupied.forEach(o => {
-              if (o.start > curr + 50) spans.push({ start: curr, end: o.start });
-              curr = Math.max(curr, o.end);
-            });
-            if (curr < width - 50) spans.push({ start: curr, end: width });
-            
-            // Default to full wall if no other items
-            if (spans.length === 0 && occupied.length === 0) spans.push({ start: 0, end: width });
-
-            // Find the span the user is currently hovering over, or the nearest one
-            const span = spans.find(s => targetX >= s.start && targetX <= s.end) || 
-                         [...spans].sort((a, b) => {
-                           const dA = Math.min(Math.abs(targetX - a.start), Math.abs(targetX - a.end));
-                           const dB = Math.min(Math.abs(targetX - b.start), Math.abs(targetX - b.end));
-                           return dA - dB;
-                         })[0] || { start: 0, end: width };
-
-            const gapStart = span.start;
-            const gapEnd = span.end;
-
-            // Snap points
-            const snapPoints = [gapStart, gapEnd - draggedCabinet.width];
-            
-            let snappedX = Math.round(targetX / 25) * 25;
-            const closestSnap = snapPoints.reduce((prev, curr) => 
-              Math.abs(curr - targetX) < Math.abs(prev - targetX) ? curr : prev, snapPoints[0]
-            );
-            
-            if (Math.abs(closestSnap - targetX) < snapThreshold) {
-              snappedX = closestSnap;
-            }
-            
-            // Clamp to the identified gap
-            let fromLeft = Math.max(gapStart, snappedX);
-            if (fromLeft + 100 > gapEnd) {
-              fromLeft = Math.max(gapStart, gapEnd - draggedCabinet.width);
-            }
-            
-            // Adjust width to fit the gap
-            const finalWidth = Math.min(draggedCabinet.width, gapEnd - fromLeft);
-            
-            setPreviewPos({ wallIndex: index, fromLeft, width: finalWidth });
+            updatePreview(e.point, index);
           }}
           onPointerUp={(e) => {
-            if (draggedCabinet && previewPos) {
-              e.stopPropagation();
-              const wall = layoutData.wallPositions[previewPos.wallIndex];
-              onDropCabinet?.(wall.zone.id, previewPos.fromLeft, draggedCabinet, previewPos.width);
-              setPreviewPos(null);
-            }
+            e.stopPropagation();
+            handleDrop();
           }}
           lightTheme={lightTheme}
           showGrid={!!draggedCabinet}
@@ -749,7 +817,7 @@ const Scene = ({
 
       {previewPos && draggedCabinet && (
         <Cabinet
-          unit={{ ...draggedCabinet, id: 'preview-ghost', width: previewPos.width }}
+          unit={{ ...draggedCabinet, id: 'preview-ghost', width: previewPos.width, fromLeft: previewPos.fromLeft }}
           position={(() => {
             const wall = layoutData.wallPositions[previewPos.wallIndex];
             const cabOffset = 0;
@@ -871,118 +939,14 @@ const Scene = ({
           rotation={[-Math.PI / 2, 0, 0]} 
           position={[0, -0.5, 0]} 
           onPointerMove={(e) => {
-            if (!draggedCabinet) return;
-            const point = e.point;
-            
-            let minDist = Infinity;
-            let nearest = null;
-            
-            layoutData.wallPositions.forEach((wall, idx) => {
-              let dist = 0;
-              let fromLeft = 0;
-              
-              // Approximate distance to wall line segments
-              switch(idx) {
-                case 0: // Wall A: z=0, x from 0 to wallAWidth
-                  dist = Math.abs(point.z);
-                  fromLeft = point.x;
-                  break;
-                case 1: // Wall B: x=wallAWidth, z from 0 to wallBWidth
-                  dist = Math.abs(point.x - layoutData.wallPositions[0].width);
-                  fromLeft = point.z;
-                  break;
-                case 2: // Wall C: z=wallBWidth, x from 0 to wallAWidth
-                  dist = Math.abs(point.z - (layoutData.wallPositions[1]?.width || 0));
-                  fromLeft = layoutData.wallPositions[0].width - point.x;
-                  break;
-                case 3: // Wall D: x=0, z from 0 to wallBWidth
-                  dist = Math.abs(point.x);
-                  fromLeft = (layoutData.wallPositions[1]?.width || 0) - point.z;
-                  break;
-              }
-              
-              if (dist < minDist) {
-                minDist = dist;
-                const targetX = fromLeft;
-                const snapThreshold = 100;
-                
-                // Find all empty spans on this wall
-                const occupied = [
-                  ...layoutData.cabinetPositions.filter(cp => cp.wallIndex === idx).map(cp => ({ start: cp.unit.fromLeft, end: cp.unit.fromLeft + cp.unit.width, type: cp.unit.type })),
-                  ...wall.zone.obstacles.map(obs => ({ start: obs.fromLeft, end: obs.fromLeft + obs.width, obstacle: obs }))
-                ].filter(o => {
-                  if ((o as any).obstacle) {
-                    const obs = (o as any).obstacle;
-                    
-                    // Ruby Rule: Row-specific corner isolation
-                    if (obs.id === 'corner_base_offset' && draggedCabinet.type === CabinetType.WALL) return false;
-                    if (obs.id === 'corner_wall_offset' && draggedCabinet.type === CabinetType.BASE) return false;
-
-                    if (obs.type === 'door' || obs.type === 'column' || obs.type === 'pipe') return true;
-                    if (obs.type === 'window') {
-                      const sill = obs.sillHeight || 0;
-                      const cabTop = (draggedCabinet.type === CabinetType.WALL) ? 2100 : (draggedCabinet.type === CabinetType.TALL ? 2100 : 870);
-                      return sill < cabTop;
-                    }
-                    return true;
-                  }
-                  return (o as any).type === draggedCabinet.type || (o as any).type === CabinetType.TALL || draggedCabinet.type === CabinetType.TALL;
-                }).sort((a, b) => a.start - b.start);
-
-                const spans: { start: number; end: number }[] = [];
-                let curr = 0;
-                occupied.forEach(o => {
-                  if (o.start > curr + 50) spans.push({ start: curr, end: o.start });
-                  curr = Math.max(curr, o.end);
-                });
-                if (curr < wall.width - 50) spans.push({ start: curr, end: wall.width });
-                
-                if (spans.length === 0 && occupied.length === 0) spans.push({ start: 0, end: wall.width });
-
-                const span = spans.find(s => targetX >= s.start && targetX <= s.end) || 
-                             [...spans].sort((a, b) => {
-                               const dA = Math.min(Math.abs(targetX - a.start), Math.abs(targetX - a.end));
-                               const dB = Math.min(Math.abs(targetX - b.start), Math.abs(targetX - b.end));
-                               return dA - dB;
-                             })[0] || { start: 0, end: wall.width };
-
-                const gapStart = span.start;
-                const gapEnd = span.end;
-                
-                // Snap points
-                const snapPoints = [gapStart, gapEnd - draggedCabinet.width];
-                
-                let snappedX = Math.round(targetX / 25) * 25;
-                const closestSnap = snapPoints.reduce((prev, curr) => 
-                  Math.abs(curr - targetX) < Math.abs(prev - targetX) ? curr : prev, snapPoints[0]
-                );
-                
-                if (Math.abs(closestSnap - targetX) < snapThreshold) {
-                  snappedX = closestSnap;
-                }
-                
-                // Clamp to the identified gap
-                let fl = Math.max(gapStart, snappedX);
-                if (fl + 100 > gapEnd) {
-                  fl = Math.max(gapStart, gapEnd - draggedCabinet.width);
-                }
-                
-                // Adjust width to fit the gap
-                const finalWidth = Math.min(draggedCabinet.width, gapEnd - fl);
-                
-                nearest = { wallIndex: idx, fromLeft: fl, width: finalWidth };
-              }
-            });
-            
-            if (nearest) setPreviewPos(nearest);
+            e.stopPropagation();
+            updatePreview(e.point);
           }}
           onPointerUp={(e) => {
-            if (draggedCabinet && previewPos) {
-              const wall = layoutData.wallPositions[previewPos.wallIndex];
-              onDropCabinet?.(wall.zone.id, previewPos.fromLeft, draggedCabinet, previewPos.width);
-              setPreviewPos(null);
-            }
+            e.stopPropagation();
+            handleDrop();
           }}
+          name="drag-floor"
         >
           <planeGeometry args={[100000, 100000]} />
           <meshStandardMaterial transparent opacity={0} />
@@ -1091,7 +1055,7 @@ export const CabinetViewer: React.FC<Props> = ({
   }
 
   return (
-    <div className={`w-full h-full relative overflow-hidden ${lightTheme ? 'bg-gradient-to-br from-slate-100 to-slate-200' : ''}`}>
+    <div className={`w-full h-full relative overflow-hidden touch-none ${lightTheme ? 'bg-gradient-to-br from-slate-100 to-slate-200' : ''}`}>
         {isInitialLoading && (
           <div className="absolute inset-0 z-[100] flex flex-col items-center justify-center bg-slate-900">
             <div className="w-16 h-16 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mb-4"></div>
@@ -1144,24 +1108,22 @@ export const CabinetViewer: React.FC<Props> = ({
           )}
         </>
 
-      <Canvas
+      <Canvas 
         shadows
-        camera={{ fov: 50 }}
-        dpr={[1, 2]}
+        camera={{ position: [2000, 2000, 2000], fov: 45, near: 10, far: 50000 }}
         gl={{ 
           preserveDrawingBuffer: true,
           alpha: false,
           antialias: true,
           powerPreference: "high-performance",
-          precision: "lowp"
+          precision: "highp"
+        }}
+        style={{ 
+          background: isStudio ? '#1a1a1a' : (lightTheme ? '#f3f4f6' : '#2d3748'), 
+          cursor: draggedCabinet ? 'crosshair' : 'default',
+          touchAction: 'none'
         }}
       >
-        <PerspectiveCamera 
-          makeDefault 
-          fov={50}
-          near={10}
-          far={50000}
-        />
         <Suspense fallback={<LoadingFallback />}>
           <Scene 
             project={project} 
