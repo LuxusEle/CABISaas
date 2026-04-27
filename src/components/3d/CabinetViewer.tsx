@@ -36,6 +36,7 @@ interface Props {
   opacity?: number;
   skeletonView?: boolean;
   isStudio?: boolean;
+  isMobile?: boolean;
 }
 
 const LoadingFallback = () => {
@@ -239,7 +240,8 @@ const Scene = ({
   isRecording,
   onRecordingComplete,
   onViewModeChange,
-  isStudio
+  isStudio,
+  isMobile
 }: { 
   project: Project; 
   showHardware?: boolean; 
@@ -262,6 +264,7 @@ const Scene = ({
   onRecordingComplete: () => void;
   onViewModeChange: (mode: string) => void;
   isStudio?: boolean;
+  isMobile?: boolean;
 }) => {
   const [previewPos, setPreviewPos] = useState<{ wallIndex: number; fromLeft: number; width: number } | null>(null);
   const activeZones = (showEmptyWalls || !!draggedCabinet)
@@ -791,8 +794,9 @@ const Scene = ({
               forceGola={forceGola}
               opacity={opacity}
               isStudio={isStudio}
+              isMobile={isMobile}
             />
-            {!isStudio && isSelected && (() => {
+            {!isStudio && isSelected && !isMobile && (() => {
               const baseH = project.settings.baseHeight || 870;
               const ct = project.settings.counterThickness || 40;
               const wallElev = project.settings.wallCabinetElevation || 450;
@@ -838,7 +842,7 @@ const Scene = ({
       })}
 
       {/* Wall dimensions for the active wall */}
-      {!isStudio && activeWallId && layoutData.wallPositions.map((wp, i) => {
+      {!isStudio && !isMobile && activeWallId && layoutData.wallPositions.map((wp, i) => {
         if (wp.zone.id !== activeWallId) return null;
         return (
           <group key={`wall-dim-${wp.zone.id}`} position={wp.position} rotation={[0, wp.rotation, 0]}>
@@ -1009,8 +1013,10 @@ export const CabinetViewer: React.FC<Props> = ({
   onShowHardwareChange,
   opacity,
   skeletonView,
-  isStudio = false
+  isStudio = false,
+  isMobile: isMobileProp
 }) => {
+  const isMobile = useMemo(() => isMobileProp ?? (typeof window !== 'undefined' && window.innerWidth < 768), [isMobileProp]);
   // Link forceGola to project settings for persistence
   const forceGola = project.settings.advancedTestingSettings?.enableGola ?? false;
   const setForceGola = (val: boolean) => {
@@ -1179,6 +1185,7 @@ export const CabinetViewer: React.FC<Props> = ({
             isRecording={isRecording}
             onRecordingComplete={handleRecordingComplete}
             isStudio={isStudio}
+            isMobile={isMobile}
           />
         </Suspense>
       </Canvas>
