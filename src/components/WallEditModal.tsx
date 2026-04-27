@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Plus, Trash2, AlertTriangle, Wand2 } from 'lucide-react';
+import { X, Save, Plus, Trash2, AlertTriangle, ArrowRight } from 'lucide-react';
 import { Project, Zone, Obstacle } from '../types';
 import { CabinetViewer } from './3d';
 import { v4 as uuid } from 'uuid';
@@ -485,10 +485,10 @@ export const WallEditModal: React.FC<WallEditModalProps> = ({
                 </button>
                 <button
                   onClick={handleSave}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-bold shadow-md hover:shadow-lg transition-all"
+                  className="flex items-center gap-2 px-8 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-full font-black uppercase tracking-widest shadow-lg shadow-amber-500/20 hover:scale-105 transition-all group"
                 >
-                  <Wand2 size={18} />
-                  Generate 3D Layout
+                  Next Step
+                  <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                 </button>
               </>
             )}

@@ -239,7 +239,7 @@ export default function App() {
       // Just set state and navigate - do NOT save to database yet
       lastSavedProjectRef.current = JSON.stringify(newProj);
       setProject(newProj);
-      navigate('/setup');
+      navigate('/setup?step=project');
     });
   };
 
