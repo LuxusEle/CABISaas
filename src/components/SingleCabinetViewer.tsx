@@ -53,7 +53,7 @@ const SceneContent: React.FC<{
 
   // For preview, we use actual depth/height but position from 0
   const depth = cabinetType === 'base' ? settings.depthBase || 560 : 
-                cabinetType === 'wall' ? settings.depthWall || 350 : 
+                cabinetType === 'wall' ? settings.depthWall || 300 : 
                 settings.depthTall || 600;
   const height = cabinetType === 'tall' ? settings.tallHeight || 2100 : 
                 cabinetType === 'wall' ? settings.wallHeight || 720 : 

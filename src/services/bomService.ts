@@ -291,7 +291,7 @@ export const resolveLocalCollisions = (zone: Zone, changedIndex: number, setting
 
 // --- AUTO FILL ---
 
-const STD_WIDTHS = [900, 800, 600, 500, 450, 400, 300, 250];
+const STD_WIDTHS = [1000, 900, 800, 600, 500, 450, 400, 300, 250];
 
 export const getIntersectingCabinets = (zone: Zone, cabinet: CabinetUnit): CabinetUnit[] => {
   return zone.cabinets.filter(c => {
@@ -370,26 +370,32 @@ export const autoFillZone = (
 
   if (options.includeCooker && !existingCooker) {
     // Try to place cooker away from sink (working triangle)
-    const cookerWidth = 900;
-    const sinkCab = [...newCabinets, ...manualCabs].find(c => c.preset === PresetType.SINK_UNIT);
-    const preferredX = sinkCab ? (sinkCab.fromLeft + 1800 > totalLength - cookerWidth ? 0 : sinkCab.fromLeft + 1800) : 0;
+    const cookerWidth = 1000;
+    const preferredPositions = [
+      Math.floor((totalLength - cookerWidth) / 2), // Center
+      0,                                          // Left
+      totalLength - cookerWidth                    // Right
+    ];
 
-    // Search from preferredX outwards
-    for (let offset = 0; offset < totalLength; offset += 50) {
-      const positions = [preferredX + offset, preferredX - offset];
-      let found = false;
-      for (const x of positions) {
-        if (x >= 0 && x <= totalLength - cookerWidth && !isOccupied(x, cookerWidth, CabinetType.BASE)) {
-          cookerCabinet = {
-            id: `auto-cooker-${x}`, preset: PresetType.BASE_DRAWER_3, type: CabinetType.BASE,
-            width: cookerWidth, qty: 1, isAutoFilled: true, fromLeft: x
-          };
-          newCabinets.push(cookerCabinet);
-          found = true;
-          break;
-        }
+    let bestX = preferredPositions[0];
+    const leftGap = bestX;
+    const rightGap = totalLength - (bestX + cookerWidth);
+    
+    // Ruby Rule: If centering creates gaps < 400mm, snap to one side to merge them
+    if ((leftGap > 0 && leftGap < 400) || (rightGap > 0 && rightGap < 400)) {
+      if (leftGap <= rightGap) {
+        bestX = 0;
+      } else {
+        bestX = totalLength - cookerWidth;
       }
-      if (found) break;
+    }
+
+    if (!isOccupied(bestX, cookerWidth, CabinetType.BASE)) {
+      cookerCabinet = {
+        id: `auto-cooker-${bestX}`, preset: PresetType.BASE_DRAWER_3, type: CabinetType.BASE,
+        width: cookerWidth, qty: 1, isAutoFilled: true, fromLeft: bestX
+      };
+      newCabinets.push(cookerCabinet);
     }
   } else {
     cookerCabinet = existingCooker || null;
@@ -414,7 +420,6 @@ export const autoFillZone = (
 
     let x = 0;
     while (x < totalLength) {
-      // Find next free spot
       let foundSpot = false;
       for (const w of STD_WIDTHS) {
         if (x + w <= totalLength && !isOccupied(x, w, type)) {
@@ -422,28 +427,38 @@ export const autoFillZone = (
             ? (options.preferDrawers ? PresetType.BASE_DRAWER_3 : PresetType.BASE_DOOR)
             : (type === CabinetType.WALL ? PresetType.WALL_STD : PresetType.TALL_UTILITY);
 
-          newCabinets.push({ id: `auto-box-${type}-${x}`, preset, type, width: w, qty: 1, isAutoFilled: true, fromLeft: x });
-          x += w;
+          const newUnit = { id: `auto-box-${type}-${x}`, preset, type, width: w, qty: 1, isAutoFilled: true, fromLeft: x };
+          
+          // Absorption Logic: Check if the remaining space after this unit is tiny (< 400mm)
+          let nextGap = 0;
+          let checkX = x + w;
+          while (checkX < totalLength && !isOccupied(checkX, 1, type)) {
+            nextGap++;
+            checkX++;
+          }
+          
+          if (nextGap > 0 && nextGap < 400) {
+            // Absorb the gap!
+            const totalWidth = w + nextGap;
+            if (totalWidth > 1000) {
+              // Split into two equal cabinets
+              const half = totalWidth / 2;
+              newCabinets.push({ ...newUnit, width: half });
+              newCabinets.push({ ...newUnit, id: `auto-box-${type}-${x}-2`, width: half, fromLeft: x + half });
+            } else {
+              newCabinets.push({ ...newUnit, width: totalWidth });
+            }
+            x += totalWidth;
+          } else {
+            newCabinets.push(newUnit);
+            x += w;
+          }
+          
           foundSpot = true;
           break;
         }
       }
-      if (!foundSpot) {
-        // Check if we have a small gap that could be a filler
-        let gapWidth = 0;
-        while (x + gapWidth < totalLength && !isOccupied(x + gapWidth, 1, type)) {
-          gapWidth++;
-        }
-        if (gapWidth >= 250) {
-          const preset = type === CabinetType.BASE
-            ? (options.preferDrawers ? PresetType.BASE_DRAWER_3 : PresetType.BASE_DOOR)
-            : (type === CabinetType.WALL ? PresetType.WALL_STD : PresetType.TALL_UTILITY);
-          newCabinets.push({ id: `auto-filler-${type}-${x}`, preset, type, width: gapWidth, qty: 1, isAutoFilled: true, fromLeft: x });
-          x += gapWidth;
-        } else {
-          x += 25;
-        }
-      }
+      if (!foundSpot) x += 25;
     }
   };
 
@@ -866,7 +881,7 @@ export const createNewProject = (logoUrl?: string): Project => ({
     wallHeight: 720,    // Ruby: 720mm
     tallHeight: 2080,  // Ruby: 2080mm (aligned)
     depthBase: 560,    // Ruby: 560mm
-    depthWall: 350,    // Ruby: 350mm
+    depthWall: 300,    // Ruby: 300mm
     depthTall: 560,    // Ruby: 560mm
     widthBase: 600,   // Default base cabinet width
     widthWall: 600,   // Default wall cabinet width

@@ -31,6 +31,31 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
     }
   }
 
+  // 2.1 Alignment Units (Ruby Rule: Align wall units with base corner)
+  // Place these BEFORE anchors so anchors don't "steal" the alignment space
+  zones.forEach((zone) => {
+    const wallCornerOffset = zone.obstacles.find(o => o.id === 'corner_wall_offset');
+    if (wallCornerOffset) {
+      const baseOffset = settings.depthBase + 25;
+      const wallOffset = settings.depthWall + 25;
+      const alignWidth = baseOffset - wallOffset;
+      const x = wallCornerOffset.fromLeft + wallCornerOffset.width;
+      if (canPlace(zone, x, alignWidth, CabinetType.WALL, settings)) {
+        placeUnit(zone, {
+          id: uuid(),
+          preset: PresetType.WALL_STD,
+          type: CabinetType.WALL,
+          width: alignWidth,
+          qty: 1,
+          fromLeft: x,
+          isAutoFilled: true,
+          label: '',
+          advancedSettings: { showDoors: false }
+        });
+      }
+    }
+  });
+
   // 3. Anchor Units - Global Search (Tall, Sink, Cooker)
   let tallPlaced = false;
   let sinkPlaced = false;
@@ -47,11 +72,18 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
     
     // Try X = 0 first (Right Corner mode or Standard)
     if (canPlace(zone, 0, tallWidth, CabinetType.TALL, settings)) {
+      // Ruby Rule: If window is close (within 400mm), extend Tall unit to window edge
+      const window = zone.obstacles.find(o => o.type === 'window');
+      let finalWidth = tallWidth;
+      if (window && window.fromLeft > tallWidth && window.fromLeft < tallWidth + 400) {
+        finalWidth = window.fromLeft;
+      }
+
       placeUnit(zone, { 
         id: uuid(), 
         preset: PresetType.TALL_UTILITY, 
         type: CabinetType.TALL, 
-        width: tallWidth, 
+        width: finalWidth, 
         qty: 1, 
         fromLeft: 0, 
         isAutoFilled: true, 
@@ -80,11 +112,35 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
     if (sinkPlaced) break;
     const window = zone.obstacles.find(o => o.type === 'window');
     if (window) {
-      const sinkWidth = 900;
-      const x = Math.max(0, window.fromLeft + (window.width - sinkWidth) / 2);
-      if (canPlace(zone, x, sinkWidth, CabinetType.BASE, settings)) {
-        placeUnit(zone, { id: uuid(), preset: PresetType.SINK_UNIT, type: CabinetType.BASE, width: sinkWidth, qty: 1, fromLeft: x, isAutoFilled: true, label: '' });
-        sinkPlaced = true;
+      const gaps = findGaps(zone, CabinetType.BASE, settings);
+      const windowStart = window.fromLeft;
+      const windowEnd = window.fromLeft + window.width;
+      const windowWidth = window.width;
+      
+      // Ruby Rule: Choose snap side to avoid tiny unfillable gaps
+      const sw = Math.min(1000, windowWidth);
+      const wallCornerOffset = zone.obstacles.find(o => o.id === 'corner_base_offset');
+      const startX = wallCornerOffset ? (wallCornerOffset.fromLeft + wallCornerOffset.width) : 0;
+      
+      let xSink = windowStart; // Try left snap first
+      const leftGap = xSink - startX;
+      
+      if (leftGap > 0 && leftGap < ABSOLUTE_MIN_WIDTH) {
+        // Left snap leaves a tiny gap! Try snapping to the right side of the window
+        const rightX = windowEnd - sw;
+        const rightGap = rightX - startX;
+        if (rightGap >= ABSOLUTE_MIN_WIDTH || rightGap === 0) {
+          xSink = rightX;
+        }
+      }
+
+      const windowGap = gaps.find(g => xSink >= g.start && xSink + sw <= g.end);
+      
+      if (windowGap) {
+        if (canPlace(zone, xSink, sw, CabinetType.BASE, settings)) {
+          placeUnit(zone, { id: uuid(), preset: PresetType.SINK_UNIT, type: CabinetType.BASE, width: sw, qty: 1, fromLeft: xSink, isAutoFilled: true, label: '' });
+          sinkPlaced = true;
+        }
       }
     }
   }
@@ -92,14 +148,40 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
   // 3.3 Cooker Unit
   for (const zone of zones) {
     if (cookerPlaced) break;
-    const cookerWidth = 900;
+    const cookerWidth = 1000;
     const gaps = findGaps(zone, CabinetType.BASE, settings);
     for (const gap of gaps) {
       if (gap.length >= cookerWidth) {
-        const x = gap.start + (gap.length - cookerWidth) / 2;
+        let x = gap.start + (gap.length - cookerWidth) / 2;
+        
+        // Ruby Rule: Avoid leaving small unfillable gaps. 
+        // If centering leaves gaps < 250mm, snap to one side to preserve a larger gap for standard units.
+        const leftGap = x - gap.start;
+        const rightGap = gap.end - (x + cookerWidth);
+        
+        if (leftGap > 0 && leftGap < MIN_FILL_WIDTH) {
+          x = gap.start;
+        } else if (rightGap > 0 && rightGap < MIN_FILL_WIDTH) {
+          x = Math.max(gap.start, gap.end - cookerWidth);
+        }
+
         placeUnit(zone, { id: uuid(), preset: PresetType.BASE_DRAWER_3, type: CabinetType.BASE, width: cookerWidth, qty: 1, fromLeft: x, isAutoFilled: true, label: '' });
         if (canPlace(zone, x, cookerWidth, CabinetType.WALL, settings)) {
-          placeUnit(zone, { id: uuid(), preset: PresetType.HOOD_UNIT, type: CabinetType.WALL, width: cookerWidth, qty: 1, fromLeft: x, isAutoFilled: true, label: '' });
+          const wallHeight = settings.wallHeight || 720;
+          placeUnit(zone, { 
+            id: uuid(), 
+            preset: PresetType.HOOD_UNIT, 
+            type: CabinetType.WALL, 
+            width: cookerWidth, 
+            qty: 1, 
+            fromLeft: x, 
+            isAutoFilled: true, 
+            label: '',
+            advancedSettings: {
+              height: wallHeight - 150,
+              elevationOffset: 150
+            }
+          });
         }
         cookerPlaced = true;
         break;
@@ -131,10 +213,11 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
 };
 
 // --- Ruby Design Rules Constants ---
-const STANDARD_WIDTHS = [900, 600, 450, 300, 250];
+const STANDARD_WIDTHS = [1000, 900, 600, 450, 300, 250];
 const BASE_CORNER_WIDTH = 1050;
 const WALL_CORNER_WIDTH = 750;
-const MIN_FILL_WIDTH = 250;
+const MIN_FILL_WIDTH = 400; // Ruby Rule: Avoid cabinets < 400mm unless absolutely necessary
+const ABSOLUTE_MIN_WIDTH = 250; // Still allowed if no other choice
 
 // --- Helper Functions ---
 
@@ -142,8 +225,15 @@ function injectCorners(current: Zone, next: Zone, settings: ProjectSettings) {
   const depth = settings.depthBase;
   const wDepth = settings.depthWall;
   
-  // Base Corner
-  const baseCornerOffset = settings.depthBase + (settings.doorMaterialThickness || 18) + 25;
+  // 2. Base Corner Offset (Usually Depth + 25mm)
+  let baseOffset = settings.depthBase + 25;
+  
+  // Ruby Rule: If window is close to the corner, extend the offset to meet the window start
+  const window = next.obstacles.find(o => o.type === 'window');
+  if (window && window.fromLeft > baseOffset && window.fromLeft < baseOffset + 400) {
+    baseOffset = window.fromLeft;
+  }
+
   current.cabinets.push({
     id: uuid(), 
     preset: PresetType.BASE_CORNER, 
@@ -154,7 +244,7 @@ function injectCorners(current: Zone, next: Zone, settings: ProjectSettings) {
     isAutoFilled: true, 
     label: '',
     advancedSettings: { 
-      blindPanelWidth: baseCornerOffset, 
+      blindPanelWidth: baseOffset, 
       blindCornerSide: 'right', 
       cabinetType: 'corner' 
     }
@@ -165,7 +255,7 @@ function injectCorners(current: Zone, next: Zone, settings: ProjectSettings) {
     id: 'corner_base_offset', 
     type: 'column', 
     fromLeft: 0, 
-    width: baseCornerOffset, 
+    width: baseOffset, 
     height: settings.baseHeight, 
     depth 
   });
@@ -257,21 +347,28 @@ function fillRemaining(zone: Zone, type: CabinetType, settings: ProjectSettings)
     let remainingLength = gap.length;
 
     // Use standard widths in descending order
-    while (remainingLength >= MIN_FILL_WIDTH) {
+    while (remainingLength >= ABSOLUTE_MIN_WIDTH) {
       const width = STANDARD_WIDTHS.find(w => w <= remainingLength);
       if (width) {
-        placeUnit(zone, { 
-          id: uuid(), 
-          preset, 
-          type, 
-          width: width, 
-          qty: 1, 
-          fromLeft: currentX, 
-          isAutoFilled: true, 
-          label: `${type.charAt(0)}${zone.cabinets.length + 1}` 
-        });
-        currentX += width;
-        remainingLength -= width;
+        const leftover = remainingLength - width;
+        
+        // Absorption Logic: If leftover is small (< 400), absorb it
+        if (leftover > 0 && leftover < MIN_FILL_WIDTH) {
+          const totalWidth = width + leftover;
+          if (totalWidth > 1000) {
+            const half = totalWidth / 2;
+            placeUnit(zone, { id: uuid(), preset, type, width: half, qty: 1, fromLeft: currentX, isAutoFilled: true, label: '' });
+            placeUnit(zone, { id: uuid(), preset, type, width: half, qty: 1, fromLeft: currentX + half, isAutoFilled: true, label: '' });
+          } else {
+            placeUnit(zone, { id: uuid(), preset, type, width: totalWidth, qty: 1, fromLeft: currentX, isAutoFilled: true, label: '' });
+          }
+          remainingLength = 0;
+          currentX += totalWidth;
+        } else {
+          placeUnit(zone, { id: uuid(), preset, type, width: width, qty: 1, fromLeft: currentX, isAutoFilled: true, label: '' });
+          remainingLength -= width;
+          currentX += width;
+        }
       } else {
         break;
       }
@@ -303,11 +400,15 @@ function absorbRemainder(zone: Zone, settings: ProjectSettings) {
             );
           }
           
-          // Priority 3: Any Cabinet (Final resort)
+          // Priority 3: Any Cabinet (Final resort) - Still prefer avoiding anchor units
           if (!target) {
-            target = findAdjacent(zone, type, gap, () => true);
+            target = findAdjacent(zone, type, gap, c => 
+              c.preset !== PresetType.SINK_UNIT && 
+              c.preset !== PresetType.BASE_DRAWER_3 && 
+              c.preset !== PresetType.HOOD_UNIT
+            );
           }
-
+          
           if (target) {
             if (Math.abs(target.fromLeft - (gap.start + gap.length)) < 2) {
               target.width += gap.length;

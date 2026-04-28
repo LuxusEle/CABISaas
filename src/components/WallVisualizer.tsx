@@ -234,13 +234,14 @@ export const WallVisualizer: React.FC<Props> = ({
     let y = height - baseHeight;
 
     if (isTall) { 
-        h = tallHeight - toeKick; 
+        h = (unit.advancedSettings?.height || tallHeight) - toeKick; 
         y = (height || 2400) - tallHeight; 
     }
     else if (isWall) { 
-        h = wallHeight; 
+        h = unit.advancedSettings?.height || wallHeight; 
         // Wall cabinet sits above counter top using settings
         const wallElevation = settings?.wallCabinetElevation || 450;
+        // Top alignment: stay flush with the standard top edge
         y = (height || 2400) - baseHeight - counterThickness - wallElevation - wallHeight;
     }
 
@@ -383,12 +384,30 @@ export const WallVisualizer: React.FC<Props> = ({
         </g>
       );
     } else if (unit.preset === PresetType.HOOD_UNIT) {
-      detailLines.push(
-        <g key="hood-details">
-          <rect x={x} y={y + h - 50} width={w} height={50} fill="rgba(0,0,0,0.1)" stroke={strokeColor} strokeWidth="1" strokeDasharray="2,2" />
-          <text x={x + w / 2} y={y + h - 25} textAnchor="middle" fontSize="12" fill={strokeColor} opacity="0.6">200mm NOTCH</text>
-        </g>
-      );
+      // Hood specific details
+      if (showShelves && numShelves > 0) {
+        const spacing = h / (numShelves + 1);
+        for (let i = 1; i <= numShelves; i++) {
+          const sy = y + spacing * i;
+          detailLines.push(
+            <line 
+              key={`shelf-line-${i}`} 
+              x1={x + 2} 
+              y1={sy} 
+              x2={x + w - 2} 
+              y2={sy} 
+              stroke={strokeColor} 
+              strokeWidth="3" 
+              strokeDasharray="8,4" 
+              opacity={detailOpacity} 
+            />
+          );
+        }
+      }
+      
+      // Optional: Add a subtle visual indicator for the hood area if needed, 
+      // but usually the height difference is enough.
+      detailLines.push(<path key="door-v" d={`M${x + w} ${y} L${x + w / 2} ${y + h / 2} L${x + w} ${y + h}`} fill="none" stroke={strokeColor} strokeWidth="1.5" opacity={detailOpacity} />);
     } else {
       // General Base/Wall cabinet logic
       

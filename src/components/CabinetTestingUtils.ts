@@ -102,6 +102,7 @@ export interface TestingSettings {
   carcassTexture?: THREE.Texture;
   doorTexture?: THREE.Texture;
   shelfTexture?: THREE.Texture;
+  elevationOffset?: number;
 }
 
 export const DEFAULT_SETTINGS: TestingSettings = {
@@ -679,7 +680,7 @@ export const getCabinetTestingSettings = (
     merged = { ...merged, ...unit.advancedSettings };
     // Always respect the current width from the layout
     merged.width = widthOverride ?? unit.width;
-    merged.height = initialHeight;
+    merged.height = unit.advancedSettings.height ?? initialHeight;
     merged.depth = initialDepth;
   } else {
     // Default visibility logic for new units

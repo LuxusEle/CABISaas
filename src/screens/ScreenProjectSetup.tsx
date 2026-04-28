@@ -40,6 +40,7 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string | null>(project.settings.logoUrl || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showAdvancedConstruction, setShowAdvancedConstruction] = useState(false);
 
   // Step Completion Logic
   const isIdentityDone = project.name.trim().length > 0;
@@ -413,17 +414,72 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
                   )}
 
                   {activeModal === 'construction' && (
-                    <div className="space-y-6 animate-in slide-in-from-bottom-4">
-                      <div className="grid grid-cols-2 gap-3 sm:gap-8">
-                        <NumberInput label="Kerf (mm)" value={project.settings.kerf} onChange={v => setProject({ ...project, settings: { ...project.settings, kerf: v } })} />
-                        <NumberInput label="Counter Thk (mm)" value={project.settings.counterThickness} onChange={v => setProject({ ...project, settings: { ...project.settings, counterThickness: v } })} />
-                        <div className="col-span-full">
-                          <MaterialAllocationPanel
-                            settings={project.settings}
-                            onUpdate={s => setProject({ ...project, settings: { ...project.settings, ...s } })}
-                            isExpanded={true}
-                          />
+                    <div className="space-y-8 animate-in slide-in-from-bottom-4">
+                      {/* Basic Standards */}
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                          <h4 className="text-[11px] font-black uppercase text-slate-900 dark:text-white tracking-[0.2em] flex items-center gap-2">
+                            <div className="w-4 h-1 bg-amber-500 rounded-full" /> Technical Standards
+                          </h4>
+                          
+                          <button 
+                            onClick={() => {
+                              if (!isPro) {
+                                alert('Advanced Construction Editor is a Pro feature. Please upgrade to unlock.');
+                                return;
+                              }
+                              setShowAdvancedConstruction(!showAdvancedConstruction);
+                            }}
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
+                              showAdvancedConstruction 
+                                ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' 
+                                : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 hover:bg-amber-500 hover:text-white'
+                            }`}
+                          >
+                            {isPro ? (showAdvancedConstruction ? 'Hide Advanced' : 'Advanced Editor') : <><Lock size={10} /> Advanced Editor</>}
+                          </button>
                         </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                          <NumberInput label="Kerf (mm)" value={project.settings.kerf} onChange={v => setProject({ ...project, settings: { ...project.settings, kerf: v } })} />
+                          <NumberInput label="Counter Thickness (mm)" value={project.settings.counterThickness} onChange={v => setProject({ ...project, settings: { ...project.settings, counterThickness: v } })} />
+                        </div>
+                      </div>
+
+                      {showAdvancedConstruction && isPro && (
+                        <div className="space-y-8 animate-in zoom-in-95 duration-200">
+                          {/* Standard Depths */}
+                          <div className="space-y-4">
+                            <h4 className="text-[11px] font-black uppercase text-slate-900 dark:text-white tracking-[0.2em] flex items-center gap-2">
+                              <div className="w-4 h-1 bg-blue-500 rounded-full" /> Standard Depths (mm)
+                            </h4>
+                            <div className="grid grid-cols-3 gap-4">
+                              <NumberInput label="Base Depth" value={project.settings.depthBase} onChange={v => setProject({ ...project, settings: { ...project.settings, depthBase: v } })} />
+                              <NumberInput label="Wall Depth" value={project.settings.depthWall} onChange={v => setProject({ ...project, settings: { ...project.settings, depthWall: v } })} />
+                              <NumberInput label="Tall Depth" value={project.settings.depthTall} onChange={v => setProject({ ...project, settings: { ...project.settings, depthTall: v } })} />
+                            </div>
+                          </div>
+
+                          {/* Standard Heights */}
+                          <div className="space-y-4">
+                            <h4 className="text-[11px] font-black uppercase text-slate-900 dark:text-white tracking-[0.2em] flex items-center gap-2">
+                              <div className="w-4 h-1 bg-blue-500 rounded-full" /> Standard Heights (mm)
+                            </h4>
+                            <div className="grid grid-cols-3 gap-4">
+                              <NumberInput label="Base Height" value={project.settings.baseHeight} onChange={v => setProject({ ...project, settings: { ...project.settings, baseHeight: v } })} />
+                              <NumberInput label="Wall Height" value={project.settings.wallHeight} onChange={v => setProject({ ...project, settings: { ...project.settings, wallHeight: v } })} />
+                              <NumberInput label="Tall Height" value={project.settings.tallHeight} onChange={v => setProject({ ...project, settings: { ...project.settings, tallHeight: v } })} />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="pt-4 border-t dark:border-slate-800">
+                        <MaterialAllocationPanel
+                          settings={project.settings}
+                          onUpdate={s => setProject({ ...project, settings: { ...project.settings, ...s } })}
+                          isExpanded={true}
+                        />
                       </div>
                     </div>
                   )}

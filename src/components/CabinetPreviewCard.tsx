@@ -27,7 +27,7 @@ const getCabinetInfo = (type: 'base' | 'wall' | 'tall', settings: ProjectSetting
         title: 'Wall Cabinet',
         icon: Layers,
         height: settings.wallHeight || 720,
-        depth: settings.depthWall || 350,
+        depth: settings.depthWall || 300,
         width: settings.widthWall || 600,
         panelThickness: settings.thickness || 18,
         elevation: settings.wallCabinetElevation || 450,

@@ -454,7 +454,7 @@ const Scene = ({
         const isTall = unit.type === CabinetType.TALL;
         const settings = project.settings;
         const cabHeight = unit.advancedSettings?.height || (isTall ? (settings?.tallHeight || 2100) : isWall ? (settings?.wallHeight || 720) : (settings?.baseHeight || 870));
-        const cabDepth = unit.advancedSettings?.depth || (isWall ? (settings?.depthWall || 350) : isTall ? (settings?.depthTall || 560) : (settings?.depthBase || 560));
+        const cabDepth = unit.advancedSettings?.depth || (isWall ? (settings?.depthWall || 300) : isTall ? (settings?.depthTall || 560) : (settings?.depthBase || 560));
         
         let x1 = position[0];
         let x2 = position[0];
