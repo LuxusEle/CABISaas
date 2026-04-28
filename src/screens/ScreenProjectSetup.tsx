@@ -10,6 +10,7 @@ import { SheetTypeManager } from '../components/SheetTypeManager';
 import { MaterialAllocationPanel } from '../components/MaterialAllocationPanel';
 import { generateRubyLayout } from '../services/layoutSolver';
 import { logoService } from '../services/logoService';
+import { subscriptionService } from '../services/subscriptionService';
 import { supabase } from '../services/supabaseClient';
 
 interface ScreenProjectSetupProps {
@@ -18,9 +19,10 @@ interface ScreenProjectSetupProps {
   onSave: () => void;
   onSaveProject?: (p: Project) => Promise<any>;
   isDark: boolean;
+  isUserPro?: boolean;
 }
 
-const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark }: ScreenProjectSetupProps) => {
+const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark, isUserPro }: ScreenProjectSetupProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -30,6 +32,7 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
   // Modal control states
   const [showWallModal, setShowWallModal] = useState(false);
   const isLayoutLocked = project.zones.some(z => z.cabinets && z.cabinets.length > 0);
+  const [isPro, setIsPro] = useState(false);
   const [showCabinetModal, setShowCabinetModal] = useState(false);
   const [editingCabinetType, setEditingCabinetType] = useState<'base' | 'wall' | 'tall'>('base');
 
@@ -72,7 +75,14 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
       }
     };
     loadUserLogo();
-  }, []);
+    
+    // Check if user is Pro
+    if (isUserPro !== undefined) {
+      setIsPro(isUserPro);
+    } else {
+      subscriptionService.isPro().then(setIsPro);
+    }
+  }, [isUserPro]);
 
   const handleNextStep = () => {
     const currentIndex = wizardSteps.indexOf(activeModal as string);
@@ -136,6 +146,12 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
 
   const handleGenerateLayout = () => {
     if (!isReadyToGenerate) return;
+    
+    // Lock for free users if layout already exists
+    if (!isPro && isLayoutLocked) {
+      alert('Layout is locked for free users. Please upgrade to Pro to re-generate.');
+      return;
+    }
     
     const result = generateRubyLayout(project);
     setProject(result.project);
@@ -215,10 +231,10 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
               isRequired={true}
             />
             <SetupCard 
-              icon={isLayoutLocked ? <Lock size={24} className="text-slate-400" /> : <Upload size={24} className="text-blue-600 dark:text-blue-400" />}
+              icon={(isLayoutLocked && !isPro) ? <Lock size={24} className="text-slate-400" /> : <Upload size={24} className="text-blue-600 dark:text-blue-400" />}
               title="Room Layout"
               subtitle="Walls & Global"
-              colorClass={isLayoutLocked ? "bg-slate-100 dark:bg-slate-200/50" : "bg-blue-50 dark:bg-blue-900/20"}
+              colorClass={(isLayoutLocked && !isPro) ? "bg-slate-100 dark:bg-slate-200/50" : "bg-blue-50 dark:bg-blue-900/20"}
               onClick={() => setShowWallModal(true)}
               isDone={isWallsDone}
               isRequired={true}
@@ -275,17 +291,19 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
 
             <button
               onClick={handleGenerateLayout}
-              disabled={!isReadyToGenerate}
+              disabled={!isReadyToGenerate || (!isPro && isLayoutLocked)}
               className={`w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all shrink-0 ${
-                isReadyToGenerate 
+                isReadyToGenerate && (isPro || !isLayoutLocked)
                   ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/40' 
                   : 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
               }`}
             >
-              {isReadyToGenerate ? (
-                <>Start 3D Layout <ArrowRight size={14} /></>
-              ) : (
+              {!isReadyToGenerate ? (
                 <><Lock size={14} /> Locked</>
+              ) : (!isPro && isLayoutLocked) ? (
+                <><Lock size={14} /> Design Locked</>
+              ) : (
+                <>{isLayoutLocked ? 'Re-Generate 3D Layout' : 'Start 3D Layout'} <ArrowRight size={14} /></>
               )}
             </button>
           </div>
@@ -443,7 +461,7 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
             project={project}
             isDark={isDark}
             hideCabinets={true}
-            readOnly={isLayoutLocked}
+            readOnly={!isPro && isLayoutLocked}
             onSave={(newZones) => {
               const updatedProject = { ...project, zones: newZones };
               setProject(updatedProject);
