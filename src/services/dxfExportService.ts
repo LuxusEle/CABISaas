@@ -60,6 +60,12 @@ export const generateSheetDXF = (sheet: SheetLayout, settings: ProjectSettings):
          panelPoints.push({x: c.x, y: c.y + c.h});
          if (c.y + c.h < cncH - 0.1) panelPoints.push({x: cncW, y: c.y + c.h});
        });
+       
+       const lastCutout = sorted[sorted.length - 1];
+       if (!lastCutout || lastCutout.y + lastCutout.h < cncH - 0.1) {
+           panelPoints.push({x: cncW, y: cncH});
+       }
+       
        panelPoints.push({x: 0, y: cncH});
        
        if (cncData.mirrorX) {
