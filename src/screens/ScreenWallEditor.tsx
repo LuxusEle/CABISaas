@@ -714,6 +714,13 @@ const ScreenWallEditor = ({
                           totalLength={currentZone.totalLength}
                           fromLeft={cab.fromLeft}
                           width={cab.width}
+                          snapGuides={(() => {
+                            const zone = project.zones.find(z => z.id === selectedCabinet.zoneId);
+                            if (!zone) return [];
+                            return Array.from(new Set(
+                              zone.cabinets.filter((_, i) => i !== selectedCabinet.index).flatMap(c => [c.fromLeft, c.fromLeft + c.width])
+                            ));
+                          })()}
                           onChange={(updates) => updateSelectedCabinet(updates)}
                         />
                         
@@ -893,6 +900,13 @@ const ScreenWallEditor = ({
                       totalLength={currentZone.totalLength}
                       fromLeft={cab.fromLeft}
                       width={cab.width}
+                      snapGuides={(() => {
+                        const zone = project.zones.find(z => z.id === selectedCabinet.zoneId);
+                        if (!zone) return [];
+                        return Array.from(new Set(
+                          zone.cabinets.filter((_, i) => i !== selectedCabinet.index).flatMap(c => [c.fromLeft, c.fromLeft + c.width])
+                        ));
+                      })()}
                       onChange={(updates) => updateSelectedCabinet(updates)}
                       onDragEnd={() => {}}
                     />

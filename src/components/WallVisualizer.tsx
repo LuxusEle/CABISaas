@@ -595,6 +595,41 @@ export const WallVisualizer: React.FC<Props> = ({
           onTouchStart={handlePanStart}
           style={{ cursor: panning ? 'grabbing' : 'grab' }}
         />
+
+        {/* Alignment Guides - Show when a cabinet is selected */}
+        {selectedCabinet && zone.cabinets[selectedCabinet.index] && (() => {
+          const selCab = zone.cabinets[selectedCabinet.index];
+          const otherEdges = new Set(
+            zone.cabinets.flatMap((c, i) => i === selectedCabinet.index ? [] : [c.fromLeft, c.fromLeft + c.width])
+          );
+          
+          // Edges of the selected cabinet
+          const selEdges = [selCab.fromLeft, selCab.fromLeft + selCab.width];
+          
+          const allUniqueEdges = Array.from(new Set([...otherEdges, ...selEdges]));
+          
+          return allUniqueEdges.map((xPos) => {
+            const isSelectedEdge = selEdges.includes(xPos);
+            const isOtherEdge = otherEdges.has(xPos);
+            const isAligned = isSelectedEdge && isOtherEdge; // Matches an external edge!
+            
+            return (
+              <line
+                key={`guide-${xPos}`}
+                x1={xPos}
+                y1={-200}
+                x2={xPos}
+                y2={height + 200}
+                stroke={isAligned ? "#10b981" : isSelectedEdge ? "#3b82f6" : "var(--wall-border)"}
+                strokeWidth={isAligned ? "4" : isSelectedEdge ? "2" : "1"}
+                strokeDasharray={isAligned || isSelectedEdge ? "none" : "15,15"}
+                opacity={isAligned ? "0.8" : isSelectedEdge ? "0.5" : "0.3"}
+                className="pointer-events-none"
+              />
+            );
+          });
+        })()}
+
         <line x1="0" y1={height + 80} x2={zone.totalLength} y2={height + 80} stroke="var(--wall-border)" strokeWidth="2" markerEnd="url(#tick)" markerStart="url(#tick)" className="print:stroke-black" />
         <text x={zone.totalLength / 2} y={height + 130} textAnchor="middle" fill="var(--obs-stroke)" fontSize="50" fontWeight="black" className="print:fill-black font-mono">TOTAL {zone.totalLength}mm</text>
 
