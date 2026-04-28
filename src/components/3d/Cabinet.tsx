@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Html, Outlines } from '@react-three/drei';
+import { Html, Outlines, Text } from '@react-three/drei';
 import * as THREE from 'three';
 import { useLoader } from '@react-three/fiber';
 import { CabinetUnit, CabinetType, ProjectSettings } from '../../types';
@@ -31,6 +31,7 @@ interface Props {
   isSelected?: boolean;
   skeletonView?: boolean;
   isStudio?: boolean;
+  isMobile?: boolean;
 }
 
 const DimensionLine: React.FC<{
@@ -102,7 +103,8 @@ export const Cabinet: React.FC<Props> = ({
   opacity = 1,
   isSelected = false,
   skeletonView = false,
-  isStudio = false
+  isStudio = false,
+  isMobile = false
 }) => {
   const [hovered, setHovered] = React.useState(false);
 
@@ -335,7 +337,24 @@ export const Cabinet: React.FC<Props> = ({
         </group>
       )}
 
-      {!isStudio && (
+      {!isStudio && isMobile && (
+        <Text
+          position={[width / 2, zBase + height / 2, depth + 50]}
+          fontSize={Math.min(width / 5, 80)}
+          color={isSelected ? "#60a5fa" : "#ffffff"}
+          anchorX="center"
+          anchorY="middle"
+          outlineWidth={2}
+          outlineColor="#000000"
+          fontWeight="900"
+          material-toneMapped={false}
+          renderOrder={100}
+        >
+          {label || unit.label || unit.preset.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+        </Text>
+      )}
+
+      {!isStudio && !isMobile && (
         <Html position={[width / 2, zBase + height + 200, depth / 2]} center style={{ pointerEvents: 'none', whiteSpace: 'nowrap' }}>
           <div className={`transition-all duration-300 transform ${isSelected ? 'bg-blue-600 scale-125 ring-2 ring-white shadow-[0_0_20px_rgba(59,130,246,0.5)] px-3 py-1.5' : 'bg-slate-500/90 px-2 py-1'} text-white rounded text-xs font-bold`}>
             {label || unit.label || unit.preset.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}

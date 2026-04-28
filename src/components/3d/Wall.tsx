@@ -20,6 +20,7 @@ interface Props {
   onPointerUp?: (e: any) => void;
   opacity?: number;
   isStudio?: boolean;
+  name?: string;
 }
 
 export const Wall: React.FC<Props> = ({ 
@@ -27,7 +28,7 @@ export const Wall: React.FC<Props> = ({
   obstacles = [], wallIndex = 0, isActive = false, 
   onClick, lightTheme = false, showGrid = false,
   onPointerMove, onPointerOut, onPointerUp,
-  opacity = 1, isStudio = false
+  opacity = 1, isStudio = false, name
 }) => {
   const wallThickness = 50;
   const wallDepth = wallThickness;
@@ -154,7 +155,7 @@ export const Wall: React.FC<Props> = ({
   };
 
   return (
-    <group position={position} rotation={[0, rotation, 0]}>
+    <group position={position} rotation={[0, rotation, 0]} name={name}>
       {renderWallSegments()}
       
       {sortedOpenings.map((opening, index) => {
