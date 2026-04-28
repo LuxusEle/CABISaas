@@ -494,7 +494,7 @@ export const WallCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
   );
 };
 
-export const exportWallCornerCabinetDXF = async (settings: TestingSettings, zip: JSZip) => {
+export const exportWallCornerCabinetDXF = async (settings: TestingSettings, zip: JSZip | null, dataCollector?: (data: any) => void) => {
   const {
     width, height, depth, panelThickness, backPanelThickness,
     grooveDepth, backStretcherHeight, topStretcherWidth, blindPanelWidth, blindCornerSide,
@@ -514,6 +514,10 @@ export const exportWallCornerCabinetDXF = async (settings: TestingSettings, zip:
     : doorWidth / 2 - settings.hingeHorizontalOffset;
 
   const addPanelToZip = (name: string, w: number, h: number, notch?: { x: number, y: number, w: number, h: number }, holesInput?: { y: number, z: number, r: number }[]) => {
+    if (dataCollector) {
+      dataCollector({ name, width: w, height: h, holes: holesInput, cutouts: notch ? [notch] : [] });
+    }
+    if (!zip) return;
     const writer = new DxfWriter();
     writer.setUnits(Units.Millimeters);
     const modelSpace = writer.modelSpace;

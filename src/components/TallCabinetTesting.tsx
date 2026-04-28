@@ -777,7 +777,7 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
   );
 };
 
-export const exportTallCabinetDXF = async (settings: TestingSettings, zip: JSZip) => {
+export const exportTallCabinetDXF = async (settings: TestingSettings, zip: JSZip | null, dataCollector?: (data: any) => void) => {
   const {
     width, height, depth, panelThickness, backPanelThickness,
     doorMaterialThickness, grooveDepth, doorOuterGap, doorInnerGap,
@@ -801,6 +801,10 @@ export const exportTallCabinetDXF = async (settings: TestingSettings, zip: JSZip
   const actualDoorHeight = tallUpperSectionHeight - doorOuterGap + (isUpperGolaActive_DXF ? settings.doorOverride : 0);
 
   const addPanelToZip = (name: string, width: number, height: number, holesInput: { y: number, z: number, r: number, through?: boolean }[] = [], grooveInput?: { x: number, y: number, w: number, h: number, depth: number }, mirrorX: boolean = false, golaCutouts?: { x: number, y: number, w: number, h: number }[]) => {
+    if (dataCollector) {
+      dataCollector({ name, width, height, holes: holesInput, groove: grooveInput, cutouts: golaCutouts, mirrorX });
+    }
+    if (!zip) return;
     const writer = new DxfWriter();
     writer.setUnits(Units.Millimeters);
     writer.addLayer('PANEL', 7, 'CONTINUOUS');

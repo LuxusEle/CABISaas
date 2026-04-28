@@ -666,7 +666,7 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
   );
 };
 
-export const exportBaseCabinetDXF = async (settings: TestingSettings, zip: JSZip) => {
+export const exportBaseCabinetDXF = async (settings: TestingSettings, zip: JSZip | null, dataCollector?: (data: any) => void) => {
   const {
     width, height, depth, panelThickness, backPanelThickness,
     doorMaterialThickness, grooveDepth, doorOuterGap, doorInnerGap,
@@ -712,6 +712,10 @@ export const exportBaseCabinetDXF = async (settings: TestingSettings, zip: JSZip
   const bottomHingeVerticalOffset = settings.hingeVerticalOffset;
 
   const addPanelToZip = (name: string, width: number, height: number, holesInput: { y: number, z: number, r: number, through?: boolean }[] = [], grooveInput?: { x: number, y: number, w: number, h: number, depth: number }, golaCutouts?: { x: number, y: number, w: number, h: number }[], mirrorX: boolean = false) => {
+    if (dataCollector) {
+      dataCollector({ name, width, height, holes: holesInput, groove: grooveInput, cutouts: golaCutouts, mirrorX });
+    }
+    if (!zip) return;
     const writer = new DxfWriter();
     writer.setUnits(Units.Millimeters);
     writer.addLayer('PANEL', 7, 'CONTINUOUS');

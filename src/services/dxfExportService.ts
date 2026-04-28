@@ -34,16 +34,55 @@ export const generateSheetDXF = (sheet: SheetLayout, settings: ProjectSettings):
   );
 
   sheet.parts.forEach((part, _index) => {
-    modelSpace.addLWPolyline(
-      [
-        { point: { x: part.x, y: part.y } },
-        { point: { x: part.x + part.width, y: part.y } },
-        { point: { x: part.x + part.width, y: part.y + part.length } },
-        { point: { x: part.x, y: part.y + part.length } },
-        { point: { x: part.x, y: part.y } }
-      ],
-      { flags: LWPolylineFlags.Closed, layerName: layerParts.name }
-    );
+    let cncData: any = null;
+    part.features?.forEach(f => {
+      try {
+        const parsed = JSON.parse(f);
+        if (parsed && parsed.cnc) cncData = parsed.cnc;
+      } catch(e) {}
+    });
+
+    let points = [
+      { point: { x: part.x, y: part.y } },
+      { point: { x: part.x + part.width, y: part.y } }
+    ];
+
+    if (cncData && cncData.cutouts && cncData.cutouts.length > 0) {
+       const cutouts = cncData.cutouts;
+       const cncW = cncData.width;
+       const cncH = cncData.height;
+       
+       let panelPoints = [{x: 0, y: 0}, {x: cncW, y: 0}];
+       const sorted = [...cutouts].sort((a: any, b: any) => a.y - b.y);
+       sorted.forEach((c: any) => {
+         panelPoints.push({x: cncW, y: c.y});
+         panelPoints.push({x: c.x, y: c.y});
+         panelPoints.push({x: c.x, y: c.y + c.h});
+         if (c.y + c.h < cncH - 0.1) panelPoints.push({x: cncW, y: c.y + c.h});
+       });
+       panelPoints.push({x: 0, y: cncH});
+       
+       if (cncData.mirrorX) {
+         panelPoints.forEach(p => p.x = cncW - p.x);
+       }
+       
+       points = panelPoints.map(p => {
+          let fx, fy;
+          if (part.rotated) {
+            fx = part.x + p.y;
+            fy = part.y + (cncW - p.x);
+          } else {
+            fx = part.x + p.x;
+            fy = part.y + p.y;
+          }
+          return { point: { x: fx, y: fy } };
+       });
+    } else {
+      points.push({ point: { x: part.x + part.width, y: part.y + part.length } });
+      points.push({ point: { x: part.x, y: part.y + part.length } });
+    }
+
+    modelSpace.addLWPolyline([...points, points[0]], { flags: LWPolylineFlags.Closed, layerName: layerParts.name });
 
     modelSpace.addLine(
       point3d(part.x + part.width, part.y, 0),
@@ -93,96 +132,150 @@ export const generateSheetDXF = (sheet: SheetLayout, settings: ProjectSettings):
       { layerName: layerDimensions.name }
     );
 
-    // Gola Machining Export
-    part.features?.forEach((feature) => {
-      if (feature === 'gola-top-l') {
-        const gWidth = 55;
-        const gHeight = 55;
-        const gX = part.rotated ? part.x + part.width - gWidth : part.x;
-        const gY = part.y;
-        
-        modelSpace.addLWPolyline(
-          [
-            { point: { x: gX, y: gY } },
-            { point: { x: gX + gWidth, y: gY } },
-            { point: { x: gX + gWidth, y: gY + gHeight } },
-            { point: { x: gX, y: gY + gHeight } },
-            { point: { x: gX, y: gY } }
-          ],
-          { flags: LWPolylineFlags.Closed, layerName: layerMachining.name }
-        );
-      } else if (feature.startsWith('gola-mid-c:')) {
-        const gh = parseFloat(feature.split(':')[1]);
-        const thickness = settings.thickness || 18;
-        const yOffsetFromBottom = gh - thickness / 2;
-        const totalLen = part.rotated ? part.width : part.length;
-        const yPosFromTop = totalLen - yOffsetFromBottom;
-        
-        const gWidth = part.rotated ? 73.5 : 35;
-        const gHeight = part.rotated ? 35 : 73.5;
-        const gX = part.rotated ? part.x + yPosFromTop - 36.75 : part.x;
-        const gY = part.rotated ? part.y : part.y + yPosFromTop - 36.75;
-
-        modelSpace.addLWPolyline(
-          [
-            { point: { x: gX, y: gY } },
-            { point: { x: gX + gWidth, y: gY } },
-            { point: { x: gX + gWidth, y: gY + gHeight } },
-            { point: { x: gX, y: gY + gHeight } },
-            { point: { x: gX, y: gY } }
-          ],
-          { flags: LWPolylineFlags.Closed, layerName: layerMachining.name }
-        );
-      } else if (feature === 'groove-back') {
-        const thickness = settings.thickness || 18;
-        const grooveWidth = (settings.backPanelThickness || 6) + 2;
-        
-        let gX, gY, gW, gH;
-        if (part.rotated) {
-          gX = part.x;
-          gY = part.y + part.length - thickness - grooveWidth;
-          gW = part.width;
-          gH = grooveWidth;
-        } else {
-          gX = part.x + part.width - thickness - grooveWidth;
-          gY = part.y;
-          gW = grooveWidth;
-          gH = part.length;
-        }
-
-        modelSpace.addLWPolyline(
-          [
-            { point: { x: gX, y: gY } },
-            { point: { x: gX + gW, y: gY } },
-            { point: { x: gX + gW, y: gY + gH } },
-            { point: { x: gX, y: gY + gH } },
-            { point: { x: gX, y: gY } }
-          ],
-          { flags: LWPolylineFlags.Closed, layerName: layerMachining.name }
-        );
-      } else if (feature === 'nail-holes') {
-        const technicalR = (settings.nailHoleDiameter || 3) / 2;
-        const thickness = settings.thickness || 18;
-        
-        // Basic nail holes at corners
-        const holePositions = [
-          { x: 50, y: 50 },
-          { x: part.width - 50, y: 50 },
-          { x: part.width - 50, y: part.length - 50 },
-          { x: 50, y: part.length - 50 }
-        ];
-
-        holePositions.forEach(hp => {
-          const segments = 16;
-          const pts = [];
-          for (let i = 0; i <= segments; i++) {
-            const angle = (i / segments) * 2 * Math.PI;
-            pts.push({ point: { x: part.x + hp.x + technicalR * Math.cos(angle), y: part.y + hp.y + technicalR * Math.sin(angle) } });
-          }
-          modelSpace.addLWPolyline(pts, { flags: LWPolylineFlags.Closed, layerName: layerMachining.name });
+    if (cncData) {
+      const cncW = cncData.width;
+      const cncH = cncData.height;
+      
+      if (cncData.holes) {
+        cncData.holes.forEach((hole: any) => {
+           let cx = hole.z + cncW / 2;
+           let cy = hole.y + cncH / 2;
+           
+           if (cncData.mirrorX) cx = cncW - cx;
+           
+           let fx, fy;
+           if (part.rotated) {
+             fx = part.x + cy;
+             fy = part.y + (cncW - cx);
+           } else {
+             fx = part.x + cx;
+             fy = part.y + cy;
+           }
+           const segments = 32;
+           const pts = [];
+           for (let i = 0; i <= segments; i++) {
+             const angle = (i / segments) * 2 * Math.PI;
+             pts.push({ point: { x: fx + hole.r * Math.cos(angle), y: fy + hole.r * Math.sin(angle) } });
+           }
+           modelSpace.addLWPolyline(pts, { flags: LWPolylineFlags.Closed, layerName: layerMachining.name });
         });
       }
-    });
+      
+      if (cncData.groove) {
+         let gx = cncData.groove.x;
+         let gy = cncData.groove.y;
+         let gw = cncData.groove.w;
+         let gh = cncData.groove.h;
+         
+         if (cncData.mirrorX) gx = cncW - gx - gw;
+         
+         let pts = [];
+         if (part.rotated) {
+            pts = [
+              { point: { x: part.x + gy, y: part.y + (cncW - gx) } },
+              { point: { x: part.x + gy, y: part.y + (cncW - (gx + gw)) } },
+              { point: { x: part.x + (gy + gh), y: part.y + (cncW - (gx + gw)) } },
+              { point: { x: part.x + (gy + gh), y: part.y + (cncW - gx) } }
+            ];
+         } else {
+            pts = [
+              { point: { x: part.x + gx, y: part.y + gy } },
+              { point: { x: part.x + gx + gw, y: part.y + gy } },
+              { point: { x: part.x + gx + gw, y: part.y + gy + gh } },
+              { point: { x: part.x + gx, y: part.y + gy + gh } }
+            ];
+         }
+         modelSpace.addLWPolyline([...pts, pts[0]], { flags: LWPolylineFlags.Closed, layerName: layerMachining.name });
+      }
+    } else {
+      part.features?.forEach((feature) => {
+        if (feature === 'gola-top-l') {
+          const gWidth = 55;
+          const gHeight = 55;
+          const gX = part.rotated ? part.x + part.width - gWidth : part.x;
+          const gY = part.y;
+          
+          modelSpace.addLWPolyline(
+            [
+              { point: { x: gX, y: gY } },
+              { point: { x: gX + gWidth, y: gY } },
+              { point: { x: gX + gWidth, y: gY + gHeight } },
+              { point: { x: gX, y: gY + gHeight } },
+              { point: { x: gX, y: gY } }
+            ],
+            { flags: LWPolylineFlags.Closed, layerName: layerMachining.name }
+          );
+        } else if (feature.startsWith('gola-mid-c:')) {
+          const gh = parseFloat(feature.split(':')[1]);
+          const thickness = settings.thickness || 18;
+          const yOffsetFromBottom = gh - thickness / 2;
+          const totalLen = part.rotated ? part.width : part.length;
+          const yPosFromTop = totalLen - yOffsetFromBottom;
+          
+          const gWidth = part.rotated ? 73.5 : 35;
+          const gHeight = part.rotated ? 35 : 73.5;
+          const gX = part.rotated ? part.x + yPosFromTop - 36.75 : part.x;
+          const gY = part.rotated ? part.y : part.y + yPosFromTop - 36.75;
+
+          modelSpace.addLWPolyline(
+            [
+              { point: { x: gX, y: gY } },
+              { point: { x: gX + gWidth, y: gY } },
+              { point: { x: gX + gWidth, y: gY + gHeight } },
+              { point: { x: gX, y: gY + gHeight } },
+              { point: { x: gX, y: gY } }
+            ],
+            { flags: LWPolylineFlags.Closed, layerName: layerMachining.name }
+          );
+        } else if (feature === 'groove-back') {
+          const thickness = settings.thickness || 18;
+          const grooveWidth = (settings.backPanelThickness || 6) + 2;
+          
+          let gX, gY, gW, gH;
+          if (part.rotated) {
+            gX = part.x;
+            gY = part.y + part.length - thickness - grooveWidth;
+            gW = part.width;
+            gH = grooveWidth;
+          } else {
+            gX = part.x + part.width - thickness - grooveWidth;
+            gY = part.y;
+            gW = grooveWidth;
+            gH = part.length;
+          }
+
+          modelSpace.addLWPolyline(
+            [
+              { point: { x: gX, y: gY } },
+              { point: { x: gX + gW, y: gY } },
+              { point: { x: gX + gW, y: gY + gH } },
+              { point: { x: gX, y: gY + gH } },
+              { point: { x: gX, y: gY } }
+            ],
+            { flags: LWPolylineFlags.Closed, layerName: layerMachining.name }
+          );
+        } else if (feature === 'nail-holes') {
+          const technicalR = (settings.nailHoleDiameter || 3) / 2;
+          
+          const holePositions = [
+            { x: 50, y: 50 },
+            { x: part.width - 50, y: 50 },
+            { x: part.width - 50, y: part.length - 50 },
+            { x: 50, y: part.length - 50 }
+          ];
+
+          holePositions.forEach(hp => {
+            const segments = 16;
+            const pts = [];
+            for (let i = 0; i <= segments; i++) {
+              const angle = (i / segments) * 2 * Math.PI;
+              pts.push({ point: { x: part.x + hp.x + technicalR * Math.cos(angle), y: part.y + hp.y + technicalR * Math.sin(angle) } });
+            }
+            modelSpace.addLWPolyline(pts, { flags: LWPolylineFlags.Closed, layerName: layerMachining.name });
+          });
+        }
+      });
+    }
   });
 
   return writer.stringify();

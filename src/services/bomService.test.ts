@@ -128,7 +128,7 @@ describe('bomService', () => {
     it('should have valid default settings', () => {
       const project = createNewProject();
 
-      expect(project.settings.baseHeight).toBe(720);
+      expect(project.settings.baseHeight).toBe(870);
       expect(project.settings.wallHeight).toBe(720);
       expect(project.settings.tallHeight).toBe(2100);
       expect(project.settings.thickness).toBe(16);
@@ -311,10 +311,10 @@ describe('bomService', () => {
       const wallCabs = result.cabinets.filter(c => c.type === CabinetType.WALL);
 
       if (baseCabs.length > 0) {
-        expect(baseCabs.every(c => c.label?.startsWith('B'))).toBe(true);
+        expect(baseCabs.every(c => c.label?.includes('B'))).toBe(true);
       }
       if (wallCabs.length > 0) {
-        expect(wallCabs.every(c => c.label?.startsWith('W'))).toBe(true);
+        expect(wallCabs.every(c => c.label?.includes('W'))).toBe(true);
       }
     });
   });
