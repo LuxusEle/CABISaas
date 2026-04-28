@@ -395,7 +395,7 @@ const ScreenWallEditor = ({
                 {visualMode === 'elevation' ? (
                   <WallVisualizer 
                     zone={currentZone}
-                    height={2400}
+                    height={currentZone.wallHeight || 2400}
                     settings={project.settings}
                     onCabinetClick={(i) => openEdit('cabinet', i)}
                     onObstacleClick={(i) => openEdit('obstacle', i)}
@@ -561,7 +561,7 @@ const ScreenWallEditor = ({
               {visualMode === 'elevation' ? (
                 <WallVisualizer 
                   zone={currentZone}
-                  height={2400}
+                  height={currentZone.wallHeight || 2400}
                   settings={project.settings}
                   onCabinetClick={(i) => openEdit('cabinet', i)}
                   onObstacleClick={(i) => openEdit('obstacle', i)}
