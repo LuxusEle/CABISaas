@@ -65,7 +65,7 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
   const actualDoorHeight = tallUpperSectionHeight - doorOuterGap + (isUpperGolaActive ? settings.doorOverride : 0);
   const doorYOffset_Upper = innerHeight / 2 - doorOuterGap - (tallUpperSectionHeight - doorOuterGap) / 2 - (isUpperGolaActive ? settings.doorOverride / 2 : 0);
 
-  const actualLowerDoorHeight = tallLowerSectionHeight - doorOuterGap - (isLowerGolaActive ? settings.doorOverride : 0);
+  const actualLowerDoorHeight = tallLowerSectionHeight - doorOuterGap - (isLowerGolaActive ? 35 : 0);
   const doorYOffset_Lower = -innerHeight / 2 + doorOuterGap + actualLowerDoorHeight / 2;
 
   const getOffset = (part: string, index: number = 0): [number, number, number] => {
@@ -107,7 +107,11 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
 
     if (isLowerGolaActive && numDrawers > 0) {
       const golaGapTotal = golaVerticalGap * 2;
-      const totalAvailablePool = (isAtBottom ? lowerSectionDrawerStackHeight + panelThickness : lowerSectionDrawerStackHeight) - golaTopGap - doorOuterGap;
+      // Cap the stack height to avoid the divider panel
+      const physicalHeightLimit = tallLowerSectionHeight - panelThickness;
+      const effectiveStackH = Math.min(lowerSectionDrawerStackHeight, physicalHeightLimit);
+      
+      const totalAvailablePool = (isAtBottom ? effectiveStackH + panelThickness : effectiveStackH) - golaTopGap - doorOuterGap;
       const numGaps = numDrawers - 1;
       const totalGapSpace = numGaps * golaGapTotal;
       const eachFrontH = totalAvailablePool > 0 ? (totalAvailablePool - totalGapSpace) / numDrawers : 0;
@@ -131,9 +135,15 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
         tempY += golaVerticalGap;
       }
     } else {
+      const physicalHeightLimit = tallLowerSectionHeight - panelThickness;
+      const effectiveStackH = Math.min(lowerSectionDrawerStackHeight, physicalHeightLimit);
+      const drawerHeightEach_local = numDrawers > 0 
+        ? (effectiveStackH - doorOuterGap * (numDrawers + 1)) / numDrawers 
+        : 0;
+
       let currentY = drawerZoneBottom + doorOuterGap;
       for (let i = 0; i < numDrawers; i++) {
-        drawerFrontHeights[i] = (i === 0 && isAtBottom) ? drawerHeightEach + panelThickness : drawerHeightEach;
+        drawerFrontHeights[i] = (i === 0 && isAtBottom) ? drawerHeightEach_local + panelThickness : drawerHeightEach_local;
         drawerYPositions[i] = currentY + drawerFrontHeights[i] / 2;
         currentY += drawerFrontHeights[i] + doorOuterGap;
       }
@@ -245,7 +255,7 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
     const dividerY = tallLowerSectionHeight - innerHeight / 2;
     const notches: any[] = [];
     if (isLowerGolaActive) {
-      notches.push({ u: depth / 2, v: dividerY, width: settings.golaLCutoutDepth, height: settings.golaLCutoutHeight, alignV: 'top' });
+      notches.push({ u: depth / 2, v: dividerY - panelThickness, width: settings.golaLCutoutDepth, height: settings.golaLCutoutHeight, alignV: 'top' });
       if (showDrawers && drawerData.gapHeights.length > 0) {
         drawerData.gapHeights.forEach(gh => {
           notches.push({ u: depth / 2, v: gh, width: settings.golaCutoutDepth, height: settings.golaCCutoutHeight, alignV: 'center' });
@@ -267,7 +277,7 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
     const dividerY = tallLowerSectionHeight - innerHeight / 2;
     const notches: any[] = [];
     if (isLowerGolaActive) {
-      notches.push({ u: depth / 2, v: dividerY, width: settings.golaLCutoutDepth, height: settings.golaLCutoutHeight, alignV: 'top' });
+      notches.push({ u: depth / 2, v: dividerY - panelThickness, width: settings.golaLCutoutDepth, height: settings.golaLCutoutHeight, alignV: 'top' });
       if (showDrawers && drawerData.gapHeights.length > 0) {
         drawerData.gapHeights.forEach(gh => {
           notches.push({ u: depth / 2, v: gh, width: settings.golaCutoutDepth, height: settings.golaCCutoutHeight, alignV: 'center' });
@@ -1046,7 +1056,7 @@ export const exportTallCabinetDXF = async (settings: TestingSettings, zip: JSZip
 
   if (showLowerDoors) {
     const isLowerGolaActive_DXF_Door = settings.enableGola && (showLowerDoors || (showDrawers && numDrawers > 0));
-    const actualLowerDoorHeight = tallLowerSectionHeight - doorOuterGap - (isLowerGolaActive_DXF_Door ? settings.doorOverride : 0);
+    const actualLowerDoorHeight = tallLowerSectionHeight - doorOuterGap - (isLowerGolaActive_DXF_Door ? 35 : 0);
     for (let i = 0; i < actualNumDoors; i++) {
       const hX = actualNumDoors === 1 ? -doorWidth / 2 + hingeHorizontalOffset : (i === 0 ? -doorWidth / 2 + hingeHorizontalOffset : doorWidth / 2 - hingeHorizontalOffset);
       const hingeHoles = [{ y: actualLowerDoorHeight / 2 - hingeVerticalOffset, z: hX, r: hingeDiameter / 2 }, { y: -actualLowerDoorHeight / 2 + hingeVerticalOffset, z: hX, r: hingeDiameter / 2 }];
@@ -1057,7 +1067,9 @@ export const exportTallCabinetDXF = async (settings: TestingSettings, zip: JSZip
   if (showDrawers && numDrawers > 0) {
     const boxDepth = depth - panelThickness - backPanelThickness - settings.drawerBackClearance;
     const boxWidth = (width - panelThickness * 2) - drawerSideClearance * 2;
-    const drawerHeightEach = (lowerSectionDrawerStackHeight - doorOuterGap * (numDrawers + 1)) / numDrawers;
+    const physicalHeightLimit = tallLowerSectionHeight - panelThickness;
+    const effectiveStackH = Math.min(lowerSectionDrawerStackHeight, physicalHeightLimit);
+    const drawerHeightEach = (effectiveStackH - doorOuterGap * (numDrawers + 1)) / numDrawers;
 
     for (let i = 0; i < numDrawers; i++) {
         const hFront = drawerHeightEach;
