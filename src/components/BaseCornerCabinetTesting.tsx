@@ -7,7 +7,8 @@ import {
   createPanelWithHolesGeo, 
   createDoorWithHingeHoles,
   panelColors,
-  woodPalette
+  woodPalette,
+  calculateNailHolePositions
 } from './CabinetTestingUtils';
 
 interface Props {
@@ -74,14 +75,12 @@ export const BaseCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
     const technicalR = nailHoleDiameter / 2;
     const shelfR = shelfHoleDiameter / 2;
     
-    // Top Stretchers Back
-    const zBack1 = -depth / 2 + (topStretcherWidth / 4);
-    const zBack2 = -depth / 2 + (topStretcherWidth * 3 / 4);
+    const zCenterBack = -depth / 2 + topStretcherWidth / 2;
 
-    const positions: { y: number, z: number, r: number, through?: boolean }[] = [
-      { y, z: zBack1, r: technicalR, through: true },
-      { y, z: zBack2, r: technicalR, through: true }
-    ];
+    const positions: { y: number, z: number, r: number, through?: boolean }[] = [];
+    calculateNailHolePositions(topStretcherWidth).forEach(offset => {
+      positions.push({ y, z: zCenterBack + offset, r: technicalR, through: true });
+    });
 
     if (showShelves && numShelves > 0) {
       const availableHeight = innerHeight - panelThickness * 2;
@@ -136,10 +135,9 @@ export const BaseCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
     
     // Connects the vertical internal upright panel
     const technicalR = nailHoleDiameter / 2;
-    return [
-      { y: uprightX, z: -topStretcherWidth / 2 + topStretcherWidth / 4, r: technicalR, through: true },
-      { y: uprightX, z: topStretcherWidth / 2 - topStretcherWidth / 4, r: technicalR, through: true },
-    ];
+    return calculateNailHolePositions(topStretcherWidth).map(offset => ({
+      y: uprightX, z: offset, r: technicalR, through: true
+    }));
   }, [showNailHoles, nailHoleDiameter, uprightX, topStretcherWidth]);
 
   // Side Panels (Separate geometries for inward-facing grooves)
@@ -151,32 +149,40 @@ export const BaseCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
       golaLDepthOffset = settings.golaLCutoutDepth;
       notches.push({ u: depth / 2, v: sidePanelHeight / 2, width: settings.golaLCutoutDepth, height: settings.golaLCutoutHeight, alignV: 'top' });
     }
-    const panelHoles = [...sideHoles];
-    const actualDepth = (enableColumn && blindCornerSide === 'left') ? depth - columnDepth : depth;
+
+    const isBlindSide = enableColumn && blindCornerSide === 'left';
+    const actualDepth = isBlindSide ? depth - columnDepth : depth;
+    const zOffset = isBlindSide ? columnDepth / 2 : 0;
+
+    const panelHoles: { y: number, z: number, r: number, through?: boolean }[] = [];
     
     if (showNailHoles) {
+      // 1. Add back stretcher holes from sideHoles (convert to local)
+      sideHoles.forEach(h => {
+        panelHoles.push({ ...h, z: h.z - zOffset });
+      });
+
+      // 2. Add top front stretcher holes (calculate in local space)
       const yStr = sidePanelHeight / 2 - panelThickness / 2;
       const rebatedWidth = topStretcherWidth - golaLDepthOffset;
-      const zF1 = depth / 2 - golaLDepthOffset - (rebatedWidth / 4);
-      const zF2 = depth / 2 - golaLDepthOffset - (rebatedWidth * 3 / 4);
-      panelHoles.push({ y: yStr, z: zF1, r: nailHoleDiameter / 2, through: true });
-      panelHoles.push({ y: yStr, z: zF2, r: nailHoleDiameter / 2, through: true });
+      const zCenterFrontGlobal = depth / 2 - golaLDepthOffset - rebatedWidth / 2;
+      calculateNailHolePositions(rebatedWidth).forEach(offset => {
+        panelHoles.push({ y: yStr, z: (zCenterFrontGlobal + offset) - zOffset, r: nailHoleDiameter / 2, through: true });
+      });
 
-      if (enableColumn && blindCornerSide === 'left') {
-        const h1 = -sidePanelHeight / 2 + 50;
-        const h2 = 0;
-        const h3 = sidePanelHeight / 2 - 50;
+      // 3. Add column attachment holes if blind side
+      if (isBlindSide) {
         const zAttach = -actualDepth / 2 + panelThickness / 2;
-        panelHoles.push({ y: h1, z: zAttach, r: nailHoleDiameter / 2, through: true });
-        panelHoles.push({ y: h2, z: zAttach, r: nailHoleDiameter / 2, through: true });
-        panelHoles.push({ y: h3, z: zAttach, r: nailHoleDiameter / 2, through: true });
+        calculateNailHolePositions(sidePanelHeight).forEach(offset => {
+          panelHoles.push({ y: offset, z: zAttach, r: nailHoleDiameter / 2, through: true });
+        });
       }
     }
-    const isBlindSide = enableColumn && blindCornerSide === 'left';
+
     return createPanelWithHolesGeo(
       panelThickness, sidePanelHeight, actualDepth,
       -actualDepth / 2 + panelThickness, -actualDepth / 2 + panelThickness + backPanelThickness,
-      isBlindSide ? 0 : grooveDepth, 'px', panelHoles.filter(h => h.z < actualDepth/2 && h.z > -actualDepth/2), nailHoleDepth, panelThickness - grooveDepth, 0,
+      isBlindSide ? 0 : grooveDepth, 'px', panelHoles.filter(h => Math.abs(h.z) <= actualDepth/2 + 0.1), nailHoleDepth, panelThickness - grooveDepth, 0,
       notches
     );
   }, [panelThickness, innerHeight, depth, backPanelThickness, grooveDepth, sideHoles, nailHoleDepth, isGolaActive, isDoorOnLeft, settings.golaLCutoutDepth, settings.golaLCutoutHeight, showNailHoles, topStretcherWidth, nailHoleDiameter, enableColumn, blindCornerSide, columnDepth]);
@@ -189,32 +195,40 @@ export const BaseCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
       golaLDepthOffset = settings.golaLCutoutDepth;
       notches.push({ u: depth / 2, v: sidePanelHeight / 2, width: settings.golaLCutoutDepth, height: settings.golaLCutoutHeight, alignV: 'top' });
     }
-    const panelHoles = [...sideHoles];
-    const actualDepth = (enableColumn && blindCornerSide === 'right') ? depth - columnDepth : depth;
+
+    const isBlindSide = enableColumn && blindCornerSide === 'right';
+    const actualDepth = isBlindSide ? depth - columnDepth : depth;
+    const zOffset = isBlindSide ? columnDepth / 2 : 0;
+
+    const panelHoles: { y: number, z: number, r: number, through?: boolean }[] = [];
 
     if (showNailHoles) {
+      // 1. Add back stretcher holes from sideHoles (convert to local)
+      sideHoles.forEach(h => {
+        panelHoles.push({ ...h, z: h.z - zOffset });
+      });
+
+      // 2. Add top front stretcher holes (calculate in local space)
       const yStr = sidePanelHeight / 2 - panelThickness / 2;
       const rebatedWidth = topStretcherWidth - golaLDepthOffset;
-      const zF1 = depth / 2 - golaLDepthOffset - (rebatedWidth / 4);
-      const zF2 = depth / 2 - golaLDepthOffset - (rebatedWidth * 3 / 4);
-      panelHoles.push({ y: yStr, z: zF1, r: nailHoleDiameter / 2, through: true });
-      panelHoles.push({ y: yStr, z: zF2, r: nailHoleDiameter / 2, through: true });
+      const zCenterFrontGlobal = depth / 2 - golaLDepthOffset - rebatedWidth / 2;
+      calculateNailHolePositions(rebatedWidth).forEach(offset => {
+        panelHoles.push({ y: yStr, z: (zCenterFrontGlobal + offset) - zOffset, r: nailHoleDiameter / 2, through: true });
+      });
 
-      if (enableColumn && blindCornerSide === 'right') {
-        const h1 = -sidePanelHeight / 2 + 50;
-        const h2 = 0;
-        const h3 = sidePanelHeight / 2 - 50;
+      // 3. Add column attachment holes if blind side
+      if (isBlindSide) {
         const zAttach = -actualDepth / 2 + panelThickness / 2;
-        panelHoles.push({ y: h1, z: zAttach, r: nailHoleDiameter / 2, through: true });
-        panelHoles.push({ y: h2, z: zAttach, r: nailHoleDiameter / 2, through: true });
-        panelHoles.push({ y: h3, z: zAttach, r: nailHoleDiameter / 2, through: true });
+        calculateNailHolePositions(sidePanelHeight).forEach(offset => {
+          panelHoles.push({ y: offset, z: zAttach, r: nailHoleDiameter / 2, through: true });
+        });
       }
     }
-    const isBlindSide = enableColumn && blindCornerSide === 'right';
+
     return createPanelWithHolesGeo(
       panelThickness, sidePanelHeight, actualDepth,
       -actualDepth / 2 + panelThickness, -actualDepth / 2 + panelThickness + backPanelThickness,
-      isBlindSide ? 0 : grooveDepth, 'nx', panelHoles.filter(h => h.z < actualDepth/2 && h.z > -actualDepth/2), nailHoleDepth, panelThickness - grooveDepth, 0,
+      isBlindSide ? 0 : grooveDepth, 'nx', panelHoles.filter(h => Math.abs(h.z) <= actualDepth/2 + 0.1), nailHoleDepth, panelThickness - grooveDepth, 0,
       notches
     );
   }, [panelThickness, innerHeight, depth, backPanelThickness, grooveDepth, sideHoles, nailHoleDepth, isGolaActive, isDoorOnRight, settings.golaLCutoutDepth, settings.golaLCutoutHeight, showNailHoles, topStretcherWidth, nailHoleDiameter, enableColumn, blindCornerSide, columnDepth]);
@@ -268,55 +282,65 @@ export const BaseCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
     const technicalR = nailHoleDiameter / 2;
     const holes: { y: number, z: number, r: number, through?: boolean }[] = [];
     
-    // Toekick (3 holes)
+    // Toekick
     const tkZ = depth / 2 - 50 - panelThickness / 2;
-    holes.push({ y: -innerWidth / 2 + 50, z: tkZ, r: technicalR, through: true });
-    holes.push({ y: 0, z: tkZ, r: technicalR, through: true });
-    holes.push({ y: innerWidth / 2 - 50, z: tkZ, r: technicalR, through: true });
+    calculateNailHolePositions(innerWidth).forEach(offset => {
+      holes.push({ y: offset, z: tkZ, r: technicalR, through: true });
+    });
 
     // Side Panels
     const lpX = -innerWidth / 2 + panelThickness / 2;
     const rpX = innerWidth / 2 - panelThickness / 2;
-    const zDist = [ -innerDepth / 2 + 50, 0, innerDepth / 2 - 50 ];
-    zDist.forEach(zVal => {
-      // If column is on the left, check if hole is within column area in Z
-      // Actually, if it's on the side panel edge, it's fine unless the panel itself is gone.
-      // The side panel is reduced in depth, so we should skip holes that are beyond the new depth.
-      const actualLeftDepth = (enableColumn && blindCornerSide === 'left') ? depth - columnDepth : depth;
-      const actualRightDepth = (enableColumn && blindCornerSide === 'right') ? depth - columnDepth : depth;
-      
-      const zMinL = -depth / 2;
-      const zMaxL = -depth / 2 + actualLeftDepth;
-      const zMinR = -depth / 2;
-      const zMaxR = -depth / 2 + actualRightDepth;
+    
+    const isLeftShortened = enableColumn && blindCornerSide === 'left';
+    const isRightShortened = enableColumn && blindCornerSide === 'right';
+    const actualLeftDepth = isLeftShortened ? depth - columnDepth : depth;
+    const actualRightDepth = isRightShortened ? depth - columnDepth : depth;
 
-      if (zVal >= zMinL && zVal <= zMaxL) {
-        holes.push({ y: lpX, z: zVal, r: technicalR, through: true });
-      }
-      if (zVal >= zMinR && zVal <= zMaxR) {
-        holes.push({ y: rpX, z: zVal, r: technicalR, through: true });
-      }
+    calculateNailHolePositions(actualLeftDepth).forEach(offset => {
+      // If shortened, it's flush with the front (depth/2)
+      const centerZ = isLeftShortened ? depth / 2 - actualLeftDepth / 2 : 0;
+      holes.push({ y: lpX, z: centerZ + offset, r: technicalR, through: true });
     });
+
+    calculateNailHolePositions(actualRightDepth).forEach(offset => {
+      // If shortened, it's flush with the front (depth/2)
+      const centerZ = isRightShortened ? depth / 2 - actualRightDepth / 2 : 0;
+      holes.push({ y: rpX, z: centerZ + offset, r: technicalR, through: true });
+    });
+
+    if (enableColumn) {
+      const columnSideX = blindCornerSide === 'left' ? -width / 2 + columnWidth + panelThickness / 2 : width / 2 - columnWidth - panelThickness / 2;
+      const columnSideCenterZ = -depth / 2 + columnDepth / 2;
+      calculateNailHolePositions(columnDepth).forEach(offset => {
+        holes.push({ y: columnSideX, z: columnSideCenterZ + offset, r: technicalR, through: true });
+      });
+
+      const columnBackCenterY = blindCornerSide === 'left' ? -width / 2 + columnWidth / 2 + panelThickness : width / 2 - columnWidth / 2 - panelThickness;
+      const columnBackZ = -depth / 2 + columnDepth + panelThickness / 2;
+      calculateNailHolePositions(columnWidth).forEach(offset => {
+        holes.push({ y: columnBackCenterY + offset, z: columnBackZ, r: technicalR, through: true });
+      });
+    }
 
     // Back Bottom Stretcher
     if (showBackStretchers) {
       const bbsZ = -depth / 2 + panelThickness / 2;
       const backWidth = enableColumn ? innerWidth - columnWidth : innerWidth;
       const startX = (enableColumn && blindCornerSide === 'left') ? -innerWidth / 2 + columnWidth : -innerWidth / 2;
-      
-      holes.push({ y: startX + 50, z: bbsZ, r: technicalR, through: true });
-      holes.push({ y: startX + backWidth / 2, z: bbsZ, r: technicalR, through: true });
-      holes.push({ y: startX + backWidth - 50, z: bbsZ, r: technicalR, through: true });
+      calculateNailHolePositions(backWidth).forEach(offset => {
+        holes.push({ y: startX + backWidth / 2 + offset, z: bbsZ, r: technicalR, through: true });
+      });
     }
 
     // Vertical Support Panel
-    const upZ1 = depth / 2 - topStretcherWidth * 1/4;
-    const upZ2 = depth / 2 - topStretcherWidth * 3/4;
-    holes.push({ y: uprightX, z: upZ1, r: technicalR, through: true });
-    holes.push({ y: uprightX, z: upZ2, r: technicalR, through: true });
+    const zCenterUpright = depth / 2 - topStretcherWidth / 2;
+    calculateNailHolePositions(topStretcherWidth).forEach(offset => {
+      holes.push({ y: uprightX, z: zCenterUpright + offset, r: technicalR, through: true });
+    });
 
     return holes;
-  }, [showNailHoles, nailHoleDiameter, innerWidth, innerDepth, depth, panelThickness, showBackStretchers, uprightX, topStretcherWidth, enableColumn, columnWidth, columnDepth, blindCornerSide]);
+  }, [showNailHoles, nailHoleDiameter, innerWidth, innerDepth, depth, width, panelThickness, showBackStretchers, uprightX, topStretcherWidth, enableColumn, columnWidth, columnDepth, blindCornerSide]);
 
   // Bottom Panel
   const bottomPanelGeo = useMemo(() => {
@@ -358,24 +382,24 @@ export const BaseCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
     
     // Top front stretcher
     const yTopStretcher = innerHeight / 2 - panelThickness / 2;
-    holes.push({ y: yTopStretcher, z: -blindWidthFront / 2 + 50, r: technicalR, through: true });
-    holes.push({ y: yTopStretcher, z: 0, r: technicalR, through: true });
-    holes.push({ y: yTopStretcher, z: blindWidthFront / 2 - 50, r: technicalR, through: true });
+    calculateNailHolePositions(blindWidthFront).forEach(offset => {
+      holes.push({ y: yTopStretcher, z: offset, r: technicalR, through: true });
+    });
 
     // Bottom panel
     const yBottomPanel = -innerHeight / 2 + panelThickness / 2;
-    holes.push({ y: yBottomPanel, z: -blindWidthFront / 2 + 50, r: technicalR, through: true });
-    holes.push({ y: yBottomPanel, z: 0, r: technicalR, through: true });
-    holes.push({ y: yBottomPanel, z: blindWidthFront / 2 - 50, r: technicalR, through: true });
+    calculateNailHolePositions(blindWidthFront).forEach(offset => {
+      holes.push({ y: yBottomPanel, z: offset, r: technicalR, through: true });
+    });
 
     // Side panel
     const sidePanelLocalX = blindCornerSide === 'left' 
       ? panelThickness / 2 - blindPanelWidth / 2 
       : blindPanelWidth / 2 - panelThickness / 2;
       
-    holes.push({ y: -blindPanelHeight / 2 + 50, z: sidePanelLocalX, r: technicalR, through: true });
-    holes.push({ y: 0, z: sidePanelLocalX, r: technicalR, through: true });
-    holes.push({ y: blindPanelHeight / 2 - 50, z: sidePanelLocalX, r: technicalR, through: true });
+    calculateNailHolePositions(blindPanelHeight).forEach(offset => {
+      holes.push({ y: offset, z: sidePanelLocalX, r: technicalR, through: true });
+    });
 
     return holes;
   }, [showNailHoles, nailHoleDiameter, innerHeight, panelThickness, blindWidthFront, blindCornerSide, blindPanelWidth, blindPanelHeight]);
@@ -460,13 +484,10 @@ export const BaseCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
     const panelHeight = innerHeight - panelThickness;
     const holes: any[] = [];
     if (showNailHoles) {
-      const h1 = -panelHeight / 2 + 50;
-      const h2 = 0;
-      const h3 = panelHeight / 2 - 50;
-      const zAttach = blindCornerSide === 'left' ? columnWidth / 2 - panelThickness / 2 : -columnWidth / 2 + panelThickness / 2;
-      holes.push({ y: h1, z: zAttach, r: nailHoleDiameter / 2, through: true });
-      holes.push({ y: h2, z: zAttach, r: nailHoleDiameter / 2, through: true });
-      holes.push({ y: h3, z: zAttach, r: nailHoleDiameter / 2, through: true });
+      calculateNailHolePositions(panelHeight).forEach(offset => {
+        const zAttach = blindCornerSide === 'left' ? columnWidth / 2 - panelThickness / 2 : -columnWidth / 2 + panelThickness / 2;
+        holes.push({ y: offset, z: zAttach, r: nailHoleDiameter / 2, through: true });
+      });
     }
     return createPanelWithHolesGeo(
       panelThickness, panelHeight, columnWidth,

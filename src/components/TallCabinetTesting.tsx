@@ -9,7 +9,8 @@ import {
   createGroovedPanelGeo,
   panelColors,
   woodPalette,
-  RUBY_DOOR_THRESHOLD
+  RUBY_DOOR_THRESHOLD,
+  calculateNailHolePositions
 } from './CabinetTestingUtils';
 
 interface Props {
@@ -159,14 +160,14 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
 
     if (showBackStretchers) {
       const topStretcherYTop = innerHeight / 2 - panelThickness;
-      const bottomStretcherYTop = -innerHeight / 2 + panelThickness + settings.wallBottomRecess + 100;
-      positions.push({ y: topStretcherYTop - 25, z: zBack, r: technicalR, through: true });
-      positions.push({ y: topStretcherYTop - 80, z: zBack, r: technicalR, through: true });
-      positions.push({ y: bottomStretcherYTop - 25, z: zBack, r: technicalR, through: true });
-      positions.push({ y: bottomStretcherYTop - 80, z: zBack, r: technicalR, through: true });
-      // Middle Stretcher holes (centered at 0, top at 50)
-      positions.push({ y: 50 - 25, z: zBack, r: technicalR, through: true });
-      positions.push({ y: 50 - 80, z: zBack, r: technicalR, through: true });
+      const bottomStretcherYTop = -innerHeight / 2 + panelThickness + settings.wallBottomRecess;
+      
+      calculateNailHolePositions(100).forEach(offset => {
+        positions.push({ y: topStretcherYTop - 50 + offset, z: zBack, r: technicalR, through: true });
+        positions.push({ y: bottomStretcherYTop + 50 + offset, z: zBack, r: technicalR, through: true });
+        // Middle Stretcher holes (centered at 0, height 100)
+        positions.push({ y: 0 + offset, z: zBack, r: technicalR, through: true });
+      });
     }
 
     const dividerY = tallLowerSectionHeight - innerHeight / 2;
@@ -282,20 +283,14 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
   const commonPanelHoles = useMemo(() => {
     if (!showNailHoles) return [];
     const technicalR = nailHoleDiameter / 2;
-    const u1 = -innerDepth / 2 + 50;
-    const u2 = 0;
-    const u3 = innerDepth / 2 - 50;
     const vLeft = -innerWidth / 2 + panelThickness / 2;
     const vRight = innerWidth / 2 - panelThickness / 2;
 
-    const positions = [
-      { y: vLeft, z: u1, r: technicalR, through: true },
-      { y: vLeft, z: u2, r: technicalR, through: true },
-      { y: vLeft, z: u3, r: technicalR, through: true },
-      { y: vRight, z: u1, r: technicalR, through: true },
-      { y: vRight, z: u2, r: technicalR, through: true },
-      { y: vRight, z: u3, r: technicalR, through: true }
-    ];
+    const positions: { y: number, z: number, r: number, through?: boolean }[] = [];
+    calculateNailHolePositions(innerDepth).forEach(offset => {
+      positions.push({ y: vLeft, z: offset, r: technicalR, through: true });
+      positions.push({ y: vRight, z: offset, r: technicalR, through: true });
+    });
 
     if (showBackStretchers) {
       const v1 = -innerWidth / 2 + 50;

@@ -29,6 +29,20 @@ export const woodPalette = {
   blindPanel: '#b08968'  // Same as carcass
 };
 
+/**
+ * Calculates nail hole positions based on panel length.
+ * If length < 300mm: 2 holes at 1/4 and 3/4.
+ * If length >= 300mm: 3 holes with 50mm offset from ends and one at center.
+ * Returns positions relative to the center of the panel (range: -length/2 to length/2).
+ */
+export const calculateNailHolePositions = (length: number): number[] => {
+  if (length < 300) {
+    return [-length / 4, length / 4];
+  } else {
+    return [-length / 2 + 50, 0, length / 2 - 50];
+  }
+};
+
 export interface TestingSettings {
   width: number;
   height: number;
