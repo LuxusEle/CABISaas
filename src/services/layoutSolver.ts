@@ -148,7 +148,7 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
   // 3.3 Cooker Unit
   for (const zone of zones) {
     if (cookerPlaced) break;
-    const cookerWidth = 1000;
+    const cookerWidth = 600;
     const gaps = findGaps(zone, CabinetType.BASE, settings);
     for (const gap of gaps) {
       if (gap.length >= cookerWidth) {

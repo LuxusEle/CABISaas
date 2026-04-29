@@ -251,10 +251,37 @@ const ScreenWallEditor = ({
     if (!selectedCabinet) return;
     updateZone(z => {
       const cabs = [...z.cabinets];
-      cabs[selectedCabinet.index] = { ...cabs[selectedCabinet.index], ...updates };
+      const targetCab = cabs[selectedCabinet.index];
+      const oldWidth = targetCab.width;
+      const oldFromLeft = targetCab.fromLeft;
       
-      // If width or position changed, use local collision resolution (shrinking/blocking)
+      cabs[selectedCabinet.index] = { ...targetCab, ...updates };
+      
+      // SYNC LOGIC: If width or position changed, sync cooker/hood counterparts
       if ('width' in updates || 'fromLeft' in updates) {
+        const newWidth = updates.width ?? targetCab.width;
+        const newFromLeft = updates.fromLeft ?? targetCab.fromLeft;
+        
+        const isCookerType = targetCab.preset === PresetType.COOKER_HOB || targetCab.preset === PresetType.BASE_DRAWER_3;
+        const isHoodType = targetCab.preset === PresetType.HOOD_UNIT;
+        
+        if (isCookerType || isHoodType) {
+          // Find potential counterpart (same position, opposite type)
+          cabs.forEach((c, idx) => {
+            if (idx === selectedCabinet.index) return;
+            
+            const isOtherCooker = c.preset === PresetType.COOKER_HOB || c.preset === PresetType.BASE_DRAWER_3;
+            const isOtherHood = c.preset === PresetType.HOOD_UNIT;
+            
+            // Check if it's the counterpart (at same position)
+            if (c.fromLeft === oldFromLeft) {
+              if ((isCookerType && isOtherHood) || (isHoodType && isOtherCooker)) {
+                cabs[idx] = { ...c, width: newWidth, fromLeft: newFromLeft };
+              }
+            }
+          });
+        }
+        
         return resolveLocalCollisions({ ...z, cabinets: cabs }, selectedCabinet.index, project.settings);
       }
       

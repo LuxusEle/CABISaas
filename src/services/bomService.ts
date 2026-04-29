@@ -370,7 +370,7 @@ export const autoFillZone = (
 
   if (options.includeCooker && !existingCooker) {
     // Try to place cooker away from sink (working triangle)
-    const cookerWidth = 1000;
+    const cookerWidth = 600;
     const preferredPositions = [
       Math.floor((totalLength - cookerWidth) / 2), // Center
       0,                                          // Left

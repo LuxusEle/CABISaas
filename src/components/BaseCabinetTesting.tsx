@@ -12,6 +12,7 @@ import {
   calculateNailHolePositions
 } from './CabinetTestingUtils';
 import { RealisticSink } from './3d/RealisticSink';
+import { RealisticCooker } from './3d/RealisticCooker';
 
 interface Props {
   settings: TestingSettings;
@@ -685,20 +686,9 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
       )}
 
       {/* 2. COOKER HOB */}
-      {settings.preset === 'Base 3-Drawer' && width >= 800 && !skeletonView && (
+      {((settings.preset === 'Base 3-Drawer' && width >= 600) || settings.preset === 'Cooker Hob') && !skeletonView && (
         <group position={[0, innerHeight / 2 + 5, 0]}>
-          {/* Glass Top */}
-          <mesh castShadow receiveShadow>
-            <boxGeometry args={[width * 0.8, 10, depth * 0.8]} />
-            <meshStandardMaterial color="#0f172a" roughness={0.05} metalness={0.8} />
-          </mesh>
-          {/* Burners */}
-          {[[-1, -1], [1, -1], [-1, 1], [1, 1]].map(([sx, sz], i) => (
-             <mesh key={i} position={[sx * width * 0.2, 8, sz * depth * 0.2]} castShadow>
-                <cylinderGeometry args={[40, 45, 10, 32]} />
-                <meshStandardMaterial color="#334155" metalness={1} />
-             </mesh>
-          ))}
+          <RealisticCooker width={width} depth={depth} opacity={settings.opacity} />
         </group>
       )}
     </group>
