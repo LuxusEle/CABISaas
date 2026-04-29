@@ -59,8 +59,9 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
 
   const isLowerGolaActive = settings.enableGola && (showLowerDoors || (showDrawers && numDrawers > 0));
   const isUpperGolaActive = settings.enableGola && showDoors;
-  const golaVerticalGap = isLowerGolaActive ? 13 : doorOuterGap;
-  const golaTopGap = isLowerGolaActive ? settings.golaTopGap : doorOuterGap;
+  // Use dynamic Gola settings from sliders
+  const golaVerticalGap = isLowerGolaActive ? (settings.golaCCutoutHeight / 2) : doorOuterGap;
+  const golaTopGap = isLowerGolaActive ? (panelThickness + settings.golaTopGap) : doorOuterGap;
 
   const actualDoorHeight = tallUpperSectionHeight - doorOuterGap + (isUpperGolaActive ? settings.doorOverride : 0);
   const doorYOffset_Upper = innerHeight / 2 - doorOuterGap - (tallUpperSectionHeight - doorOuterGap) / 2 - (isUpperGolaActive ? settings.doorOverride / 2 : 0);
@@ -117,23 +118,61 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
       const eachFrontH = totalAvailablePool > 0 ? (totalAvailablePool - totalGapSpace) / numDrawers : 0;
 
       let currentY = drawerZoneBottom + doorOuterGap;
+      const baseHeights = Array(numDrawers).fill(0);
+      const baseYPositions = Array(numDrawers).fill(0);
+
       for (let i = 0; i < numDrawers; i++) {
-        drawerFrontHeights[i] = (i === 0 && isAtBottom) ? eachFrontH + panelThickness : eachFrontH;
-        drawerYPositions[i] = currentY + drawerFrontHeights[i] / 2;
-        currentY += drawerFrontHeights[i] + golaGapTotal;
-        if (i < numDrawers - 1) {
-          gapHeights.push(currentY - golaGapTotal + drawerFrontHeights[i] / 2 + golaVerticalGap); // Adjusted gap calculation if needed
-          // Actually, currentY already moved past the gap. Let's stick to the previous logic for gaps.
+        let h = eachFrontH;
+        if (i === 0 && isAtBottom) h += panelThickness;
+        if (i === numDrawers - 1 && numDrawers > 0) h -= panelThickness;
+        
+        baseHeights[i] = h;
+        baseYPositions[i] = currentY + h / 2;
+
+        let finalH = h;
+        let finalY = baseYPositions[i];
+
+        if (i === 0) {
+          finalH += 15; // 15mm overlap at top
+          finalY = currentY + finalH / 2;
+        } else {
+          finalH += 30; // 15mm overlap at top and 15mm at bottom
+          finalY = (currentY - 15) + finalH / 2;
         }
+
+        // Additional panelThickness increase for top drawer in tall cabinet lower section
+        if (i === numDrawers - 1) {
+          finalH += panelThickness;
+          finalY += panelThickness / 2;
+        }
+
+        drawerFrontHeights[i] = finalH;
+        drawerYPositions[i] = finalY;
+        
+        currentY += h + golaGapTotal;
       }
       // Re-calculating gapHeights properly
       gapHeights.length = 0;
       let tempY = drawerZoneBottom + doorOuterGap;
       for (let i = 0; i < numDrawers - 1; i++) {
-        tempY += drawerFrontHeights[i] + golaVerticalGap;
+        tempY += baseHeights[i] + golaVerticalGap;
         gapHeights.push(tempY);
         tempY += golaVerticalGap;
       }
+      
+      // We'll return baseHeights to help with box alignment
+      return {
+        drawerFrontHeights,
+        drawerYPositions,
+        baseHeights,
+        baseYPositions,
+        boxWidth,
+        boxDepth,
+        frontWidth,
+        boxH: boxHeight,
+        gapHeights,
+        boxZOffset: (panelThickness + backPanelThickness + settings.drawerBackClearance) / 2
+      };
     } else {
       const physicalHeightLimit = tallLowerSectionHeight - panelThickness;
       const effectiveStackH = Math.min(lowerSectionDrawerStackHeight, physicalHeightLimit);
@@ -277,10 +316,12 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
     const dividerY = tallLowerSectionHeight - innerHeight / 2;
     const notches: any[] = [];
     if (isLowerGolaActive) {
-      notches.push({ u: depth / 2, v: dividerY - panelThickness, width: settings.golaLCutoutDepth, height: settings.golaLCutoutHeight, alignV: 'top' });
+      const lCutH = 45;
+      const cCutH = 45;
+      notches.push({ u: depth / 2, v: dividerY - panelThickness, width: settings.golaLCutoutDepth, height: lCutH, alignV: 'top' });
       if (showDrawers && drawerData.gapHeights.length > 0) {
         drawerData.gapHeights.forEach(gh => {
-          notches.push({ u: depth / 2, v: gh, width: settings.golaCutoutDepth, height: settings.golaCCutoutHeight, alignV: 'center' });
+          notches.push({ u: depth / 2, v: gh, width: settings.golaCutoutDepth, height: cCutH, alignV: 'center' });
         });
       }
     }
@@ -388,9 +429,11 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
 
 
   const getDrawerGeos = (i: number) => {
-    const { drawerFrontHeights, boxWidth, boxDepth, frontWidth } = drawerData;
+    const { drawerFrontHeights, baseHeights, boxWidth, boxDepth, frontWidth } = drawerData;
     const h = drawerFrontHeights[i];
-    const boxH = h * drawerBoxHeightRatio;
+    // Use base height for the box in Gola mode to stay flush with the cutouts
+    const baseH = (isLowerGolaActive && baseHeights) ? baseHeights[i] : h;
+    const boxH = isLowerGolaActive ? baseH : (h * drawerBoxHeightRatio);
     const technicalR = nailHoleDiameter / 2;
     
     const sideHoles = [];
@@ -647,9 +690,14 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
       })}
 
       {showDrawers && numDrawers > 0 && Array.from({ length: numDrawers }).map((_, i) => {
-        const { drawerYPositions, boxWidth, boxDepth, boxZOffset } = drawerData;
+        const { drawerYPositions, drawerFrontHeights, baseHeights, baseYPositions, boxWidth, boxDepth, boxZOffset } = drawerData;
         const { frontGeo, sideLGeo, sideRGeo, boxH } = getDrawerGeos(i);
         const drawerOpenDistance = (settings.drawerOpenDistances && settings.drawerOpenDistances[i]) || 0;
+        
+        // For drawers in Gola mode, align the box with the base (non-overlapped) front level
+        const boxY = (isLowerGolaActive && baseYPositions) 
+          ? baseYPositions[i] 
+          : drawerYPositions[i];
         return (
           <group key={`drawer-${i}`} position={[getOffset('drawer', i)[0], getOffset('drawer', i)[1], getOffset('drawer', i)[2] + drawerOpenDistance]}>
             <mesh position={[0, drawerYPositions[i], depth / 2 + doorMaterialThickness / 2]} rotation={[0, -Math.PI / 2, 0]} castShadow receiveShadow visible={!skeletonView}>
@@ -663,19 +711,19 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
               </mesh>
             )}
             {shouldShow('drawerBottom') && (
-              <mesh position={[0, drawerYPositions[i] - boxH / 2 + drawerBottomThickness / 2, boxZOffset + drawerBackThickness / 2]} castShadow receiveShadow visible={!skeletonView}>
+              <mesh position={[0, boxY - boxH / 2 + drawerBottomThickness / 2, boxZOffset + drawerBackThickness / 2]} castShadow receiveShadow visible={!skeletonView}>
                 <boxGeometry args={[boxWidth - panelThickness * 2, drawerBottomThickness, boxDepth - drawerBackThickness]} />
                 <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : showDifferentPanelColors ? panelColors.drawerBottom : shelfColor} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
               </mesh>
             )}
             {[-1, 1].map(side => shouldShow('drawerSide') && (
-              <mesh key={side} position={[side * (boxWidth / 2 - panelThickness / 2), drawerYPositions[i], boxZOffset]} castShadow receiveShadow visible={!skeletonView}>
+              <mesh key={side} position={[side * (boxWidth / 2 - panelThickness / 2), boxY, boxZOffset]} castShadow receiveShadow visible={!skeletonView}>
                 <primitive object={side === -1 ? sideLGeo : sideRGeo} attach="geometry" />
                 <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : showDifferentPanelColors ? panelColors.drawerSide : shelfColor} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.4} metalness={0} side={THREE.DoubleSide} transparent={settings.opacity < 1} opacity={settings.opacity} />
               </mesh>
             ))}
             {shouldShow('drawerBack') && (
-              <mesh position={[0, drawerYPositions[i], boxZOffset - boxDepth / 2 + drawerBackThickness / 2]} castShadow receiveShadow visible={!skeletonView}>
+              <mesh position={[0, boxY, boxZOffset - boxDepth / 2 + drawerBackThickness / 2]} castShadow receiveShadow visible={!skeletonView}>
                 <boxGeometry args={[boxWidth - panelThickness * 2, boxH, drawerBackThickness]} />
                 <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : showDifferentPanelColors ? panelColors.drawerBack : shelfColor} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
               </mesh>
@@ -688,19 +736,19 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
                   <lineBasicMaterial color={getPanelColor('drawerFront')} linewidth={2} />
                 </lineSegments>
                 {shouldShow('drawerBottom') && (
-                  <lineSegments position={[0, drawerYPositions[i] - boxH / 2 + drawerBottomThickness / 2, boxZOffset + drawerBackThickness / 2]}>
+                  <lineSegments position={[0, boxY - boxH / 2 + drawerBottomThickness / 2, boxZOffset + drawerBackThickness / 2]}>
                     <edgesGeometry args={[new THREE.BoxGeometry(boxWidth - panelThickness * 2, drawerBottomThickness, boxDepth - drawerBackThickness)]} />
                     <lineBasicMaterial color={getPanelColor('drawerBottom')} linewidth={2} />
                   </lineSegments>
                 )}
                 {[-1, 1].map(side => shouldShow('drawerSide') && (
-                  <lineSegments key={`sk-side-${side}`} position={[side * (boxWidth / 2 - panelThickness / 2), drawerYPositions[i], boxZOffset]}>
+                  <lineSegments key={`sk-side-${side}`} position={[side * (boxWidth / 2 - panelThickness / 2), boxY, boxZOffset]}>
                     <edgesGeometry args={[side === -1 ? sideLGeo : sideRGeo]} />
                     <lineBasicMaterial color={getPanelColor('drawerSide')} linewidth={2} />
                   </lineSegments>
                 ))}
                 {shouldShow('drawerBack') && (
-                  <lineSegments position={[0, drawerYPositions[i], boxZOffset - boxDepth / 2 + drawerBackThickness / 2]}>
+                  <lineSegments position={[0, boxY, boxZOffset - boxDepth / 2 + drawerBackThickness / 2]}>
                     <edgesGeometry args={[new THREE.BoxGeometry(boxWidth - panelThickness * 2, boxH, drawerBackThickness)]} />
                     <lineBasicMaterial color={getPanelColor('drawerBack')} linewidth={2} />
                   </lineSegments>

@@ -176,9 +176,9 @@ export const DEFAULT_SETTINGS: TestingSettings = {
   golaLCutoutDepth: 26,
   opacity: 1,
   isSelected: false,
-  golaLCutoutHeight: 59,
-  golaCCutoutHeight: 73.5,
-  golaTopGap: 30,
+  golaLCutoutHeight: 45,
+  golaCCutoutHeight: 45,
+  golaTopGap: 45,
   tallLowerSectionHeight: 720,
   tallUpperSectionHeight: 720,
   showLowerShelves: true,
@@ -191,8 +191,8 @@ export const DEFAULT_SETTINGS: TestingSettings = {
   blindPanelWidth: 400,
   blindCornerSide: 'left',
   enableColumn: false,
-  columnWidth: 200,
-  columnDepth: 200
+  columnWidth: 150,
+  columnDepth: 100
 };
 
 export const RUBY_DOOR_THRESHOLD = 599.5;
