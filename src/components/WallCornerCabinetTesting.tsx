@@ -143,7 +143,7 @@ export const WallCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
     
     const lpX = -innerWidth / 2 + panelThickness / 2;
     const rpX = innerWidth / 2 - panelThickness / 2;
-    const zDist = [ -innerDepth / 2 + innerDepth / 5, 0, innerDepth / 2 - innerDepth / 5 ];
+    const zDist = [ -innerDepth / 2 + 50, 0, innerDepth / 2 - 50 ];
     zDist.forEach(zVal => {
       const actualLeftDepth = (enableColumn && blindCornerSide === 'left') ? depth - columnDepth : depth;
       const actualRightDepth = (enableColumn && blindCornerSide === 'right') ? depth - columnDepth : depth;
@@ -166,9 +166,9 @@ export const WallCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
       const backWidth = enableColumn ? innerWidth - columnWidth : innerWidth;
       const startX = (enableColumn && blindCornerSide === 'left') ? -innerWidth / 2 + columnWidth : -innerWidth / 2;
       
-      holes.push({ y: startX + backWidth / 5, z: bbsZ, r: technicalR, through: true });
+      holes.push({ y: startX + 50, z: bbsZ, r: technicalR, through: true });
       holes.push({ y: startX + backWidth / 2, z: bbsZ, r: technicalR, through: true });
-      holes.push({ y: startX + (backWidth * 4) / 5, z: bbsZ, r: technicalR, through: true });
+      holes.push({ y: startX + backWidth - 50, z: bbsZ, r: technicalR, through: true });
     }
 
     const upZ1 = depth / 2 - topStretcherWidth * 1/4;
@@ -187,7 +187,7 @@ export const WallCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
     
     const lpX = -innerWidth / 2 + panelThickness / 2;
     const rpX = innerWidth / 2 - panelThickness / 2;
-    const zDist = [ -innerDepth / 2 + innerDepth / 5, 0, innerDepth / 2 - innerDepth / 5 ];
+    const zDist = [ -innerDepth / 2 + 50, 0, innerDepth / 2 - 50 ];
     zDist.forEach(zVal => {
       const actualLeftDepth = (enableColumn && blindCornerSide === 'left') ? depth - columnDepth : depth;
       const actualRightDepth = (enableColumn && blindCornerSide === 'right') ? depth - columnDepth : depth;
@@ -210,9 +210,9 @@ export const WallCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
       const backWidth = enableColumn ? innerWidth - columnWidth : innerWidth;
       const startX = (enableColumn && blindCornerSide === 'left') ? -innerWidth / 2 + columnWidth : -innerWidth / 2;
       
-      holes.push({ y: startX + backWidth / 5, z: bbsZ, r: technicalR, through: true });
+      holes.push({ y: startX + 50, z: bbsZ, r: technicalR, through: true });
       holes.push({ y: startX + backWidth / 2, z: bbsZ, r: technicalR, through: true });
-      holes.push({ y: startX + (backWidth * 4) / 5, z: bbsZ, r: technicalR, through: true });
+      holes.push({ y: startX + backWidth - 50, z: bbsZ, r: technicalR, through: true });
     }
 
     const upZ1 = depth / 2 - topStretcherWidth * 1/4;
@@ -286,24 +286,24 @@ export const WallCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
     
     // Top Panel hit points
     const yTopPanel = innerHeight / 2 - panelThickness / 2;
-    holes.push({ y: yTopPanel, z: -blindWidthFront / 2 + blindWidthFront / 5, r: technicalR, through: true });
+    holes.push({ y: yTopPanel, z: -blindWidthFront / 2 + 50, r: technicalR, through: true });
     holes.push({ y: yTopPanel, z: 0, r: technicalR, through: true });
-    holes.push({ y: yTopPanel, z: blindWidthFront / 2 - blindWidthFront / 5, r: technicalR, through: true });
+    holes.push({ y: yTopPanel, z: blindWidthFront / 2 - 50, r: technicalR, through: true });
 
     // Bottom panel hit points
     const yBottomPanel = -innerHeight / 2 + panelThickness / 2 + wallBottomRecess;
-    holes.push({ y: yBottomPanel, z: -blindWidthFront / 2 + blindWidthFront / 5, r: technicalR, through: true });
+    holes.push({ y: yBottomPanel, z: -blindWidthFront / 2 + 50, r: technicalR, through: true });
     holes.push({ y: yBottomPanel, z: 0, r: technicalR, through: true });
-    holes.push({ y: yBottomPanel, z: blindWidthFront / 2 - blindWidthFront / 5, r: technicalR, through: true });
+    holes.push({ y: yBottomPanel, z: blindWidthFront / 2 - 50, r: technicalR, through: true });
 
     // Side panel hit points
     const sidePanelLocalX = blindCornerSide === 'left' 
       ? panelThickness / 2 - blindPanelWidth / 2 
       : blindPanelWidth / 2 - panelThickness / 2;
       
-    holes.push({ y: -blindPanelHeight / 2 + blindPanelHeight / 5, z: sidePanelLocalX, r: technicalR, through: true });
+    holes.push({ y: -blindPanelHeight / 2 + 50, z: sidePanelLocalX, r: technicalR, through: true });
     holes.push({ y: 0, z: sidePanelLocalX, r: technicalR, through: true });
-    holes.push({ y: blindPanelHeight / 2 - blindPanelHeight / 5, z: sidePanelLocalX, r: technicalR, through: true });
+    holes.push({ y: blindPanelHeight / 2 - 50, z: sidePanelLocalX, r: technicalR, through: true });
 
     return holes;
   }, [showNailHoles, nailHoleDiameter, innerHeight, panelThickness, blindWidthFront, blindCornerSide, blindPanelWidth, blindPanelHeight, wallBottomRecess]);

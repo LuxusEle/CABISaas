@@ -248,9 +248,9 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
   const bottomPanelHoles = useMemo(() => {
     if (!showNailHoles) return [];
     const technicalR = nailHoleDiameter / 2;
-    const u1 = -innerDepth / 2 + innerDepth / 5;
+    const u1 = -innerDepth / 2 + 50;
     const u2 = 0;
-    const u3 = innerDepth / 2 - innerDepth / 5;
+    const u3 = innerDepth / 2 - 50;
     const vLeft = -innerWidth / 2 + panelThickness / 2;
     const vRight = innerWidth / 2 - panelThickness / 2;
 
@@ -264,16 +264,16 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
     ];
 
     if (showBackStretchers) {
-      const v1 = -innerWidth / 2 + innerWidth / 5;
+      const v1 = -innerWidth / 2 + 50;
       const v2 = 0;
-      const v3 = innerWidth / 2 - innerWidth / 5;
+      const v3 = innerWidth / 2 - 50;
       const zBack = -innerDepth / 2 + panelThickness / 2;
       positions.push({ y: v1, z: zBack, r: technicalR, through: true }, { y: v2, z: zBack, r: technicalR, through: true }, { y: v3, z: zBack, r: technicalR, through: true });
     }
 
-    const v1 = -innerWidth / 2 + innerWidth / 5;
+    const v1 = -innerWidth / 2 + 50;
     const v2 = 0;
-    const v3 = innerWidth / 2 - innerWidth / 5;
+    const v3 = innerWidth / 2 - 50;
     const zToeKick = innerDepth / 2 - 50 - panelThickness / 2;
     positions.push({ y: v1, z: zToeKick, r: technicalR, through: true }, { y: v2, z: zToeKick, r: technicalR, through: true }, { y: v3, z: zToeKick, r: technicalR, through: true });
     
@@ -293,9 +293,9 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
     if (!showNailHoles) return [];
     const length = innerWidth - panelThickness * 2;
     const technicalR = nailHoleDiameter / 2;
-    const y1 = -length / 2 + length / 5;
+    const y1 = -length / 2 + 50;
     const y2 = 0;
-    const y3 = length / 2 - length / 5;
+    const y3 = length / 2 - 50;
     const z = -topStretcherWidth / 2 + panelThickness / 2;
     return [
       { y: y1, z, r: technicalR, through: true },
@@ -813,26 +813,26 @@ export const exportBaseCabinetDXF = async (settings: TestingSettings, zip: JSZip
   addPanelToZip('Right_Panel', sideW, sideH_Panel, nailHoles, sideGroove, golaCutoutsArr, true);
 
   const bottomHoles = [
-    { z: -innerWidth / 2 + panelThickness / 2, y: -innerDepth / 2 + innerDepth / 5, r: nailR, through: true },
+    { z: -innerWidth / 2 + panelThickness / 2, y: -innerDepth / 2 + 50, r: nailR, through: true },
     { z: -innerWidth / 2 + panelThickness / 2, y: 0, r: nailR, through: true },
-    { z: -innerWidth / 2 + panelThickness / 2, y: innerDepth / 2 - innerDepth / 5, r: nailR, through: true },
-    { z: innerWidth / 2 - panelThickness / 2, y: -innerDepth / 2 + innerDepth / 5, r: nailR, through: true },
+    { z: -innerWidth / 2 + panelThickness / 2, y: innerDepth / 2 - 50, r: nailR, through: true },
+    { z: innerWidth / 2 - panelThickness / 2, y: -innerDepth / 2 + 50, r: nailR, through: true },
     { z: innerWidth / 2 - panelThickness / 2, y: 0, r: nailR, through: true },
-    { z: innerWidth / 2 - panelThickness / 2, y: innerDepth / 2 - innerDepth / 5, r: nailR, through: true }
+    { z: innerWidth / 2 - panelThickness / 2, y: innerDepth / 2 - 50, r: nailR, through: true }
   ];
   if (showBackStretchers) {
-    const v1 = -innerWidth / 2 + innerWidth / 5;
+    const v1 = -innerWidth / 2 + 50;
     const v2 = 0;
-    const v3 = innerWidth / 2 - innerWidth / 5;
+    const v3 = innerWidth / 2 - 50;
     const yB = -innerDepth / 2 + panelThickness / 2;
     bottomHoles.push({ z: v1, y: yB, r: nailR, through: true }, { z: v2, y: yB, r: nailR, through: true }, { z: v3, y: yB, r: nailR, through: true });
   }
 
   // Toe kick holes in bottom panel
   const zToeKick = innerDepth / 2 - 50 - panelThickness / 2;
-  const v1 = -innerWidth / 2 + innerWidth / 5;
+  const v1 = -innerWidth / 2 + 50;
   const v2 = 0;
-  const v3 = innerWidth / 2 - innerWidth / 5;
+  const v3 = innerWidth / 2 - 50;
   bottomHoles.push({ z: v1, y: zToeKick, r: nailR, through: true }, { z: v2, y: zToeKick, r: nailR, through: true }, { z: v3, y: zToeKick, r: nailR, through: true });
 
   addPanelToZip('Bottom_Panel', innerWidth, innerDepth, bottomHoles, { x: panelThickness, y: panelThickness, w: innerWidth - 2 * panelThickness, h: backPanelThickness + 2, depth: grooveDepth });
@@ -850,9 +850,9 @@ export const exportBaseCabinetDXF = async (settings: TestingSettings, zip: JSZip
   if (showBackStretchers) {
     const technicalR2 = nailHoleDiameter / 2;
     const tbsWidth = innerWidth - panelThickness * 2;
-    const tbsY1 = -tbsWidth / 2 + tbsWidth / 5;
+    const tbsY1 = -tbsWidth / 2 + 50;
     const tbsY2 = 0;
-    const tbsY3 = tbsWidth / 2 - tbsWidth / 5;
+    const tbsY3 = tbsWidth / 2 - 50;
     const tbsZ = -topStretcherWidth / 2 + panelThickness / 2;
     const topBackHoles = [
       { z: tbsY1, y: tbsZ, r: technicalR2, through: true },

@@ -142,9 +142,9 @@ export const WallCabinetTesting: React.FC<Props> = ({ settings }) => {
   const bottomPanelHoles = useMemo(() => {
     if (!showNailHoles) return [];
     const technicalR = nailHoleDiameter / 2;
-    const u1 = -actualBottomDepth / 2 + actualBottomDepth / 5;
+    const u1 = -actualBottomDepth / 2 + 50;
     const u2 = 0;
-    const u3 = actualBottomDepth / 2 - actualBottomDepth / 5;
+    const u3 = actualBottomDepth / 2 - 50;
     const vLeft = -innerWidth / 2 + panelThickness / 2;
     const vRight = innerWidth / 2 - panelThickness / 2;
 
@@ -158,9 +158,9 @@ export const WallCabinetTesting: React.FC<Props> = ({ settings }) => {
     ];
 
     if (showBackStretchers) {
-      const v1 = -innerWidth / 2 + innerWidth / 5;
+      const v1 = -innerWidth / 2 + 50;
       const v2 = 0;
-      const v3 = innerWidth / 2 - innerWidth / 5;
+      const v3 = innerWidth / 2 - 50;
       const zBackHole = -actualBottomDepth / 2 + panelThickness / 2;
       positions.push(
         { y: v1, z: zBackHole, r: technicalR, through: true },
@@ -510,9 +510,9 @@ export const exportWallCabinetDXF = async (settings: TestingSettings, zip: JSZip
   addPanelToZip('Right_Panel', sideW, sideH_Panel, nailHoles, sideGroove, true, rightNotches);
   const actualBottomDepthDXF = innerDepth;
   const bottomNailHoles = [];
-  const u1b = -actualBottomDepthDXF / 2 + actualBottomDepthDXF / 5;
+  const u1b = -actualBottomDepthDXF / 2 + 50;
   const u2b = 0;
-  const u3b = actualBottomDepthDXF / 2 - actualBottomDepthDXF / 5;
+  const u3b = actualBottomDepthDXF / 2 - 50;
   const vLeftb = -innerWidth / 2 + panelThickness / 2;
   const vRightb = innerWidth / 2 - panelThickness / 2;
   bottomNailHoles.push(
@@ -524,9 +524,9 @@ export const exportWallCabinetDXF = async (settings: TestingSettings, zip: JSZip
     { y: vRightb, z: u3b, r: technicalR, through: true }
   );
   if (showBackStretchers) {
-    const v1 = -innerWidth / 2 + innerWidth / 5;
+    const v1 = -innerWidth / 2 + 50;
     const v2 = 0;
-    const v3 = innerWidth / 2 - innerWidth / 5;
+    const v3 = innerWidth / 2 - 50;
     const zBackH = -actualBottomDepthDXF / 2 + panelThickness / 2;
     bottomNailHoles.push(
       { y: v1, z: zBackH, r: technicalR, through: true },

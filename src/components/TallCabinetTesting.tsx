@@ -282,9 +282,9 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
   const commonPanelHoles = useMemo(() => {
     if (!showNailHoles) return [];
     const technicalR = nailHoleDiameter / 2;
-    const u1 = -innerDepth / 2 + innerDepth / 5;
+    const u1 = -innerDepth / 2 + 50;
     const u2 = 0;
-    const u3 = innerDepth / 2 - innerDepth / 5;
+    const u3 = innerDepth / 2 - 50;
     const vLeft = -innerWidth / 2 + panelThickness / 2;
     const vRight = innerWidth / 2 - panelThickness / 2;
 
@@ -298,9 +298,9 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
     ];
 
     if (showBackStretchers) {
-      const v1 = -innerWidth / 2 + innerWidth / 5;
+      const v1 = -innerWidth / 2 + 50;
       const v2 = 0;
-      const v3 = innerWidth / 2 - innerWidth / 5;
+      const v3 = innerWidth / 2 - 50;
       const zBackHole = -innerDepth / 2 + panelThickness / 2;
       positions.push(
         { y: v1, z: zBackHole, r: technicalR, through: true },
@@ -317,9 +317,9 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
     const positions = [...commonPanelHoles];
     
     // Add 3 Toe Kick Nailholes
-    const tk1 = -innerWidth / 2 + innerWidth / 5;
+    const tk1 = -innerWidth / 2 + 50;
     const tk2 = 0;
-    const tk3 = innerWidth / 2 - innerWidth / 5;
+    const tk3 = innerWidth / 2 - 50;
     const zToeKick = innerDepth / 2 - 50 - panelThickness / 2;
     positions.push(
       { y: tk1, z: zToeKick, r: technicalR, through: true },
@@ -969,9 +969,9 @@ export const exportTallCabinetDXF = async (settings: TestingSettings, zip: JSZip
   addPanelToZip('Right_Panel', sideW, sideH_Panel, nailHoles, sideGroove, true, golaCutoutsArr);
 
   const commonNailHoles = [];
-  const u1b = -innerDepth / 2 + innerDepth / 5;
+  const u1b = -innerDepth / 2 + 50;
   const u2b = 0;
-  const u3b = innerDepth / 2 - innerDepth / 5;
+  const u3b = innerDepth / 2 - 50;
   const vLeftb = -innerWidth / 2 + panelThickness / 2;
   const vRightb = innerWidth / 2 - panelThickness / 2;
   commonNailHoles.push(
@@ -984,9 +984,9 @@ export const exportTallCabinetDXF = async (settings: TestingSettings, zip: JSZip
   );
 
   if (showBackStretchers) {
-    const v1 = -innerWidth / 2 + innerWidth / 5;
+    const v1 = -innerWidth / 2 + 50;
     const v2 = 0;
-    const v3 = innerWidth / 2 - innerWidth / 5;
+    const v3 = innerWidth / 2 - 50;
     const zBackH = -innerDepth / 2 + panelThickness / 2;
     commonNailHoles.push(
       { z: v1, y: zBackH, r: technicalR, through: true },
@@ -998,9 +998,9 @@ export const exportTallCabinetDXF = async (settings: TestingSettings, zip: JSZip
   const bottomNailHoles = [...commonNailHoles];
 
   // Add 3 Toe Kick Nailholes for DXF
-  const tk1 = -innerWidth / 2 + innerWidth / 5;
+  const tk1 = -innerWidth / 2 + 50;
   const tk2 = 0;
-  const tk3 = innerWidth / 2 - innerWidth / 5;
+  const tk3 = innerWidth / 2 - 50;
   const zTK = innerDepth / 2 - 50 - panelThickness / 2;
   bottomNailHoles.push(
     { z: tk1, y: zTK, r: technicalR, through: true },

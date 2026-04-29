@@ -116,9 +116,9 @@ export const BaseCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
     
     const length = width - panelThickness * 2;
     const technicalR = nailHoleDiameter / 2;
-    const y1 = -length / 2 + length / 5;
+    const y1 = -length / 2 + 50;
     const y2 = 0;
-    const y3 = length / 2 - length / 5;
+    const y3 = length / 2 - 50;
     const z = -topStretcherWidth / 2 + panelThickness / 2;
     return [
       { y: y1, z, r: technicalR, through: true },
@@ -250,14 +250,14 @@ export const BaseCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
     
     // Toekick (3 holes)
     const tkZ = depth / 2 - 50 - panelThickness / 2;
-    holes.push({ y: -innerWidth / 2 + innerWidth / 5, z: tkZ, r: technicalR, through: true });
+    holes.push({ y: -innerWidth / 2 + 50, z: tkZ, r: technicalR, through: true });
     holes.push({ y: 0, z: tkZ, r: technicalR, through: true });
-    holes.push({ y: innerWidth / 2 - innerWidth / 5, z: tkZ, r: technicalR, through: true });
+    holes.push({ y: innerWidth / 2 - 50, z: tkZ, r: technicalR, through: true });
 
     // Side Panels
     const lpX = -innerWidth / 2 + panelThickness / 2;
     const rpX = innerWidth / 2 - panelThickness / 2;
-    const zDist = [ -innerDepth / 2 + innerDepth / 5, 0, innerDepth / 2 - innerDepth / 5 ];
+    const zDist = [ -innerDepth / 2 + 50, 0, innerDepth / 2 - 50 ];
     zDist.forEach(zVal => {
       // If column is on the left, check if hole is within column area in Z
       // Actually, if it's on the side panel edge, it's fine unless the panel itself is gone.
@@ -284,9 +284,9 @@ export const BaseCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
       const backWidth = enableColumn ? innerWidth - columnWidth : innerWidth;
       const startX = (enableColumn && blindCornerSide === 'left') ? -innerWidth / 2 + columnWidth : -innerWidth / 2;
       
-      holes.push({ y: startX + backWidth / 5, z: bbsZ, r: technicalR, through: true });
+      holes.push({ y: startX + 50, z: bbsZ, r: technicalR, through: true });
       holes.push({ y: startX + backWidth / 2, z: bbsZ, r: technicalR, through: true });
-      holes.push({ y: startX + (backWidth * 4) / 5, z: bbsZ, r: technicalR, through: true });
+      holes.push({ y: startX + backWidth - 50, z: bbsZ, r: technicalR, through: true });
     }
 
     // Vertical Support Panel
@@ -338,24 +338,24 @@ export const BaseCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
     
     // Top front stretcher
     const yTopStretcher = innerHeight / 2 - panelThickness / 2;
-    holes.push({ y: yTopStretcher, z: -blindWidthFront / 2 + blindWidthFront / 5, r: technicalR, through: true });
+    holes.push({ y: yTopStretcher, z: -blindWidthFront / 2 + 50, r: technicalR, through: true });
     holes.push({ y: yTopStretcher, z: 0, r: technicalR, through: true });
-    holes.push({ y: yTopStretcher, z: blindWidthFront / 2 - blindWidthFront / 5, r: technicalR, through: true });
+    holes.push({ y: yTopStretcher, z: blindWidthFront / 2 - 50, r: technicalR, through: true });
 
     // Bottom panel
     const yBottomPanel = -innerHeight / 2 + panelThickness / 2;
-    holes.push({ y: yBottomPanel, z: -blindWidthFront / 2 + blindWidthFront / 5, r: technicalR, through: true });
+    holes.push({ y: yBottomPanel, z: -blindWidthFront / 2 + 50, r: technicalR, through: true });
     holes.push({ y: yBottomPanel, z: 0, r: technicalR, through: true });
-    holes.push({ y: yBottomPanel, z: blindWidthFront / 2 - blindWidthFront / 5, r: technicalR, through: true });
+    holes.push({ y: yBottomPanel, z: blindWidthFront / 2 - 50, r: technicalR, through: true });
 
     // Side panel
     const sidePanelLocalX = blindCornerSide === 'left' 
       ? panelThickness / 2 - blindPanelWidth / 2 
       : blindPanelWidth / 2 - panelThickness / 2;
       
-    holes.push({ y: -blindPanelHeight / 2 + blindPanelHeight / 5, z: sidePanelLocalX, r: technicalR, through: true });
+    holes.push({ y: -blindPanelHeight / 2 + 50, z: sidePanelLocalX, r: technicalR, through: true });
     holes.push({ y: 0, z: sidePanelLocalX, r: technicalR, through: true });
-    holes.push({ y: blindPanelHeight / 2 - blindPanelHeight / 5, z: sidePanelLocalX, r: technicalR, through: true });
+    holes.push({ y: blindPanelHeight / 2 - 50, z: sidePanelLocalX, r: technicalR, through: true });
 
     return holes;
   }, [showNailHoles, nailHoleDiameter, innerHeight, panelThickness, blindWidthFront, blindCornerSide, blindPanelWidth, blindPanelHeight]);
