@@ -103,6 +103,9 @@ export interface TestingSettings {
   doorTexture?: THREE.Texture;
   shelfTexture?: THREE.Texture;
   elevationOffset?: number;
+  enableColumn: boolean;
+  columnWidth: number;
+  columnDepth: number;
 }
 
 export const DEFAULT_SETTINGS: TestingSettings = {
@@ -172,7 +175,10 @@ export const DEFAULT_SETTINGS: TestingSettings = {
   enableTallUpperGola: false,
   showUpperDoors: true,
   blindPanelWidth: 400,
-  blindCornerSide: 'left'
+  blindCornerSide: 'left',
+  enableColumn: false,
+  columnWidth: 200,
+  columnDepth: 200
 };
 
 export const RUBY_DOOR_THRESHOLD = 599.5;
@@ -401,7 +407,7 @@ export const createPanelWithHolesGeo = (
   holeDepth: number,
   grooveStartOffset: number = 0,
   grooveEndOffset: number = 0,
-  notches: { u: number, v: number, width: number, height: number, alignV: 'top' | 'bottom' | 'center' }[] = []
+  notches: { u: number, v: number, width: number, height: number, alignV: 'top' | 'bottom' | 'center', side?: 'uMax' | 'uMin' }[] = []
 ) => {
     const uMin = -sizeZ / 2;
   const uMax = sizeZ / 2;
@@ -411,40 +417,68 @@ export const createPanelWithHolesGeo = (
   const createBaseShape = (includeGroove: boolean, includePartialHoles: boolean, includeThroughHoles: boolean) => {
     const shape = new THREE.Shape();
     
-    const sorted = [...notches].sort((a, b) => {
-      const vA = a.alignV === 'top' ? a.v - a.height : (a.alignV === 'center' ? a.v - a.height/2 : a.v);
-      const vB = b.alignV === 'top' ? b.v - b.height : (b.alignV === 'center' ? b.v - b.height/2 : b.v);
-      return vA - vB;
-    });
-    
     const tol = 0.001;
-    let currentV = vMin;
     
-    if (sorted.length > 0 && (sorted[0].alignV === 'bottom' || Math.abs((sorted[0].alignV === 'center' ? sorted[0].v - sorted[0].height/2 : sorted[0].v) - vMin) < tol)) {
-       const first = sorted[0];
-       shape.moveTo(uMin, vMin);
+    // Separate and clamp notches by side
+    const uMaxNotches = notches.filter(n => !n.side || n.side === 'uMax')
+      .map(n => {
+        const nVMinRaw = n.alignV === 'top' ? n.v - n.height : (n.alignV === 'center' ? n.v - n.height/2 : n.v);
+        const nVMaxRaw = nVMinRaw + n.height;
+        return {
+          ...n,
+          nVMin: Math.max(vMin, nVMinRaw),
+          nVMax: Math.min(vMax, nVMaxRaw),
+          width: Math.min(sizeZ, n.width)
+        };
+      })
+      .filter(n => n.nVMax > n.nVMin + tol)
+      .sort((a, b) => a.nVMin - b.nVMin);
+
+    const uMinNotches = notches.filter(n => n.side === 'uMin')
+      .map(n => {
+        const nVMinRaw = n.alignV === 'top' ? n.v - n.height : (n.alignV === 'center' ? n.v - n.height/2 : n.v);
+        const nVMaxRaw = nVMinRaw + n.height;
+        return {
+          ...n,
+          nVMin: Math.max(vMin, nVMinRaw),
+          nVMax: Math.min(vMax, nVMaxRaw),
+          width: Math.min(sizeZ, n.width)
+        };
+      })
+      .filter(n => n.nVMax > n.nVMin + tol)
+      .sort((a, b) => a.nVMin - b.nVMin);
+    
+    // Start at bottom-left (uMin, vMin) and go around
+    // 1. Bottom edge (potentially with a notch at uMin corner)
+    let currentV = vMin;
+    if (uMinNotches.length > 0 && Math.abs(uMinNotches[0].nVMin - vMin) < tol) {
+      const n = uMinNotches[0];
+      shape.moveTo(uMin + n.width, vMin);
+      currentV = vMin;
+    } else {
+      shape.moveTo(uMin, vMin);
+    }
+
+    // 2. Right edge (uMax side)
+    if (uMaxNotches.length > 0 && Math.abs(uMaxNotches[0].nVMin - vMin) < tol) {
+       const first = uMaxNotches[0];
        shape.lineTo(uMax - first.width, vMin);
-       shape.lineTo(uMax - first.width, (first.alignV === 'center' ? first.v + first.height/2 : (first.alignV === 'top' ? first.v : first.v + first.height)));
-       currentV = first.alignV === 'center' ? first.v + first.height/2 : (first.alignV === 'top' ? first.v : first.v + first.height);
+       shape.lineTo(uMax - first.width, first.nVMax);
+       currentV = first.nVMax;
        if (currentV < vMax - tol) {
          shape.lineTo(uMax, currentV);
        }
-       sorted.shift();
+       uMaxNotches.shift();
     } else {
-       shape.moveTo(uMin, vMin);
        shape.lineTo(uMax, vMin);
     }
     
-    sorted.forEach(n => {
-      const nVMin = n.alignV === 'top' ? n.v - n.height : (n.alignV === 'center' ? n.v - n.height/2 : n.v);
-      const nVMax = nVMin + n.height;
-      
-      if (nVMin > currentV + tol) {
-        shape.lineTo(uMax, nVMin);
-      }
+    uMaxNotches.forEach(n => {
+      const nVMin = n.nVMin;
+      const nVMax = n.nVMax;
+      if (nVMin > currentV + tol) shape.lineTo(uMax, nVMin);
       shape.lineTo(uMax - n.width, nVMin);
       shape.lineTo(uMax - n.width, nVMax);
-      
       if (nVMax < vMax - tol) {
         shape.lineTo(uMax, nVMax);
         currentV = nVMax;
@@ -452,31 +486,72 @@ export const createPanelWithHolesGeo = (
         currentV = vMax;
       }
     });
-    
-    if (currentV < vMax - tol) {
-      shape.lineTo(uMax, vMax);
+    if (currentV < vMax - tol) shape.lineTo(uMax, vMax);
+
+    // 3. Top edge (potentially with a notch at uMin or uMax corner)
+    currentV = vMax;
+    // We are at (uMax, vMax). Go to (uMin, vMax).
+    if (uMinNotches.length > 0 && Math.abs(uMinNotches[uMinNotches.length-1].nVMax - vMax) < tol) {
+      const last = uMinNotches[uMinNotches.length-1];
+      shape.lineTo(uMin + last.width, vMax);
+      // Wait, we need to handle the left edge next, so we don't finish the top yet if there's a notch.
+    } else {
+      shape.lineTo(uMin, vMax);
     }
-    
-    shape.lineTo(uMin, vMax);
-    shape.lineTo(uMin, vMin);
+
+    // 4. Left edge (uMin side)
+    // We are at the top-left area. 
+    // uMinNotches are sorted by V. We should go from VMax down to VMin.
+    const uMinNotchesRev = [...uMinNotches].reverse();
+    currentV = vMax;
+    uMinNotchesRev.forEach(n => {
+      const nVMax = n.nVMax;
+      const nVMin = n.nVMin;
+      
+      if (nVMax < currentV - tol) shape.lineTo(uMin, nVMax);
+      shape.lineTo(uMin + n.width, nVMax);
+      shape.lineTo(uMin + n.width, nVMin);
+      if (nVMin > vMin + tol) {
+        shape.lineTo(uMin, nVMin);
+        currentV = nVMin;
+      } else {
+        currentV = vMin;
+      }
+    });
+    if (currentV > vMin + tol) shape.lineTo(uMin, vMin);
+
     shape.closePath();
 
     holes.forEach(h => {
       const shouldInclude = (h.through && includeThroughHoles) || (!h.through && includePartialHoles);
       if (shouldInclude) {
-        const path = new THREE.Path();
-        path.absarc(h.z, h.y, h.r, 0, Math.PI * 2, true);
-        shape.holes.push(path);
+        // Skip holes that fall within any notch
+        const isInsideNotch = notches.some(n => {
+          const nVMin = n.alignV === 'top' ? n.v - n.height : (n.alignV === 'center' ? n.v - n.height/2 : n.v);
+          const nVMax = nVMin + n.height;
+          const nUMin = n.side === 'uMin' ? uMin : uMax - n.width;
+          const nUMax = n.side === 'uMin' ? uMin + n.width : uMax;
+
+          return h.y >= nVMin - tol && h.y <= nVMax + tol && h.z >= nUMin - tol && h.z <= nUMax + tol;
+        });
+
+        if (!isInsideNotch) {
+          const path = new THREE.Path();
+          path.absarc(h.z, h.y, h.r, 0, Math.PI * 2, true);
+          shape.holes.push(path);
+        }
       }
     });
 
     if (includeGroove) {
-      const gPath = new THREE.Path();
+      // For grooves, we should ideally clip them against notches, but that's complex for THREE.Path.
+      // At minimum, ensure the groove doesn't extend into a side that is completely notched out.
       const gZMin = grooveLocalZMin;
       const gZMax = grooveLocalZMax;
       const gYMin = vMin + grooveEndOffset;
       const gYMax = vMax - grooveStartOffset;
       
+      const gPath = new THREE.Path();
       gPath.moveTo(gZMin, gYMin);
       gPath.lineTo(gZMax, gYMin);
       gPath.lineTo(gZMax, gYMax);

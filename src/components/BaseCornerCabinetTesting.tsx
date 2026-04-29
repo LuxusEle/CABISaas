@@ -22,7 +22,8 @@ export const BaseCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
     skeletonView, partsSeparatedView, selectedPart, showDifferentPanelColors,
     blindPanelWidth, blindCornerSide, doorMaterialThickness, doorOuterGap, doorToPanelGap,
     showDoors, doorOpenAngle, showHinges, hingeDiameter, hingeDepth, hingeHorizontalOffset, hingeVerticalOffset,
-    showNailHoles, nailHoleDiameter, shelfHoleDiameter, nailHoleShelfDistance, shelfDepth, nailHoleDepth
+    showNailHoles, nailHoleDiameter, shelfHoleDiameter, nailHoleShelfDistance, shelfDepth, nailHoleDepth,
+    enableColumn, columnWidth, columnDepth
   } = settings;
 
   const isSelected = settings.isSelected;
@@ -151,6 +152,8 @@ export const BaseCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
       notches.push({ u: depth / 2, v: sidePanelHeight / 2, width: settings.golaLCutoutDepth, height: settings.golaLCutoutHeight, alignV: 'top' });
     }
     const panelHoles = [...sideHoles];
+    const actualDepth = (enableColumn && blindCornerSide === 'left') ? depth - columnDepth : depth;
+    
     if (showNailHoles) {
       const yStr = sidePanelHeight / 2 - panelThickness / 2;
       const rebatedWidth = topStretcherWidth - golaLDepthOffset;
@@ -159,13 +162,14 @@ export const BaseCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
       panelHoles.push({ y: yStr, z: zF1, r: nailHoleDiameter / 2, through: true });
       panelHoles.push({ y: yStr, z: zF2, r: nailHoleDiameter / 2, through: true });
     }
+    const isBlindSide = enableColumn && blindCornerSide === 'left';
     return createPanelWithHolesGeo(
-      panelThickness, sidePanelHeight, depth,
-      -depth / 2 + panelThickness, -depth / 2 + panelThickness + backPanelThickness,
-      grooveDepth, 'px', panelHoles, nailHoleDepth, panelThickness - grooveDepth, 0,
+      panelThickness, sidePanelHeight, actualDepth,
+      -actualDepth / 2 + panelThickness, -actualDepth / 2 + panelThickness + backPanelThickness,
+      isBlindSide ? 0 : grooveDepth, 'px', panelHoles.filter(h => h.z < actualDepth/2 && h.z > -actualDepth/2), nailHoleDepth, panelThickness - grooveDepth, 0,
       notches
     );
-  }, [panelThickness, innerHeight, depth, backPanelThickness, grooveDepth, sideHoles, nailHoleDepth, isGolaActive, isDoorOnLeft, settings.golaLCutoutDepth, settings.golaLCutoutHeight, showNailHoles, topStretcherWidth, nailHoleDiameter]);
+  }, [panelThickness, innerHeight, depth, backPanelThickness, grooveDepth, sideHoles, nailHoleDepth, isGolaActive, isDoorOnLeft, settings.golaLCutoutDepth, settings.golaLCutoutHeight, showNailHoles, topStretcherWidth, nailHoleDiameter, enableColumn, blindCornerSide, columnDepth]);
 
   const rightPanelGeo = useMemo(() => {
     const sidePanelHeight = innerHeight - panelThickness;
@@ -176,6 +180,8 @@ export const BaseCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
       notches.push({ u: depth / 2, v: sidePanelHeight / 2, width: settings.golaLCutoutDepth, height: settings.golaLCutoutHeight, alignV: 'top' });
     }
     const panelHoles = [...sideHoles];
+    const actualDepth = (enableColumn && blindCornerSide === 'right') ? depth - columnDepth : depth;
+
     if (showNailHoles) {
       const yStr = sidePanelHeight / 2 - panelThickness / 2;
       const rebatedWidth = topStretcherWidth - golaLDepthOffset;
@@ -184,20 +190,31 @@ export const BaseCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
       panelHoles.push({ y: yStr, z: zF1, r: nailHoleDiameter / 2, through: true });
       panelHoles.push({ y: yStr, z: zF2, r: nailHoleDiameter / 2, through: true });
     }
+    const isBlindSide = enableColumn && blindCornerSide === 'right';
     return createPanelWithHolesGeo(
-      panelThickness, sidePanelHeight, depth,
-      -depth / 2 + panelThickness, -depth / 2 + panelThickness + backPanelThickness,
-      grooveDepth, 'nx', panelHoles, nailHoleDepth, panelThickness - grooveDepth, 0,
+      panelThickness, sidePanelHeight, actualDepth,
+      -actualDepth / 2 + panelThickness, -actualDepth / 2 + panelThickness + backPanelThickness,
+      isBlindSide ? 0 : grooveDepth, 'nx', panelHoles.filter(h => h.z < actualDepth/2 && h.z > -actualDepth/2), nailHoleDepth, panelThickness - grooveDepth, 0,
       notches
     );
-  }, [panelThickness, innerHeight, depth, backPanelThickness, grooveDepth, sideHoles, nailHoleDepth, isGolaActive, isDoorOnRight, settings.golaLCutoutDepth, settings.golaLCutoutHeight, showNailHoles, topStretcherWidth, nailHoleDiameter]);
+  }, [panelThickness, innerHeight, depth, backPanelThickness, grooveDepth, sideHoles, nailHoleDepth, isGolaActive, isDoorOnRight, settings.golaLCutoutDepth, settings.golaLCutoutHeight, showNailHoles, topStretcherWidth, nailHoleDiameter, enableColumn, blindCornerSide, columnDepth]);
 
   // Top Back Stretcher (Horizontal with groove)
-  const topStretcherBackGeo = useMemo(() => createPanelWithHolesGeo(
-    panelThickness, width - panelThickness * 2, topStretcherWidth,
-    -topStretcherWidth / 2 + panelThickness + backPanelThickness, -topStretcherWidth / 2 + panelThickness,
-    grooveDepth, 'ny', topStretcherBackHoles, nailHoleDepth, 0, 0
-  ), [width, panelThickness, topStretcherWidth, backPanelThickness, grooveDepth, topStretcherBackHoles, nailHoleDepth]);
+  const topStretcherBackGeo = useMemo(() => {
+    const actualWidth = enableColumn ? width - panelThickness * 2 - columnWidth : width - panelThickness * 2;
+    const notches: any[] = [];
+    if (enableColumn) {
+      // If we reduce width by columnWidth, we don't necessarily need a notch unless it still overlaps
+      // But the user said "remove rectangle of width is column width and depth is column depth"
+      // If it's already shortened by columnWidth, the rectangle is effectively removed from the end.
+    }
+    return createPanelWithHolesGeo(
+      panelThickness, actualWidth, topStretcherWidth,
+      -topStretcherWidth / 2 + panelThickness + backPanelThickness, -topStretcherWidth / 2 + panelThickness,
+      grooveDepth, 'ny', topStretcherBackHoles.filter(h => Math.abs(h.y) < actualWidth/2), nailHoleDepth, 0, 0,
+      notches
+    );
+  }, [width, panelThickness, topStretcherWidth, backPanelThickness, grooveDepth, topStretcherBackHoles, nailHoleDepth, enableColumn, columnWidth]);
 
   const blindWidthFront = blindPanelWidth - doorOuterGap * 2;
   const doorWidth = width - blindPanelWidth - doorOuterGap * 2;
@@ -242,33 +259,68 @@ export const BaseCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
     const rpX = innerWidth / 2 - panelThickness / 2;
     const zDist = [ -innerDepth / 2 + innerDepth / 5, 0, innerDepth / 2 - innerDepth / 5 ];
     zDist.forEach(zVal => {
-      holes.push({ y: lpX, z: zVal, r: technicalR, through: true });
-      holes.push({ y: rpX, z: zVal, r: technicalR, through: true });
+      // If column is on the left, check if hole is within column area in Z
+      // Actually, if it's on the side panel edge, it's fine unless the panel itself is gone.
+      // The side panel is reduced in depth, so we should skip holes that are beyond the new depth.
+      const actualLeftDepth = (enableColumn && blindCornerSide === 'left') ? depth - columnDepth : depth;
+      const actualRightDepth = (enableColumn && blindCornerSide === 'right') ? depth - columnDepth : depth;
+      
+      const zMinL = -depth / 2;
+      const zMaxL = -depth / 2 + actualLeftDepth;
+      const zMinR = -depth / 2;
+      const zMaxR = -depth / 2 + actualRightDepth;
+
+      if (zVal >= zMinL && zVal <= zMaxL) {
+        holes.push({ y: lpX, z: zVal, r: technicalR, through: true });
+      }
+      if (zVal >= zMinR && zVal <= zMaxR) {
+        holes.push({ y: rpX, z: zVal, r: technicalR, through: true });
+      }
     });
 
-    // Back Bottom Stretcher (3 holes)
+    // Back Bottom Stretcher
     if (showBackStretchers) {
       const bbsZ = -depth / 2 + panelThickness / 2;
-      holes.push({ y: -innerWidth / 2 + innerWidth / 5, z: bbsZ, r: technicalR, through: true });
-      holes.push({ y: 0, z: bbsZ, r: technicalR, through: true });
-      holes.push({ y: innerWidth / 2 - innerWidth / 5, z: bbsZ, r: technicalR, through: true });
+      const backWidth = enableColumn ? innerWidth - columnWidth : innerWidth;
+      const startX = (enableColumn && blindCornerSide === 'left') ? -innerWidth / 2 + columnWidth : -innerWidth / 2;
+      
+      holes.push({ y: startX + backWidth / 5, z: bbsZ, r: technicalR, through: true });
+      holes.push({ y: startX + backWidth / 2, z: bbsZ, r: technicalR, through: true });
+      holes.push({ y: startX + (backWidth * 4) / 5, z: bbsZ, r: technicalR, through: true });
     }
 
-    // Vertical Support Panel (2 holes)
+    // Vertical Support Panel
     const upZ1 = depth / 2 - topStretcherWidth * 1/4;
     const upZ2 = depth / 2 - topStretcherWidth * 3/4;
     holes.push({ y: uprightX, z: upZ1, r: technicalR, through: true });
     holes.push({ y: uprightX, z: upZ2, r: technicalR, through: true });
 
     return holes;
-  }, [showNailHoles, nailHoleDiameter, innerWidth, innerDepth, depth, panelThickness, showBackStretchers, uprightX, topStretcherWidth]);
+  }, [showNailHoles, nailHoleDiameter, innerWidth, innerDepth, depth, panelThickness, showBackStretchers, uprightX, topStretcherWidth, enableColumn, columnWidth, columnDepth, blindCornerSide]);
 
   // Bottom Panel
-  const bottomPanelGeo = useMemo(() => createPanelWithHolesGeo(
-    panelThickness, innerWidth, innerDepth,
-    -innerDepth / 2 + panelThickness, -innerDepth / 2 + panelThickness + backPanelThickness,
-    grooveDepth, 'py', bottomPanelHoles, nailHoleDepth, panelThickness, panelThickness
-  ), [innerWidth, panelThickness, innerDepth, backPanelThickness, grooveDepth, bottomPanelHoles, nailHoleDepth]);
+  const bottomPanelGeo = useMemo(() => {
+    const notches: any[] = [];
+    if (enableColumn) {
+      notches.push({
+        u: -innerDepth / 2 + columnDepth / 2,
+        v: blindCornerSide === 'left' ? -innerWidth / 2 + columnWidth / 2 : innerWidth / 2 - columnWidth / 2,
+        width: columnDepth,
+        height: columnWidth,
+        alignV: 'center',
+        side: 'uMin'
+      });
+    }
+    const gStartOffset = (enableColumn && blindCornerSide === 'right') ? columnWidth + panelThickness : panelThickness;
+    const gEndOffset = (enableColumn && blindCornerSide === 'left') ? columnWidth + panelThickness : panelThickness;
+
+    return createPanelWithHolesGeo(
+      panelThickness, innerWidth, innerDepth,
+      -innerDepth / 2 + panelThickness, -innerDepth / 2 + panelThickness + backPanelThickness,
+      grooveDepth, 'py', bottomPanelHoles, nailHoleDepth, gStartOffset, gEndOffset,
+      notches
+    );
+  }, [innerWidth, panelThickness, innerDepth, backPanelThickness, grooveDepth, bottomPanelHoles, nailHoleDepth, enableColumn, columnWidth, columnDepth, blindCornerSide]);
 
   const blindPanelHeight = innerHeight - doorOuterGap;
   let doorHeight = innerHeight - doorOuterGap;
@@ -342,6 +394,52 @@ export const BaseCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
     return new THREE.BoxGeometry(panelThickness, dividerHeight, dividerDepth);
   }, [innerHeight, panelThickness, topStretcherWidth]);
 
+  const returnPanelHoles = useMemo(() => {
+    if (!showNailHoles) return [];
+    
+    const panelHeight = innerHeight - panelThickness;
+    const y = panelHeight / 2 - panelThickness / 2; // Top stretcher connection
+    const technicalR = nailHoleDiameter / 2;
+    
+    const holes: { y: number, z: number, r: number, through?: boolean }[] = [];
+    
+    // Top Stretcher Back
+    const zBack1 = -columnDepth / 2 + (topStretcherWidth / 4);
+    const zBack2 = -columnDepth / 2 + (topStretcherWidth * 3 / 4);
+    holes.push({ y, z: zBack1, r: technicalR, through: true });
+    holes.push({ y, z: zBack2, r: technicalR, through: true });
+    
+    if (showBackStretchers) {
+      const zBackStretcher = -columnDepth / 2 + panelThickness / 2;
+      const yTopBackMax = panelHeight / 2;
+      holes.push({ y: yTopBackMax - (backStretcherHeight / 4) - panelThickness, z: zBackStretcher, r: technicalR, through: true });
+      holes.push({ y: yTopBackMax - (backStretcherHeight * 3 / 4) - panelThickness, z: zBackStretcher, r: technicalR, through: true });
+      
+      const yBottomBackMin = -panelHeight / 2 + panelThickness;
+      holes.push({ y: (yBottomBackMin + (backStretcherHeight / 4)) - panelThickness, z: zBackStretcher, r: technicalR, through: true });
+      holes.push({ y: (yBottomBackMin + (backStretcherHeight * 3 / 4)) - panelThickness, z: zBackStretcher, r: technicalR, through: true });
+    }
+    
+    return holes;
+  }, [showNailHoles, innerHeight, panelThickness, nailHoleDiameter, columnDepth, topStretcherWidth, showBackStretchers, backStretcherHeight]);
+
+  // Column Return Panels
+  const columnSideReturnGeo = useMemo(() => {
+    if (!enableColumn) return null;
+    const sidePanelHeight = innerHeight - panelThickness;
+    return createPanelWithHolesGeo(
+      panelThickness, sidePanelHeight, columnDepth,
+      -columnDepth / 2 + panelThickness, -columnDepth / 2 + panelThickness + backPanelThickness,
+      grooveDepth, blindCornerSide === 'left' ? 'px' : 'nx', returnPanelHoles, nailHoleDepth,
+      panelThickness - grooveDepth, 0
+    );
+  }, [enableColumn, innerHeight, panelThickness, columnDepth, backPanelThickness, grooveDepth, blindCornerSide, returnPanelHoles, nailHoleDepth]);
+
+  const columnBackReturnGeo = useMemo(() => {
+    if (!enableColumn) return null;
+    return new THREE.BoxGeometry(columnWidth, innerHeight - panelThickness, panelThickness);
+  }, [enableColumn, innerHeight, panelThickness, columnWidth]);
+
   // Positions
   const blindPanelFrontX = blindCornerSide === 'left' 
     ? -width / 2 + blindPanelWidth / 2 
@@ -378,13 +476,13 @@ export const BaseCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
 
       {/* Left Panel */}
       {shouldShow('leftPanel') && (
-        <mesh position={[-width / 2 + panelThickness / 2 + getOffset('leftPanel')[0], panelThickness / 2 + getOffset('leftPanel')[1], 0 + getOffset('leftPanel')[2]]} castShadow receiveShadow visible={!skeletonView}>
+        <mesh position={[-width / 2 + panelThickness / 2 + getOffset('leftPanel')[0], panelThickness / 2 + getOffset('leftPanel')[1], ((enableColumn && blindCornerSide === 'left') ? columnDepth / 2 : 0) + getOffset('leftPanel')[2]]} castShadow receiveShadow visible={!skeletonView}>
           <primitive object={leftPanelGeo} attach="geometry" />
           <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : getPanelColor('leftPanel')} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.4} metalness={0} side={THREE.DoubleSide} transparent={settings.opacity < 1} opacity={settings.opacity} />
         </mesh>
       )}
       {skeletonView && shouldShow('leftPanel') && (
-        <lineSegments position={[-width / 2 + panelThickness / 2 + getOffset('leftPanel')[0], panelThickness / 2 + getOffset('leftPanel')[1], 0 + getOffset('leftPanel')[2]]}>
+        <lineSegments position={[-width / 2 + panelThickness / 2 + getOffset('leftPanel')[0], panelThickness / 2 + getOffset('leftPanel')[1], ((enableColumn && blindCornerSide === 'left') ? columnDepth / 2 : 0) + getOffset('leftPanel')[2]]}>
           <edgesGeometry args={[leftPanelGeo]} />
           <lineBasicMaterial color={getPanelColor('leftPanel')} linewidth={2} />
         </lineSegments>
@@ -392,13 +490,13 @@ export const BaseCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
 
       {/* Right Panel */}
       {shouldShow('rightPanel') && (
-        <mesh position={[width / 2 - panelThickness / 2 + getOffset('rightPanel')[0], panelThickness / 2 + getOffset('rightPanel')[1], 0 + getOffset('rightPanel')[2]]} castShadow receiveShadow visible={!skeletonView}>
+        <mesh position={[width / 2 - panelThickness / 2 + getOffset('rightPanel')[0], panelThickness / 2 + getOffset('rightPanel')[1], ((enableColumn && blindCornerSide === 'right') ? columnDepth / 2 : 0) + getOffset('rightPanel')[2]]} castShadow receiveShadow visible={!skeletonView}>
           <primitive object={rightPanelGeo} attach="geometry" />
           <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : getPanelColor('rightPanel')} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.4} metalness={0} side={THREE.DoubleSide} transparent={settings.opacity < 1} opacity={settings.opacity} />
         </mesh>
       )}
       {skeletonView && shouldShow('rightPanel') && (
-        <lineSegments position={[width / 2 - panelThickness / 2 + getOffset('rightPanel')[0], panelThickness / 2 + getOffset('rightPanel')[1], 0 + getOffset('rightPanel')[2]]}>
+        <lineSegments position={[width / 2 - panelThickness / 2 + getOffset('rightPanel')[0], panelThickness / 2 + getOffset('rightPanel')[1], ((enableColumn && blindCornerSide === 'right') ? columnDepth / 2 : 0) + getOffset('rightPanel')[2]]}>
           <edgesGeometry args={[rightPanelGeo]} />
           <lineBasicMaterial color={getPanelColor('rightPanel')} linewidth={2} />
         </lineSegments>
@@ -469,13 +567,21 @@ export const BaseCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
       {/* Back Panel */}
       {showBackPanel && shouldShow('backPanel') && (
         <>
-          <mesh position={[0 + getOffset('backPanel')[0], 0 + getOffset('backPanel')[1], -depth / 2 + panelThickness + backPanelThickness / 2 + getOffset('backPanel')[2]]} castShadow receiveShadow visible={!skeletonView}>
-            <boxGeometry args={[innerWidth - panelThickness * 2 + grooveDepth * 2, innerHeight - panelThickness * 2 + grooveDepth * 2, backPanelThickness]} />
+          <mesh position={[
+            (enableColumn ? (blindCornerSide === 'left' ? columnWidth / 2 : -columnWidth / 2) : 0) + getOffset('backPanel')[0], 
+            0 + getOffset('backPanel')[1], 
+            -depth / 2 + panelThickness + backPanelThickness / 2 + getOffset('backPanel')[2]
+          ]} castShadow receiveShadow visible={!skeletonView}>
+            <boxGeometry args={[innerWidth - panelThickness * 2 + grooveDepth * 2 - (enableColumn ? columnWidth : 0), innerHeight - panelThickness * 2 + grooveDepth * 2, backPanelThickness]} />
             <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : showDifferentPanelColors ? panelColors.backPanel : backPanelColor} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.5} metalness={0} side={THREE.DoubleSide} transparent={settings.opacity < 1} opacity={settings.opacity} />
           </mesh>
           {skeletonView && (
-            <lineSegments position={[0 + getOffset('backPanel')[0], 0 + getOffset('backPanel')[1], -depth / 2 + panelThickness + backPanelThickness / 2 + getOffset('backPanel')[2]]}>
-              <edgesGeometry args={[new THREE.BoxGeometry(innerWidth - panelThickness * 2 + grooveDepth * 2, innerHeight - panelThickness * 2 + grooveDepth * 2, backPanelThickness)]} />
+            <lineSegments position={[
+              (enableColumn ? (blindCornerSide === 'left' ? columnWidth / 2 : -columnWidth / 2) : 0) + getOffset('backPanel')[0], 
+              0 + getOffset('backPanel')[1], 
+              -depth / 2 + panelThickness + backPanelThickness / 2 + getOffset('backPanel')[2]
+            ]}>
+              <edgesGeometry args={[new THREE.BoxGeometry(innerWidth - panelThickness * 2 + grooveDepth * 2 - (enableColumn ? columnWidth : 0), innerHeight - panelThickness * 2 + grooveDepth * 2, backPanelThickness)]} />
               <lineBasicMaterial color={getPanelColor('backPanel')} linewidth={2} />
             </lineSegments>
           )}
@@ -499,12 +605,12 @@ export const BaseCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
       )}
       {showBackStretchers && shouldShow('topStretcherBack') && (
         <>
-          <mesh position={[0 + getOffset('topStretcherBack')[0], innerHeight / 2 - panelThickness / 2 + getOffset('topStretcherBack')[1], -depth / 2 + topStretcherWidth / 2 + getOffset('topStretcherBack')[2]]} castShadow receiveShadow visible={!skeletonView}>
+          <mesh position={[(enableColumn ? (blindCornerSide === 'left' ? columnWidth / 2 : -columnWidth / 2) : 0) + getOffset('topStretcherBack')[0], innerHeight / 2 - panelThickness / 2 + getOffset('topStretcherBack')[1], -depth / 2 + topStretcherWidth / 2 + getOffset('topStretcherBack')[2]]} castShadow receiveShadow visible={!skeletonView}>
             <primitive object={topStretcherBackGeo} attach="geometry" />
             <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : getPanelColor('topStretcherBack')} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.4} metalness={0} side={THREE.DoubleSide} transparent={settings.opacity < 1} opacity={settings.opacity} />
           </mesh>
           {skeletonView && (
-            <lineSegments position={[0 + getOffset('topStretcherBack')[0], innerHeight / 2 - panelThickness / 2 + getOffset('topStretcherBack')[1], -depth / 2 + topStretcherWidth / 2 + getOffset('topStretcherBack')[2]]}>
+            <lineSegments position={[(enableColumn ? (blindCornerSide === 'left' ? columnWidth / 2 : -columnWidth / 2) : 0) + getOffset('topStretcherBack')[0], innerHeight / 2 - panelThickness / 2 + getOffset('topStretcherBack')[1], -depth / 2 + topStretcherWidth / 2 + getOffset('topStretcherBack')[2]]}>
               <edgesGeometry args={[topStretcherBackGeo]} />
               <lineBasicMaterial color={getPanelColor('topStretcherBack')} linewidth={2} />
             </lineSegments>
@@ -515,13 +621,13 @@ export const BaseCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
       {/* Back Stretchers */}
       {showBackStretchers && shouldShow('backStretcherTop') && (
         <>
-          <mesh position={[0 + getOffset('backStretcherTop')[0], innerHeight / 2 - panelThickness - backStretcherHeight / 2 + getOffset('backStretcherTop')[1], -depth / 2 + panelThickness / 2 + getOffset('backStretcherTop')[2]]} castShadow receiveShadow visible={!skeletonView}>
-            <boxGeometry args={[innerWidth - panelThickness * 2, backStretcherHeight, panelThickness]} />
+          <mesh position={[(enableColumn ? (blindCornerSide === 'left' ? columnWidth / 2 : -columnWidth / 2) : 0) + getOffset('backStretcherTop')[0], innerHeight / 2 - panelThickness - backStretcherHeight / 2 + getOffset('backStretcherTop')[1], -depth / 2 + panelThickness / 2 + getOffset('backStretcherTop')[2]]} castShadow receiveShadow visible={!skeletonView}>
+            <boxGeometry args={[innerWidth - panelThickness * 2 - (enableColumn ? columnWidth : 0), backStretcherHeight, panelThickness]} />
             <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : getPanelColor('backStretcherTop')} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.4} metalness={0} side={THREE.DoubleSide} transparent={settings.opacity < 1} opacity={settings.opacity} />
           </mesh>
           {skeletonView && (
-            <lineSegments position={[0 + getOffset('backStretcherTop')[0], innerHeight / 2 - panelThickness - backStretcherHeight / 2 + getOffset('backStretcherTop')[1], -depth / 2 + panelThickness / 2 + getOffset('backStretcherTop')[2]]}>
-              <edgesGeometry args={[new THREE.BoxGeometry(innerWidth - panelThickness * 2, backStretcherHeight, panelThickness)]} />
+            <lineSegments position={[(enableColumn ? (blindCornerSide === 'left' ? columnWidth / 2 : -columnWidth / 2) : 0) + getOffset('backStretcherTop')[0], innerHeight / 2 - panelThickness - backStretcherHeight / 2 + getOffset('backStretcherTop')[1], -depth / 2 + panelThickness / 2 + getOffset('backStretcherTop')[2]]}>
+              <edgesGeometry args={[new THREE.BoxGeometry(innerWidth - panelThickness * 2 - (enableColumn ? columnWidth : 0), backStretcherHeight, panelThickness)]} />
               <lineBasicMaterial color={getPanelColor('backStretcherTop')} linewidth={2} />
             </lineSegments>
           )}
@@ -529,14 +635,41 @@ export const BaseCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
       )}
       {showBackStretchers && shouldShow('backStretcherBottom') && (
         <>
-          <mesh position={[0 + getOffset('backStretcherBottom')[0], -innerHeight / 2 + panelThickness + backStretcherHeight / 2 + getOffset('backStretcherBottom')[1], -depth / 2 + panelThickness / 2 + getOffset('backStretcherBottom')[2]]} castShadow receiveShadow visible={!skeletonView}>
-            <boxGeometry args={[innerWidth - panelThickness * 2, backStretcherHeight, panelThickness]} />
+          <mesh position={[(enableColumn ? (blindCornerSide === 'left' ? columnWidth / 2 : -columnWidth / 2) : 0) + getOffset('backStretcherBottom')[0], -innerHeight / 2 + panelThickness + backStretcherHeight / 2 + getOffset('backStretcherBottom')[1], -depth / 2 + panelThickness / 2 + getOffset('backStretcherBottom')[2]]} castShadow receiveShadow visible={!skeletonView}>
+            <boxGeometry args={[innerWidth - panelThickness * 2 - (enableColumn ? columnWidth : 0), backStretcherHeight, panelThickness]} />
             <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : getPanelColor('backStretcherBottom')} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.4} metalness={0} side={THREE.DoubleSide} transparent={settings.opacity < 1} opacity={settings.opacity} />
           </mesh>
           {skeletonView && (
-            <lineSegments position={[0 + getOffset('backStretcherBottom')[0], -innerHeight / 2 + panelThickness + backStretcherHeight / 2 + getOffset('backStretcherBottom')[1], -depth / 2 + panelThickness / 2 + getOffset('backStretcherBottom')[2]]}>
-              <edgesGeometry args={[new THREE.BoxGeometry(innerWidth - panelThickness * 2, backStretcherHeight, panelThickness)]} />
+            <lineSegments position={[(enableColumn ? (blindCornerSide === 'left' ? columnWidth / 2 : -columnWidth / 2) : 0) + getOffset('backStretcherBottom')[0], -innerHeight / 2 + panelThickness + backStretcherHeight / 2 + getOffset('backStretcherBottom')[1], -depth / 2 + panelThickness / 2 + getOffset('backStretcherBottom')[2]]}>
+              <edgesGeometry args={[new THREE.BoxGeometry(innerWidth - panelThickness * 2 - (enableColumn ? columnWidth : 0), backStretcherHeight, panelThickness)]} />
               <lineBasicMaterial color={getPanelColor('backStretcherBottom')} linewidth={2} />
+            </lineSegments>
+          )}
+        </>
+      )}
+
+      {/* Column Return Panels Rendering */}
+      {enableColumn && (
+        <>
+          <mesh position={[blindCornerSide === 'left' ? -width / 2 + columnWidth + panelThickness / 2 : width / 2 - columnWidth - panelThickness / 2, panelThickness / 2, -depth / 2 + columnDepth / 2]} castShadow receiveShadow visible={!skeletonView}>
+            <primitive object={columnSideReturnGeo} attach="geometry" />
+            <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : getPanelColor(blindCornerSide === 'left' ? 'leftPanel' : 'rightPanel')} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.4} metalness={0} side={THREE.DoubleSide} transparent={settings.opacity < 1} opacity={settings.opacity} />
+          </mesh>
+          {skeletonView && (
+            <lineSegments position={[blindCornerSide === 'left' ? -width / 2 + columnWidth + panelThickness / 2 : width / 2 - columnWidth - panelThickness / 2, panelThickness / 2, -depth / 2 + columnDepth / 2]}>
+              <edgesGeometry args={[columnSideReturnGeo]} />
+              <lineBasicMaterial color={getPanelColor(blindCornerSide === 'left' ? 'leftPanel' : 'rightPanel')} linewidth={2} />
+            </lineSegments>
+          )}
+          
+          <mesh position={[blindCornerSide === 'left' ? -width / 2 + columnWidth / 2 + panelThickness : width / 2 - columnWidth / 2 - panelThickness, panelThickness / 2, -depth / 2 + columnDepth + panelThickness / 2]} castShadow receiveShadow visible={!skeletonView}>
+            <primitive object={columnBackReturnGeo} attach="geometry" />
+            <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : getPanelColor('backStretcherTop')} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.4} metalness={0} side={THREE.DoubleSide} transparent={settings.opacity < 1} opacity={settings.opacity} />
+          </mesh>
+          {skeletonView && (
+            <lineSegments position={[blindCornerSide === 'left' ? -width / 2 + columnWidth / 2 + panelThickness : width / 2 - columnWidth / 2 - panelThickness, panelThickness / 2, -depth / 2 + columnDepth + panelThickness / 2]}>
+              <edgesGeometry args={[new THREE.BoxGeometry(columnWidth, innerHeight - panelThickness, panelThickness)]} />
+              <lineBasicMaterial color={getPanelColor('backStretcherTop')} linewidth={2} />
             </lineSegments>
           )}
         </>
@@ -553,11 +686,25 @@ export const BaseCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
         
         // Shelf notch logic - centered on uprightX
         const shelfNotchX = uprightX; 
+        const notches: any[] = [
+          { u: shelfD / 2, v: shelfNotchX, width: topStretcherWidth, height: panelThickness + 2, alignV: 'center' }
+        ];
+
+        if (enableColumn) {
+          notches.push({
+            u: -shelfD / 2 + columnDepth / 2,
+            v: blindCornerSide === 'left' ? -shelfW / 2 + columnWidth / 2 : shelfW / 2 - columnWidth / 2,
+            width: columnDepth + 2, // Slight oversize to avoid z-fighting or floating edges
+            height: columnWidth + 2,
+            alignV: 'center',
+            side: 'uMin'
+          });
+        }
        
         const shelfGeometry = createPanelWithHolesGeo(
           panelThickness, shelfW, shelfD,
           0, 0, 0, 'py', [], 0, 0, 0,
-          [{ u: shelfD / 2, v: shelfNotchX, width: topStretcherWidth, height: panelThickness + 2, alignV: 'center' }]
+          notches
        );
 
         return (
