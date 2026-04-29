@@ -118,7 +118,7 @@ export const WallCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
     return createPanelWithHolesGeo(
       panelThickness, sidePanelHeight, actualDepth,
       -actualDepth / 2 + panelThickness, -actualDepth / 2 + panelThickness + backPanelThickness,
-      isBlindSide ? 0 : grooveDepth, 'px', sideHoles.filter(h => h.z < actualDepth/2 && h.z > -actualDepth/2), nailHoleDepth, panelThickness - grooveDepth, 0,
+      isBlindSide ? 0 : grooveDepth, 'px', sideHoles.filter(h => h.z < actualDepth/2 && h.z > -actualDepth/2), nailHoleDepth, 0, 0,
       notches
     );
   }, [panelThickness, sidePanelHeight, depth, backPanelThickness, grooveDepth, sideHoles, nailHoleDepth, isGolaActive, isDoorOnLeft, settings.golaLCutoutDepth, settings.golaLCutoutHeight, enableColumn, blindCornerSide, columnDepth]);
@@ -130,7 +130,7 @@ export const WallCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
     return createPanelWithHolesGeo(
       panelThickness, sidePanelHeight, actualDepth,
       -actualDepth / 2 + panelThickness, -actualDepth / 2 + panelThickness + backPanelThickness,
-      isBlindSide ? 0 : grooveDepth, 'nx', sideHoles.filter(h => h.z < actualDepth/2 && h.z > -actualDepth/2), nailHoleDepth, panelThickness - grooveDepth, 0,
+      isBlindSide ? 0 : grooveDepth, 'nx', sideHoles.filter(h => h.z < actualDepth/2 && h.z > -actualDepth/2), nailHoleDepth, 0, 0,
       notches
     );
   }, [panelThickness, sidePanelHeight, depth, backPanelThickness, grooveDepth, sideHoles, nailHoleDepth, isGolaActive, isDoorOnRight, settings.golaLCutoutDepth, settings.golaLCutoutHeight, enableColumn, blindCornerSide, columnDepth]);
@@ -370,7 +370,7 @@ export const WallCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
       panelThickness, sidePanelHeight, columnDepth,
       -columnDepth / 2 + panelThickness, -columnDepth / 2 + panelThickness + backPanelThickness,
       grooveDepth, blindCornerSide === 'left' ? 'px' : 'nx', returnPanelHoles, nailHoleDepth,
-      panelThickness - grooveDepth, 0
+      0, 0
     );
   }, [enableColumn, sidePanelHeight, panelThickness, columnDepth, backPanelThickness, grooveDepth, blindCornerSide, returnPanelHoles, nailHoleDepth]);
 
