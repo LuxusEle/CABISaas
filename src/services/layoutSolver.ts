@@ -225,6 +225,23 @@ function injectCorners(current: Zone, next: Zone, settings: ProjectSettings) {
   const depth = settings.depthBase;
   const wDepth = settings.depthWall;
   
+  // Detect if there's a manual column obstacle at the intersection
+  const colInCurrent = current.obstacles.find(o => o.type === 'column' && (o.fromLeft + o.width) >= current.totalLength - 10);
+  const colInNext = next.obstacles.find(o => o.type === 'column' && o.fromLeft <= 10);
+  
+  const hasColumn = !!(colInCurrent || colInNext);
+  let cWidth = 0;
+  let cDepth = 0;
+
+  if (colInCurrent) {
+    cWidth = colInCurrent.width + 25;
+    cDepth = (colInCurrent.depth || 0) + 25;
+  } else if (colInNext) {
+    // If defined on next wall at start, the next wall's width is our depth, and its depth is our width
+    cWidth = (colInNext.depth || 0) + 25;
+    cDepth = colInNext.width + 25;
+  }
+
   // 2. Base Corner Offset (Usually Depth + 25mm)
   let baseOffset = settings.depthBase + 25;
   
@@ -246,7 +263,10 @@ function injectCorners(current: Zone, next: Zone, settings: ProjectSettings) {
     advancedSettings: { 
       blindPanelWidth: baseOffset, 
       blindCornerSide: 'right', 
-      cabinetType: 'corner' 
+      cabinetType: 'corner',
+      enableColumn: hasColumn,
+      columnWidth: cWidth,
+      columnDepth: cDepth
     }
   });
   
@@ -274,7 +294,10 @@ function injectCorners(current: Zone, next: Zone, settings: ProjectSettings) {
     advancedSettings: { 
       blindPanelWidth: wallCornerOffset, 
       blindCornerSide: 'right', 
-      cabinetType: 'wall_corner' 
+      cabinetType: 'wall_corner',
+      enableColumn: hasColumn,
+      columnWidth: cWidth,
+      columnDepth: cDepth
     }
   });
 
