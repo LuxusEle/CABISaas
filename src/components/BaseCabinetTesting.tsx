@@ -212,16 +212,17 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
         });
       }
     }
+    const effectiveGrooveDepth = !settings.showBackPanel ? 0 : grooveDepth;
     return createPanelWithHolesGeo(
       panelThickness, sidePanelHeight, depth,
       -depth / 2 + panelThickness, -depth / 2 + panelThickness + backPanelThickness,
-      grooveDepth, 'px',
+      effectiveGrooveDepth, 'px',
       nailHolePositions,
       settings.nailHoleDepth,
-      panelThickness - grooveDepth, 0,
+      panelThickness - effectiveGrooveDepth, 0,
       notches
     );
-  }, [panelThickness, innerHeight, depth, backPanelThickness, grooveDepth, nailHolePositions, settings.nailHoleDepth, isGolaActive, settings.golaLCutoutDepth, settings.golaCutoutDepth, settings.golaLCutoutHeight, midZForGola, settings.golaCCutoutHeight, numDrawers, showDrawers, drawerData.gapHeights]);
+  }, [panelThickness, innerHeight, depth, backPanelThickness, grooveDepth, nailHolePositions, settings.nailHoleDepth, isGolaActive, settings.golaLCutoutDepth, settings.golaCutoutDepth, settings.golaLCutoutHeight, midZForGola, settings.golaCCutoutHeight, numDrawers, showDrawers, drawerData.gapHeights, settings.showBackPanel]);
 
   const rightPanelGeo = useMemo(() => {
     const sidePanelHeight = innerHeight - panelThickness;
@@ -234,13 +235,14 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
         });
       }
     }
+    const effectiveGrooveDepth = !settings.showBackPanel ? 0 : grooveDepth;
     return createPanelWithHolesGeo(
       panelThickness, sidePanelHeight, depth,
       -depth / 2 + panelThickness, -depth / 2 + panelThickness + backPanelThickness,
-      grooveDepth, 'nx',
+      effectiveGrooveDepth, 'nx',
       nailHolePositions,
       settings.nailHoleDepth,
-      panelThickness - grooveDepth, 0,
+      panelThickness - effectiveGrooveDepth, 0,
       notchesR
     );
   }, [panelThickness, innerHeight, depth, backPanelThickness, grooveDepth, nailHolePositions, settings.nailHoleDepth, isGolaActive, settings.golaLCutoutDepth, settings.golaCutoutDepth, settings.golaLCutoutHeight, midZForGola, settings.golaCCutoutHeight, numDrawers, showDrawers, drawerData.gapHeights]);
@@ -275,14 +277,17 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
     return positions;
   }, [showNailHoles, innerWidth, innerDepth, panelThickness, nailHoleDiameter, showBackStretchers]);
 
-  const bottomPanelGeo = useMemo(() => createPanelWithHolesGeo(
-    panelThickness, innerWidth, innerDepth,
-    -innerDepth / 2 + panelThickness, -innerDepth / 2 + panelThickness + backPanelThickness,
-    grooveDepth, 'py',
-    bottomPanelHoles,
-    settings.nailHoleDepth,
-    panelThickness, panelThickness
-  ), [innerWidth, panelThickness, innerDepth, backPanelThickness, grooveDepth, bottomPanelHoles, settings.nailHoleDepth]);
+  const bottomPanelGeo = useMemo(() => {
+    const effectiveGrooveDepth = !settings.showBackPanel ? 0 : grooveDepth;
+    return createPanelWithHolesGeo(
+      panelThickness, innerWidth, innerDepth,
+      -innerDepth / 2 + panelThickness, -innerDepth / 2 + panelThickness + backPanelThickness,
+      effectiveGrooveDepth, 'py',
+      bottomPanelHoles,
+      settings.nailHoleDepth,
+      panelThickness, panelThickness
+    );
+  }, [innerWidth, panelThickness, innerDepth, backPanelThickness, grooveDepth, bottomPanelHoles, settings.nailHoleDepth, settings.showBackPanel]);
 
   const topStretcherBackHoles = useMemo(() => {
     if (!showNailHoles) return [];
@@ -294,13 +299,16 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
     }));
   }, [showNailHoles, innerWidth, panelThickness, nailHoleDiameter, topStretcherWidth]);
 
-  const topStretcherBackGeo = useMemo(() => createPanelWithHolesGeo(
-    panelThickness, innerWidth - panelThickness * 2, topStretcherWidth,
-    panelThickness - topStretcherWidth / 2, panelThickness + backPanelThickness - topStretcherWidth / 2,
-    grooveDepth, 'ny',
-    topStretcherBackHoles,
-    panelThickness
-  ), [innerWidth, panelThickness, topStretcherWidth, backPanelThickness, grooveDepth, topStretcherBackHoles]);
+  const topStretcherBackGeo = useMemo(() => {
+    const effectiveGrooveDepth = !settings.showBackPanel ? 0 : grooveDepth;
+    return createPanelWithHolesGeo(
+      panelThickness, innerWidth - panelThickness * 2, topStretcherWidth,
+      panelThickness - topStretcherWidth / 2, panelThickness + backPanelThickness - topStretcherWidth / 2,
+      effectiveGrooveDepth, 'ny',
+      topStretcherBackHoles,
+      panelThickness
+    );
+  }, [innerWidth, panelThickness, topStretcherWidth, backPanelThickness, grooveDepth, topStretcherBackHoles, settings.showBackPanel]);
 
   const doorGeos = useMemo(() => {
     const geos = [];
