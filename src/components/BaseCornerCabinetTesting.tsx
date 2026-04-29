@@ -175,8 +175,7 @@ export const BaseCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
 
         for (let i = 0; i < numShelves; i++) {
           const shelfYCabinet = -innerHeight / 2 + panelThickness + spacing * (i + 1);
-          const yLocalSide = shelfYCabinet - panelThickness / 2;
-          const holeY = yLocalSide - panelThickness / 2 - nailHoleShelfDistance;
+          const holeY = shelfYCabinet - panelThickness - (shelfHoleDiameter / 2) - panelThickness / 2;
           
           if (isBlindSide) {
              // 2 holes for the shortened side panel: front and column junction
@@ -252,8 +251,7 @@ export const BaseCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
 
         for (let i = 0; i < numShelves; i++) {
           const shelfYCabinet = -innerHeight / 2 + panelThickness + spacing * (i + 1);
-          const yLocalSide = shelfYCabinet - panelThickness / 2;
-          const holeY = yLocalSide - panelThickness / 2 - nailHoleShelfDistance;
+          const holeY = shelfYCabinet - panelThickness - (shelfHoleDiameter / 2);
           
           if (isBlindSide) {
              // 2 holes for the shortened side panel: front and column junction
@@ -517,8 +515,7 @@ export const BaseCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
       const sR = shelfHoleDiameter / 2;
       for (let i = 0; i < numShelves; i++) {
         const shelfYCabinet = -innerHeight / 2 + panelThickness + spacing * (i + 1);
-        const yLocalSide = shelfYCabinet - panelThickness / 2;
-        const holeY = yLocalSide - panelThickness / 2 - nailHoleShelfDistance;
+        const holeY = shelfYCabinet - panelThickness - (shelfHoleDiameter / 2) - panelThickness / 2;
         
         // Hole 3: 50mm from back edge of shelf in column depth panel
         // Shelf back edge Global Z: -depth/2 + panelThickness + backPanelThickness

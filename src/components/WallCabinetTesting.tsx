@@ -95,11 +95,10 @@ export const WallCabinetTesting: React.FC<Props> = ({ settings }) => {
       const spacing = availableHeight / (numShelves + 1);
       for (let i = 0; i < numShelves; i++) {
         const shelfYCabinet = -innerHeight / 2 + panelThickness + spacing * (i + 1);
-        const yLocalSide = shelfYCabinet - panelThickness / 2;
+        const holeY = shelfYCabinet - panelThickness - (settings.shelfHoleDiameter / 2);
         const shelfLength = settings.shelfDepth;
         const shelfZStartGlobal = -depth / 2 + panelThickness + backPanelThickness;
         const zCenterShelf = shelfZStartGlobal + shelfLength / 2;
-        const holeY = yLocalSide - panelThickness / 2 - settings.nailHoleShelfDistance;
         
         const shelfHoleOffsets = calculateNailHolePositions(shelfLength);
         const finalShelfOffsets = [shelfHoleOffsets[0], shelfHoleOffsets[shelfHoleOffsets.length - 1]];
