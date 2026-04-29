@@ -115,10 +115,21 @@ export const WallCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
     const notches: any[] = [];
     const actualDepth = (enableColumn && blindCornerSide === 'left') ? depth - columnDepth : depth;
     const isBlindSide = enableColumn && blindCornerSide === 'left';
+    const holes = [...sideHoles.filter(h => h.z < actualDepth/2 && h.z > -actualDepth/2)];
+    if (showNailHoles && enableColumn && blindCornerSide === 'left') {
+      const h1 = -sidePanelHeight / 2 + 50;
+      const h2 = 0;
+      const h3 = sidePanelHeight / 2 - 50;
+      const zAttach = -actualDepth / 2 + panelThickness / 2;
+      holes.push({ y: h1, z: zAttach, r: nailHoleDiameter / 2, through: true });
+      holes.push({ y: h2, z: zAttach, r: nailHoleDiameter / 2, through: true });
+      holes.push({ y: h3, z: zAttach, r: nailHoleDiameter / 2, through: true });
+    }
+
     return createPanelWithHolesGeo(
       panelThickness, sidePanelHeight, actualDepth,
       -actualDepth / 2 + panelThickness, -actualDepth / 2 + panelThickness + backPanelThickness,
-      isBlindSide ? 0 : grooveDepth, 'px', sideHoles.filter(h => h.z < actualDepth/2 && h.z > -actualDepth/2), nailHoleDepth, 0, 0,
+      isBlindSide ? 0 : grooveDepth, 'px', holes, nailHoleDepth, 0, 0,
       notches
     );
   }, [panelThickness, sidePanelHeight, depth, backPanelThickness, grooveDepth, sideHoles, nailHoleDepth, isGolaActive, isDoorOnLeft, settings.golaLCutoutDepth, settings.golaLCutoutHeight, enableColumn, blindCornerSide, columnDepth]);
@@ -127,10 +138,21 @@ export const WallCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
     const notches: any[] = [];
     const actualDepth = (enableColumn && blindCornerSide === 'right') ? depth - columnDepth : depth;
     const isBlindSide = enableColumn && blindCornerSide === 'right';
+    const holes = [...sideHoles.filter(h => h.z < actualDepth/2 && h.z > -actualDepth/2)];
+    if (showNailHoles && enableColumn && blindCornerSide === 'right') {
+      const h1 = -sidePanelHeight / 2 + 50;
+      const h2 = 0;
+      const h3 = sidePanelHeight / 2 - 50;
+      const zAttach = -actualDepth / 2 + panelThickness / 2;
+      holes.push({ y: h1, z: zAttach, r: nailHoleDiameter / 2, through: true });
+      holes.push({ y: h2, z: zAttach, r: nailHoleDiameter / 2, through: true });
+      holes.push({ y: h3, z: zAttach, r: nailHoleDiameter / 2, through: true });
+    }
+
     return createPanelWithHolesGeo(
       panelThickness, sidePanelHeight, actualDepth,
       -actualDepth / 2 + panelThickness, -actualDepth / 2 + panelThickness + backPanelThickness,
-      isBlindSide ? 0 : grooveDepth, 'nx', sideHoles.filter(h => h.z < actualDepth/2 && h.z > -actualDepth/2), nailHoleDepth, 0, 0,
+      isBlindSide ? 0 : grooveDepth, 'nx', holes, nailHoleDepth, 0, 0,
       notches
     );
   }, [panelThickness, sidePanelHeight, depth, backPanelThickness, grooveDepth, sideHoles, nailHoleDepth, isGolaActive, isDoorOnRight, settings.golaLCutoutDepth, settings.golaLCutoutHeight, enableColumn, blindCornerSide, columnDepth]);
@@ -376,8 +398,21 @@ export const WallCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
 
   const columnBackReturnGeo = useMemo(() => {
     if (!enableColumn) return null;
-    return new THREE.BoxGeometry(columnWidth, sidePanelHeight, panelThickness);
-  }, [enableColumn, sidePanelHeight, panelThickness, columnWidth]);
+    const holes: any[] = [];
+    if (showNailHoles) {
+      const h1 = -sidePanelHeight / 2 + 50;
+      const h2 = 0;
+      const h3 = sidePanelHeight / 2 - 50;
+      const zAttach = blindCornerSide === 'left' ? columnWidth / 2 - panelThickness / 2 : -columnWidth / 2 + panelThickness / 2;
+      holes.push({ y: h1, z: zAttach, r: nailHoleDiameter / 2, through: true });
+      holes.push({ y: h2, z: zAttach, r: nailHoleDiameter / 2, through: true });
+      holes.push({ y: h3, z: zAttach, r: nailHoleDiameter / 2, through: true });
+    }
+    return createPanelWithHolesGeo(
+      panelThickness, sidePanelHeight, columnWidth,
+      0, 0, 0, 'pz', holes, nailHoleDepth
+    );
+  }, [enableColumn, sidePanelHeight, panelThickness, columnWidth, showNailHoles, nailHoleDiameter, blindCornerSide, nailHoleDepth]);
 
   // Positions
   const blindPanelFrontX = blindCornerSide === 'left' 
@@ -591,7 +626,7 @@ export const WallCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
           </mesh>
           {skeletonView && (
             <lineSegments position={[blindCornerSide === 'left' ? -width / 2 + columnWidth / 2 + panelThickness : width / 2 - columnWidth / 2 - panelThickness, 0, -depth / 2 + columnDepth + panelThickness / 2]}>
-              <edgesGeometry args={[new THREE.BoxGeometry(columnWidth, sidePanelHeight, panelThickness)]} />
+              <edgesGeometry args={[columnBackReturnGeo]} />
               <lineBasicMaterial color={getPanelColor('backStretcherTop')} linewidth={2} />
             </lineSegments>
           )}
