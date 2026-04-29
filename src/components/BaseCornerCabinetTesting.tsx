@@ -746,10 +746,11 @@ export const BaseCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
         ];
 
         if (enableColumn) {
+          const shelfNotchDepth = columnDepth - backPanelThickness;
           notches.push({
-            u: -shelfD / 2 + columnDepth / 2,
+            u: -shelfD / 2 + shelfNotchDepth / 2,
             v: blindCornerSide === 'left' ? -shelfW / 2 + columnWidth / 2 : shelfW / 2 - columnWidth / 2,
-            width: columnDepth + 2, // Slight oversize to avoid z-fighting or floating edges
+            width: shelfNotchDepth + 2, // Slight oversize to avoid z-fighting or floating edges
             height: columnWidth + 2,
             alignV: 'center',
             side: 'uMin'
