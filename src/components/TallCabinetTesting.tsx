@@ -172,25 +172,25 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
 
     const dividerY = tallLowerSectionHeight - innerHeight / 2;
     const holeY = dividerY - settings.nailHoleShelfDistance;
-    const shelfZStart = -depth / 2 + panelThickness + backPanelThickness;
-    const frontZ = shelfZStart + settings.shelfDepth * 0.25;
-    const backZ = shelfZStart + settings.shelfDepth * 0.75;
-    const isGolaActive = isLowerGolaActive;
-    const golaLDepthOffset = isGolaActive ? settings.golaLCutoutDepth : 0;
-    
+    const shelfLength = settings.shelfDepth;
+    const shelfZStartGlobal = -depth / 2 + panelThickness + backPanelThickness;
+    const zCenterShelf = shelfZStartGlobal + shelfLength / 2;
+    const shelfHoleOffsets = calculateNailHolePositions(shelfLength);
+    const finalShelfOffsets = [shelfHoleOffsets[0], shelfHoleOffsets[shelfHoleOffsets.length - 1]];
+
     // Always add divider deck holes
-    positions.push({ y: holeY, z: frontZ, r: shelfR, through: false });
-    positions.push({ y: holeY, z: backZ, r: shelfR, through: false });
+    finalShelfOffsets.forEach(offset => {
+      positions.push({ y: holeY, z: zCenterShelf + offset, r: shelfR, through: false });
+    });
 
     if (showDrawers) {
       for (let i = 0; i < numDrawers; i++) {
         // Use the same coordinate logic as drawerData for holes
-        const hH = (isGolaActive && numDrawers > 0) ? drawerData.drawerYPositions[i] - (drawerData.drawerFrontHeights[i] / 2) + (drawerData.drawerFrontHeights[i] / 2) - settings.nailHoleShelfDistance : 0; // Logic fix needed
-        // Simpler: use drawerData.drawerYPositions[i] - settings.nailHoleShelfDistance
         if (drawerData.drawerYPositions) {
            const hy = drawerData.drawerYPositions[i] - settings.nailHoleShelfDistance;
-           positions.push({ y: hy, z: frontZ, r: shelfR, through: false });
-           positions.push({ y: hy, z: backZ, r: shelfR, through: false });
+           finalShelfOffsets.forEach(offset => {
+             positions.push({ y: hy, z: zCenterShelf + offset, r: shelfR, through: false });
+           });
         }
       }
     }
@@ -204,11 +204,9 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
         const sy = topSectionStart + spacing * i;
         const yLocalSide = sy - panelThickness / 2;
         const holeY = yLocalSide - panelThickness / 2 - settings.nailHoleShelfDistance;
-        const shelfZStart = -depth / 2 + panelThickness + backPanelThickness;
-        const fZ = shelfZStart + settings.shelfDepth * 0.25;
-        const bZ = shelfZStart + settings.shelfDepth * 0.75;
-        positions.push({ y: holeY, z: fZ, r: shelfR, through: false });
-        positions.push({ y: holeY, z: bZ, r: shelfR, through: false });
+        finalShelfOffsets.forEach(offset => {
+          positions.push({ y: holeY, z: zCenterShelf + offset, r: shelfR, through: false });
+        });
       }
     }
 
@@ -222,11 +220,9 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
         const shelfYCabinet = bottomSectionStart + spacing * (i + 1);
         const yLocalSide = shelfYCabinet - panelThickness / 2;
         const holeY = yLocalSide - panelThickness / 2 - settings.nailHoleShelfDistance;
-        const shelfZStart = -depth / 2 + panelThickness + backPanelThickness;
-        const frontZ = shelfZStart + settings.shelfDepth * 0.25;
-        const backZ = shelfZStart + settings.shelfDepth * 0.75;
-        positions.push({ y: holeY, z: frontZ, r: shelfR, through: false });
-        positions.push({ y: holeY, z: backZ, r: shelfR, through: false });
+        finalShelfOffsets.forEach(offset => {
+          positions.push({ y: holeY, z: zCenterShelf + offset, r: shelfR, through: false });
+        });
       }
     }
     return positions;

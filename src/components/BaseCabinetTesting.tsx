@@ -121,11 +121,16 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
         const shelfYCabinet = -innerHeight / 2 + panelThickness + spacing * (i + 1);
         const yLocalSide = shelfYCabinet - panelThickness / 2;
         const holeY = yLocalSide - panelThickness / 2 - settings.nailHoleShelfDistance;
-        const shelfZStart = -depth / 2 + panelThickness + backPanelThickness;
-        const frontZ = shelfZStart + settings.shelfDepth * 0.25;
-        const backZ = shelfZStart + settings.shelfDepth * 0.75;
-        positions.push({ y: holeY, z: frontZ, r: shelfR, through: false });
-        positions.push({ y: holeY, z: backZ, r: shelfR, through: false });
+        const shelfZStartGlobal = -depth / 2 + panelThickness + backPanelThickness;
+        const shelfLength = settings.shelfDepth;
+        const zCenterShelf = shelfZStartGlobal + shelfLength / 2;
+        
+        const shelfHoleOffsets = calculateNailHolePositions(shelfLength);
+        const finalOffsets = [shelfHoleOffsets[0], shelfHoleOffsets[shelfHoleOffsets.length - 1]];
+        
+        finalOffsets.forEach(offset => {
+          positions.push({ y: holeY, z: zCenterShelf + offset, r: shelfR, through: false });
+        });
       }
     }
  
@@ -141,7 +146,7 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
     }
     
     return positions;
-  }, [showNailHoles, innerHeight, depth, panelThickness, backPanelThickness, nailHoleDiameter, settings.shelfHoleDiameter, topStretcherWidth, showBackStretchers, backStretcherHeight, numShelves, showDrawers, settings.nailHoleShelfDistance, settings.shelfDepth, isGolaActive, settings.golaLCutoutDepth, settings.golaCutoutDepth]);
+  }, [showNailHoles, innerHeight, depth, panelThickness, backPanelThickness, nailHoleDiameter, settings.shelfHoleDiameter, topStretcherWidth, showBackStretchers, backStretcherHeight, showShelves, numShelves, showDrawers, settings.nailHoleShelfDistance, settings.shelfDepth, isGolaActive, settings.golaLCutoutDepth, settings.golaCutoutDepth]);
 
   const drawerData = useMemo(() => {
     const boxDepth = depth - panelThickness - backPanelThickness - settings.drawerBackClearance;
@@ -794,8 +799,15 @@ export const exportBaseCabinetDXF = async (settings: TestingSettings, zip: JSZip
     for (let i = 0; i < numShelves; i++) {
       const sy = -innerHeight / 2 + panelThickness + spacing * (i + 1);
       const hy = sy - panelThickness / 2 - settings.nailHoleShelfDistance;
-      const szS = -depth / 2 + panelThickness + backPanelThickness;
-      nailHoles.push({ y: hy, z: szS + settings.shelfDepth * 0.25, r: sR, through: false }, { y: hy, z: szS + settings.shelfDepth * 0.75, r: sR, through: false });
+      const shelfLength = settings.shelfDepth;
+      const shelfZStartGlobal = -depth / 2 + panelThickness + backPanelThickness;
+      const zCenterShelf = shelfZStartGlobal + shelfLength / 2;
+      const shelfHoleOffsets = calculateNailHolePositions(shelfLength);
+      const finalShelfOffsets = [shelfHoleOffsets[0], shelfHoleOffsets[shelfHoleOffsets.length - 1]];
+
+      finalShelfOffsets.forEach(offset => {
+        nailHoles.push({ y: hy, z: zCenterShelf + offset, r: sR, through: false });
+      });
     }
   }
 

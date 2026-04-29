@@ -83,22 +83,6 @@ export const WallCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
       positions.push({ y: bottomStretcherYTop - 80, z: zBack, r: technicalR, through: true });
     }
 
-    if (showShelves && numShelves > 0) {
-      const availableHeight = innerHeight - panelThickness * 2;
-      const spacing = availableHeight / (numShelves + 1);
-      for (let i = 0; i < numShelves; i++) {
-        const shelfYCabinet = -innerHeight / 2 + panelThickness + spacing * (i + 1);
-        const yLocalSide = shelfYCabinet; // Local Y goes from -sidePanelHeight/2 to +sidePanelHeight/2
-        const holeY = yLocalSide - panelThickness / 2 - nailHoleShelfDistance;
-        const shelfZStart = -depth / 2 + panelThickness + backPanelThickness;
-        const localShelfDepth = depth - panelThickness - backPanelThickness;
-        const frontZ = shelfZStart + localShelfDepth * 0.25;
-        const backZ = shelfZStart + localShelfDepth * 0.75;
-        positions.push({ y: holeY, z: frontZ, r: shelfR, through: false });
-        positions.push({ y: holeY, z: backZ, r: shelfR, through: false });
-      }
-    }
-    
     return positions;
   }, [showNailHoles, innerHeight, depth, panelThickness, backPanelThickness, nailHoleDiameter, shelfHoleDiameter, showBackStretchers, numShelves, showShelves, nailHoleShelfDistance, shelfDepth, wallBottomRecess, sidePanelHeight]);
 
@@ -117,11 +101,41 @@ export const WallCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
     const actualDepth = (enableColumn && blindCornerSide === 'left') ? depth - columnDepth : depth;
     const isBlindSide = enableColumn && blindCornerSide === 'left';
     const holes = [...sideHoles.filter(h => h.z < actualDepth/2 && h.z > -actualDepth/2)];
-    if (showNailHoles && enableColumn && blindCornerSide === 'left') {
+    if (showNailHoles && isBlindSide) {
       const zAttach = -actualDepth / 2 + panelThickness / 2;
       calculateNailHolePositions(sidePanelHeight).forEach(offset => {
         holes.push({ y: offset, z: zAttach, r: nailHoleDiameter / 2, through: true });
       });
+    }
+
+    // Shelf holes logic
+    if (showShelves && numShelves > 0) {
+      const availableHeight = innerHeight - panelThickness * 2;
+      const spacing = availableHeight / (numShelves + 1);
+      const shelfR = shelfHoleDiameter / 2;
+      const shelfLengthFull = depth - panelThickness - backPanelThickness;
+      const shelfZStartGlobal = -depth / 2 + panelThickness + backPanelThickness;
+      const zCenterShelfFull = shelfZStartGlobal + shelfLengthFull / 2;
+      const zOffset = isBlindSide ? columnDepth / 2 : 0;
+
+      for (let i = 0; i < numShelves; i++) {
+        const shelfYCabinet = -innerHeight / 2 + panelThickness + spacing * (i + 1);
+        const yLocalSide = shelfYCabinet;
+        const holeY = yLocalSide - panelThickness / 2 - nailHoleShelfDistance;
+        
+        if (isBlindSide) {
+           const h1zGlobal = depth / 2 - 50;
+           const h2zGlobal = -depth / 2 + columnDepth + 50;
+           holes.push({ y: holeY, z: h1zGlobal - zOffset, r: shelfR, through: false });
+           holes.push({ y: holeY, z: h2zGlobal - zOffset, r: shelfR, through: false });
+        } else {
+           const shelfHoleOffsets = calculateNailHolePositions(shelfLengthFull);
+           const finalShelfOffsets = [shelfHoleOffsets[0], shelfHoleOffsets[shelfHoleOffsets.length - 1]];
+           finalShelfOffsets.forEach(offset => {
+             holes.push({ y: holeY, z: (zCenterShelfFull + offset) - zOffset, r: shelfR, through: false });
+           });
+        }
+      }
     }
 
     return createPanelWithHolesGeo(
@@ -130,18 +144,48 @@ export const WallCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
       isBlindSide ? 0 : grooveDepth, 'px', holes, nailHoleDepth, 0, 0,
       notches
     );
-  }, [panelThickness, sidePanelHeight, depth, backPanelThickness, grooveDepth, sideHoles, nailHoleDepth, isGolaActive, isDoorOnLeft, settings.golaLCutoutDepth, settings.golaLCutoutHeight, enableColumn, blindCornerSide, columnDepth]);
+  }, [panelThickness, sidePanelHeight, innerHeight, depth, backPanelThickness, grooveDepth, sideHoles, nailHoleDepth, isGolaActive, isDoorOnLeft, settings.golaLCutoutDepth, settings.golaLCutoutHeight, enableColumn, blindCornerSide, columnDepth, showShelves, numShelves, shelfHoleDiameter, nailHoleShelfDistance]);
 
   const rightPanelGeo = useMemo(() => {
     const notches: any[] = [];
     const actualDepth = (enableColumn && blindCornerSide === 'right') ? depth - columnDepth : depth;
     const isBlindSide = enableColumn && blindCornerSide === 'right';
     const holes = [...sideHoles.filter(h => h.z < actualDepth/2 && h.z > -actualDepth/2)];
-    if (showNailHoles && enableColumn && blindCornerSide === 'right') {
+    if (showNailHoles && isBlindSide) {
       const zAttach = -actualDepth / 2 + panelThickness / 2;
       calculateNailHolePositions(sidePanelHeight).forEach(offset => {
         holes.push({ y: offset, z: zAttach, r: nailHoleDiameter / 2, through: true });
       });
+    }
+
+    // Shelf holes logic
+    if (showShelves && numShelves > 0) {
+      const availableHeight = innerHeight - panelThickness * 2;
+      const spacing = availableHeight / (numShelves + 1);
+      const shelfR = shelfHoleDiameter / 2;
+      const shelfLengthFull = depth - panelThickness - backPanelThickness;
+      const shelfZStartGlobal = -depth / 2 + panelThickness + backPanelThickness;
+      const zCenterShelfFull = shelfZStartGlobal + shelfLengthFull / 2;
+      const zOffset = isBlindSide ? columnDepth / 2 : 0;
+
+      for (let i = 0; i < numShelves; i++) {
+        const shelfYCabinet = -innerHeight / 2 + panelThickness + spacing * (i + 1);
+        const yLocalSide = shelfYCabinet;
+        const holeY = yLocalSide - panelThickness / 2 - nailHoleShelfDistance;
+        
+        if (isBlindSide) {
+           const h1zGlobal = depth / 2 - 50;
+           const h2zGlobal = -depth / 2 + columnDepth + 50;
+           holes.push({ y: holeY, z: h1zGlobal - zOffset, r: shelfR, through: false });
+           holes.push({ y: holeY, z: h2zGlobal - zOffset, r: shelfR, through: false });
+        } else {
+           const shelfHoleOffsets = calculateNailHolePositions(shelfLengthFull);
+           const finalShelfOffsets = [shelfHoleOffsets[0], shelfHoleOffsets[shelfHoleOffsets.length - 1]];
+           finalShelfOffsets.forEach(offset => {
+             holes.push({ y: holeY, z: (zCenterShelfFull + offset) - zOffset, r: shelfR, through: false });
+           });
+        }
+      }
     }
 
     return createPanelWithHolesGeo(
@@ -150,7 +194,7 @@ export const WallCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
       isBlindSide ? 0 : grooveDepth, 'nx', holes, nailHoleDepth, 0, 0,
       notches
     );
-  }, [panelThickness, sidePanelHeight, depth, backPanelThickness, grooveDepth, sideHoles, nailHoleDepth, isGolaActive, isDoorOnRight, settings.golaLCutoutDepth, settings.golaLCutoutHeight, enableColumn, blindCornerSide, columnDepth]);
+  }, [panelThickness, sidePanelHeight, innerHeight, depth, backPanelThickness, grooveDepth, sideHoles, nailHoleDepth, isGolaActive, isDoorOnRight, settings.golaLCutoutDepth, settings.golaLCutoutHeight, enableColumn, blindCornerSide, columnDepth, showShelves, numShelves, shelfHoleDiameter, nailHoleShelfDistance]);
 
   const bottomPanelHoles = useMemo(() => {
     if (!showNailHoles) return [];
@@ -397,8 +441,23 @@ export const WallCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
       holes.push({ y: bottomStretcherYTop - 80, z: zBack, r: technicalR, through: true });
     }
     
+    if (showShelves && numShelves > 0) {
+      const availableHeight = innerHeight - panelThickness * 2;
+      const spacing = availableHeight / (numShelves + 1);
+      const sR = shelfHoleDiameter / 2;
+      for (let i = 0; i < numShelves; i++) {
+        const shelfYCabinet = -innerHeight / 2 + panelThickness + spacing * (i + 1);
+        const yLocalSide = shelfYCabinet;
+        const holeY = yLocalSide - panelThickness / 2 - nailHoleShelfDistance;
+        
+        // Hole 3: 50mm from back edge of shelf in column depth panel
+        const localZ = (panelThickness + backPanelThickness + 50) - (columnDepth / 2);
+        holes.push({ y: holeY, z: localZ, r: sR, through: false });
+      }
+    }
+    
     return holes;
-  }, [showNailHoles, nailHoleDiameter, columnDepth, panelThickness, showBackStretchers, sidePanelHeight, wallBottomRecess]);
+  }, [showNailHoles, innerHeight, panelThickness, backPanelThickness, nailHoleDiameter, columnDepth, showBackStretchers, sidePanelHeight, wallBottomRecess, showShelves, numShelves, shelfHoleDiameter, nailHoleShelfDistance]);
 
   // Column Return Panels
   const columnSideReturnGeo = useMemo(() => {
