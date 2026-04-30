@@ -150,19 +150,62 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
     if (cookerPlaced) break;
     const cookerWidth = 600;
     const gaps = findGaps(zone, CabinetType.BASE, settings);
+    
+    // Ruby Rule: Try to keep cooker as 2nd cabinet (leave space for a lead cabinet)
+    // Preference: Snap the [Cooker] [Drawer] block to the right so the Lead cabinet absorbs extra space
+    let targetX = -1;
+    const seqWidth = 1200; // Cooker (600) + Special Drawer (600)
+    const minLead = 250;
+    
+    const sequenceGap = gaps.find(g => g.length >= seqWidth + minLead);
+    if (sequenceGap) {
+      // Position cooker so that exactly 600mm is left for the special drawer at the end
+      targetX = sequenceGap.end - seqWidth;
+    } else {
+      const minGap = gaps.find(g => g.length >= cookerWidth);
+      if (minGap) {
+        targetX = minGap.start;
+      }
+    }
+
+    if (targetX !== -1) {
+      placeUnit(zone, { id: uuid(), preset: PresetType.BASE_DRAWER_3, type: CabinetType.BASE, width: cookerWidth, qty: 1, fromLeft: targetX, isAutoFilled: true, label: '' });
+      if (canPlace(zone, targetX, cookerWidth, CabinetType.WALL, settings)) {
+        const wallHeight = settings.wallHeight || 720;
+        placeUnit(zone, { 
+          id: uuid(), 
+          preset: PresetType.HOOD_UNIT, 
+          type: CabinetType.WALL, 
+          width: cookerWidth, 
+          qty: 1, 
+          fromLeft: targetX, 
+          isAutoFilled: true, 
+          label: '',
+          advancedSettings: {
+            height: wallHeight - 150,
+            elevationOffset: 150
+          }
+        });
+      }
+      cookerPlaced = true;
+      break;
+    }
+
+    // Fallback: Position in largest gap, snapping to left to avoid fragmented space
     for (const gap of gaps) {
       if (gap.length >= cookerWidth) {
-        let x = gap.start + (gap.length - cookerWidth) / 2;
-        
-        // Ruby Rule: Avoid leaving small unfillable gaps. 
-        // If centering leaves gaps < 250mm, snap to one side to preserve a larger gap for standard units.
+        // Snap to left, but try to leave space for exactly one lead cabinet (prefer 600)
+        let x = gap.start + 600;
+        if (x + cookerWidth > gap.end) x = gap.start + 450;
+        if (x + cookerWidth > gap.end) x = gap.start + 300;
+        if (x + cookerWidth > gap.end) x = gap.start + 250;
+        if (x + cookerWidth > gap.end) x = gap.start;
+
         const leftGap = x - gap.start;
-        const rightGap = gap.end - (x + cookerWidth);
         
-        if (leftGap > 0 && leftGap < MIN_FILL_WIDTH) {
+        // Final sanity check on gaps to avoid tiny splinters
+        if (leftGap > 0 && leftGap < ABSOLUTE_MIN_WIDTH) {
           x = gap.start;
-        } else if (rightGap > 0 && rightGap < MIN_FILL_WIDTH) {
-          x = Math.max(gap.start, gap.end - cookerWidth);
         }
 
         placeUnit(zone, { id: uuid(), preset: PresetType.BASE_DRAWER_3, type: CabinetType.BASE, width: cookerWidth, qty: 1, fromLeft: x, isAutoFilled: true, label: '' });
@@ -189,7 +232,150 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
     }
   }
 
+  // 3.4 Special Base Unit (No Doors, Drawers Enabled)
+  let specialPlaced = false;
+
+  // Attempt 1: Place immediately after cooker to maintain the "Normal -> Cooker -> Drawer" flow
+  if (cookerPlaced) {
+    for (const zone of zones) {
+      if (specialPlaced) break;
+      const cooker = zone.cabinets.find(c => c.preset === PresetType.BASE_DRAWER_3 && c.isAutoFilled);
+      if (cooker) {
+        const nextX = cooker.fromLeft + cooker.width;
+        // Try 600mm then 500mm immediately after cooker
+        if (canPlace(zone, nextX, 600, CabinetType.BASE, settings)) {
+          placeUnit(zone, {
+            id: uuid(),
+            preset: PresetType.BASE_DOOR,
+            type: CabinetType.BASE,
+            width: 600,
+            qty: 1,
+            fromLeft: nextX,
+            isAutoFilled: true,
+            label: '',
+            advancedSettings: { showDoors: false, showDrawers: true }
+          });
+          specialPlaced = true;
+        } else if (canPlace(zone, nextX, 500, CabinetType.BASE, settings)) {
+          placeUnit(zone, {
+            id: uuid(),
+            preset: PresetType.BASE_DOOR,
+            type: CabinetType.BASE,
+            width: 500,
+            qty: 1,
+            fromLeft: nextX,
+            isAutoFilled: true,
+            label: '',
+            advancedSettings: { showDoors: false, showDrawers: true }
+          });
+          specialPlaced = true;
+        }
+      }
+    }
+  }
+
+  // Attempt 2: Move cooker to make space for the Drawer unit immediately after it
+  if (!specialPlaced && cookerPlaced) {
+    for (const zone of zones) {
+      if (specialPlaced) break;
+      const cooker = zone.cabinets.find(c => c.preset === PresetType.BASE_DRAWER_3 && c.isAutoFilled);
+      if (cooker) {
+        const cookerX = cooker.fromLeft;
+        const cookerW = cooker.width;
+        const hood = zone.cabinets.find(c => c.preset === PresetType.HOOD_UNIT && Math.abs(c.fromLeft - cookerX) < 1);
+        
+        zone.cabinets = zone.cabinets.filter(c => c.id !== cooker.id && (!hood || c.id !== hood.id));
+        const gaps = findGaps(zone, CabinetType.BASE, settings);
+        const gap = gaps.find(g => cookerX >= g.start && (cookerX + cookerW) <= g.end);
+        
+        if (gap && gap.length >= (cookerW + 600)) {
+          // Snap the [Cooker] [Drawer] block to the right of the gap
+          let targetCookerX = gap.end - 1200;
+          if (targetCookerX < gap.start) targetCookerX = gap.start;
+
+          let targetSpecialX = targetCookerX + cookerW;
+          
+          if (!hood || canPlace(zone, targetCookerX, cookerW, CabinetType.WALL, settings)) {
+            cooker.fromLeft = targetCookerX;
+            zone.cabinets.push(cooker);
+            if (hood) {
+              hood.fromLeft = targetCookerX;
+              zone.cabinets.push(hood);
+            }
+            placeUnit(zone, {
+              id: uuid(),
+              preset: PresetType.BASE_DOOR,
+              type: CabinetType.BASE,
+              width: 600,
+              qty: 1,
+              fromLeft: targetSpecialX,
+              isAutoFilled: true,
+              label: '',
+              advancedSettings: { showDoors: false, showDrawers: true }
+            });
+            specialPlaced = true;
+          } else {
+            // Restore
+            zone.cabinets.push(cooker);
+            if (hood) zone.cabinets.push(hood);
+          }
+        } else {
+          // Restore
+          zone.cabinets.push(cooker);
+          if (hood) zone.cabinets.push(hood);
+        }
+      }
+    }
+  }
+
+  // Attempt 3: Try 600mm anywhere else
+  if (!specialPlaced) {
+    for (const zone of zones) {
+      if (specialPlaced) break;
+      const gaps = findGaps(zone, CabinetType.BASE, settings);
+      const gap = gaps.find(g => g.length >= 600);
+      if (gap) {
+        placeUnit(zone, {
+          id: uuid(),
+          preset: PresetType.BASE_DOOR,
+          type: CabinetType.BASE,
+          width: 600,
+          qty: 1,
+          fromLeft: gap.start,
+          isAutoFilled: true,
+          label: '',
+          advancedSettings: { showDoors: false, showDrawers: true }
+        });
+        specialPlaced = true;
+      }
+    }
+  }
+
+  // Attempt 4: 500mm fallback anywhere
+  if (!specialPlaced) {
+    for (const zone of zones) {
+      if (specialPlaced) break;
+      const gaps = findGaps(zone, CabinetType.BASE, settings);
+      const gap = gaps.find(g => g.length >= 500);
+      if (gap) {
+        placeUnit(zone, {
+          id: uuid(),
+          preset: PresetType.BASE_DOOR,
+          type: CabinetType.BASE,
+          width: 500,
+          qty: 1,
+          fromLeft: gap.start,
+          isAutoFilled: true,
+          label: '',
+          advancedSettings: { showDoors: false, showDrawers: true }
+        });
+        specialPlaced = true;
+      }
+    }
+  }
+
   // 4. Fill Remaining Space
+
   zones.forEach((zone, zIdx) => {
     fillRemaining(zone, CabinetType.BASE, settings);
     fillRemaining(zone, CabinetType.WALL, settings);
@@ -419,7 +605,8 @@ function absorbRemainder(zone: Zone, settings: ProjectSettings) {
             target = findAdjacent(zone, type, gap, c => 
               c.preset !== PresetType.SINK_UNIT && 
               c.preset !== PresetType.BASE_DRAWER_3 && 
-              c.preset !== PresetType.HOOD_UNIT
+              c.preset !== PresetType.HOOD_UNIT &&
+              !(c.type === CabinetType.BASE && c.advancedSettings?.showDrawers)
             );
           }
           
