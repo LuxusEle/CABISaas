@@ -420,15 +420,15 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
     <group position={[width / 2, toeKickHeight + innerHeight / 2, depth / 2]}>
       {/* Additional Exposed Side Panels (Door Material) */}
       {settings.exposedLeft && (
-        <mesh position={[-width / 2 + doorMaterialThickness / 2, -toeKickHeight / 2, 0]} castShadow receiveShadow>
-          <boxGeometry args={[doorMaterialThickness, height, depth]} />
-          <meshStandardMaterial color={settings.isStudio && settings.doorTexture ? '#ffffff' : doorColor} map={settings.isStudio ? settings.doorTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
+        <mesh position={[-width / 2 + doorMaterialThickness / 2, -toeKickHeight / 2, 0]} rotation={[0, -Math.PI / 2, 0]} castShadow receiveShadow>
+          <primitive object={createPanelWithHolesGeo(doorMaterialThickness, height, depth, 0, 0, 0, 'none', [], 0)} attach="geometry" />
+          <meshStandardMaterial color={settings.isStudio && settings.doorTexture ? '#ffffff' : doorColor} map={settings.isStudio ? settings.doorTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} side={THREE.DoubleSide} />
         </mesh>
       )}
       {settings.exposedRight && (
-        <mesh position={[width / 2 - doorMaterialThickness / 2, -toeKickHeight / 2, 0]} castShadow receiveShadow>
-          <boxGeometry args={[doorMaterialThickness, height, depth]} />
-          <meshStandardMaterial color={settings.isStudio && settings.doorTexture ? '#ffffff' : doorColor} map={settings.isStudio ? settings.doorTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
+        <mesh position={[width / 2 - doorMaterialThickness / 2, -toeKickHeight / 2, 0]} rotation={[0, -Math.PI / 2, 0]} castShadow receiveShadow>
+          <primitive object={createPanelWithHolesGeo(doorMaterialThickness, height, depth, 0, 0, 0, 'none', [], 0)} attach="geometry" />
+          <meshStandardMaterial color={settings.isStudio && settings.doorTexture ? '#ffffff' : doorColor} map={settings.isStudio ? settings.doorTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} side={THREE.DoubleSide} />
         </mesh>
       )}
 
