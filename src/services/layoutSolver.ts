@@ -479,6 +479,67 @@ function applyExposedSides(zone: Zone, settings: ProjectSettings) {
 
     unit.exposedLeft = leftExposed;
     unit.exposedRight = rightExposed;
+
+    // C. Neighbor coverage for Tall cabinets
+    if (unit.type === CabinetType.TALL) {
+      unit.leftCoverage = [];
+      unit.rightCoverage = [];
+
+      cabinets.forEach(other => {
+        if (unit.id === other.id) return;
+        if (other.preset === PresetType.FILLER) return;
+
+        const isLeft = Math.abs((other.fromLeft + other.width) - unit.fromLeft) < 15;
+        const isRight = Math.abs(other.fromLeft - (unit.fromLeft + unit.width)) < 15;
+
+        if (isLeft || isRight) {
+          const bh = settings.baseHeight || 820;
+          const wh = settings.wallHeight || 720;
+          const th = settings.tallHeight || 2100;
+          const wallElev = settings.wallCabinetElevation || 450;
+          const ct = settings.counterThickness || 40;
+
+          const unitDepth = unit.depth || settings.depthTall || 600;
+          let otherDepth = other.depth;
+          if (!otherDepth) {
+            if (other.type === CabinetType.BASE) otherDepth = settings.depthBase;
+            else if (other.type === CabinetType.WALL) otherDepth = settings.depthWall;
+            else if (other.type === CabinetType.TALL) otherDepth = settings.depthTall;
+          }
+          otherDepth = otherDepth || 600;
+
+          let start = 0;
+          let end = 0;
+
+          if (other.type === CabinetType.BASE) {
+            start = 0;
+            end = bh;
+          } else if (other.type === CabinetType.WALL) {
+            start = bh + ct + wallElev;
+            end = start + wh;
+          } else if (other.type === CabinetType.TALL) {
+            start = 0;
+            end = th;
+          }
+
+          if (isLeft) {
+            unit.leftCoverage!.push({ start, end, depth: otherDepth });
+            if (end < th - 10 || start > 10 || otherDepth < unitDepth - 10) {
+              unit.exposedLeft = true;
+            } else if (other.type === CabinetType.TALL) {
+              unit.exposedLeft = false;
+            }
+          } else {
+            unit.rightCoverage!.push({ start, end, depth: otherDepth });
+            if (end < th - 10 || start > 10 || otherDepth < unitDepth - 10) {
+              unit.exposedRight = true;
+            } else if (other.type === CabinetType.TALL) {
+              unit.exposedRight = false;
+            }
+          }
+        }
+      });
+    }
   });
 
   // 2. Width Adjustment Pass

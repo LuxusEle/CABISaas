@@ -193,6 +193,8 @@ export interface CabinetUnit {
   // Exposed sides (for additional side panels)
   exposedLeft?: boolean;
   exposedRight?: boolean;
+  leftCoverage?: { start: number, end: number, depth: number }[];
+  rightCoverage?: { start: number, end: number, depth: number }[];
   // Advanced Config (Testing Cabinets)
   advancedSettings?: Partial<TestingSettings>;
 }

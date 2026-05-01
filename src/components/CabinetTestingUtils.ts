@@ -122,6 +122,8 @@ export interface TestingSettings {
   columnDepth: number;
   exposedLeft?: boolean;
   exposedRight?: boolean;
+  leftCoverage?: { start: number, end: number, depth: number }[];
+  rightCoverage?: { start: number, end: number, depth: number }[];
 }
 
 export const DEFAULT_SETTINGS: TestingSettings = {
@@ -742,6 +744,8 @@ export const getCabinetTestingSettings = (
     wallBottomRecess: globalSettings.wallBottomRecess ?? 0,
     exposedLeft: unit.exposedLeft,
     exposedRight: unit.exposedRight,
+    leftCoverage: unit.leftCoverage,
+    rightCoverage: unit.rightCoverage,
   };
 
   // 3. Override with global advancedTestingSettings if present

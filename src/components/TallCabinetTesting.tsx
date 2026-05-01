@@ -17,6 +17,27 @@ interface Props {
   settings: TestingSettings;
 }
 
+const getExposedFragments = (totalHeight: number, totalDepth: number, coverage: { start: number, end: number, depth: number }[] | undefined) => {
+  if (!coverage || coverage.length === 0) return [{ start: 0, end: totalHeight, depth: totalDepth, zOffset: 0 }];
+  const points = new Set([0, totalHeight]);
+  coverage.forEach(c => { points.add(c.start); points.add(c.end); });
+  const sortedPoints = Array.from(points).sort((a, b) => a - b);
+  const fragments: { start: number, end: number, depth: number, zOffset: number }[] = [];
+  for (let i = 0; i < sortedPoints.length - 1; i++) {
+    const yS = sortedPoints[i];
+    const yE = sortedPoints[i+1];
+    if (yE - yS < 5) continue;
+    const midY = (yS + yE) / 2;
+    let maxCd = 0;
+    coverage.forEach(c => { if (midY >= c.start && midY <= c.end) maxCd = Math.max(maxCd, c.depth); });
+    const expD = totalDepth - maxCd;
+    if (expD > 5) {
+      fragments.push({ start: yS, end: yE, depth: expD, zOffset: maxCd / 2 });
+    }
+  }
+  return fragments;
+};
+
 export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
   const {
     width, height, depth, panelThickness, backPanelThickness,
@@ -483,22 +504,33 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
   };
 
   const carcassXOffset = (settings.exposedLeft ? doorMaterialThickness : 0) / 2 - (settings.exposedRight ? doorMaterialThickness : 0) / 2;
+  
 
   return (
     <group position={[width / 2, innerHeight / 2 + toeKickHeight, depth / 2]}>
       {/* Additional Exposed Side Panels (Door Material) */}
-      {settings.exposedLeft && (
-        <mesh position={[-width / 2 + doorMaterialThickness / 2, -toeKickHeight / 2, 0]} castShadow receiveShadow>
-          <boxGeometry args={[doorMaterialThickness, height, depth]} />
-          <meshStandardMaterial color={settings.isStudio && settings.doorTexture ? '#ffffff' : doorColor} map={settings.isStudio ? settings.doorTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
-        </mesh>
-      )}
-      {settings.exposedRight && (
-        <mesh position={[width / 2 - doorMaterialThickness / 2, -toeKickHeight / 2, 0]} castShadow receiveShadow>
-          <boxGeometry args={[doorMaterialThickness, height, depth]} />
-          <meshStandardMaterial color={settings.isStudio && settings.doorTexture ? '#ffffff' : doorColor} map={settings.isStudio ? settings.doorTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
-        </mesh>
-      )}
+      {settings.exposedLeft && getExposedFragments(height, depth, settings.leftCoverage).map((frag, idx) => {
+        const rangeHeight = frag.end - frag.start;
+        const rangeCenterY = (frag.start + frag.end) / 2;
+        const localY = rangeCenterY - (toeKickHeight + innerHeight / 2);
+        return (
+          <mesh key={`exp-left-${idx}`} position={[-width / 2 + doorMaterialThickness / 2, localY, frag.zOffset]} castShadow receiveShadow>
+            <boxGeometry args={[doorMaterialThickness, rangeHeight, frag.depth]} />
+            <meshStandardMaterial color={settings.isStudio && settings.doorTexture ? '#ffffff' : doorColor} map={settings.isStudio ? settings.doorTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
+          </mesh>
+        );
+      })}
+      {settings.exposedRight && getExposedFragments(height, depth, settings.rightCoverage).map((frag, idx) => {
+        const rangeHeight = frag.end - frag.start;
+        const rangeCenterY = (frag.start + frag.end) / 2;
+        const localY = rangeCenterY - (toeKickHeight + innerHeight / 2);
+        return (
+          <mesh key={`exp-right-${idx}`} position={[width / 2 - doorMaterialThickness / 2, localY, frag.zOffset]} castShadow receiveShadow>
+            <boxGeometry args={[doorMaterialThickness, rangeHeight, frag.depth]} />
+            <meshStandardMaterial color={settings.isStudio && settings.doorTexture ? '#ffffff' : doorColor} map={settings.isStudio ? settings.doorTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
+          </mesh>
+        );
+      })}
 
       {shouldShow('bottomPanel') && (
         <mesh position={[carcassXOffset + 0 + getOffset('bottomPanel')[0], -innerHeight / 2 + panelThickness / 2 + getOffset('bottomPanel')[1], 0 + getOffset('bottomPanel')[2]]} castShadow receiveShadow visible={!skeletonView}>
@@ -999,10 +1031,16 @@ export const exportTallCabinetDXF = async (settings: TestingSettings, zip: JSZip
   nailHoles.push({ y: holeY, z: szS + settings.shelfDepth * 0.25, r: sR, through: false }, { y: holeY, z: szS + settings.shelfDepth * 0.75, r: sR, through: false });
 
   if (settings.exposedLeft) {
-    addPanelToZip('Exposed_Left_Panel', depth, height);
+    const leftFrags = getExposedFragments(height, depth, settings.leftCoverage);
+    leftFrags.forEach((frag, idx) => {
+      addPanelToZip(`Exposed_Left_Panel_${idx + 1}`, frag.depth, frag.end - frag.start);
+    });
   }
   if (settings.exposedRight) {
-    addPanelToZip('Exposed_Right_Panel', depth, height);
+    const rightFrags = getExposedFragments(height, depth, settings.rightCoverage);
+    rightFrags.forEach((frag, idx) => {
+      addPanelToZip(`Exposed_Right_Panel_${idx + 1}`, frag.depth, frag.end - frag.start);
+    });
   }
 
   addPanelToZip('Divider_Deck', innerWidth - panelThickness * 2, depth - panelThickness - backPanelThickness);
