@@ -72,13 +72,38 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
     for (const zone of zones) {
       if (tallPlaced) break;
       
-      // Try X = 0 first (Right Corner mode or Standard)
-      if (canPlace(zone, 0, tallWidth, CabinetType.TALL, settings)) {
+      const gaps = findGaps(zone, CabinetType.TALL, settings);
+      const potentialSpots: { x: number; score: number }[] = [];
+
+      for (const gap of gaps) {
+        if (gap.length < tallWidth) continue;
+
+        // Check start of gap
+        const isStartWallEdge = gap.start < 10;
+        const isStartDoorEdge = zone.obstacles.some(o => o.type === 'door' && Math.abs(o.fromLeft + o.width - gap.start) < 10);
+        
+        if (isStartWallEdge) potentialSpots.push({ x: gap.start, score: 2 }); // Highest priority: Wall Edge
+        else if (isStartDoorEdge) potentialSpots.push({ x: gap.start, score: 1 }); // Secondary priority: Door Edge
+
+        // Check end of gap
+        const isEndWallEdge = Math.abs(gap.end - zone.totalLength) < 10;
+        const isEndDoorEdge = zone.obstacles.some(o => o.type === 'door' && Math.abs(o.fromLeft - gap.end) < 10);
+        
+        if (isEndWallEdge) potentialSpots.push({ x: gap.end - tallWidth, score: 2 });
+        else if (isEndDoorEdge) potentialSpots.push({ x: gap.end - tallWidth, score: 1 });
+      }
+
+      // Pick best spot in this zone
+      const bestSpot = potentialSpots.sort((a, b) => b.score - a.score)[0];
+
+      if (bestSpot) {
+        let finalWidth = tallWidth;
+        const x = bestSpot.x;
+
         // Ruby Rule: If window is close (within 400mm), extend Tall unit to window edge
         const window = zone.obstacles.find(o => o.type === 'window');
-        let finalWidth = tallWidth;
-        if (window && window.fromLeft > tallWidth && window.fromLeft < tallWidth + 400) {
-          finalWidth = window.fromLeft;
+        if (window && window.fromLeft > x + tallWidth && window.fromLeft < x + tallWidth + 400) {
+          finalWidth = window.fromLeft - x;
         }
 
         placeUnit(zone, { 
@@ -87,21 +112,7 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
           type: CabinetType.TALL, 
           width: finalWidth, 
           qty: 1, 
-          fromLeft: 0, 
-          isAutoFilled: true, 
-          label: '' 
-        });
-        tallPlaced = true;
-      } 
-      // Then try X = WallLength - TallWidth (Left Corner mode)
-      else if (canPlace(zone, zone.totalLength - tallWidth, tallWidth, CabinetType.TALL, settings)) {
-        placeUnit(zone, { 
-          id: uuid(), 
-          preset: PresetType.TALL_UTILITY, 
-          type: CabinetType.TALL, 
-          width: tallWidth, 
-          qty: 1, 
-          fromLeft: zone.totalLength - tallWidth, 
+          fromLeft: x, 
           isAutoFilled: true, 
           label: '' 
         });
