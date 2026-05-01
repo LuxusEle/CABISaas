@@ -120,6 +120,8 @@ export interface TestingSettings {
   enableColumn: boolean;
   columnWidth: number;
   columnDepth: number;
+  exposedLeft?: boolean;
+  exposedRight?: boolean;
 }
 
 export const DEFAULT_SETTINGS: TestingSettings = {
@@ -738,6 +740,8 @@ export const getCabinetTestingSettings = (
     tallUpperSectionHeight: globalSettings.wallHeight || DEFAULT_SETTINGS.tallUpperSectionHeight,
     lowerSectionDrawerStackHeight: globalSettings.baseHeight ? (globalSettings.baseHeight - (globalSettings.toeKickHeight ?? 100)) : DEFAULT_SETTINGS.lowerSectionDrawerStackHeight,
     wallBottomRecess: globalSettings.wallBottomRecess ?? 0,
+    exposedLeft: unit.exposedLeft,
+    exposedRight: unit.exposedRight,
   };
 
   // 3. Override with global advancedTestingSettings if present

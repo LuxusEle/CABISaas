@@ -558,7 +558,7 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
     if (name.startsWith('Shelf')) return 'shelf';
     if (name.startsWith('Drawer_Front')) return 'door';
     if (name.startsWith('Drawer_')) return 'drawer';
-    if (name.includes('Door')) return 'door';
+    if (name.includes('Door') || name.includes('Exposed')) return 'door';
     if (name.includes('Back_Panel')) return 'back';
     return 'carcass';
   };

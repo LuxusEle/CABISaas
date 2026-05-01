@@ -190,6 +190,9 @@ export interface CabinetUnit {
   customConfig?: CustomCabinetConfig; // Custom configuration
   // Material selection
   materials?: CabinetMaterials;
+  // Exposed sides (for additional side panels)
+  exposedLeft?: boolean;
+  exposedRight?: boolean;
   // Advanced Config (Testing Cabinets)
   advancedSettings?: Partial<TestingSettings>;
 }

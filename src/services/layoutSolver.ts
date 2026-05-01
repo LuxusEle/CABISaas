@@ -411,6 +411,8 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
     
     absorbRemainder(zone, settings); // Ruby Rule: Absorb small gaps into corners
     
+    applyExposedSides(zone, settings);
+
     // Assign sequential labels with Zone Prefix (e.g., W01B01, W01W01)
     let bIdx = 1;
     let wIdx = 1;
@@ -437,6 +439,87 @@ const MIN_FILL_WIDTH = 400; // Ruby Rule: Avoid cabinets < 400mm unless absolute
 const ABSOLUTE_MIN_WIDTH = 250; // Still allowed if no other choice
 
 // --- Helper Functions ---
+
+function applyExposedSides(zone: Zone, settings: ProjectSettings) {
+  const thickness = settings.doorMaterialThickness || 18;
+  const cabinets = zone.cabinets;
+  const obstacles = zone.obstacles;
+
+  // 1. Detection Pass
+  cabinets.forEach((unit) => {
+    // Only for Base, Wall, Tall
+    if (unit.type !== CabinetType.BASE && unit.type !== CabinetType.WALL && unit.type !== CabinetType.TALL) return;
+    if (unit.preset === PresetType.BASE_CORNER || unit.preset === PresetType.WALL_CORNER) return;
+    if (unit.preset === PresetType.FILLER) return;
+
+    let leftExposed = false;
+    let rightExposed = false;
+
+    // A. Wall edges
+    const isStart = unit.fromLeft < 15;
+    const isEnd = Math.abs((unit.fromLeft + unit.width) - zone.totalLength) < 15;
+
+    if (isStart) {
+      const hasCornerOffset = obstacles.some(o => o.fromLeft < 10 && o.id.startsWith('corner_'));
+      if (!hasCornerOffset) leftExposed = true;
+    }
+    
+    if (isEnd) {
+      const hasCornerCabinet = cabinets.some(c => (c.preset === PresetType.BASE_CORNER || c.preset === PresetType.WALL_CORNER) && c.fromLeft > unit.fromLeft);
+      if (!hasCornerCabinet) rightExposed = true;
+    }
+
+    // B. Obstacles (Door, Window)
+    obstacles.forEach(obs => {
+      if (obs.type === 'door' || obs.type === 'window') {
+        if (Math.abs(unit.fromLeft - (obs.fromLeft + obs.width)) < 15) leftExposed = true;
+        if (Math.abs((unit.fromLeft + unit.width) - obs.fromLeft) < 15) rightExposed = true;
+      }
+    });
+
+    unit.exposedLeft = leftExposed;
+    unit.exposedRight = rightExposed;
+  });
+
+  // 2. Width Adjustment Pass
+  // Sort by fromLeft to resolve overlaps correctly
+  const sorted = [...cabinets].sort((a, b) => a.fromLeft - b.fromLeft);
+  
+  sorted.forEach(unit => {
+    if (unit.exposedLeft) {
+      unit.width += thickness;
+      unit.fromLeft -= thickness;
+    }
+    if (unit.exposedRight) {
+      unit.width += thickness;
+    }
+  });
+
+  // 3. Collision Resolution (Push Right)
+  for (let i = 0; i < sorted.length; i++) {
+    const current = sorted[i];
+    let maxRight = current.fromLeft;
+    
+    for (let j = 0; j < i; j++) {
+      const prev = sorted[j];
+      const collide = current.type === prev.type || current.type === CabinetType.TALL || prev.type === CabinetType.TALL;
+      if (collide) {
+        const prevRight = prev.fromLeft + prev.width;
+        if (prevRight > maxRight) maxRight = prevRight;
+      }
+    }
+    current.fromLeft = maxRight;
+  }
+
+  // 4. Boundary Enforcement (Don't let cabinets fall off the left edge)
+  sorted.forEach(unit => {
+    if (unit.fromLeft < 0) {
+      // If pushed off left, we might need to push everything right
+      // But for now, just snap to 0 and let it overlap if it must
+      unit.fromLeft = 0;
+    }
+  });
+}
 
 function injectCorners(current: Zone, next: Zone, settings: ProjectSettings) {
   const depth = settings.depthBase;

@@ -44,7 +44,8 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
     return (panelColors as any)[panelType] || darkerColor;
   };
 
-  const innerWidth = width;
+  const carcassWidth = width - (settings.exposedLeft ? doorMaterialThickness : 0) - (settings.exposedRight ? doorMaterialThickness : 0);
+  const innerWidth = carcassWidth;
   const innerHeight = height - toeKickHeight;
   const innerDepth = depth;
 
@@ -481,79 +482,95 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
     return false;
   };
 
+  const carcassXOffset = (settings.exposedLeft ? doorMaterialThickness : 0) / 2 - (settings.exposedRight ? doorMaterialThickness : 0) / 2;
+
   return (
     <group position={[width / 2, innerHeight / 2 + toeKickHeight, depth / 2]}>
+      {/* Additional Exposed Side Panels (Door Material) */}
+      {settings.exposedLeft && (
+        <mesh position={[-width / 2 + doorMaterialThickness / 2, -toeKickHeight / 2, 0]} castShadow receiveShadow>
+          <boxGeometry args={[doorMaterialThickness, height, depth]} />
+          <meshStandardMaterial color={settings.isStudio && settings.doorTexture ? '#ffffff' : doorColor} map={settings.isStudio ? settings.doorTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
+        </mesh>
+      )}
+      {settings.exposedRight && (
+        <mesh position={[width / 2 - doorMaterialThickness / 2, -toeKickHeight / 2, 0]} castShadow receiveShadow>
+          <boxGeometry args={[doorMaterialThickness, height, depth]} />
+          <meshStandardMaterial color={settings.isStudio && settings.doorTexture ? '#ffffff' : doorColor} map={settings.isStudio ? settings.doorTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
+        </mesh>
+      )}
+
       {shouldShow('bottomPanel') && (
-        <mesh position={[0 + getOffset('bottomPanel')[0], -innerHeight / 2 + panelThickness / 2 + getOffset('bottomPanel')[1], 0 + getOffset('bottomPanel')[2]]} castShadow receiveShadow visible={!skeletonView}>
+        <mesh position={[carcassXOffset + 0 + getOffset('bottomPanel')[0], -innerHeight / 2 + panelThickness / 2 + getOffset('bottomPanel')[1], 0 + getOffset('bottomPanel')[2]]} castShadow receiveShadow visible={!skeletonView}>
           <primitive object={bottomPanelGeo} attach="geometry" />
           <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : getPanelColor('bottomPanel')} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.4} metalness={0} side={THREE.DoubleSide} transparent={settings.opacity < 1} opacity={settings.opacity} />
         </mesh>
       )}
       {skeletonView && shouldShow('bottomPanel') && (
-        <lineSegments position={[0 + getOffset('bottomPanel')[0], -innerHeight / 2 + panelThickness / 2 + getOffset('bottomPanel')[1], 0 + getOffset('bottomPanel')[2]]}>
+        <lineSegments position={[carcassXOffset + 0 + getOffset('bottomPanel')[0], -innerHeight / 2 + panelThickness / 2 + getOffset('bottomPanel')[1], 0 + getOffset('bottomPanel')[2]]}>
           <edgesGeometry args={[bottomPanelGeo]} />
           <lineBasicMaterial color={getPanelColor('bottomPanel')} linewidth={2} />
         </lineSegments>
       )}
       {shouldShow('topPanel') && (
-        <mesh position={[0 + getOffset('topPanel')[0], innerHeight / 2 - panelThickness / 2 + getOffset('topPanel')[1], 0 + getOffset('topPanel')[2]]} castShadow receiveShadow visible={!skeletonView}>
+        <mesh position={[carcassXOffset + 0 + getOffset('topPanel')[0], innerHeight / 2 - panelThickness / 2 + getOffset('topPanel')[1], 0 + getOffset('topPanel')[2]]} castShadow receiveShadow visible={!skeletonView}>
           <primitive object={topPanelGeo} attach="geometry" />
           <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : getPanelColor('topPanel')} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.4} metalness={0} side={THREE.DoubleSide} transparent={settings.opacity < 1} opacity={settings.opacity} />
         </mesh>
       )}
       {skeletonView && shouldShow('topPanel') && (
-        <lineSegments position={[0 + getOffset('topPanel')[0], innerHeight / 2 - panelThickness / 2 + getOffset('topPanel')[1], 0 + getOffset('topPanel')[2]]}>
+        <lineSegments position={[carcassXOffset + 0 + getOffset('topPanel')[0], innerHeight / 2 - panelThickness / 2 + getOffset('topPanel')[1], 0 + getOffset('topPanel')[2]]}>
           <edgesGeometry args={[topPanelGeo]} />
           <lineBasicMaterial color={getPanelColor('topPanel')} linewidth={2} />
         </lineSegments>
       )}
 
       {toeKickHeight > 0 && shouldShow('toeKick') && (
-        <mesh position={[0 + getOffset('toeKick')[0], -innerHeight / 2 - toeKickHeight / 2 + getOffset('toeKick')[1], depth / 2 - 50 - panelThickness / 2 + getOffset('toeKick')[2]]} castShadow receiveShadow visible={!skeletonView}>
-          <boxGeometry args={[width, toeKickHeight, panelThickness]} />
+        <mesh position={[carcassXOffset + 0 + getOffset('toeKick')[0], -innerHeight / 2 - toeKickHeight / 2 + getOffset('toeKick')[1], depth / 2 - 50 - panelThickness / 2 + getOffset('toeKick')[2]]} castShadow receiveShadow visible={!skeletonView}>
+          <boxGeometry args={[innerWidth, toeKickHeight, panelThickness]} />
           <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : toeKickColor} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
         </mesh>
       )}
       {toeKickHeight > 0 && skeletonView && shouldShow('toeKick') && (
-        <lineSegments position={[0 + getOffset('toeKick')[0], -innerHeight / 2 - toeKickHeight / 2 + getOffset('toeKick')[1], depth / 2 - 50 - panelThickness / 2 + getOffset('toeKick')[2]]}>
-          <edgesGeometry args={[new THREE.BoxGeometry(width, toeKickHeight, panelThickness)]} />
+        <lineSegments position={[carcassXOffset + 0 + getOffset('toeKick')[0], -innerHeight / 2 - toeKickHeight / 2 + getOffset('toeKick')[1], depth / 2 - 50 - panelThickness / 2 + getOffset('toeKick')[2]]}>
+          <edgesGeometry args={[new THREE.BoxGeometry(innerWidth, toeKickHeight, panelThickness)]} />
           <lineBasicMaterial color={getPanelColor('toeKick')} linewidth={2} />
         </lineSegments>
       )}
 
       {shouldShow('leftPanel') && (
-        <mesh position={[-width / 2 + panelThickness / 2 + getOffset('leftPanel')[0], 0 + getOffset('leftPanel')[1], 0 + getOffset('leftPanel')[2]]} castShadow receiveShadow visible={!skeletonView}>
+        <mesh position={[carcassXOffset - innerWidth / 2 + panelThickness / 2 + getOffset('leftPanel')[0], 0 + getOffset('leftPanel')[1], 0 + getOffset('leftPanel')[2]]} castShadow receiveShadow visible={!skeletonView}>
           <primitive object={leftPanelGeo} attach="geometry" />
           <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : getPanelColor('leftPanel')} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.4} metalness={0} side={THREE.DoubleSide} transparent={settings.opacity < 1} opacity={settings.opacity} />
         </mesh>
       )}
       {skeletonView && shouldShow('leftPanel') && (
-        <lineSegments position={[-width / 2 + panelThickness / 2 + getOffset('leftPanel')[0], 0 + getOffset('leftPanel')[1], 0 + getOffset('leftPanel')[2]]}>
+        <lineSegments position={[carcassXOffset - innerWidth / 2 + panelThickness / 2 + getOffset('leftPanel')[0], 0 + getOffset('leftPanel')[1], 0 + getOffset('leftPanel')[2]]}>
           <edgesGeometry args={[leftPanelGeo]} />
           <lineBasicMaterial color={getPanelColor('leftPanel')} linewidth={2} />
         </lineSegments>
       )}
       {shouldShow('rightPanel') && (
-        <mesh position={[width / 2 - panelThickness / 2 + getOffset('rightPanel')[0], 0 + getOffset('rightPanel')[1], 0 + getOffset('rightPanel')[2]]} castShadow receiveShadow visible={!skeletonView}>
+        <mesh position={[carcassXOffset + innerWidth / 2 - panelThickness / 2 + getOffset('rightPanel')[0], 0 + getOffset('rightPanel')[1], 0 + getOffset('rightPanel')[2]]} castShadow receiveShadow visible={!skeletonView}>
           <primitive object={rightPanelGeo} attach="geometry" />
           <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : getPanelColor('rightPanel')} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.4} metalness={0} side={THREE.DoubleSide} transparent={settings.opacity < 1} opacity={settings.opacity} />
         </mesh>
       )}
       {skeletonView && shouldShow('rightPanel') && (
-        <lineSegments position={[width / 2 - panelThickness / 2 + getOffset('rightPanel')[0], 0 + getOffset('rightPanel')[1], 0 + getOffset('rightPanel')[2]]}>
+        <lineSegments position={[carcassXOffset + innerWidth / 2 - panelThickness / 2 + getOffset('rightPanel')[0], 0 + getOffset('rightPanel')[1], 0 + getOffset('rightPanel')[2]]}>
           <edgesGeometry args={[rightPanelGeo]} />
           <lineBasicMaterial color={getPanelColor('rightPanel')} linewidth={2} />
         </lineSegments>
       )}
 
       {showBackPanel && shouldShow('backPanel') && (
-        <mesh position={[0 + getOffset('backPanel')[0], 0 + getOffset('backPanel')[1], -innerDepth / 2 + panelThickness + backPanelThickness / 2 + getOffset('backPanel')[2]]} castShadow receiveShadow visible={!skeletonView}>
+        <mesh position={[carcassXOffset + 0 + getOffset('backPanel')[0], 0 + getOffset('backPanel')[1], -innerDepth / 2 + panelThickness + backPanelThickness / 2 + getOffset('backPanel')[2]]} castShadow receiveShadow visible={!skeletonView}>
           <boxGeometry args={[innerWidth - panelThickness * 2 + grooveDepth * 2, innerHeight - panelThickness * 2 + grooveDepth * 2, backPanelThickness]} />
           <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : showDifferentPanelColors ? panelColors.backPanel : backPanelColor} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.5} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
         </mesh>
       )}
       {showBackPanel && skeletonView && shouldShow('backPanel') && (
-        <lineSegments position={[0 + getOffset('backPanel')[0], 0 + getOffset('backPanel')[1], -innerDepth / 2 + panelThickness + backPanelThickness / 2 + getOffset('backPanel')[2]]}>
+        <lineSegments position={[carcassXOffset + 0 + getOffset('backPanel')[0], 0 + getOffset('backPanel')[1], -innerDepth / 2 + panelThickness + backPanelThickness / 2 + getOffset('backPanel')[2]]}>
           <edgesGeometry args={[new THREE.BoxGeometry(innerWidth - panelThickness * 2 + grooveDepth * 2, innerHeight - panelThickness * 2 + grooveDepth * 2, backPanelThickness)]} />
           <lineBasicMaterial color={getPanelColor('backPanel')} linewidth={2} />
         </lineSegments>
@@ -561,35 +578,35 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
 
       {showBackStretchers && (
         <>
-          <mesh position={[0, innerHeight / 2 - panelThickness - 50, -innerDepth / 2 + panelThickness / 2 + getOffset('topStretcher')[2]]} castShadow receiveShadow visible={!skeletonView}>
+          <mesh position={[carcassXOffset + 0, innerHeight / 2 - panelThickness - 50, -innerDepth / 2 + panelThickness / 2 + getOffset('topStretcher')[2]]} castShadow receiveShadow visible={!skeletonView}>
             <boxGeometry args={[innerWidth - panelThickness * 2, 100, panelThickness]} />
             <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : getPanelColor('topStretcher')} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
           </mesh>
           {skeletonView && (
-            <lineSegments position={[0, innerHeight / 2 - panelThickness - 50, -innerDepth / 2 + panelThickness / 2 + getOffset('topStretcher')[2]]}>
+            <lineSegments position={[carcassXOffset + 0, innerHeight / 2 - panelThickness - 50, -innerDepth / 2 + panelThickness / 2 + getOffset('topStretcher')[2]]}>
               <edgesGeometry args={[new THREE.BoxGeometry(innerWidth - panelThickness * 2, 100, panelThickness)]} />
               <lineBasicMaterial color={getPanelColor('topStretcher')} linewidth={2} />
             </lineSegments>
           )}
 
-          <mesh position={[0, -innerHeight / 2 + panelThickness + settings.wallBottomRecess + 50, -innerDepth / 2 + panelThickness / 2 + getOffset('bottomStretcher')[2]]} castShadow receiveShadow visible={!skeletonView}>
+          <mesh position={[carcassXOffset + 0, -innerHeight / 2 + panelThickness + settings.wallBottomRecess + 50, -innerDepth / 2 + panelThickness / 2 + getOffset('bottomStretcher')[2]]} castShadow receiveShadow visible={!skeletonView}>
             <boxGeometry args={[innerWidth - panelThickness * 2, 100, panelThickness]} />
             <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : getPanelColor('bottomStretcher')} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
           </mesh>
           {skeletonView && (
-            <lineSegments position={[0, -innerHeight / 2 + panelThickness + settings.wallBottomRecess + 50, -innerDepth / 2 + panelThickness / 2 + getOffset('bottomStretcher')[2]]}>
+            <lineSegments position={[carcassXOffset + 0, -innerHeight / 2 + panelThickness + settings.wallBottomRecess + 50, -innerDepth / 2 + panelThickness / 2 + getOffset('bottomStretcher')[2]]}>
               <edgesGeometry args={[new THREE.BoxGeometry(innerWidth - panelThickness * 2, 100, panelThickness)]} />
               <lineBasicMaterial color={getPanelColor('bottomStretcher')} linewidth={2} />
             </lineSegments>
           )}
 
           {/* Middle Stretcher - centered vertically */}
-          <mesh position={[0, 0, -innerDepth / 2 + panelThickness / 2 + getOffset('topStretcher')[2]]} castShadow receiveShadow visible={!skeletonView}>
+          <mesh position={[carcassXOffset + 0, 0, -innerDepth / 2 + panelThickness / 2 + getOffset('topStretcher')[2]]} castShadow receiveShadow visible={!skeletonView}>
             <boxGeometry args={[innerWidth - panelThickness * 2, 100, panelThickness]} />
             <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : getPanelColor('topStretcher')} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
           </mesh>
           {skeletonView && (
-            <lineSegments position={[0, 0, -innerDepth / 2 + panelThickness / 2 + getOffset('topStretcher')[2]]}>
+            <lineSegments position={[carcassXOffset + 0, 0, -innerDepth / 2 + panelThickness / 2 + getOffset('topStretcher')[2]]}>
               <edgesGeometry args={[new THREE.BoxGeometry(innerWidth - panelThickness * 2, 100, panelThickness)]} />
               <lineBasicMaterial color={getPanelColor('topStretcher')} linewidth={2} />
             </lineSegments>
@@ -608,7 +625,7 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
         const pivotX = isLeftDoor ? -doorWidth / 2 : doorWidth / 2;
 
         return (
-          <group key={`door-${i}`} position={[doorX + getOffset('door', i)[0], doorYOffset_Upper + getOffset('door', i)[1], depth / 2 + getOffset('door', i)[2]]}>
+          <group key={`door-${i}`} position={[carcassXOffset + doorX + getOffset('door', i)[0], doorYOffset_Upper + getOffset('door', i)[1], depth / 2 + getOffset('door', i)[2]]}>
             <group position={[pivotX, 0, 0]} rotation={[0, rotationDirection * doorAngle, 0]}>
               <mesh position={[-pivotX, 0, doorMaterialThickness / 2]} castShadow receiveShadow visible={!skeletonView}>
                 <primitive object={doorGeos[i]} attach="geometry" />
@@ -654,7 +671,7 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
         const pivotX = isLeftDoor ? -doorWidth / 2 : doorWidth / 2;
 
         return (
-          <group key={`lower-door-${i}`} position={[doorX + getOffset('door', i)[0], doorYOffset_Lower + getOffset('door', i)[1], depth / 2 + getOffset('door', i)[2]]}>
+          <group key={`lower-door-${i}`} position={[carcassXOffset + doorX + getOffset('door', i)[0], doorYOffset_Lower + getOffset('door', i)[1], depth / 2 + getOffset('door', i)[2]]}>
             <group position={[pivotX, 0, 0]} rotation={[0, rotationDirection * doorAngle, 0]}>
               <mesh position={[-pivotX, 0, doorMaterialThickness / 2]} castShadow receiveShadow visible={!skeletonView}>
                 <primitive object={lowerDoorGeos[i]} attach="geometry" />
@@ -699,7 +716,7 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
           ? baseYPositions[i] 
           : drawerYPositions[i];
         return (
-          <group key={`drawer-${i}`} position={[getOffset('drawer', i)[0], getOffset('drawer', i)[1], getOffset('drawer', i)[2] + drawerOpenDistance]}>
+          <group key={`drawer-${i}`} position={[carcassXOffset + getOffset('drawer', i)[0], getOffset('drawer', i)[1], getOffset('drawer', i)[2] + drawerOpenDistance]}>
             <mesh position={[0, drawerYPositions[i], depth / 2 + doorMaterialThickness / 2]} rotation={[0, -Math.PI / 2, 0]} castShadow receiveShadow visible={!skeletonView}>
               <primitive object={frontGeo} attach="geometry" />
               <meshStandardMaterial color={settings.isStudio && settings.doorTexture ? '#ffffff' : doorColor} map={settings.isStudio ? settings.doorTexture : undefined} roughness={0.4} metalness={0} side={THREE.DoubleSide} transparent={true} opacity={settings.opacity} depthWrite={settings.opacity < 1 ? false : true} />
@@ -761,13 +778,13 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
 
 
       {/* Upper Section Bottom Panel (Constant) */}
-      <mesh position={[0 + getOffset('shelf', 98)[0], innerHeight / 2 - tallUpperSectionHeight + panelThickness / 2 + getOffset('shelf', 98)[1], -depth / 2 + panelThickness + backPanelThickness + (depth - panelThickness - backPanelThickness) / 2 + getOffset('shelf', 98)[2]]} castShadow receiveShadow visible={!skeletonView}>
+      <mesh position={[carcassXOffset + 0 + getOffset('shelf', 98)[0], innerHeight / 2 - tallUpperSectionHeight + panelThickness / 2 + getOffset('shelf', 98)[1], -depth / 2 + panelThickness + backPanelThickness + (depth - panelThickness - backPanelThickness) / 2 + getOffset('shelf', 98)[2]]} castShadow receiveShadow visible={!skeletonView}>
         <boxGeometry args={[innerWidth - panelThickness * 2, panelThickness, depth - panelThickness - backPanelThickness]} />
         <meshStandardMaterial color={settings.isStudio && (settings.shelfTexture || settings.carcassTexture) ? '#ffffff' : shelfColor} map={settings.isStudio ? (settings.shelfTexture || settings.carcassTexture) : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
       </mesh>
 
       {/* Lower Section Top Panel (Divider) */}
-      <mesh position={[0 + getOffset('shelf', 99)[0], tallLowerSectionHeight - innerHeight / 2 - panelThickness / 2 + getOffset('shelf', 99)[1], -depth / 2 + panelThickness + backPanelThickness + (depth - panelThickness - backPanelThickness) / 2 + getOffset('shelf', 99)[2]]} castShadow receiveShadow visible={!skeletonView}>
+      <mesh position={[carcassXOffset + 0 + getOffset('shelf', 99)[0], tallLowerSectionHeight - innerHeight / 2 - panelThickness / 2 + getOffset('shelf', 99)[1], -depth / 2 + panelThickness + backPanelThickness + (depth - panelThickness - backPanelThickness) / 2 + getOffset('shelf', 99)[2]]} castShadow receiveShadow visible={!skeletonView}>
         <boxGeometry args={[innerWidth - panelThickness * 2, panelThickness, depth - panelThickness - backPanelThickness]} />
         <meshStandardMaterial color={settings.isStudio && (settings.shelfTexture || settings.carcassTexture) ? '#ffffff' : shelfColor} map={settings.isStudio ? (settings.shelfTexture || settings.carcassTexture) : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
       </mesh>
@@ -780,7 +797,7 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
         const sy = topSectionStart + spacing * (i + 1);
         const shelfZOffset = -depth / 2 + panelThickness + backPanelThickness + settings.shelfDepth / 2;
         return (
-          <mesh key={`shelf-upper-${i}`} position={[0 + getOffset('shelf', i)[0], sy - panelThickness / 2 + getOffset('shelf', i)[1], shelfZOffset + getOffset('shelf', i)[2]]} castShadow receiveShadow visible={!skeletonView}>
+          <mesh key={`shelf-upper-${i}`} position={[carcassXOffset + 0 + getOffset('shelf', i)[0], sy - panelThickness / 2 + getOffset('shelf', i)[1], shelfZOffset + getOffset('shelf', i)[2]]} castShadow receiveShadow visible={!skeletonView}>
             <primitive object={shelfGeo.clone()} attach="geometry" />
             <meshStandardMaterial color={settings.isStudio && (settings.shelfTexture || settings.carcassTexture) ? '#ffffff' : shelfColor} map={settings.isStudio ? (settings.shelfTexture || settings.carcassTexture) : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
           </mesh>
@@ -795,7 +812,7 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
         const shelfY = bottomSectionStart + spacing * (i + 1);
         const shelfZOffset = -depth / 2 + panelThickness + backPanelThickness + settings.shelfDepth / 2;
         return (
-          <mesh key={`shelf-lower-${i}`} position={[0 + getOffset('shelf', i)[0], shelfY - panelThickness / 2 + getOffset('shelf', i)[1], shelfZOffset + getOffset('shelf', i)[2]]} castShadow receiveShadow visible={!skeletonView}>
+          <mesh key={`shelf-lower-${i}`} position={[carcassXOffset + 0 + getOffset('shelf', i)[0], shelfY - panelThickness / 2 + getOffset('shelf', i)[1], shelfZOffset + getOffset('shelf', i)[2]]} castShadow receiveShadow visible={!skeletonView}>
             <primitive object={shelfGeo.clone()} attach="geometry" />
             <meshStandardMaterial color={settings.isStudio && (settings.shelfTexture || settings.carcassTexture) ? '#ffffff' : shelfColor} map={settings.isStudio ? (settings.shelfTexture || settings.carcassTexture) : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
           </mesh>
@@ -857,10 +874,11 @@ export const exportTallCabinetDXF = async (settings: TestingSettings, zip: JSZip
     lowerSectionDrawerStackHeight, toeKickHeight
   } = settings;
 
-  const innerWidth = width;
-  const innerHeight = height;
+  const carcassWidth = width - (settings.exposedLeft ? doorMaterialThickness : 0) - (settings.exposedRight ? doorMaterialThickness : 0);
+  const innerWidth = carcassWidth;
+  const innerHeight = height - toeKickHeight;
   const innerDepth = depth;
-  const actualNumDoors = width < RUBY_DOOR_THRESHOLD ? 1 : 2;
+  const actualNumDoors = carcassWidth < RUBY_DOOR_THRESHOLD ? 1 : 2;
   const doorWidth = actualNumDoors === 1 ? innerWidth - doorOuterGap * 2 : (innerWidth - doorOuterGap * 2 - doorInnerGap) / 2;
   
   const drawerHeightEach_DXF = numDrawers > 0 
@@ -979,6 +997,13 @@ export const exportTallCabinetDXF = async (settings: TestingSettings, zip: JSZip
   const sR = settings.shelfHoleDiameter / 2;
   const szS = -depth / 2 + panelThickness + backPanelThickness;
   nailHoles.push({ y: holeY, z: szS + settings.shelfDepth * 0.25, r: sR, through: false }, { y: holeY, z: szS + settings.shelfDepth * 0.75, r: sR, through: false });
+
+  if (settings.exposedLeft) {
+    addPanelToZip('Exposed_Left_Panel', depth, height);
+  }
+  if (settings.exposedRight) {
+    addPanelToZip('Exposed_Right_Panel', depth, height);
+  }
 
   addPanelToZip('Divider_Deck', innerWidth - panelThickness * 2, depth - panelThickness - backPanelThickness);
 
@@ -1114,7 +1139,10 @@ export const exportTallCabinetDXF = async (settings: TestingSettings, zip: JSZip
 
   if (showDrawers && numDrawers > 0) {
     const boxDepth = depth - panelThickness - backPanelThickness - settings.drawerBackClearance;
-    const boxWidth = (width - panelThickness * 2) - drawerSideClearance * 2;
+    const boxWidth = (carcassWidth - panelThickness * 2) - drawerSideClearance * 2;
+    const boxHeight = (innerHeight / numDrawers) * drawerBoxHeightRatio; // Approx
+    
+    const frontWidth = carcassWidth - doorOuterGap * 2;
     const physicalHeightLimit = tallLowerSectionHeight - panelThickness;
     const effectiveStackH = Math.min(lowerSectionDrawerStackHeight, physicalHeightLimit);
     const drawerHeightEach = (effectiveStackH - doorOuterGap * (numDrawers + 1)) / numDrawers;
