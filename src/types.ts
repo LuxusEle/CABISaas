@@ -115,6 +115,12 @@ export interface ProjectSettings {
       tall: number;
     }
   };
+  layoutPreferences?: {
+    includeTall: boolean;
+    includeSink: boolean;
+    includeCooker: boolean;
+    includeDrawers: boolean;
+  };
 }
 
 export interface Obstacle {

@@ -925,8 +925,13 @@ export const createNewProject = (logoUrl?: string): Project => ({
       shelfMaterial: '',
       sheetSpecs: {}
     },
-    quotationStatus: 'quotation' as const,
-    quotationApprovedDate: undefined
+    quotationApprovedDate: undefined,
+    layoutPreferences: {
+      includeTall: true,
+      includeSink: true,
+      includeCooker: true,
+      includeDrawers: true
+    }
   },
   zones: [
     { id: 'Wall A', active: true, totalLength: 3000, wallHeight: 2400, obstacles: [], cabinets: [] }
