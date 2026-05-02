@@ -336,6 +336,10 @@ export const autoFillZone = (
 
   // Helper to check if a spot is occupied by manual cabs or hard blocks
   const isOccupied = (x: number, w: number, type: CabinetType) => {
+    // Outside limits check
+    if (zone.startLimit !== undefined && x < zone.startLimit) return true;
+    if (zone.endLimit !== undefined && x + w > zone.endLimit) return true;
+
     const overlaps = hardBlocks.some(b => x < b.fromLeft + b.width && x + w > b.fromLeft) ||
       manualCabs.some(c => {
         const verticallyCompatible = type === CabinetType.TALL || c.type === CabinetType.TALL || type === c.type;
@@ -371,15 +375,19 @@ export const autoFillZone = (
   if (options.includeCooker && !existingCooker) {
     // Try to place cooker away from sink (working triangle)
     const cookerWidth = 600;
+    const effectiveStart = zone.startLimit || 0;
+    const effectiveEnd = zone.endLimit || totalLength;
+    const effectiveLength = effectiveEnd - effectiveStart;
+
     const preferredPositions = [
-      Math.floor((totalLength - cookerWidth) / 2), // Center
-      0,                                          // Left
-      totalLength - cookerWidth                    // Right
+      effectiveStart + Math.floor((effectiveLength - cookerWidth) / 2), // Center
+      effectiveStart,                                                  // Left
+      effectiveEnd - cookerWidth                                       // Right
     ];
 
     let bestX = preferredPositions[0];
-    const leftGap = bestX;
-    const rightGap = totalLength - (bestX + cookerWidth);
+    const leftGap = bestX - effectiveStart;
+    const rightGap = effectiveEnd - (bestX + cookerWidth);
     
     // Ruby Rule: If centering creates gaps < 400mm, snap to one side to merge them
     if ((leftGap > 0 && leftGap < 400) || (rightGap > 0 && rightGap < 400)) {

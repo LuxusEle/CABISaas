@@ -206,6 +206,8 @@ export interface Zone {
   wallHeight: number;
   obstacles: Obstacle[];
   cabinets: CabinetUnit[];
+  startLimit?: number;
+  endLimit?: number;
 }
 
 export interface Project {

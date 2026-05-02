@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Save, FileText, Upload, DollarSign, Settings, Box, Lock, CheckCircle2, AlertCircle, Wand2, ArrowRight, X } from 'lucide-react';
+import { Save, FileText, Upload, DollarSign, Settings, Box, Lock, CheckCircle2, AlertCircle, Wand2, ArrowRight, X, MousePointer2 } from 'lucide-react';
 import { Project } from '../types';
 import { Button } from '../components/Button';
 import { NumberInput } from '../components/NumberInput';
 import { WallEditModal } from '../components/WallEditModal';
+import { WallLimitsModal } from '../components/WallLimitsModal';
 import { CabinetEditModal } from '../components/CabinetEditModal';
 import { SheetTypeManager } from '../components/SheetTypeManager';
 import { MaterialAllocationPanel } from '../components/MaterialAllocationPanel';
@@ -31,6 +32,7 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
 
   // Modal control states
   const [showWallModal, setShowWallModal] = useState(false);
+  const [showLimitsModal, setShowLimitsModal] = useState(false);
   const isLayoutLocked = project.zones.some(z => z.cabinets && z.cabinets.length > 0);
   const [isPro, setIsPro] = useState(false);
   const [showCabinetModal, setShowCabinetModal] = useState(false);
@@ -45,12 +47,13 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
   // Step Completion Logic
   const isIdentityDone = project.name.trim().length > 0;
   const isWallsDone = project.zones.length > 0 && project.zones.some(z => z.totalLength > 0);
+  const isLimitsDone = isWallsDone && project.zones.every(z => (z.startLimit !== undefined && z.endLimit !== undefined) || (z.startLimit === 0 && z.endLimit === z.totalLength));
   const isConstructionDone = project.settings.counterThickness > 0;
   const isPreferencesDone = !!project.settings.layoutPreferences;
   
-  const isReadyToGenerate = isIdentityDone && isWallsDone && isConstructionDone && isPreferencesDone;
+  const isReadyToGenerate = isIdentityDone && isWallsDone && isLimitsDone && isConstructionDone && isPreferencesDone;
 
-  const wizardSteps = ['project', 'walls', 'preferences', 'construction', 'sheets', 'hardware', 'costs'];
+  const wizardSteps = ['project', 'walls', 'limits', 'preferences', 'construction', 'sheets', 'hardware', 'costs'];
 
   // Handle auto-open from URL
   useEffect(() => {
@@ -93,6 +96,9 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
       if (nextStep === 'walls') {
         setActiveModal(null);
         setShowWallModal(true);
+      } else if (nextStep === 'limits') {
+        setActiveModal(null);
+        setShowLimitsModal(true);
       } else if (nextStep === 'preferences') {
         setActiveModal('preferences');
       } else {
@@ -250,6 +256,15 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
               colorClass="bg-amber-50 dark:bg-amber-900/20"
               onClick={() => setActiveModal('preferences')}
               isDone={!!project.settings.layoutPreferences}
+              isRequired={true}
+            />
+            <SetupCard 
+              icon={<MousePointer2 size={24} className="text-orange-600 dark:text-orange-400" />}
+              title="Wall Limits"
+              subtitle="Boundaries"
+              colorClass="bg-orange-50 dark:bg-orange-900/20"
+              onClick={() => setShowLimitsModal(true)}
+              isDone={isLimitsDone}
               isRequired={true}
             />
             <SetupCard 
@@ -594,7 +609,21 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
               const updatedProject = { ...project, zones: newZones };
               setProject(updatedProject);
               setShowWallModal(false);
-              // After wall setup, move to Preferences
+              // After wall setup, move to Limits
+              setShowLimitsModal(true);
+            }}
+          />
+
+          <WallLimitsModal
+            isOpen={showLimitsModal}
+            onClose={() => setShowLimitsModal(false)}
+            project={project}
+            isDark={isDark}
+            onSave={(newZones) => {
+              const updatedProject = { ...project, zones: newZones };
+              setProject(updatedProject);
+              setShowLimitsModal(false);
+              // After limits, move to Special Units
               setActiveModal('preferences');
             }}
           />

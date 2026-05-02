@@ -19,6 +19,8 @@ interface Props {
   onDropCabinet?: (zoneId: string, fromLeft: number, cabinet: CabinetUnit) => void;
   isStatic?: boolean;
   forceWhite?: boolean;
+  editLimits?: boolean;
+  onLimitMove?: (type: 'start' | 'end', value: number) => void;
 }
 
 export const WallVisualizer: React.FC<Props> = ({
@@ -31,7 +33,9 @@ export const WallVisualizer: React.FC<Props> = ({
   draggedCabinet,
   onDropCabinet,
   isStatic = false,
-  forceWhite = false
+  forceWhite = false,
+  editLimits = false,
+  onLimitMove
 }) => {
   const [panning, setPanning] = useState<{
     startClientX: number;
@@ -758,6 +762,175 @@ export const WallVisualizer: React.FC<Props> = ({
         })()}
 
         {zone.cabinets.map((unit, idx) => renderCabinetDetail(unit, idx))}
+
+        {/* Real-time Dimensions between Limits and Obstacles */}
+        {editLimits && (() => {
+          const s = zone.startLimit || 0;
+          const e = zone.endLimit || zone.totalLength;
+          const dims: React.ReactNode[] = [];
+          
+          // Distance between limits
+          dims.push(
+            <g key="dim-between">
+              <line x1={s} y1={height - 100} x2={e} y2={height - 100} stroke="#f59e0b" strokeWidth="8" markerStart="url(#tick)" markerEnd="url(#tick)" />
+              <text x={(s + e) / 2} y={height - 150} textAnchor="middle" dominantBaseline="middle" fontSize="80" fontWeight="black" className="fill-slate-900 dark:fill-white font-mono">{e - s}</text>
+            </g>
+          );
+
+          // Find closest obstacles
+          const obstacles = zone.obstacles.filter(o => !o.id.startsWith('corner_'));
+          
+          // 1. Start Limit to its RIGHT
+          const nextRightOfS = [...obstacles].filter(o => o.fromLeft > s).sort((a, b) => a.fromLeft - b.fromLeft)[0];
+          if (nextRightOfS) {
+            const dist = Math.round(nextRightOfS.fromLeft - s);
+            dims.push(
+              <g key="dim-s-right">
+                <line x1={s} y1="100" x2={nextRightOfS.fromLeft} y2="100" stroke="#64748b" strokeWidth="4" strokeDasharray="15,10" markerStart="url(#tick)" markerEnd="url(#tick)" />
+                <text x={(s + nextRightOfS.fromLeft) / 2} y="50" textAnchor="middle" dominantBaseline="middle" fontSize="60" fontWeight="black" className="fill-slate-900 dark:fill-white font-mono">{dist}</text>
+              </g>
+            );
+          }
+
+          // 2. End Limit to its LEFT
+          const nextLeftOfE = [...obstacles].filter(o => o.fromLeft + o.width < e).sort((a, b) => (b.fromLeft + b.width) - (a.fromLeft + a.width))[0];
+          if (nextLeftOfE) {
+            const dist = Math.round(e - (nextLeftOfE.fromLeft + nextLeftOfE.width));
+            dims.push(
+              <g key="dim-e-left">
+                <line x1={nextLeftOfE.fromLeft + nextLeftOfE.width} y1="100" x2={e} y2="100" stroke="#64748b" strokeWidth="4" strokeDasharray="15,10" markerStart="url(#tick)" markerEnd="url(#tick)" />
+                <text x={(nextLeftOfE.fromLeft + nextLeftOfE.width + e) / 2} y="50" textAnchor="middle" dominantBaseline="middle" fontSize="60" fontWeight="black" className="fill-slate-900 dark:fill-white font-mono">{dist}</text>
+              </g>
+            );
+          }
+
+          // 3. End Limit to its RIGHT (e.g. Door outside)
+          const nextRightOfE = [...obstacles].filter(o => o.fromLeft > e).sort((a, b) => a.fromLeft - b.fromLeft)[0];
+          if (nextRightOfE) {
+            const dist = Math.round(nextRightOfE.fromLeft - e);
+            dims.push(
+              <g key="dim-e-right">
+                <line x1={e} y1="100" x2={nextRightOfE.fromLeft} y2="100" stroke="#64748b" strokeWidth="4" strokeDasharray="15,10" markerStart="url(#tick)" markerEnd="url(#tick)" />
+                <text x={(e + nextRightOfE.fromLeft) / 2} y="50" textAnchor="middle" dominantBaseline="middle" fontSize="60" fontWeight="black" className="fill-slate-900 dark:fill-white font-mono">{dist}</text>
+              </g>
+            );
+          }
+          
+          // 4. Start Limit to its LEFT
+          const nextLeftOfS = [...obstacles].filter(o => o.fromLeft + o.width < s).sort((a, b) => (b.fromLeft + b.width) - (a.fromLeft + a.width))[0];
+          if (nextLeftOfS) {
+            const dist = Math.round(s - (nextLeftOfS.fromLeft + nextLeftOfS.width));
+            dims.push(
+              <g key="dim-s-left">
+                <line x1={nextLeftOfS.fromLeft + nextLeftOfS.width} y1="100" x2={s} y2="100" stroke="#64748b" strokeWidth="4" strokeDasharray="15,10" markerStart="url(#tick)" markerEnd="url(#tick)" />
+                <text x={(nextLeftOfS.fromLeft + nextLeftOfS.width + s) / 2} y="50" textAnchor="middle" dominantBaseline="middle" fontSize="60" fontWeight="black" className="fill-slate-900 dark:fill-white font-mono">{dist}</text>
+              </g>
+            );
+          }
+
+          return dims;
+        })()}
+
+        {/* Wall Limits Overlay (Only in Edit Mode) */}
+        {editLimits && (
+          <g>
+            {/* Darkened outside areas (Much lighter now) */}
+            <rect 
+              x="0" y="0" 
+              width={zone.startLimit || 0} 
+              height={height} 
+              fill="rgba(0,0,0,0.15)" 
+              className="pointer-events-none"
+            />
+            <rect 
+              x={zone.endLimit || zone.totalLength} y="0" 
+              width={zone.totalLength - (zone.endLimit || zone.totalLength)} 
+              height={height} 
+              fill="rgba(0,0,0,0.15)" 
+              className="pointer-events-none"
+            />
+
+            {/* Start Limit Line */}
+            <g 
+              className="cursor-ew-resize group/limit"
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                const startX = e.clientX;
+                const startLimit = zone.startLimit || 0;
+                
+                const handleMove = (moveEvent: PointerEvent) => {
+                  const pt = clientToSvg(moveEvent.clientX, moveEvent.clientY);
+                  onLimitMove?.('start', Math.round(pt.x));
+                };
+                
+                const handleUp = () => {
+                  window.removeEventListener('pointermove', handleMove);
+                  window.removeEventListener('pointerup', handleUp);
+                };
+                
+                window.addEventListener('pointermove', handleMove);
+                window.addEventListener('pointerup', handleUp);
+              }}
+            >
+              <line 
+                x1={zone.startLimit || 0} y1="-100" 
+                x2={zone.startLimit || 0} y2={height + 100} 
+                stroke="#f59e0b" strokeWidth="8" strokeDasharray="20,10"
+              />
+              <rect 
+                x={(zone.startLimit || 0) - 40} y={height / 2 - 60} 
+                width="80" height="120" rx="20" fill="#f59e0b"
+              />
+              <text 
+                x={zone.startLimit || 0} y={height / 2} 
+                textAnchor="middle" dominantBaseline="middle" 
+                fill="white" fontSize="24" fontWeight="black" transform={`rotate(-90, ${zone.startLimit || 0}, ${height / 2})`}
+                className="pointer-events-none"
+              >
+                START
+              </text>
+            </g>
+
+            {/* End Limit Line */}
+            <g 
+              className="cursor-ew-resize group/limit"
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                
+                const handleMove = (moveEvent: PointerEvent) => {
+                  const pt = clientToSvg(moveEvent.clientX, moveEvent.clientY);
+                  onLimitMove?.('end', Math.round(pt.x));
+                };
+                
+                const handleUp = () => {
+                  window.removeEventListener('pointermove', handleMove);
+                  window.removeEventListener('pointerup', handleUp);
+                };
+                
+                window.addEventListener('pointermove', handleMove);
+                window.addEventListener('pointerup', handleUp);
+              }}
+            >
+              <line 
+                x1={zone.endLimit || zone.totalLength} y1="-100" 
+                x2={zone.endLimit || zone.totalLength} y2={height + 100} 
+                stroke="#f59e0b" strokeWidth="8" strokeDasharray="20,10"
+              />
+              <rect 
+                x={(zone.endLimit || zone.totalLength) - 40} y={height / 2 - 60} 
+                width="80" height="120" rx="20" fill="#f59e0b"
+              />
+              <text 
+                x={zone.endLimit || zone.totalLength} y={height / 2} 
+                textAnchor="middle" dominantBaseline="middle" 
+                fill="white" fontSize="24" fontWeight="black" transform={`rotate(-90, ${zone.endLimit || zone.totalLength}, ${height / 2})`}
+                className="pointer-events-none"
+              >
+                END
+              </text>
+            </g>
+          </g>
+        )}
       </svg>
     </div>
   );

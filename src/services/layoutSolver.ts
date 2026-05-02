@@ -79,14 +79,17 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
         if (gap.length < tallWidth) continue;
 
         // Check start of gap
-        const isStartWallEdge = gap.start < 10;
+        const effectiveStart = zone.startLimit || 0;
+        const effectiveEnd = zone.endLimit || zone.totalLength;
+
+        const isStartWallEdge = Math.abs(gap.start - effectiveStart) < 10;
         const isStartDoorEdge = zone.obstacles.some(o => o.type === 'door' && Math.abs(o.fromLeft + o.width - gap.start) < 10);
         
         if (isStartWallEdge) potentialSpots.push({ x: gap.start, score: 2 }); // Highest priority: Wall Edge
         else if (isStartDoorEdge) potentialSpots.push({ x: gap.start, score: 1 }); // Secondary priority: Door Edge
 
         // Check end of gap
-        const isEndWallEdge = Math.abs(gap.end - zone.totalLength) < 10;
+        const isEndWallEdge = Math.abs(gap.end - effectiveEnd) < 10;
         const isEndDoorEdge = zone.obstacles.some(o => o.type === 'door' && Math.abs(o.fromLeft - gap.end) < 10);
         
         if (isEndWallEdge) potentialSpots.push({ x: gap.end - tallWidth, score: 2 });
@@ -135,7 +138,7 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
         // Ruby Rule: Choose snap side to avoid tiny unfillable gaps
         const sw = Math.min(1000, windowWidth);
         const wallCornerOffset = zone.obstacles.find(o => o.id === 'corner_base_offset');
-        const startX = wallCornerOffset ? (wallCornerOffset.fromLeft + wallCornerOffset.width) : 0;
+        const startX = Math.max(zone.startLimit || 0, wallCornerOffset ? (wallCornerOffset.fromLeft + wallCornerOffset.width) : 0);
         
         let xSink = windowStart; // Try left snap first
         const leftGap = xSink - startX;
@@ -455,12 +458,15 @@ function applyExposedSides(zone: Zone, settings: ProjectSettings) {
     let leftExposed = false;
     let rightExposed = false;
 
-    // A. Wall edges
-    const isStart = unit.fromLeft < 15;
-    const isEnd = Math.abs((unit.fromLeft + unit.width) - zone.totalLength) < 15;
+    // A. Wall edges / Limits
+    const sLimit = zone.startLimit || 0;
+    const eLimit = zone.endLimit || zone.totalLength;
+    
+    const isStart = unit.fromLeft <= sLimit + 15;
+    const isEnd = (unit.fromLeft + unit.width) >= eLimit - 15;
 
     if (isStart) {
-      const hasCornerOffset = obstacles.some(o => o.fromLeft < 10 && o.id.startsWith('corner_'));
+      const hasCornerOffset = obstacles.some(o => o.fromLeft < sLimit + 10 && o.id.startsWith('corner_'));
       if (!hasCornerOffset) leftExposed = true;
     }
     
@@ -690,6 +696,14 @@ function findGaps(zone: Zone, type: CabinetType, settings: ProjectSettings) {
     if (blocks) blocked.push({ start: o.fromLeft, end: o.fromLeft + o.width });
   });
 
+  // Limits (User defined wall boundaries)
+  if (zone.startLimit !== undefined && zone.startLimit > 0) {
+    blocked.push({ start: 0, end: zone.startLimit });
+  }
+  if (zone.endLimit !== undefined && zone.endLimit < zone.totalLength) {
+    blocked.push({ start: zone.endLimit, end: zone.totalLength });
+  }
+
   zone.cabinets.forEach(c => {
     if (c.type === type || c.type === CabinetType.TALL || type === CabinetType.TALL) {
       blocked.push({ start: c.fromLeft, end: c.fromLeft + c.width });
@@ -815,6 +829,28 @@ function absorbRemainder(zone: Zone, settings: ProjectSettings) {
       
       for (const gap of gaps) {
         if (gap.length > 0 && gap.length < MIN_FILL_WIDTH) {
+          // Priority 0: Boundary Check (If gap is at startLimit or endLimit, expand the first/last cabinet)
+          const isAtStart = Math.abs(gap.start - (zone.startLimit || 0)) < 2;
+          const isAtEnd = Math.abs(gap.end - (zone.endLimit || zone.totalLength)) < 2;
+
+          if (isAtStart || isAtEnd) {
+            const target = findAdjacent(zone, type, gap, c => 
+              c.preset !== PresetType.SINK_UNIT && 
+              c.preset !== PresetType.HOOD_UNIT &&
+              c.preset !== PresetType.BASE_DRAWER_3
+            );
+            if (target) {
+              if (isAtStart) {
+                target.width += gap.length;
+                target.fromLeft -= gap.length;
+              } else {
+                target.width += gap.length;
+              }
+              absorbedInPass = true;
+              break;
+            }
+          }
+
           // Priority 1: Corner Cabinet
           const cornerPreset = type === CabinetType.BASE ? PresetType.BASE_CORNER : PresetType.WALL_CORNER;
           let target = findAdjacent(zone, type, gap, c => c.preset === cornerPreset);
