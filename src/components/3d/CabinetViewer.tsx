@@ -106,17 +106,22 @@ const CameraController = ({
 
   useEffect(() => {
     const isNewView = prevViewRef.current !== targetView;
-    const projectFingerprint = `${sceneCenter.map(c => Math.round(c)).join(',')}-${Math.round(sceneSize.width)}-${Math.round(sceneSize.depth)}`;
-    const isNewProject = lastProjectRef.current !== projectFingerprint;
+    
+    // Instead of resetting camera on every pixel of resize, only reset if center moves drastically (e.g. wall deleted)
+    const lastCenter = lastProjectRef.current ? lastProjectRef.current.split(',').map(Number) : null;
+    const isNewProject = !lastCenter || 
+      Math.abs(lastCenter[0] - sceneCenter[0]) > 1000 || 
+      Math.abs(lastCenter[2] - sceneCenter[2]) > 1000;
+      
     const isDefaultScene = sceneSize.width === 3000 && sceneSize.depth === 1000;
     const isInvalidScene = sceneCenter[0] === 0 && sceneCenter[1] === 0 && sceneCenter[2] === 0;
     
     if (targetView && viewPositions[targetView as keyof typeof viewPositions]) {
-      // Re-fit if view changed, OR if project changed and it's not the default empty/invalid scene
+      // Re-fit if view changed, OR if project changed drastically and it's not the default empty/invalid scene
       if (isNewView || (isNewProject && !isDefaultScene && !isInvalidScene)) {
         const performFit = () => {
           prevViewRef.current = targetView;
-          lastProjectRef.current = projectFingerprint;
+          lastProjectRef.current = `${sceneCenter[0]},${sceneCenter[1]},${sceneCenter[2]}`;
           
           const { position, target } = viewPositions[targetView as keyof typeof viewPositions];
           
@@ -449,7 +454,7 @@ const Scene = ({
         const isTall = unit.type === CabinetType.TALL;
         const settings = project.settings;
         const cabHeight = unit.advancedSettings?.height || (isTall ? (settings?.tallHeight || 2100) : isWall ? (settings?.wallHeight || 720) : (settings?.baseHeight || 870));
-        const cabDepth = unit.advancedSettings?.depth || (isWall ? (settings?.depthWall || 350) : isTall ? (settings?.depthTall || 560) : (settings?.depthBase || 560));
+        const cabDepth = unit.advancedSettings?.depth || (isWall ? (settings?.depthWall || 300) : isTall ? (settings?.depthTall || 560) : (settings?.depthBase || 560));
         
         let x1 = position[0];
         let x2 = position[0];
@@ -908,6 +913,49 @@ const Scene = ({
           </group>
         );
       })}
+
+      {/* 3D Alignment Guides */}
+      {selectedCabinet && !isStudio && (() => {
+        const selCabPos = layoutData.cabinetPositions.find(
+          cp => cp.zone.id === selectedCabinet.zoneId && cp.cabinetIndex === selectedCabinet.index
+        );
+        if (!selCabPos) return null;
+        
+        const sameWallCabinets = layoutData.cabinetPositions.filter(cp => cp.wallIndex === selCabPos.wallIndex);
+        
+        const otherEdges = new Set(
+          sameWallCabinets.flatMap(cp => cp.cabinetIndex === selectedCabinet.index ? [] : [cp.unit.fromLeft, cp.unit.fromLeft + cp.unit.width])
+        );
+        
+        const selEdges = [selCabPos.unit.fromLeft, selCabPos.unit.fromLeft + selCabPos.unit.width];
+        const allUniqueEdges = Array.from(new Set([...otherEdges, ...selEdges]));
+        
+        const wall = layoutData.wallPositions[selCabPos.wallIndex];
+        const wallMatrix = new THREE.Matrix4().makeTranslation(...wall.position).multiply(new THREE.Matrix4().makeRotationY(wall.rotation));
+        
+        return allUniqueEdges.map(localX => {
+          const isSelectedEdge = selEdges.includes(localX);
+          const isOtherEdge = otherEdges.has(localX);
+          const isAligned = isSelectedEdge && isOtherEdge;
+          
+          const startPt = new THREE.Vector3(localX, 0, 1).applyMatrix4(wallMatrix);
+          const endPt = new THREE.Vector3(localX, wall.height, 1).applyMatrix4(wallMatrix);
+          
+          return (
+             <Line
+                key={`guide3d-${localX}`}
+                points={[startPt, endPt]}
+                color={isAligned ? "#10b981" : isSelectedEdge ? "#3b82f6" : (lightTheme ? "#94a3b8" : "#475569")}
+                lineWidth={isAligned ? 4 : isSelectedEdge ? 2 : 1}
+                transparent
+                opacity={isAligned ? 0.9 : isSelectedEdge ? 0.7 : 0.4}
+                dashed={!isAligned && !isSelectedEdge}
+                dashSize={50}
+                gapSize={50}
+             />
+          );
+        });
+      })()}
 
       {/* Wall dimensions for the active wall */}
       {!isStudio && !isMobile && activeWallId && layoutData.wallPositions.map((wp, i) => {

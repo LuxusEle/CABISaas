@@ -9,12 +9,34 @@ import {
   createGroovedPanelGeo,
   panelColors,
   woodPalette,
-  RUBY_DOOR_THRESHOLD
+  RUBY_DOOR_THRESHOLD,
+  calculateNailHolePositions
 } from './CabinetTestingUtils';
 
 interface Props {
   settings: TestingSettings;
 }
+
+const getExposedFragments = (totalHeight: number, totalDepth: number, coverage: { start: number, end: number, depth: number }[] | undefined) => {
+  if (!coverage || coverage.length === 0) return [{ start: 0, end: totalHeight, depth: totalDepth, zOffset: 0 }];
+  const points = new Set([0, totalHeight]);
+  coverage.forEach(c => { points.add(c.start); points.add(c.end); });
+  const sortedPoints = Array.from(points).sort((a, b) => a - b);
+  const fragments: { start: number, end: number, depth: number, zOffset: number }[] = [];
+  for (let i = 0; i < sortedPoints.length - 1; i++) {
+    const yS = sortedPoints[i];
+    const yE = sortedPoints[i+1];
+    if (yE - yS < 5) continue;
+    const midY = (yS + yE) / 2;
+    let maxCd = 0;
+    coverage.forEach(c => { if (midY >= c.start && midY <= c.end) maxCd = Math.max(maxCd, c.depth); });
+    const expD = totalDepth - maxCd;
+    if (expD > 5) {
+      fragments.push({ start: yS, end: yE, depth: expD, zOffset: maxCd / 2 });
+    }
+  }
+  return fragments;
+};
 
 export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
   const {
@@ -43,7 +65,8 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
     return (panelColors as any)[panelType] || darkerColor;
   };
 
-  const innerWidth = width;
+  const carcassWidth = width - (settings.exposedLeft ? doorMaterialThickness : 0) - (settings.exposedRight ? doorMaterialThickness : 0);
+  const innerWidth = carcassWidth;
   const innerHeight = height - toeKickHeight;
   const innerDepth = depth;
 
@@ -58,13 +81,14 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
 
   const isLowerGolaActive = settings.enableGola && (showLowerDoors || (showDrawers && numDrawers > 0));
   const isUpperGolaActive = settings.enableGola && showDoors;
-  const golaVerticalGap = isLowerGolaActive ? 13 : doorOuterGap;
-  const golaTopGap = isLowerGolaActive ? settings.golaTopGap : doorOuterGap;
+  // Use dynamic Gola settings from sliders
+  const golaVerticalGap = isLowerGolaActive ? (settings.golaCCutoutHeight / 2) : doorOuterGap;
+  const golaTopGap = isLowerGolaActive ? (panelThickness + settings.golaTopGap) : doorOuterGap;
 
   const actualDoorHeight = tallUpperSectionHeight - doorOuterGap + (isUpperGolaActive ? settings.doorOverride : 0);
   const doorYOffset_Upper = innerHeight / 2 - doorOuterGap - (tallUpperSectionHeight - doorOuterGap) / 2 - (isUpperGolaActive ? settings.doorOverride / 2 : 0);
 
-  const actualLowerDoorHeight = tallLowerSectionHeight - doorOuterGap - (isLowerGolaActive ? settings.doorOverride : 0);
+  const actualLowerDoorHeight = tallLowerSectionHeight - doorOuterGap - (isLowerGolaActive ? 35 : 0);
   const doorYOffset_Lower = -innerHeight / 2 + doorOuterGap + actualLowerDoorHeight / 2;
 
   const getOffset = (part: string, index: number = 0): [number, number, number] => {
@@ -106,33 +130,81 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
 
     if (isLowerGolaActive && numDrawers > 0) {
       const golaGapTotal = golaVerticalGap * 2;
-      const totalAvailablePool = (isAtBottom ? lowerSectionDrawerStackHeight + panelThickness : lowerSectionDrawerStackHeight) - golaTopGap - doorOuterGap;
+      // Cap the stack height to avoid the divider panel
+      const physicalHeightLimit = tallLowerSectionHeight - panelThickness;
+      const effectiveStackH = Math.min(lowerSectionDrawerStackHeight, physicalHeightLimit);
+      
+      const totalAvailablePool = (isAtBottom ? effectiveStackH + panelThickness : effectiveStackH) - golaTopGap - doorOuterGap;
       const numGaps = numDrawers - 1;
       const totalGapSpace = numGaps * golaGapTotal;
       const eachFrontH = totalAvailablePool > 0 ? (totalAvailablePool - totalGapSpace) / numDrawers : 0;
 
       let currentY = drawerZoneBottom + doorOuterGap;
+      const baseHeights = Array(numDrawers).fill(0);
+      const baseYPositions = Array(numDrawers).fill(0);
+
       for (let i = 0; i < numDrawers; i++) {
-        drawerFrontHeights[i] = (i === 0 && isAtBottom) ? eachFrontH + panelThickness : eachFrontH;
-        drawerYPositions[i] = currentY + drawerFrontHeights[i] / 2;
-        currentY += drawerFrontHeights[i] + golaGapTotal;
-        if (i < numDrawers - 1) {
-          gapHeights.push(currentY - golaGapTotal + drawerFrontHeights[i] / 2 + golaVerticalGap); // Adjusted gap calculation if needed
-          // Actually, currentY already moved past the gap. Let's stick to the previous logic for gaps.
+        let h = eachFrontH;
+        if (i === 0 && isAtBottom) h += panelThickness;
+        if (i === numDrawers - 1 && numDrawers > 0) h -= panelThickness;
+        
+        baseHeights[i] = h;
+        baseYPositions[i] = currentY + h / 2;
+
+        let finalH = h;
+        let finalY = baseYPositions[i];
+
+        if (i === 0) {
+          finalH += 15; // 15mm overlap at top
+          finalY = currentY + finalH / 2;
+        } else {
+          finalH += 30; // 15mm overlap at top and 15mm at bottom
+          finalY = (currentY - 15) + finalH / 2;
         }
+
+        // Additional panelThickness increase for top drawer in tall cabinet lower section
+        if (i === numDrawers - 1) {
+          finalH += panelThickness;
+          finalY += panelThickness / 2;
+        }
+
+        drawerFrontHeights[i] = finalH;
+        drawerYPositions[i] = finalY;
+        
+        currentY += h + golaGapTotal;
       }
       // Re-calculating gapHeights properly
       gapHeights.length = 0;
       let tempY = drawerZoneBottom + doorOuterGap;
       for (let i = 0; i < numDrawers - 1; i++) {
-        tempY += drawerFrontHeights[i] + golaVerticalGap;
+        tempY += baseHeights[i] + golaVerticalGap;
         gapHeights.push(tempY);
         tempY += golaVerticalGap;
       }
+      
+      // We'll return baseHeights to help with box alignment
+      return {
+        drawerFrontHeights,
+        drawerYPositions,
+        baseHeights,
+        baseYPositions,
+        boxWidth,
+        boxDepth,
+        frontWidth,
+        boxH: boxHeight,
+        gapHeights,
+        boxZOffset: (panelThickness + backPanelThickness + settings.drawerBackClearance) / 2
+      };
     } else {
+      const physicalHeightLimit = tallLowerSectionHeight - panelThickness;
+      const effectiveStackH = Math.min(lowerSectionDrawerStackHeight, physicalHeightLimit);
+      const drawerHeightEach_local = numDrawers > 0 
+        ? (effectiveStackH - doorOuterGap * (numDrawers + 1)) / numDrawers 
+        : 0;
+
       let currentY = drawerZoneBottom + doorOuterGap;
       for (let i = 0; i < numDrawers; i++) {
-        drawerFrontHeights[i] = (i === 0 && isAtBottom) ? drawerHeightEach + panelThickness : drawerHeightEach;
+        drawerFrontHeights[i] = (i === 0 && isAtBottom) ? drawerHeightEach_local + panelThickness : drawerHeightEach_local;
         drawerYPositions[i] = currentY + drawerFrontHeights[i] / 2;
         currentY += drawerFrontHeights[i] + doorOuterGap;
       }
@@ -159,37 +231,47 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
 
     if (showBackStretchers) {
       const topStretcherYTop = innerHeight / 2 - panelThickness;
-      const bottomStretcherYTop = -innerHeight / 2 + panelThickness + settings.wallBottomRecess + 100;
-      positions.push({ y: topStretcherYTop - 25, z: zBack, r: technicalR, through: true });
-      positions.push({ y: topStretcherYTop - 80, z: zBack, r: technicalR, through: true });
-      positions.push({ y: bottomStretcherYTop - 25, z: zBack, r: technicalR, through: true });
-      positions.push({ y: bottomStretcherYTop - 80, z: zBack, r: technicalR, through: true });
-      // Middle Stretcher holes (centered at 0, top at 50)
-      positions.push({ y: 50 - 25, z: zBack, r: technicalR, through: true });
-      positions.push({ y: 50 - 80, z: zBack, r: technicalR, through: true });
+      const bottomStretcherYTop = -innerHeight / 2 + panelThickness + settings.wallBottomRecess;
+      
+      calculateNailHolePositions(100).forEach(offset => {
+        positions.push({ y: topStretcherYTop - 50 + offset, z: zBack, r: technicalR, through: true });
+        positions.push({ y: bottomStretcherYTop + 50 + offset, z: zBack, r: technicalR, through: true });
+        // Middle Stretcher holes (centered at 0, height 100)
+        positions.push({ y: 0 + offset, z: zBack, r: technicalR, through: true });
+      });
     }
 
     const dividerY = tallLowerSectionHeight - innerHeight / 2;
-    const holeY = dividerY - settings.nailHoleShelfDistance;
-    const shelfZStart = -depth / 2 + panelThickness + backPanelThickness;
-    const frontZ = shelfZStart + settings.shelfDepth * 0.25;
-    const backZ = shelfZStart + settings.shelfDepth * 0.75;
-    const isGolaActive = isLowerGolaActive;
-    const golaLDepthOffset = isGolaActive ? settings.golaLCutoutDepth : 0;
-    
-    // Always add divider deck holes
-    positions.push({ y: holeY, z: frontZ, r: shelfR, through: false });
-    positions.push({ y: holeY, z: backZ, r: shelfR, through: false });
+    // Groove center: half of groove hole diameter distance from shelf panel bottom surface
+    // Bottom surface of divider: dividerY - panelThickness
+    const holeY = dividerY - panelThickness - (settings.shelfHoleDiameter / 2);
+    const shelfLength = settings.shelfDepth;
+    const shelfZStartGlobal = -depth / 2 + panelThickness + backPanelThickness;
+    const zCenterShelf = shelfZStartGlobal + shelfLength / 2;
+    const shelfHoleOffsets = calculateNailHolePositions(shelfLength);
+    const finalShelfOffsets = [shelfHoleOffsets[0], shelfHoleOffsets[shelfHoleOffsets.length - 1]];
+
+    // Always add divider deck holes (Lower Section Top)
+    finalShelfOffsets.forEach(offset => {
+      positions.push({ y: holeY, z: zCenterShelf + offset, r: shelfR, through: false });
+    });
+
+    // Always add Upper Section Bottom holes
+    const upperBottomTopY = innerHeight / 2 - tallUpperSectionHeight + panelThickness;
+    const upperHoleY = upperBottomTopY - panelThickness - (settings.shelfHoleDiameter / 2);
+    finalShelfOffsets.forEach(offset => {
+      positions.push({ y: upperHoleY, z: zCenterShelf + offset, r: shelfR, through: false });
+    });
 
     if (showDrawers) {
       for (let i = 0; i < numDrawers; i++) {
         // Use the same coordinate logic as drawerData for holes
-        const hH = (isGolaActive && numDrawers > 0) ? drawerData.drawerYPositions[i] - (drawerData.drawerFrontHeights[i] / 2) + (drawerData.drawerFrontHeights[i] / 2) - settings.nailHoleShelfDistance : 0; // Logic fix needed
-        // Simpler: use drawerData.drawerYPositions[i] - settings.nailHoleShelfDistance
         if (drawerData.drawerYPositions) {
-           const hy = drawerData.drawerYPositions[i] - settings.nailHoleShelfDistance;
-           positions.push({ y: hy, z: frontZ, r: shelfR, through: false });
-           positions.push({ y: hy, z: backZ, r: shelfR, through: false });
+           const boxH = drawerData.drawerFrontHeights[i] * drawerBoxHeightRatio;
+           const hy = drawerData.drawerYPositions[i] - boxH / 2 - (settings.shelfHoleDiameter / 2);
+           finalShelfOffsets.forEach(offset => {
+             positions.push({ y: hy, z: zCenterShelf + offset, r: shelfR, through: false });
+           });
         }
       }
     }
@@ -198,16 +280,13 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
       const topSectionStart = innerHeight / 2 - tallUpperSectionHeight + panelThickness;
       const topSectionEnd = innerHeight / 2 - panelThickness;
       const availableHeight = topSectionEnd - topSectionStart;
-      const spacing = availableHeight / numShelves;
+      const spacing = availableHeight / (numShelves + 1);
       for (let i = 0; i < numShelves; i++) {
-        const sy = topSectionStart + spacing * i;
-        const yLocalSide = sy - panelThickness / 2;
-        const holeY = yLocalSide - panelThickness / 2 - settings.nailHoleShelfDistance;
-        const shelfZStart = -depth / 2 + panelThickness + backPanelThickness;
-        const fZ = shelfZStart + settings.shelfDepth * 0.25;
-        const bZ = shelfZStart + settings.shelfDepth * 0.75;
-        positions.push({ y: holeY, z: fZ, r: shelfR, through: false });
-        positions.push({ y: holeY, z: bZ, r: shelfR, through: false });
+        const sy = topSectionStart + spacing * (i + 1);
+        const holeY = sy - panelThickness - (settings.shelfHoleDiameter / 2);
+        finalShelfOffsets.forEach(offset => {
+          positions.push({ y: holeY, z: zCenterShelf + offset, r: shelfR, through: false });
+        });
       }
     }
 
@@ -219,13 +298,10 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
       const spacing = availableHeight / (numLowerShelves + 1);
       for (let i = 0; i < numLowerShelves; i++) {
         const shelfYCabinet = bottomSectionStart + spacing * (i + 1);
-        const yLocalSide = shelfYCabinet - panelThickness / 2;
-        const holeY = yLocalSide - panelThickness / 2 - settings.nailHoleShelfDistance;
-        const shelfZStart = -depth / 2 + panelThickness + backPanelThickness;
-        const frontZ = shelfZStart + settings.shelfDepth * 0.25;
-        const backZ = shelfZStart + settings.shelfDepth * 0.75;
-        positions.push({ y: holeY, z: frontZ, r: shelfR, through: false });
-        positions.push({ y: holeY, z: backZ, r: shelfR, through: false });
+        const holeY = shelfYCabinet - panelThickness - (settings.shelfHoleDiameter / 2);
+        finalShelfOffsets.forEach(offset => {
+          positions.push({ y: holeY, z: zCenterShelf + offset, r: shelfR, through: false });
+        });
       }
     }
     return positions;
@@ -240,7 +316,7 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
     const dividerY = tallLowerSectionHeight - innerHeight / 2;
     const notches: any[] = [];
     if (isLowerGolaActive) {
-      notches.push({ u: depth / 2, v: dividerY, width: settings.golaLCutoutDepth, height: settings.golaLCutoutHeight, alignV: 'top' });
+      notches.push({ u: depth / 2, v: dividerY - panelThickness, width: settings.golaLCutoutDepth, height: settings.golaLCutoutHeight, alignV: 'top' });
       if (showDrawers && drawerData.gapHeights.length > 0) {
         drawerData.gapHeights.forEach(gh => {
           notches.push({ u: depth / 2, v: gh, width: settings.golaCutoutDepth, height: settings.golaCCutoutHeight, alignV: 'center' });
@@ -262,10 +338,12 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
     const dividerY = tallLowerSectionHeight - innerHeight / 2;
     const notches: any[] = [];
     if (isLowerGolaActive) {
-      notches.push({ u: depth / 2, v: dividerY, width: settings.golaLCutoutDepth, height: settings.golaLCutoutHeight, alignV: 'top' });
+      const lCutH = 45;
+      const cCutH = 45;
+      notches.push({ u: depth / 2, v: dividerY - panelThickness, width: settings.golaLCutoutDepth, height: lCutH, alignV: 'top' });
       if (showDrawers && drawerData.gapHeights.length > 0) {
         drawerData.gapHeights.forEach(gh => {
-          notches.push({ u: depth / 2, v: gh, width: settings.golaCutoutDepth, height: settings.golaCCutoutHeight, alignV: 'center' });
+          notches.push({ u: depth / 2, v: gh, width: settings.golaCutoutDepth, height: cCutH, alignV: 'center' });
         });
       }
     }
@@ -282,25 +360,19 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
   const commonPanelHoles = useMemo(() => {
     if (!showNailHoles) return [];
     const technicalR = nailHoleDiameter / 2;
-    const u1 = -innerDepth / 2 + innerDepth / 5;
-    const u2 = 0;
-    const u3 = innerDepth / 2 - innerDepth / 5;
     const vLeft = -innerWidth / 2 + panelThickness / 2;
     const vRight = innerWidth / 2 - panelThickness / 2;
 
-    const positions = [
-      { y: vLeft, z: u1, r: technicalR, through: true },
-      { y: vLeft, z: u2, r: technicalR, through: true },
-      { y: vLeft, z: u3, r: technicalR, through: true },
-      { y: vRight, z: u1, r: technicalR, through: true },
-      { y: vRight, z: u2, r: technicalR, through: true },
-      { y: vRight, z: u3, r: technicalR, through: true }
-    ];
+    const positions: { y: number, z: number, r: number, through?: boolean }[] = [];
+    calculateNailHolePositions(innerDepth).forEach(offset => {
+      positions.push({ y: vLeft, z: offset, r: technicalR, through: true });
+      positions.push({ y: vRight, z: offset, r: technicalR, through: true });
+    });
 
     if (showBackStretchers) {
-      const v1 = -innerWidth / 2 + innerWidth / 5;
+      const v1 = -innerWidth / 2 + 50;
       const v2 = 0;
-      const v3 = innerWidth / 2 - innerWidth / 5;
+      const v3 = innerWidth / 2 - 50;
       const zBackHole = -innerDepth / 2 + panelThickness / 2;
       positions.push(
         { y: v1, z: zBackHole, r: technicalR, through: true },
@@ -317,9 +389,9 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
     const positions = [...commonPanelHoles];
     
     // Add 3 Toe Kick Nailholes
-    const tk1 = -innerWidth / 2 + innerWidth / 5;
+    const tk1 = -innerWidth / 2 + 50;
     const tk2 = 0;
-    const tk3 = innerWidth / 2 - innerWidth / 5;
+    const tk3 = innerWidth / 2 - 50;
     const zToeKick = innerDepth / 2 - 50 - panelThickness / 2;
     positions.push(
       { y: tk1, z: zToeKick, r: technicalR, through: true },
@@ -379,9 +451,11 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
 
 
   const getDrawerGeos = (i: number) => {
-    const { drawerFrontHeights, boxWidth, boxDepth, frontWidth } = drawerData;
+    const { drawerFrontHeights, baseHeights, boxWidth, boxDepth, frontWidth } = drawerData;
     const h = drawerFrontHeights[i];
-    const boxH = h * drawerBoxHeightRatio;
+    // Use base height for the box in Gola mode to stay flush with the cutouts
+    const baseH = (isLowerGolaActive && baseHeights) ? baseHeights[i] : h;
+    const boxH = isLowerGolaActive ? baseH : (h * drawerBoxHeightRatio);
     const technicalR = nailHoleDiameter / 2;
     
     const sideHoles = [];
@@ -429,79 +503,106 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
     return false;
   };
 
+  const carcassXOffset = (settings.exposedLeft ? doorMaterialThickness : 0) / 2 - (settings.exposedRight ? doorMaterialThickness : 0) / 2;
+  
+
   return (
     <group position={[width / 2, innerHeight / 2 + toeKickHeight, depth / 2]}>
+      {/* Additional Exposed Side Panels (Door Material) */}
+      {settings.exposedLeft && getExposedFragments(height, depth, settings.leftCoverage).map((frag, idx) => {
+        const rangeHeight = frag.end - frag.start;
+        const rangeCenterY = (frag.start + frag.end) / 2;
+        const localY = rangeCenterY - (toeKickHeight + innerHeight / 2);
+        return (
+          <mesh key={`exp-left-${idx}`} position={[-width / 2 + doorMaterialThickness / 2, localY, frag.zOffset]} rotation={[0, -Math.PI / 2, 0]} castShadow receiveShadow>
+            <primitive object={createPanelWithHolesGeo(doorMaterialThickness, rangeHeight, frag.depth, 0, 0, 0, 'none', [], 0)} attach="geometry" />
+            <meshStandardMaterial color={settings.isStudio && settings.doorTexture ? '#ffffff' : doorColor} map={settings.isStudio ? settings.doorTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} side={THREE.DoubleSide} />
+          </mesh>
+        );
+      })}
+      {settings.exposedRight && getExposedFragments(height, depth, settings.rightCoverage).map((frag, idx) => {
+        const rangeHeight = frag.end - frag.start;
+        const rangeCenterY = (frag.start + frag.end) / 2;
+        const localY = rangeCenterY - (toeKickHeight + innerHeight / 2);
+        return (
+          <mesh key={`exp-right-${idx}`} position={[width / 2 - doorMaterialThickness / 2, localY, frag.zOffset]} rotation={[0, -Math.PI / 2, 0]} castShadow receiveShadow>
+            <primitive object={createPanelWithHolesGeo(doorMaterialThickness, rangeHeight, frag.depth, 0, 0, 0, 'none', [], 0)} attach="geometry" />
+            <meshStandardMaterial color={settings.isStudio && settings.doorTexture ? '#ffffff' : doorColor} map={settings.isStudio ? settings.doorTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} side={THREE.DoubleSide} />
+          </mesh>
+        );
+      })}
+
       {shouldShow('bottomPanel') && (
-        <mesh position={[0 + getOffset('bottomPanel')[0], -innerHeight / 2 + panelThickness / 2 + getOffset('bottomPanel')[1], 0 + getOffset('bottomPanel')[2]]} castShadow receiveShadow visible={!skeletonView}>
+        <mesh position={[carcassXOffset + 0 + getOffset('bottomPanel')[0], -innerHeight / 2 + panelThickness / 2 + getOffset('bottomPanel')[1], 0 + getOffset('bottomPanel')[2]]} castShadow receiveShadow visible={!skeletonView}>
           <primitive object={bottomPanelGeo} attach="geometry" />
           <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : getPanelColor('bottomPanel')} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.4} metalness={0} side={THREE.DoubleSide} transparent={settings.opacity < 1} opacity={settings.opacity} />
         </mesh>
       )}
       {skeletonView && shouldShow('bottomPanel') && (
-        <lineSegments position={[0 + getOffset('bottomPanel')[0], -innerHeight / 2 + panelThickness / 2 + getOffset('bottomPanel')[1], 0 + getOffset('bottomPanel')[2]]}>
+        <lineSegments position={[carcassXOffset + 0 + getOffset('bottomPanel')[0], -innerHeight / 2 + panelThickness / 2 + getOffset('bottomPanel')[1], 0 + getOffset('bottomPanel')[2]]}>
           <edgesGeometry args={[bottomPanelGeo]} />
           <lineBasicMaterial color={getPanelColor('bottomPanel')} linewidth={2} />
         </lineSegments>
       )}
       {shouldShow('topPanel') && (
-        <mesh position={[0 + getOffset('topPanel')[0], innerHeight / 2 - panelThickness / 2 + getOffset('topPanel')[1], 0 + getOffset('topPanel')[2]]} castShadow receiveShadow visible={!skeletonView}>
+        <mesh position={[carcassXOffset + 0 + getOffset('topPanel')[0], innerHeight / 2 - panelThickness / 2 + getOffset('topPanel')[1], 0 + getOffset('topPanel')[2]]} castShadow receiveShadow visible={!skeletonView}>
           <primitive object={topPanelGeo} attach="geometry" />
           <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : getPanelColor('topPanel')} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.4} metalness={0} side={THREE.DoubleSide} transparent={settings.opacity < 1} opacity={settings.opacity} />
         </mesh>
       )}
       {skeletonView && shouldShow('topPanel') && (
-        <lineSegments position={[0 + getOffset('topPanel')[0], innerHeight / 2 - panelThickness / 2 + getOffset('topPanel')[1], 0 + getOffset('topPanel')[2]]}>
+        <lineSegments position={[carcassXOffset + 0 + getOffset('topPanel')[0], innerHeight / 2 - panelThickness / 2 + getOffset('topPanel')[1], 0 + getOffset('topPanel')[2]]}>
           <edgesGeometry args={[topPanelGeo]} />
           <lineBasicMaterial color={getPanelColor('topPanel')} linewidth={2} />
         </lineSegments>
       )}
 
       {toeKickHeight > 0 && shouldShow('toeKick') && (
-        <mesh position={[0 + getOffset('toeKick')[0], -innerHeight / 2 - toeKickHeight / 2 + getOffset('toeKick')[1], depth / 2 - 50 - panelThickness / 2 + getOffset('toeKick')[2]]} castShadow receiveShadow visible={!skeletonView}>
-          <boxGeometry args={[width, toeKickHeight, panelThickness]} />
+        <mesh position={[carcassXOffset + 0 + getOffset('toeKick')[0], -innerHeight / 2 - toeKickHeight / 2 + getOffset('toeKick')[1], depth / 2 - 50 - panelThickness / 2 + getOffset('toeKick')[2]]} castShadow receiveShadow visible={!skeletonView}>
+          <boxGeometry args={[innerWidth, toeKickHeight, panelThickness]} />
           <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : toeKickColor} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
         </mesh>
       )}
       {toeKickHeight > 0 && skeletonView && shouldShow('toeKick') && (
-        <lineSegments position={[0 + getOffset('toeKick')[0], -innerHeight / 2 - toeKickHeight / 2 + getOffset('toeKick')[1], depth / 2 - 50 - panelThickness / 2 + getOffset('toeKick')[2]]}>
-          <edgesGeometry args={[new THREE.BoxGeometry(width, toeKickHeight, panelThickness)]} />
+        <lineSegments position={[carcassXOffset + 0 + getOffset('toeKick')[0], -innerHeight / 2 - toeKickHeight / 2 + getOffset('toeKick')[1], depth / 2 - 50 - panelThickness / 2 + getOffset('toeKick')[2]]}>
+          <edgesGeometry args={[new THREE.BoxGeometry(innerWidth, toeKickHeight, panelThickness)]} />
           <lineBasicMaterial color={getPanelColor('toeKick')} linewidth={2} />
         </lineSegments>
       )}
 
       {shouldShow('leftPanel') && (
-        <mesh position={[-width / 2 + panelThickness / 2 + getOffset('leftPanel')[0], 0 + getOffset('leftPanel')[1], 0 + getOffset('leftPanel')[2]]} castShadow receiveShadow visible={!skeletonView}>
+        <mesh position={[carcassXOffset - innerWidth / 2 + panelThickness / 2 + getOffset('leftPanel')[0], 0 + getOffset('leftPanel')[1], 0 + getOffset('leftPanel')[2]]} castShadow receiveShadow visible={!skeletonView}>
           <primitive object={leftPanelGeo} attach="geometry" />
           <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : getPanelColor('leftPanel')} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.4} metalness={0} side={THREE.DoubleSide} transparent={settings.opacity < 1} opacity={settings.opacity} />
         </mesh>
       )}
       {skeletonView && shouldShow('leftPanel') && (
-        <lineSegments position={[-width / 2 + panelThickness / 2 + getOffset('leftPanel')[0], 0 + getOffset('leftPanel')[1], 0 + getOffset('leftPanel')[2]]}>
+        <lineSegments position={[carcassXOffset - innerWidth / 2 + panelThickness / 2 + getOffset('leftPanel')[0], 0 + getOffset('leftPanel')[1], 0 + getOffset('leftPanel')[2]]}>
           <edgesGeometry args={[leftPanelGeo]} />
           <lineBasicMaterial color={getPanelColor('leftPanel')} linewidth={2} />
         </lineSegments>
       )}
       {shouldShow('rightPanel') && (
-        <mesh position={[width / 2 - panelThickness / 2 + getOffset('rightPanel')[0], 0 + getOffset('rightPanel')[1], 0 + getOffset('rightPanel')[2]]} castShadow receiveShadow visible={!skeletonView}>
+        <mesh position={[carcassXOffset + innerWidth / 2 - panelThickness / 2 + getOffset('rightPanel')[0], 0 + getOffset('rightPanel')[1], 0 + getOffset('rightPanel')[2]]} castShadow receiveShadow visible={!skeletonView}>
           <primitive object={rightPanelGeo} attach="geometry" />
           <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : getPanelColor('rightPanel')} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.4} metalness={0} side={THREE.DoubleSide} transparent={settings.opacity < 1} opacity={settings.opacity} />
         </mesh>
       )}
       {skeletonView && shouldShow('rightPanel') && (
-        <lineSegments position={[width / 2 - panelThickness / 2 + getOffset('rightPanel')[0], 0 + getOffset('rightPanel')[1], 0 + getOffset('rightPanel')[2]]}>
+        <lineSegments position={[carcassXOffset + innerWidth / 2 - panelThickness / 2 + getOffset('rightPanel')[0], 0 + getOffset('rightPanel')[1], 0 + getOffset('rightPanel')[2]]}>
           <edgesGeometry args={[rightPanelGeo]} />
           <lineBasicMaterial color={getPanelColor('rightPanel')} linewidth={2} />
         </lineSegments>
       )}
 
       {showBackPanel && shouldShow('backPanel') && (
-        <mesh position={[0 + getOffset('backPanel')[0], 0 + getOffset('backPanel')[1], -innerDepth / 2 + panelThickness + backPanelThickness / 2 + getOffset('backPanel')[2]]} castShadow receiveShadow visible={!skeletonView}>
+        <mesh position={[carcassXOffset + 0 + getOffset('backPanel')[0], 0 + getOffset('backPanel')[1], -innerDepth / 2 + panelThickness + backPanelThickness / 2 + getOffset('backPanel')[2]]} castShadow receiveShadow visible={!skeletonView}>
           <boxGeometry args={[innerWidth - panelThickness * 2 + grooveDepth * 2, innerHeight - panelThickness * 2 + grooveDepth * 2, backPanelThickness]} />
           <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : showDifferentPanelColors ? panelColors.backPanel : backPanelColor} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.5} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
         </mesh>
       )}
       {showBackPanel && skeletonView && shouldShow('backPanel') && (
-        <lineSegments position={[0 + getOffset('backPanel')[0], 0 + getOffset('backPanel')[1], -innerDepth / 2 + panelThickness + backPanelThickness / 2 + getOffset('backPanel')[2]]}>
+        <lineSegments position={[carcassXOffset + 0 + getOffset('backPanel')[0], 0 + getOffset('backPanel')[1], -innerDepth / 2 + panelThickness + backPanelThickness / 2 + getOffset('backPanel')[2]]}>
           <edgesGeometry args={[new THREE.BoxGeometry(innerWidth - panelThickness * 2 + grooveDepth * 2, innerHeight - panelThickness * 2 + grooveDepth * 2, backPanelThickness)]} />
           <lineBasicMaterial color={getPanelColor('backPanel')} linewidth={2} />
         </lineSegments>
@@ -509,35 +610,35 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
 
       {showBackStretchers && (
         <>
-          <mesh position={[0, innerHeight / 2 - panelThickness - 50, -innerDepth / 2 + panelThickness / 2 + getOffset('topStretcher')[2]]} castShadow receiveShadow visible={!skeletonView}>
+          <mesh position={[carcassXOffset + 0, innerHeight / 2 - panelThickness - 50, -innerDepth / 2 + panelThickness / 2 + getOffset('topStretcher')[2]]} castShadow receiveShadow visible={!skeletonView}>
             <boxGeometry args={[innerWidth - panelThickness * 2, 100, panelThickness]} />
             <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : getPanelColor('topStretcher')} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
           </mesh>
           {skeletonView && (
-            <lineSegments position={[0, innerHeight / 2 - panelThickness - 50, -innerDepth / 2 + panelThickness / 2 + getOffset('topStretcher')[2]]}>
+            <lineSegments position={[carcassXOffset + 0, innerHeight / 2 - panelThickness - 50, -innerDepth / 2 + panelThickness / 2 + getOffset('topStretcher')[2]]}>
               <edgesGeometry args={[new THREE.BoxGeometry(innerWidth - panelThickness * 2, 100, panelThickness)]} />
               <lineBasicMaterial color={getPanelColor('topStretcher')} linewidth={2} />
             </lineSegments>
           )}
 
-          <mesh position={[0, -innerHeight / 2 + panelThickness + settings.wallBottomRecess + 50, -innerDepth / 2 + panelThickness / 2 + getOffset('bottomStretcher')[2]]} castShadow receiveShadow visible={!skeletonView}>
+          <mesh position={[carcassXOffset + 0, -innerHeight / 2 + panelThickness + settings.wallBottomRecess + 50, -innerDepth / 2 + panelThickness / 2 + getOffset('bottomStretcher')[2]]} castShadow receiveShadow visible={!skeletonView}>
             <boxGeometry args={[innerWidth - panelThickness * 2, 100, panelThickness]} />
             <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : getPanelColor('bottomStretcher')} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
           </mesh>
           {skeletonView && (
-            <lineSegments position={[0, -innerHeight / 2 + panelThickness + settings.wallBottomRecess + 50, -innerDepth / 2 + panelThickness / 2 + getOffset('bottomStretcher')[2]]}>
+            <lineSegments position={[carcassXOffset + 0, -innerHeight / 2 + panelThickness + settings.wallBottomRecess + 50, -innerDepth / 2 + panelThickness / 2 + getOffset('bottomStretcher')[2]]}>
               <edgesGeometry args={[new THREE.BoxGeometry(innerWidth - panelThickness * 2, 100, panelThickness)]} />
               <lineBasicMaterial color={getPanelColor('bottomStretcher')} linewidth={2} />
             </lineSegments>
           )}
 
           {/* Middle Stretcher - centered vertically */}
-          <mesh position={[0, 0, -innerDepth / 2 + panelThickness / 2 + getOffset('topStretcher')[2]]} castShadow receiveShadow visible={!skeletonView}>
+          <mesh position={[carcassXOffset + 0, 0, -innerDepth / 2 + panelThickness / 2 + getOffset('topStretcher')[2]]} castShadow receiveShadow visible={!skeletonView}>
             <boxGeometry args={[innerWidth - panelThickness * 2, 100, panelThickness]} />
             <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : getPanelColor('topStretcher')} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
           </mesh>
           {skeletonView && (
-            <lineSegments position={[0, 0, -innerDepth / 2 + panelThickness / 2 + getOffset('topStretcher')[2]]}>
+            <lineSegments position={[carcassXOffset + 0, 0, -innerDepth / 2 + panelThickness / 2 + getOffset('topStretcher')[2]]}>
               <edgesGeometry args={[new THREE.BoxGeometry(innerWidth - panelThickness * 2, 100, panelThickness)]} />
               <lineBasicMaterial color={getPanelColor('topStretcher')} linewidth={2} />
             </lineSegments>
@@ -556,7 +657,7 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
         const pivotX = isLeftDoor ? -doorWidth / 2 : doorWidth / 2;
 
         return (
-          <group key={`door-${i}`} position={[doorX + getOffset('door', i)[0], doorYOffset_Upper + getOffset('door', i)[1], depth / 2 + getOffset('door', i)[2]]}>
+          <group key={`door-${i}`} position={[carcassXOffset + doorX + getOffset('door', i)[0], doorYOffset_Upper + getOffset('door', i)[1], depth / 2 + getOffset('door', i)[2]]}>
             <group position={[pivotX, 0, 0]} rotation={[0, rotationDirection * doorAngle, 0]}>
               <mesh position={[-pivotX, 0, doorMaterialThickness / 2]} castShadow receiveShadow visible={!skeletonView}>
                 <primitive object={doorGeos[i]} attach="geometry" />
@@ -602,7 +703,7 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
         const pivotX = isLeftDoor ? -doorWidth / 2 : doorWidth / 2;
 
         return (
-          <group key={`lower-door-${i}`} position={[doorX + getOffset('door', i)[0], doorYOffset_Lower + getOffset('door', i)[1], depth / 2 + getOffset('door', i)[2]]}>
+          <group key={`lower-door-${i}`} position={[carcassXOffset + doorX + getOffset('door', i)[0], doorYOffset_Lower + getOffset('door', i)[1], depth / 2 + getOffset('door', i)[2]]}>
             <group position={[pivotX, 0, 0]} rotation={[0, rotationDirection * doorAngle, 0]}>
               <mesh position={[-pivotX, 0, doorMaterialThickness / 2]} castShadow receiveShadow visible={!skeletonView}>
                 <primitive object={lowerDoorGeos[i]} attach="geometry" />
@@ -638,11 +739,16 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
       })}
 
       {showDrawers && numDrawers > 0 && Array.from({ length: numDrawers }).map((_, i) => {
-        const { drawerYPositions, boxWidth, boxDepth, boxZOffset } = drawerData;
+        const { drawerYPositions, drawerFrontHeights, baseHeights, baseYPositions, boxWidth, boxDepth, boxZOffset } = drawerData;
         const { frontGeo, sideLGeo, sideRGeo, boxH } = getDrawerGeos(i);
         const drawerOpenDistance = (settings.drawerOpenDistances && settings.drawerOpenDistances[i]) || 0;
+        
+        // For drawers in Gola mode, align the box with the base (non-overlapped) front level
+        const boxY = (isLowerGolaActive && baseYPositions) 
+          ? baseYPositions[i] 
+          : drawerYPositions[i];
         return (
-          <group key={`drawer-${i}`} position={[getOffset('drawer', i)[0], getOffset('drawer', i)[1], getOffset('drawer', i)[2] + drawerOpenDistance]}>
+          <group key={`drawer-${i}`} position={[carcassXOffset + getOffset('drawer', i)[0], getOffset('drawer', i)[1], getOffset('drawer', i)[2] + drawerOpenDistance]}>
             <mesh position={[0, drawerYPositions[i], depth / 2 + doorMaterialThickness / 2]} rotation={[0, -Math.PI / 2, 0]} castShadow receiveShadow visible={!skeletonView}>
               <primitive object={frontGeo} attach="geometry" />
               <meshStandardMaterial color={settings.isStudio && settings.doorTexture ? '#ffffff' : doorColor} map={settings.isStudio ? settings.doorTexture : undefined} roughness={0.4} metalness={0} side={THREE.DoubleSide} transparent={true} opacity={settings.opacity} depthWrite={settings.opacity < 1 ? false : true} />
@@ -654,19 +760,19 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
               </mesh>
             )}
             {shouldShow('drawerBottom') && (
-              <mesh position={[0, drawerYPositions[i] - boxH / 2 + drawerBottomThickness / 2, boxZOffset + drawerBackThickness / 2]} castShadow receiveShadow visible={!skeletonView}>
+              <mesh position={[0, boxY - boxH / 2 + drawerBottomThickness / 2, boxZOffset + drawerBackThickness / 2]} castShadow receiveShadow visible={!skeletonView}>
                 <boxGeometry args={[boxWidth - panelThickness * 2, drawerBottomThickness, boxDepth - drawerBackThickness]} />
                 <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : showDifferentPanelColors ? panelColors.drawerBottom : shelfColor} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
               </mesh>
             )}
             {[-1, 1].map(side => shouldShow('drawerSide') && (
-              <mesh key={side} position={[side * (boxWidth / 2 - panelThickness / 2), drawerYPositions[i], boxZOffset]} castShadow receiveShadow visible={!skeletonView}>
+              <mesh key={side} position={[side * (boxWidth / 2 - panelThickness / 2), boxY, boxZOffset]} castShadow receiveShadow visible={!skeletonView}>
                 <primitive object={side === -1 ? sideLGeo : sideRGeo} attach="geometry" />
                 <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : showDifferentPanelColors ? panelColors.drawerSide : shelfColor} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.4} metalness={0} side={THREE.DoubleSide} transparent={settings.opacity < 1} opacity={settings.opacity} />
               </mesh>
             ))}
             {shouldShow('drawerBack') && (
-              <mesh position={[0, drawerYPositions[i], boxZOffset - boxDepth / 2 + drawerBackThickness / 2]} castShadow receiveShadow visible={!skeletonView}>
+              <mesh position={[0, boxY, boxZOffset - boxDepth / 2 + drawerBackThickness / 2]} castShadow receiveShadow visible={!skeletonView}>
                 <boxGeometry args={[boxWidth - panelThickness * 2, boxH, drawerBackThickness]} />
                 <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : showDifferentPanelColors ? panelColors.drawerBack : shelfColor} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
               </mesh>
@@ -679,19 +785,19 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
                   <lineBasicMaterial color={getPanelColor('drawerFront')} linewidth={2} />
                 </lineSegments>
                 {shouldShow('drawerBottom') && (
-                  <lineSegments position={[0, drawerYPositions[i] - boxH / 2 + drawerBottomThickness / 2, boxZOffset + drawerBackThickness / 2]}>
+                  <lineSegments position={[0, boxY - boxH / 2 + drawerBottomThickness / 2, boxZOffset + drawerBackThickness / 2]}>
                     <edgesGeometry args={[new THREE.BoxGeometry(boxWidth - panelThickness * 2, drawerBottomThickness, boxDepth - drawerBackThickness)]} />
                     <lineBasicMaterial color={getPanelColor('drawerBottom')} linewidth={2} />
                   </lineSegments>
                 )}
                 {[-1, 1].map(side => shouldShow('drawerSide') && (
-                  <lineSegments key={`sk-side-${side}`} position={[side * (boxWidth / 2 - panelThickness / 2), drawerYPositions[i], boxZOffset]}>
+                  <lineSegments key={`sk-side-${side}`} position={[side * (boxWidth / 2 - panelThickness / 2), boxY, boxZOffset]}>
                     <edgesGeometry args={[side === -1 ? sideLGeo : sideRGeo]} />
                     <lineBasicMaterial color={getPanelColor('drawerSide')} linewidth={2} />
                   </lineSegments>
                 ))}
                 {shouldShow('drawerBack') && (
-                  <lineSegments position={[0, drawerYPositions[i], boxZOffset - boxDepth / 2 + drawerBackThickness / 2]}>
+                  <lineSegments position={[0, boxY, boxZOffset - boxDepth / 2 + drawerBackThickness / 2]}>
                     <edgesGeometry args={[new THREE.BoxGeometry(boxWidth - panelThickness * 2, boxH, drawerBackThickness)]} />
                     <lineBasicMaterial color={getPanelColor('drawerBack')} linewidth={2} />
                   </lineSegments>
@@ -703,7 +809,14 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
       })}
 
 
-      <mesh position={[0 + getOffset('shelf', 99)[0], tallLowerSectionHeight - innerHeight / 2 - panelThickness / 2 + getOffset('shelf', 99)[1], -depth / 2 + panelThickness + backPanelThickness + (depth - panelThickness - backPanelThickness) / 2 + getOffset('shelf', 99)[2]]} castShadow receiveShadow visible={!skeletonView}>
+      {/* Upper Section Bottom Panel (Constant) */}
+      <mesh position={[carcassXOffset + 0 + getOffset('shelf', 98)[0], innerHeight / 2 - tallUpperSectionHeight + panelThickness / 2 + getOffset('shelf', 98)[1], -depth / 2 + panelThickness + backPanelThickness + (depth - panelThickness - backPanelThickness) / 2 + getOffset('shelf', 98)[2]]} castShadow receiveShadow visible={!skeletonView}>
+        <boxGeometry args={[innerWidth - panelThickness * 2, panelThickness, depth - panelThickness - backPanelThickness]} />
+        <meshStandardMaterial color={settings.isStudio && (settings.shelfTexture || settings.carcassTexture) ? '#ffffff' : shelfColor} map={settings.isStudio ? (settings.shelfTexture || settings.carcassTexture) : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
+      </mesh>
+
+      {/* Lower Section Top Panel (Divider) */}
+      <mesh position={[carcassXOffset + 0 + getOffset('shelf', 99)[0], tallLowerSectionHeight - innerHeight / 2 - panelThickness / 2 + getOffset('shelf', 99)[1], -depth / 2 + panelThickness + backPanelThickness + (depth - panelThickness - backPanelThickness) / 2 + getOffset('shelf', 99)[2]]} castShadow receiveShadow visible={!skeletonView}>
         <boxGeometry args={[innerWidth - panelThickness * 2, panelThickness, depth - panelThickness - backPanelThickness]} />
         <meshStandardMaterial color={settings.isStudio && (settings.shelfTexture || settings.carcassTexture) ? '#ffffff' : shelfColor} map={settings.isStudio ? (settings.shelfTexture || settings.carcassTexture) : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
       </mesh>
@@ -712,11 +825,11 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
         const topSectionStart = innerHeight / 2 - tallUpperSectionHeight + panelThickness;
         const topSectionEnd = innerHeight / 2 - panelThickness;
         const availableHeight = topSectionEnd - topSectionStart;
-        const spacing = availableHeight / numShelves;
-        const sy = topSectionStart + spacing * i;
+        const spacing = availableHeight / (numShelves + 1);
+        const sy = topSectionStart + spacing * (i + 1);
         const shelfZOffset = -depth / 2 + panelThickness + backPanelThickness + settings.shelfDepth / 2;
         return (
-          <mesh key={`shelf-upper-${i}`} position={[0 + getOffset('shelf', i)[0], sy - panelThickness / 2 + getOffset('shelf', i)[1], shelfZOffset + getOffset('shelf', i)[2]]} castShadow receiveShadow visible={!skeletonView}>
+          <mesh key={`shelf-upper-${i}`} position={[carcassXOffset + 0 + getOffset('shelf', i)[0], sy - panelThickness / 2 + getOffset('shelf', i)[1], shelfZOffset + getOffset('shelf', i)[2]]} castShadow receiveShadow visible={!skeletonView}>
             <primitive object={shelfGeo.clone()} attach="geometry" />
             <meshStandardMaterial color={settings.isStudio && (settings.shelfTexture || settings.carcassTexture) ? '#ffffff' : shelfColor} map={settings.isStudio ? (settings.shelfTexture || settings.carcassTexture) : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
           </mesh>
@@ -731,25 +844,31 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
         const shelfY = bottomSectionStart + spacing * (i + 1);
         const shelfZOffset = -depth / 2 + panelThickness + backPanelThickness + settings.shelfDepth / 2;
         return (
-          <mesh key={`shelf-lower-${i}`} position={[0 + getOffset('shelf', i)[0], shelfY - panelThickness / 2 + getOffset('shelf', i)[1], shelfZOffset + getOffset('shelf', i)[2]]} castShadow receiveShadow visible={!skeletonView}>
+          <mesh key={`shelf-lower-${i}`} position={[carcassXOffset + 0 + getOffset('shelf', i)[0], shelfY - panelThickness / 2 + getOffset('shelf', i)[1], shelfZOffset + getOffset('shelf', i)[2]]} castShadow receiveShadow visible={!skeletonView}>
             <primitive object={shelfGeo.clone()} attach="geometry" />
             <meshStandardMaterial color={settings.isStudio && (settings.shelfTexture || settings.carcassTexture) ? '#ffffff' : shelfColor} map={settings.isStudio ? (settings.shelfTexture || settings.carcassTexture) : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
           </mesh>
         );
       })}
       {skeletonView && (
-        <lineSegments position={[0 + getOffset('shelf', 99)[0], tallLowerSectionHeight - innerHeight / 2 - panelThickness / 2 + getOffset('shelf', 99)[1], -depth / 2 + panelThickness + backPanelThickness + (depth - panelThickness - backPanelThickness) / 2 + getOffset('shelf', 99)[2]]}>
-          <edgesGeometry args={[new THREE.BoxGeometry(innerWidth - panelThickness * 2, panelThickness, depth - panelThickness - backPanelThickness)]} />
-          <lineBasicMaterial color={getPanelColor('shelf')} linewidth={2} />
-        </lineSegments>
+        <>
+          <lineSegments position={[0 + getOffset('shelf', 98)[0], innerHeight / 2 - tallUpperSectionHeight + panelThickness / 2 + getOffset('shelf', 98)[1], -depth / 2 + panelThickness + backPanelThickness + (depth - panelThickness - backPanelThickness) / 2 + getOffset('shelf', 98)[2]]}>
+            <edgesGeometry args={[new THREE.BoxGeometry(innerWidth - panelThickness * 2, panelThickness, depth - panelThickness - backPanelThickness)]} />
+            <lineBasicMaterial color={getPanelColor('shelf')} linewidth={2} />
+          </lineSegments>
+          <lineSegments position={[0 + getOffset('shelf', 99)[0], tallLowerSectionHeight - innerHeight / 2 - panelThickness / 2 + getOffset('shelf', 99)[1], -depth / 2 + panelThickness + backPanelThickness + (depth - panelThickness - backPanelThickness) / 2 + getOffset('shelf', 99)[2]]}>
+            <edgesGeometry args={[new THREE.BoxGeometry(innerWidth - panelThickness * 2, panelThickness, depth - panelThickness - backPanelThickness)]} />
+            <lineBasicMaterial color={getPanelColor('shelf')} linewidth={2} />
+          </lineSegments>
+        </>
       )}
 
       {showShelves && numShelves > 0 && skeletonView && Array.from({ length: numShelves }).map((_, i) => {
         const topSectionStart = innerHeight / 2 - tallUpperSectionHeight + panelThickness;
         const topSectionEnd = innerHeight / 2 - panelThickness;
         const availableHeight = topSectionEnd - topSectionStart;
-        const spacing = availableHeight / numShelves;
-        const sy = topSectionStart + spacing * i;
+        const spacing = availableHeight / (numShelves + 1);
+        const sy = topSectionStart + spacing * (i + 1);
         const shelfZOffset = -depth / 2 + panelThickness + backPanelThickness + settings.shelfDepth / 2;
         return (
           <lineSegments key={`sk-shelf-upper-${i}`} position={[0 + getOffset('shelf', i)[0], sy - panelThickness / 2 + getOffset('shelf', i)[1], shelfZOffset + getOffset('shelf', i)[2]]}>
@@ -777,7 +896,7 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
   );
 };
 
-export const exportTallCabinetDXF = async (settings: TestingSettings, zip: JSZip) => {
+export const exportTallCabinetDXF = async (settings: TestingSettings, zip: JSZip | null, dataCollector?: (data: any) => void) => {
   const {
     width, height, depth, panelThickness, backPanelThickness,
     doorMaterialThickness, grooveDepth, doorOuterGap, doorInnerGap,
@@ -787,10 +906,11 @@ export const exportTallCabinetDXF = async (settings: TestingSettings, zip: JSZip
     lowerSectionDrawerStackHeight, toeKickHeight
   } = settings;
 
-  const innerWidth = width;
-  const innerHeight = height;
+  const carcassWidth = width - (settings.exposedLeft ? doorMaterialThickness : 0) - (settings.exposedRight ? doorMaterialThickness : 0);
+  const innerWidth = carcassWidth;
+  const innerHeight = height - toeKickHeight;
   const innerDepth = depth;
-  const actualNumDoors = width < RUBY_DOOR_THRESHOLD ? 1 : 2;
+  const actualNumDoors = carcassWidth < RUBY_DOOR_THRESHOLD ? 1 : 2;
   const doorWidth = actualNumDoors === 1 ? innerWidth - doorOuterGap * 2 : (innerWidth - doorOuterGap * 2 - doorInnerGap) / 2;
   
   const drawerHeightEach_DXF = numDrawers > 0 
@@ -801,6 +921,10 @@ export const exportTallCabinetDXF = async (settings: TestingSettings, zip: JSZip
   const actualDoorHeight = tallUpperSectionHeight - doorOuterGap + (isUpperGolaActive_DXF ? settings.doorOverride : 0);
 
   const addPanelToZip = (name: string, width: number, height: number, holesInput: { y: number, z: number, r: number, through?: boolean }[] = [], grooveInput?: { x: number, y: number, w: number, h: number, depth: number }, mirrorX: boolean = false, golaCutouts?: { x: number, y: number, w: number, h: number }[]) => {
+    if (dataCollector) {
+      dataCollector({ name, width, height, holes: holesInput, groove: grooveInput, cutouts: golaCutouts, mirrorX });
+    }
+    if (!zip) return;
     const writer = new DxfWriter();
     writer.setUnits(Units.Millimeters);
     writer.addLayer('PANEL', 7, 'CONTINUOUS');
@@ -906,6 +1030,19 @@ export const exportTallCabinetDXF = async (settings: TestingSettings, zip: JSZip
   const szS = -depth / 2 + panelThickness + backPanelThickness;
   nailHoles.push({ y: holeY, z: szS + settings.shelfDepth * 0.25, r: sR, through: false }, { y: holeY, z: szS + settings.shelfDepth * 0.75, r: sR, through: false });
 
+  if (settings.exposedLeft) {
+    const leftFrags = getExposedFragments(height, depth, settings.leftCoverage);
+    leftFrags.forEach((frag, idx) => {
+      addPanelToZip(`Exposed_Left_Panel_${idx + 1}`, frag.depth, frag.end - frag.start);
+    });
+  }
+  if (settings.exposedRight) {
+    const rightFrags = getExposedFragments(height, depth, settings.rightCoverage);
+    rightFrags.forEach((frag, idx) => {
+      addPanelToZip(`Exposed_Right_Panel_${idx + 1}`, frag.depth, frag.end - frag.start);
+    });
+  }
+
   addPanelToZip('Divider_Deck', innerWidth - panelThickness * 2, depth - panelThickness - backPanelThickness);
 
   const sideW = depth;
@@ -965,9 +1102,9 @@ export const exportTallCabinetDXF = async (settings: TestingSettings, zip: JSZip
   addPanelToZip('Right_Panel', sideW, sideH_Panel, nailHoles, sideGroove, true, golaCutoutsArr);
 
   const commonNailHoles = [];
-  const u1b = -innerDepth / 2 + innerDepth / 5;
+  const u1b = -innerDepth / 2 + 50;
   const u2b = 0;
-  const u3b = innerDepth / 2 - innerDepth / 5;
+  const u3b = innerDepth / 2 - 50;
   const vLeftb = -innerWidth / 2 + panelThickness / 2;
   const vRightb = innerWidth / 2 - panelThickness / 2;
   commonNailHoles.push(
@@ -980,9 +1117,9 @@ export const exportTallCabinetDXF = async (settings: TestingSettings, zip: JSZip
   );
 
   if (showBackStretchers) {
-    const v1 = -innerWidth / 2 + innerWidth / 5;
+    const v1 = -innerWidth / 2 + 50;
     const v2 = 0;
-    const v3 = innerWidth / 2 - innerWidth / 5;
+    const v3 = innerWidth / 2 - 50;
     const zBackH = -innerDepth / 2 + panelThickness / 2;
     commonNailHoles.push(
       { z: v1, y: zBackH, r: technicalR, through: true },
@@ -994,9 +1131,9 @@ export const exportTallCabinetDXF = async (settings: TestingSettings, zip: JSZip
   const bottomNailHoles = [...commonNailHoles];
 
   // Add 3 Toe Kick Nailholes for DXF
-  const tk1 = -innerWidth / 2 + innerWidth / 5;
+  const tk1 = -innerWidth / 2 + 50;
   const tk2 = 0;
-  const tk3 = innerWidth / 2 - innerWidth / 5;
+  const tk3 = innerWidth / 2 - 50;
   const zTK = innerDepth / 2 - 50 - panelThickness / 2;
   bottomNailHoles.push(
     { z: tk1, y: zTK, r: technicalR, through: true },
@@ -1030,7 +1167,7 @@ export const exportTallCabinetDXF = async (settings: TestingSettings, zip: JSZip
 
   if (showLowerDoors) {
     const isLowerGolaActive_DXF_Door = settings.enableGola && (showLowerDoors || (showDrawers && numDrawers > 0));
-    const actualLowerDoorHeight = tallLowerSectionHeight - doorOuterGap - (isLowerGolaActive_DXF_Door ? settings.doorOverride : 0);
+    const actualLowerDoorHeight = tallLowerSectionHeight - doorOuterGap - (isLowerGolaActive_DXF_Door ? 35 : 0);
     for (let i = 0; i < actualNumDoors; i++) {
       const hX = actualNumDoors === 1 ? -doorWidth / 2 + hingeHorizontalOffset : (i === 0 ? -doorWidth / 2 + hingeHorizontalOffset : doorWidth / 2 - hingeHorizontalOffset);
       const hingeHoles = [{ y: actualLowerDoorHeight / 2 - hingeVerticalOffset, z: hX, r: hingeDiameter / 2 }, { y: -actualLowerDoorHeight / 2 + hingeVerticalOffset, z: hX, r: hingeDiameter / 2 }];
@@ -1040,8 +1177,13 @@ export const exportTallCabinetDXF = async (settings: TestingSettings, zip: JSZip
 
   if (showDrawers && numDrawers > 0) {
     const boxDepth = depth - panelThickness - backPanelThickness - settings.drawerBackClearance;
-    const boxWidth = (width - panelThickness * 2) - drawerSideClearance * 2;
-    const drawerHeightEach = (lowerSectionDrawerStackHeight - doorOuterGap * (numDrawers + 1)) / numDrawers;
+    const boxWidth = (carcassWidth - panelThickness * 2) - drawerSideClearance * 2;
+    const boxHeight = (innerHeight / numDrawers) * drawerBoxHeightRatio; // Approx
+    
+    const frontWidth = carcassWidth - doorOuterGap * 2;
+    const physicalHeightLimit = tallLowerSectionHeight - panelThickness;
+    const effectiveStackH = Math.min(lowerSectionDrawerStackHeight, physicalHeightLimit);
+    const drawerHeightEach = (effectiveStackH - doorOuterGap * (numDrawers + 1)) / numDrawers;
 
     for (let i = 0; i < numDrawers; i++) {
         const hFront = drawerHeightEach;
@@ -1092,11 +1234,11 @@ export const exportTallCabinetDXF = async (settings: TestingSettings, zip: JSZip
     }
   }
 
-  if (showDrawers) {
-     const shelfWidth = innerWidth - panelThickness * 2;
-     const dividerDepth = depth - panelThickness - backPanelThickness;
-     addPanelToZip('Lower_Section_Divider', shelfWidth, dividerDepth);
-  }
+  // Always include the divider decks
+  const shelfWidthDivider = innerWidth - panelThickness * 2;
+  const dividerDepth = depth - panelThickness - backPanelThickness;
+  addPanelToZip('Lower_Section_Top', shelfWidthDivider, dividerDepth);
+  addPanelToZip('Upper_Section_Bottom', shelfWidthDivider, dividerDepth);
 
   if (showBackPanel) {
     addPanelToZip('Back_Panel', innerWidth - panelThickness * 2 + grooveDepth * 2, innerHeight - panelThickness * 2 + grooveDepth * 2);

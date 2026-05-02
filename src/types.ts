@@ -115,6 +115,12 @@ export interface ProjectSettings {
       tall: number;
     }
   };
+  layoutPreferences?: {
+    includeTall: boolean;
+    includeSink: boolean;
+    includeCooker: boolean;
+    includeDrawers: boolean;
+  };
 }
 
 export interface Obstacle {
@@ -184,6 +190,11 @@ export interface CabinetUnit {
   customConfig?: CustomCabinetConfig; // Custom configuration
   // Material selection
   materials?: CabinetMaterials;
+  // Exposed sides (for additional side panels)
+  exposedLeft?: boolean;
+  exposedRight?: boolean;
+  leftCoverage?: { start: number, end: number, depth: number }[];
+  rightCoverage?: { start: number, end: number, depth: number }[];
   // Advanced Config (Testing Cabinets)
   advancedSettings?: Partial<TestingSettings>;
 }
@@ -195,6 +206,8 @@ export interface Zone {
   wallHeight: number;
   obstacles: Obstacle[];
   cabinets: CabinetUnit[];
+  startLimit?: number;
+  endLimit?: number;
 }
 
 export interface Project {

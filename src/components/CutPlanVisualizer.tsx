@@ -60,6 +60,14 @@ export const CutPlanVisualizer: React.FC<Props> = ({ sheet, settings, index }) =
              // Adaptive font size: scale based on part size but keep it within readable limits
              const fontSize = Math.min(maxDim / 10, minDim / 4, 45);
              const showText = maxDim > 120 && minDim > 60;
+             let cncData: any = null;
+             part.features?.forEach(f => {
+               try {
+                 const parsed = JSON.parse(f);
+                 if (parsed && parsed.cnc) cncData = parsed.cnc;
+               } catch(e) {}
+             });
+
              const isSelected = selectedPart === i;
 
              return (
@@ -68,16 +76,68 @@ export const CutPlanVisualizer: React.FC<Props> = ({ sheet, settings, index }) =
                 className="cursor-pointer hover:opacity-90"
                 onClick={() => setSelectedPart(isSelected ? null : i)}
               >
-                <rect 
-                  x={part.x} 
-                  y={part.y} 
-                  width={part.width} 
-                  height={part.length} 
-                  fill={isSelected ? '#fef3c7' : '#f1f5f9'} 
-                  stroke={isSelected ? '#f59e0b' : '#475569'} 
-                  strokeWidth={isSelected ? "4" : "2"}
-                  className="print:fill-slate-100 print:stroke-black"
-                />
+                {(() => {
+                  if (cncData && cncData.cutouts && cncData.cutouts.length > 0) {
+                     const cutouts = cncData.cutouts;
+                     const cncW = cncData.width;
+                     const cncH = cncData.height;
+                     
+                     let panelPoints = [{x: 0, y: 0}, {x: cncW, y: 0}];
+                     const sorted = [...cutouts].sort((a: any, b: any) => a.y - b.y);
+                     sorted.forEach((c: any) => {
+                       panelPoints.push({x: cncW, y: c.y});
+                       panelPoints.push({x: c.x, y: c.y});
+                       panelPoints.push({x: c.x, y: c.y + c.h});
+                       if (c.y + c.h < cncH - 0.1) panelPoints.push({x: cncW, y: c.y + c.h});
+                     });
+                     
+                     const lastCutout = sorted[sorted.length - 1];
+                     if (!lastCutout || lastCutout.y + lastCutout.h < cncH - 0.1) {
+                         panelPoints.push({x: cncW, y: cncH});
+                     }
+                     
+                     panelPoints.push({x: 0, y: cncH});
+                     
+                     if (cncData.mirrorX) {
+                       panelPoints.forEach(p => p.x = cncW - p.x);
+                     }
+                     
+                     const mappedPoints = panelPoints.map(p => {
+                        let fx, fy;
+                        if (part.rotated) {
+                          fx = part.x + p.y;
+                          fy = part.y + (cncW - p.x);
+                        } else {
+                          fx = part.x + p.x;
+                          fy = part.y + p.y;
+                        }
+                        return `${fx},${fy}`;
+                     }).join(' ');
+
+                     return (
+                       <polygon 
+                         points={mappedPoints}
+                         fill={isSelected ? '#fef3c7' : '#f1f5f9'} 
+                         stroke={isSelected ? '#f59e0b' : '#475569'} 
+                         strokeWidth={isSelected ? "4" : "2"}
+                         className="print:fill-slate-100 print:stroke-black"
+                       />
+                     );
+                  }
+                  
+                  return (
+                    <rect 
+                      x={part.x} 
+                      y={part.y} 
+                      width={part.width} 
+                      height={part.length} 
+                      fill={isSelected ? '#fef3c7' : '#f1f5f9'} 
+                      stroke={isSelected ? '#f59e0b' : '#475569'} 
+                      strokeWidth={isSelected ? "4" : "2"}
+                      className="print:fill-slate-100 print:stroke-black"
+                    />
+                  );
+                })()}
                 {showText && (
                   <text 
                     x={part.x + part.width / 2} 
@@ -97,102 +157,174 @@ export const CutPlanVisualizer: React.FC<Props> = ({ sheet, settings, index }) =
                   </text>
                 )}
                 {/* Gola Cuts Visualization */}
-                {part.features?.map((feature, fIdx) => {
-                  if (feature === 'gola-top-l') {
-                    return (
-                      <rect 
-                        key={`gola-${fIdx}`}
-                        x={part.rotated ? part.x + part.width - 55 : part.x}
-                        y={part.y}
-                        width={55}
-                        height={55}
-                        fill="#cbd5e1"
-                        stroke="#94a3b8"
-                        strokeWidth="1"
-                        strokeDasharray="5,5"
-                      />
-                    );
-                  }
-                  if (feature.startsWith('gola-mid-c:') || feature.startsWith('gola-mid-l:')) {
-                    const isLCut = feature.startsWith('gola-mid-l:');
-                    const gh = parseFloat(feature.split(':')[1]);
-                    // Side panel height in design is innerHeight - panelThickness
-                    // gh is from cabinet bottom (above toe kick)
-                    const yOffsetFromBottom = gh - (settings.thickness || 18)/2;
-                    const yPosFromTop = (part.rotated ? part.width : part.length) - yOffsetFromBottom;
+                {(() => {
+                  if (cncData) {
+                    const cncW = cncData.width;
+                    const cncH = cncData.height;
+                    const elements: any[] = [];
                     
-                    const cutDim = isLCut ? 55 : 73.5;
-                    const cutOffset = cutDim / 2;
-
-                    return (
-                      <rect 
-                        key={`gola-${fIdx}`}
-                        x={part.rotated ? part.x + yPosFromTop - cutOffset : part.x}
-                        y={part.rotated ? part.y : part.y + yPosFromTop - cutOffset}
-                        width={part.rotated ? cutDim : (isLCut ? 20 : 35)}
-                        height={part.rotated ? (isLCut ? 20 : 35) : cutDim}
-                        fill="#cbd5e1"
-                        stroke="#94a3b8"
-                        strokeWidth="1"
-                        strokeDasharray="5,5"
-                      />
-                    );
-                  }
-                  if (feature === 'groove-back') {
-                    const thickness = settings.thickness || 18;
-                    const grooveWidth = (settings.backPanelThickness || 6) + 2;
-                    let gX, gY, gW, gH;
-                    if (part.rotated) {
-                      gX = part.x;
-                      gY = part.y + part.length - thickness - grooveWidth;
-                      gW = part.width;
-                      gH = grooveWidth;
-                    } else {
-                      gX = part.x + part.width - thickness - grooveWidth;
-                      gY = part.y;
-                      gW = grooveWidth;
-                      gH = part.length;
+                    if (cncData.holes) {
+                      cncData.holes.forEach((hole: any, hIdx: number) => {
+                         let cx = hole.z + cncW / 2;
+                         let cy = hole.y + cncH / 2;
+                         
+                         if (cncData.mirrorX) cx = cncW - cx;
+                         
+                         let fx, fy;
+                         if (part.rotated) {
+                           fx = part.x + cy;
+                           fy = part.y + (cncW - cx);
+                         } else {
+                           fx = part.x + cx;
+                           fy = part.y + cy;
+                         }
+                         elements.push(
+                           <circle 
+                             key={`hole-${hIdx}`}
+                             cx={fx}
+                             cy={fy}
+                             r={hole.r}
+                             fill="#ef4444"
+                             fillOpacity="0.5"
+                           />
+                         );
+                      });
                     }
-                    return (
-                      <rect 
-                        key={`groove-${fIdx}`}
-                        x={gX}
-                        y={gY}
-                        width={gW}
-                        height={gH}
-                        fill="#94a3b8"
-                        fillOpacity="0.3"
-                        stroke="#64748b"
-                        strokeWidth="0.5"
-                        strokeDasharray="2,2"
-                      />
-                    );
+                    
+                    if (cncData.groove) {
+                       let gx = cncData.groove.x;
+                       let gy = cncData.groove.y;
+                       let gw = cncData.groove.w;
+                       let gh = cncData.groove.h;
+                       
+                       if (cncData.mirrorX) gx = cncW - gx - gw;
+                       
+                       let pts = [];
+                       if (part.rotated) {
+                          pts = [
+                            { x: part.x + gy, y: part.y + (cncW - gx) },
+                            { x: part.x + gy, y: part.y + (cncW - (gx + gw)) },
+                            { x: part.x + (gy + gh), y: part.y + (cncW - (gx + gw)) },
+                            { x: part.x + (gy + gh), y: part.y + (cncW - gx) }
+                          ];
+                       } else {
+                          pts = [
+                            { x: part.x + gx, y: part.y + gy },
+                            { x: part.x + gx + gw, y: part.y + gy },
+                            { x: part.x + gx + gw, y: part.y + gy + gh },
+                            { x: part.x + gx, y: part.y + gy + gh }
+                          ];
+                       }
+                       elements.push(
+                         <polygon 
+                           key="groove"
+                           points={pts.map(p => `${p.x},${p.y}`).join(' ')}
+                           fill="#94a3b8"
+                           fillOpacity="0.3"
+                           stroke="#64748b"
+                           strokeWidth="0.5"
+                           strokeDasharray="2,2"
+                         />
+                       );
+                    }
+                    return <>{elements}</>;
                   }
-                  if (feature === 'nail-holes') {
-                    const technicalR = (settings.nailHoleDiameter || 3) / 2;
-                    const holePositions = [
-                      { x: 50, y: 50 },
-                      { x: part.width - 50, y: 50 },
-                      { x: part.width - 50, y: part.length - 50 },
-                      { x: 50, y: part.length - 50 }
-                    ];
-                    return (
-                      <g key={`nails-${fIdx}`}>
-                        {holePositions.map((hp, hIdx) => (
-                          <circle 
-                            key={`nail-${hIdx}`}
-                            cx={part.x + hp.x}
-                            cy={part.y + hp.y}
-                            r={technicalR}
-                            fill="#ef4444"
-                            fillOpacity="0.5"
-                          />
-                        ))}
-                      </g>
-                    );
-                  }
-                  return null;
-                })}
+
+                  return part.features?.map((feature, fIdx) => {
+                    if (feature === 'gola-top-l') {
+                      return (
+                        <rect 
+                          key={`gola-${fIdx}`}
+                          x={part.rotated ? part.x + part.width - 55 : part.x}
+                          y={part.y}
+                          width={55}
+                          height={55}
+                          fill="#cbd5e1"
+                          stroke="#94a3b8"
+                          strokeWidth="1"
+                          strokeDasharray="5,5"
+                        />
+                      );
+                    }
+                    if (feature.startsWith('gola-mid-c:') || feature.startsWith('gola-mid-l:')) {
+                      const isLCut = feature.startsWith('gola-mid-l:');
+                      const gh = parseFloat(feature.split(':')[1]);
+                      const yOffsetFromBottom = gh - (settings.thickness || 18)/2;
+                      const yPosFromTop = (part.rotated ? part.width : part.length) - yOffsetFromBottom;
+                      
+                      const cutDim = isLCut ? 55 : 73.5;
+                      const cutOffset = cutDim / 2;
+
+                      return (
+                        <rect 
+                          key={`gola-${fIdx}`}
+                          x={part.rotated ? part.x + yPosFromTop - cutOffset : part.x}
+                          y={part.rotated ? part.y : part.y + yPosFromTop - cutOffset}
+                          width={part.rotated ? cutDim : (isLCut ? 20 : 35)}
+                          height={part.rotated ? (isLCut ? 20 : 35) : cutDim}
+                          fill="#cbd5e1"
+                          stroke="#94a3b8"
+                          strokeWidth="1"
+                          strokeDasharray="5,5"
+                        />
+                      );
+                    }
+                    if (feature === 'groove-back') {
+                      const thickness = settings.thickness || 18;
+                      const grooveWidth = (settings.backPanelThickness || 6) + 2;
+                      let gX, gY, gW, gH;
+                      if (part.rotated) {
+                        gX = part.x;
+                        gY = part.y + part.length - thickness - grooveWidth;
+                        gW = part.width;
+                        gH = grooveWidth;
+                      } else {
+                        gX = part.x + part.width - thickness - grooveWidth;
+                        gY = part.y;
+                        gW = grooveWidth;
+                        gH = part.length;
+                      }
+                      return (
+                        <rect 
+                          key={`groove-${fIdx}`}
+                          x={gX}
+                          y={gY}
+                          width={gW}
+                          height={gH}
+                          fill="#94a3b8"
+                          fillOpacity="0.3"
+                          stroke="#64748b"
+                          strokeWidth="0.5"
+                          strokeDasharray="2,2"
+                        />
+                      );
+                    }
+                    if (feature === 'nail-holes') {
+                      const technicalR = (settings.nailHoleDiameter || 3) / 2;
+                      const holePositions = [
+                        { x: 50, y: 50 },
+                        { x: part.width - 50, y: 50 },
+                        { x: part.width - 50, y: part.length - 50 },
+                        { x: 50, y: part.length - 50 }
+                      ];
+                      return (
+                        <g key={`nails-${fIdx}`}>
+                          {holePositions.map((hp, hIdx) => (
+                            <circle 
+                              key={`nail-${hIdx}`}
+                              cx={part.x + hp.x}
+                              cy={part.y + hp.y}
+                              r={technicalR}
+                              fill="#ef4444"
+                              fillOpacity="0.5"
+                            />
+                          ))}
+                        </g>
+                      );
+                    }
+                    return null;
+                  });
+                })()}
                 
                 {/* Dimensions in corner */}
                 <text 

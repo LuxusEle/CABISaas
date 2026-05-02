@@ -11,6 +11,9 @@ import { WallCornerCabinetTesting } from '../WallCornerCabinetTesting';
 import { TallCabinetTesting } from '../TallCabinetTesting';
 import { PresetType } from '../../types';
 
+import { RealisticCooker } from './RealisticCooker';
+import { RealisticHood } from './RealisticHood';
+
 interface Props {
   unit: CabinetUnit;
   position: [number, number, number];
@@ -119,8 +122,8 @@ export const Cabinet: React.FC<Props> = ({
 
   // Use effective dimensions (layout sizes)
   const width = unit.width;
-  const depth = unit.advancedSettings?.depth || (isWall ? (settings?.depthWall || 350) : isTall ? (settings?.depthTall || 560) : (settings?.depthBase || 560));
-  const height = isTall ? ((settings?.tallHeight === 2100 || !settings?.tallHeight) ? ((settings?.baseHeight || 870) + (settings?.counterThickness || 40) + (settings?.wallCabinetElevation || 450) + (settings?.wallHeight || 720)) : settings.tallHeight) : isWall ? (settings?.wallHeight || 720) : (settings?.baseHeight || 870);
+  const depth = unit.advancedSettings?.depth || (isWall ? settings?.depthWall || 300 : isTall ? (settings?.depthTall || 560) : (settings?.depthBase || 560));
+  const height = unit.advancedSettings?.height || (isTall ? ((settings?.tallHeight === 2100 || !settings?.tallHeight) ? ((settings?.baseHeight || 870) + (settings?.counterThickness || 40) + (settings?.wallCabinetElevation || 450) + (settings?.wallHeight || 720)) : settings.tallHeight) : isWall ? (settings?.wallHeight || 720) : (settings?.baseHeight || 870));
   
   const baseHeight = settings?.baseHeight || 870;
   const counterThickness = settings?.counterThickness || 40;
@@ -128,10 +131,14 @@ export const Cabinet: React.FC<Props> = ({
   
   let zBase = 0;
   if (isWall && !previewMode) {
-    zBase = baseHeight + counterThickness + wallElevation;
+    zBase = baseHeight + counterThickness + wallElevation + (unit.advancedSettings?.elevationOffset || 0);
   }
 
-  const isCooker = unit.preset === PresetType.COOKER_HOB || (unit.preset === PresetType.BASE_DRAWER_3 && width >= 800);
+  const isCooker = unit.preset === PresetType.COOKER_HOB || 
+                   (unit.preset === PresetType.BASE_DRAWER_3 && width >= 600);
+
+  // Standalone hood only for the dedicated hob appliance preset
+  const showStandaloneHood = isBase && unit.preset === PresetType.COOKER_HOB && !previewMode;
 
   const carcassUrl = settings?.materialSettings?.textureUrls?.['carcass'] || '/textures/wood.png';
   const doorUrl = settings?.materialSettings?.textureUrls?.['door'] || carcassUrl;
@@ -254,14 +261,16 @@ export const Cabinet: React.FC<Props> = ({
         )
       )}
       
-      {/* Standalone Visual Hood for cookers - stays even if wall cabs are deleted */}
-      {isBase && isCooker && !previewMode && (
-        <VisualHood 
-          width={width} 
-          depth={depth} 
-          y={baseHeight + counterThickness + wallElevation} 
-          opacity={opacity}
-        />
+      {/* Standalone Visual Hood - Only for dedicated Cooker Hob appliance preset */}
+      {showStandaloneHood && (
+        <group position={[width / 2, baseHeight + counterThickness + wallElevation - 30, depth / 2]}>
+          <RealisticHood 
+            width={width} 
+            depth={depth} 
+            opacity={opacity}
+            showChimney={true}
+          />
+        </group>
       )}
 
       {isWall && (
@@ -270,6 +279,13 @@ export const Cabinet: React.FC<Props> = ({
             <WallCornerCabinetTesting settings={testingSettings} />
           ) : (
             <WallCabinetTesting settings={testingSettings} />
+          )}
+
+          {/* Dedicated Hood Component for wall units - Attached to bottom, no chimney */}
+          {unit.preset === PresetType.HOOD_UNIT && !skeletonView && (
+            <group position={[width / 2, -30, depth / 2]}>
+              <RealisticHood width={width} depth={depth} opacity={opacity} showChimney={false} />
+            </group>
           )}
           
           {/* LED Strip Lighting (Under-cabinet) */}

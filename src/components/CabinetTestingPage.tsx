@@ -207,6 +207,13 @@ export const CabinetTestingPage: React.FC<{ isDark?: boolean }> = ({ isDark = tr
                       ))}
                     </div>
                   </div>
+                  <CheckboxRow label="Enable Column" checked={settings.enableColumn} onChange={v => updateSetting('enableColumn', v)} />
+                  {settings.enableColumn && (
+                    <>
+                      <SettingRow label="Column Width" value={settings.columnWidth} onChange={v => updateSetting('columnWidth', v)} step={10} min={50} max={settings.width / 2} />
+                      <SettingRow label="Column Depth" value={settings.columnDepth} onChange={v => updateSetting('columnDepth', v)} step={10} min={50} max={settings.depth / 2} />
+                    </>
+                  )}
                 </>
               )}
             </Section>

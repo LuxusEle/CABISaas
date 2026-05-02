@@ -7,6 +7,7 @@ interface CabinetSpanSliderProps {
   width: number;
   onChange: (updates: { fromLeft?: number; width?: number }) => void;
   onDragEnd?: () => void;
+  snapGuides?: number[];
 }
 
 const NudgeInput = ({ label, value, onNudge, colorClass, subtitle }: any) => {
@@ -93,7 +94,8 @@ export const CabinetSpanSlider: React.FC<CabinetSpanSliderProps> = ({
   fromLeft,
   width,
   onChange,
-  onDragEnd
+  onDragEnd,
+  snapGuides
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeHandle, setActiveHandle] = useState<'left' | 'right' | 'middle' | null>(null);
@@ -127,14 +129,32 @@ export const CabinetSpanSlider: React.FC<CabinetSpanSliderProps> = ({
       }
 
       if (activeHandle === 'left') {
-        const newFromLeft = Math.max(0, Math.min(startFromLeft + startWidth - 150, startFromLeft + dx));
+        let newFromLeft = Math.max(0, Math.min(startFromLeft + startWidth - 150, startFromLeft + dx));
+        if (snapGuides) {
+          const snapPt = snapGuides.find(g => Math.abs(g - newFromLeft) < 15);
+          if (snapPt !== undefined && snapPt < startFromLeft + startWidth - 150) newFromLeft = snapPt;
+        }
         const newWidth = startWidth - (newFromLeft - startFromLeft);
         onChange({ fromLeft: Math.round(newFromLeft), width: Math.round(newWidth) });
       } else if (activeHandle === 'right') {
-        const newWidth = Math.max(150, Math.min(totalLength - startFromLeft, startWidth + dx));
+        let newRightEdge = startFromLeft + startWidth + dx;
+        if (snapGuides) {
+          const snapPt = snapGuides.find(g => Math.abs(g - newRightEdge) < 15);
+          if (snapPt !== undefined && snapPt > startFromLeft + 150) newRightEdge = snapPt;
+        }
+        const newWidth = Math.max(150, Math.min(totalLength - startFromLeft, newRightEdge - startFromLeft));
         onChange({ width: Math.round(newWidth) });
       } else if (activeHandle === 'middle') {
-        const newFromLeft = Math.max(0, Math.min(totalLength - startWidth, startFromLeft + dx));
+        let newFromLeft = Math.max(0, Math.min(totalLength - startWidth, startFromLeft + dx));
+        if (snapGuides) {
+           const snapPtLeft = snapGuides.find(g => Math.abs(g - newFromLeft) < 15);
+           const snapPtRight = snapGuides.find(g => Math.abs(g - (newFromLeft + startWidth)) < 15);
+           if (snapPtLeft !== undefined && snapPtLeft <= totalLength - startWidth) {
+             newFromLeft = snapPtLeft;
+           } else if (snapPtRight !== undefined && (snapPtRight - startWidth) >= 0) {
+             newFromLeft = snapPtRight - startWidth;
+           }
+        }
         onChange({ fromLeft: Math.round(newFromLeft) });
       }
     };

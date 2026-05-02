@@ -1,15 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Save, FileText, Upload, DollarSign, Settings, Box, Lock, CheckCircle2, AlertCircle, Wand2, ArrowRight, X } from 'lucide-react';
+import { Save, FileText, Upload, DollarSign, Settings, Box, Lock, CheckCircle2, AlertCircle, Wand2, ArrowRight, X, MousePointer2 } from 'lucide-react';
 import { Project } from '../types';
 import { Button } from '../components/Button';
 import { NumberInput } from '../components/NumberInput';
 import { WallEditModal } from '../components/WallEditModal';
+import { WallLimitsModal } from '../components/WallLimitsModal';
 import { CabinetEditModal } from '../components/CabinetEditModal';
 import { SheetTypeManager } from '../components/SheetTypeManager';
 import { MaterialAllocationPanel } from '../components/MaterialAllocationPanel';
 import { generateRubyLayout } from '../services/layoutSolver';
 import { logoService } from '../services/logoService';
+import { subscriptionService } from '../services/subscriptionService';
 import { supabase } from '../services/supabaseClient';
 
 interface ScreenProjectSetupProps {
@@ -18,18 +20,21 @@ interface ScreenProjectSetupProps {
   onSave: () => void;
   onSaveProject?: (p: Project) => Promise<any>;
   isDark: boolean;
+  isUserPro?: boolean;
 }
 
-const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark }: ScreenProjectSetupProps) => {
+const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark, isUserPro }: ScreenProjectSetupProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   
   // State for centered modal
-  const [activeModal, setActiveModal] = useState<'project' | 'walls' | 'sheets' | 'hardware' | 'construction' | 'costs' | 'allocation' | null>(null);
+  const [activeModal, setActiveModal] = useState<'project' | 'walls' | 'sheets' | 'hardware' | 'construction' | 'costs' | 'allocation' | 'preferences' | null>(null);
 
   // Modal control states
   const [showWallModal, setShowWallModal] = useState(false);
+  const [showLimitsModal, setShowLimitsModal] = useState(false);
   const isLayoutLocked = project.zones.some(z => z.cabinets && z.cabinets.length > 0);
+  const [isPro, setIsPro] = useState(false);
   const [showCabinetModal, setShowCabinetModal] = useState(false);
   const [editingCabinetType, setEditingCabinetType] = useState<'base' | 'wall' | 'tall'>('base');
 
@@ -37,15 +42,18 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string | null>(project.settings.logoUrl || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showAdvancedConstruction, setShowAdvancedConstruction] = useState(false);
 
   // Step Completion Logic
   const isIdentityDone = project.name.trim().length > 0;
   const isWallsDone = project.zones.length > 0 && project.zones.some(z => z.totalLength > 0);
-  const isConstructionDone = project.settings.counterThickness > 0; // Simple check if construction was visited/saved
+  const isLimitsDone = isWallsDone && project.zones.every(z => (z.startLimit !== undefined && z.endLimit !== undefined) || (z.startLimit === 0 && z.endLimit === z.totalLength));
+  const isConstructionDone = project.settings.counterThickness > 0;
+  const isPreferencesDone = !!project.settings.layoutPreferences;
   
-  const isReadyToGenerate = isIdentityDone && isWallsDone && isConstructionDone;
+  const isReadyToGenerate = isIdentityDone && isWallsDone && isLimitsDone && isConstructionDone && isPreferencesDone;
 
-  const wizardSteps = ['project', 'walls', 'construction', 'sheets', 'hardware', 'costs'];
+  const wizardSteps = ['project', 'walls', 'limits', 'preferences', 'construction', 'sheets', 'hardware', 'costs'];
 
   // Handle auto-open from URL
   useEffect(() => {
@@ -72,7 +80,14 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
       }
     };
     loadUserLogo();
-  }, []);
+    
+    // Check if user is Pro
+    if (isUserPro !== undefined) {
+      setIsPro(isUserPro);
+    } else {
+      subscriptionService.isPro().then(setIsPro);
+    }
+  }, [isUserPro]);
 
   const handleNextStep = () => {
     const currentIndex = wizardSteps.indexOf(activeModal as string);
@@ -81,6 +96,11 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
       if (nextStep === 'walls') {
         setActiveModal(null);
         setShowWallModal(true);
+      } else if (nextStep === 'limits') {
+        setActiveModal(null);
+        setShowLimitsModal(true);
+      } else if (nextStep === 'preferences') {
+        setActiveModal('preferences');
       } else {
         setActiveModal(nextStep as any);
       }
@@ -136,6 +156,12 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
 
   const handleGenerateLayout = () => {
     if (!isReadyToGenerate) return;
+    
+    // Lock for free users if layout already exists
+    if (!isPro && isLayoutLocked) {
+      alert('Layout is locked for free users. Please upgrade to Pro to re-generate.');
+      return;
+    }
     
     const result = generateRubyLayout(project);
     setProject(result.project);
@@ -194,7 +220,7 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
                 <h2 className="text-xl sm:text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">Project <span className="text-amber-500">Setup</span></h2>
                 <div className="px-2 py-0.5 bg-amber-500 text-white text-[7px] sm:text-[8px] font-black rounded-full uppercase tracking-widest">Wizard</div>
               </div>
-              <p className="text-[10px] sm:text-xs text-slate-500 font-medium italic">Complete the 3 required steps below</p>
+              <p className="text-[10px] sm:text-xs text-slate-500 font-medium italic">Complete the 4 required steps below</p>
             </div>
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <Button variant="primary" size="sm" onClick={onSave} className="flex-1 sm:flex-none shadow-lg shadow-amber-500/20 px-4 py-2 h-auto text-[10px] uppercase font-black">
@@ -215,12 +241,30 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
               isRequired={true}
             />
             <SetupCard 
-              icon={isLayoutLocked ? <Lock size={24} className="text-slate-400" /> : <Upload size={24} className="text-blue-600 dark:text-blue-400" />}
+              icon={(isLayoutLocked && !isPro) ? <Lock size={24} className="text-slate-400" /> : <Upload size={24} className="text-blue-600 dark:text-blue-400" />}
               title="Room Layout"
               subtitle="Walls & Global"
-              colorClass={isLayoutLocked ? "bg-slate-100 dark:bg-slate-200/50" : "bg-blue-50 dark:bg-blue-900/20"}
+              colorClass={(isLayoutLocked && !isPro) ? "bg-slate-100 dark:bg-slate-200/50" : "bg-blue-50 dark:bg-blue-900/20"}
               onClick={() => setShowWallModal(true)}
               isDone={isWallsDone}
+              isRequired={true}
+            />
+            <SetupCard 
+              icon={<Wand2 size={24} className="text-amber-600 dark:text-amber-400" />}
+              title="Special Units"
+              subtitle="Tall, Sink, Cooker"
+              colorClass="bg-amber-50 dark:bg-amber-900/20"
+              onClick={() => setActiveModal('preferences')}
+              isDone={!!project.settings.layoutPreferences}
+              isRequired={true}
+            />
+            <SetupCard 
+              icon={<MousePointer2 size={24} className="text-orange-600 dark:text-orange-400" />}
+              title="Wall Limits"
+              subtitle="Boundaries"
+              colorClass="bg-orange-50 dark:bg-orange-900/20"
+              onClick={() => setShowLimitsModal(true)}
+              isDone={isLimitsDone}
               isRequired={true}
             />
             <SetupCard 
@@ -275,17 +319,19 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
 
             <button
               onClick={handleGenerateLayout}
-              disabled={!isReadyToGenerate}
+              disabled={!isReadyToGenerate || (!isPro && isLayoutLocked)}
               className={`w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all shrink-0 ${
-                isReadyToGenerate 
+                isReadyToGenerate && (isPro || !isLayoutLocked)
                   ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/40' 
                   : 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
               }`}
             >
-              {isReadyToGenerate ? (
-                <>Start 3D Layout <ArrowRight size={14} /></>
-              ) : (
+              {!isReadyToGenerate ? (
                 <><Lock size={14} /> Locked</>
+              ) : (!isPro && isLayoutLocked) ? (
+                <><Lock size={14} /> Design Locked</>
+              ) : (
+                <>{isLayoutLocked ? 'Re-Generate 3D Layout' : 'Start 3D Layout'} <ArrowRight size={14} /></>
               )}
             </button>
           </div>
@@ -305,6 +351,7 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
                       {activeModal === 'sheets' && <Settings size={20} />}
                       {activeModal === 'hardware' && <Save size={20} />}
                       {activeModal === 'costs' && <DollarSign size={20} />}
+                      {activeModal === 'preferences' && <Wand2 size={20} />}
                     </div>
                     <h3 className="text-lg sm:text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">
                       {activeModal === 'project' && 'Identity'}
@@ -313,6 +360,7 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
                       {activeModal === 'costs' && 'Financial Settings'}
                       {activeModal === 'construction' && 'Construction'}
                       {activeModal === 'hardware' && 'Hardware'}
+                      {activeModal === 'preferences' && 'Special Units'}
                     </h3>
                   </div>
                   <button 
@@ -394,18 +442,131 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
                     </div>
                   )}
 
+                  {activeModal === 'preferences' && (
+                    <div className="space-y-8 animate-in slide-in-from-bottom-4">
+                      <div className="bg-amber-50 dark:bg-amber-900/10 p-6 rounded-[2rem] border-2 border-amber-500/10">
+                        <h4 className="text-sm font-black text-amber-900 dark:text-amber-400 uppercase tracking-widest mb-2">Special Cabinet Selection</h4>
+                        <p className="text-xs text-amber-700 dark:text-amber-500/70 font-medium">Select which specialized units should be automatically included in your 3D layout. Unselected units will be ignored during generation.</p>
+                      </div>
+
+                      <div className="grid sm:grid-cols-2 gap-4">
+                        {[
+                          { id: 'includeTall', label: 'Tall Units', desc: 'Full-height utility or oven cabinets', icon: <Box size={16} /> },
+                          { id: 'includeSink', label: 'Sink Units', desc: 'Specialized plumbing cabinets under windows', icon: <Box size={16} /> },
+                          { id: 'includeCooker', label: 'Cooker & Hood', desc: 'Base cooker units with wall hoods', icon: <Box size={16} /> },
+                          { id: 'includeDrawers', label: 'Drawer Stacks', desc: 'Standard drawer units for base storage', icon: <Box size={16} /> },
+                        ].map((item) => (
+                          <label 
+                            key={item.id}
+                            className={`flex items-start gap-4 p-5 rounded-[1.5rem] border-2 transition-all cursor-pointer group ${
+                              (project.settings.layoutPreferences?.[item.id as keyof typeof project.settings.layoutPreferences] ?? true)
+                                ? 'border-amber-500 bg-amber-50/30 dark:bg-amber-900/20' 
+                                : 'border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-200 dark:hover:border-slate-700'
+                            }`}
+                          >
+                            <div className="pt-0.5">
+                              <input 
+                                type="checkbox" 
+                                className="w-5 h-5 rounded-lg border-2 border-slate-300 dark:border-slate-700 text-amber-500 focus:ring-amber-500 accent-amber-500"
+                                checked={project.settings.layoutPreferences?.[item.id as keyof typeof project.settings.layoutPreferences] ?? true}
+                                onChange={(e) => {
+                                  const currentPrefs = project.settings.layoutPreferences || { includeTall: true, includeSink: true, includeCooker: true, includeDrawers: true };
+                                  setProject({
+                                    ...project,
+                                    settings: {
+                                      ...project.settings,
+                                      layoutPreferences: {
+                                        ...currentPrefs,
+                                        [item.id]: e.target.checked
+                                      }
+                                    }
+                                  });
+                                }}
+                              />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className={`font-black uppercase tracking-tight text-xs ${
+                                  (project.settings.layoutPreferences?.[item.id as keyof typeof project.settings.layoutPreferences] ?? true)
+                                    ? 'text-amber-900 dark:text-amber-400'
+                                    : 'text-slate-900 dark:text-white'
+                                }`}>{item.label}</span>
+                              </div>
+                              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed">{item.desc}</p>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {activeModal === 'construction' && (
-                    <div className="space-y-6 animate-in slide-in-from-bottom-4">
-                      <div className="grid grid-cols-2 gap-3 sm:gap-8">
-                        <NumberInput label="Kerf (mm)" value={project.settings.kerf} onChange={v => setProject({ ...project, settings: { ...project.settings, kerf: v } })} />
-                        <NumberInput label="Counter Thk (mm)" value={project.settings.counterThickness} onChange={v => setProject({ ...project, settings: { ...project.settings, counterThickness: v } })} />
-                        <div className="col-span-full">
-                          <MaterialAllocationPanel
-                            settings={project.settings}
-                            onUpdate={s => setProject({ ...project, settings: { ...project.settings, ...s } })}
-                            isExpanded={true}
-                          />
+                    <div className="space-y-8 animate-in slide-in-from-bottom-4">
+                      {/* Basic Standards */}
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                          <h4 className="text-[11px] font-black uppercase text-slate-900 dark:text-white tracking-[0.2em] flex items-center gap-2">
+                            <div className="w-4 h-1 bg-amber-500 rounded-full" /> Technical Standards
+                          </h4>
+                          
+                          <button 
+                            onClick={() => {
+                              if (!isPro) {
+                                alert('Advanced Construction Editor is a Pro feature. Please upgrade to unlock.');
+                                return;
+                              }
+                              setShowAdvancedConstruction(!showAdvancedConstruction);
+                            }}
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
+                              showAdvancedConstruction 
+                                ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' 
+                                : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 hover:bg-amber-500 hover:text-white'
+                            }`}
+                          >
+                            {isPro ? (showAdvancedConstruction ? 'Hide Advanced' : 'Advanced Editor') : <><Lock size={10} /> Advanced Editor</>}
+                          </button>
                         </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                          <NumberInput label="Kerf (mm)" value={project.settings.kerf} onChange={v => setProject({ ...project, settings: { ...project.settings, kerf: v } })} />
+                          <NumberInput label="Counter Thickness (mm)" value={project.settings.counterThickness} onChange={v => setProject({ ...project, settings: { ...project.settings, counterThickness: v } })} />
+                        </div>
+                      </div>
+
+                      {showAdvancedConstruction && isPro && (
+                        <div className="space-y-8 animate-in zoom-in-95 duration-200">
+                          {/* Standard Depths */}
+                          <div className="space-y-4">
+                            <h4 className="text-[11px] font-black uppercase text-slate-900 dark:text-white tracking-[0.2em] flex items-center gap-2">
+                              <div className="w-4 h-1 bg-blue-500 rounded-full" /> Standard Depths (mm)
+                            </h4>
+                            <div className="grid grid-cols-3 gap-4">
+                              <NumberInput label="Base Depth" value={project.settings.depthBase} onChange={v => setProject({ ...project, settings: { ...project.settings, depthBase: v } })} />
+                              <NumberInput label="Wall Depth" value={project.settings.depthWall} onChange={v => setProject({ ...project, settings: { ...project.settings, depthWall: v } })} />
+                              <NumberInput label="Tall Depth" value={project.settings.depthTall} onChange={v => setProject({ ...project, settings: { ...project.settings, depthTall: v } })} />
+                            </div>
+                          </div>
+
+                          {/* Standard Heights */}
+                          <div className="space-y-4">
+                            <h4 className="text-[11px] font-black uppercase text-slate-900 dark:text-white tracking-[0.2em] flex items-center gap-2">
+                              <div className="w-4 h-1 bg-blue-500 rounded-full" /> Standard Heights (mm)
+                            </h4>
+                            <div className="grid grid-cols-3 gap-4">
+                              <NumberInput label="Base Height" value={project.settings.baseHeight} onChange={v => setProject({ ...project, settings: { ...project.settings, baseHeight: v } })} />
+                              <NumberInput label="Wall Height" value={project.settings.wallHeight} onChange={v => setProject({ ...project, settings: { ...project.settings, wallHeight: v } })} />
+                              <NumberInput label="Tall Height" value={project.settings.tallHeight} onChange={v => setProject({ ...project, settings: { ...project.settings, tallHeight: v } })} />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="pt-4 border-t dark:border-slate-800">
+                        <MaterialAllocationPanel
+                          settings={project.settings}
+                          onUpdate={s => setProject({ ...project, settings: { ...project.settings, ...s } })}
+                          isExpanded={true}
+                        />
                       </div>
                     </div>
                   )}
@@ -443,13 +604,27 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
             project={project}
             isDark={isDark}
             hideCabinets={true}
-            readOnly={isLayoutLocked}
+            readOnly={!isPro && isLayoutLocked}
             onSave={(newZones) => {
               const updatedProject = { ...project, zones: newZones };
               setProject(updatedProject);
               setShowWallModal(false);
-              // After wall setup, move to Construction
-              setActiveModal('construction');
+              // After wall setup, move to Limits
+              setShowLimitsModal(true);
+            }}
+          />
+
+          <WallLimitsModal
+            isOpen={showLimitsModal}
+            onClose={() => setShowLimitsModal(false)}
+            project={project}
+            isDark={isDark}
+            onSave={(newZones) => {
+              const updatedProject = { ...project, zones: newZones };
+              setProject(updatedProject);
+              setShowLimitsModal(false);
+              // After limits, move to Special Units
+              setActiveModal('preferences');
             }}
           />
 

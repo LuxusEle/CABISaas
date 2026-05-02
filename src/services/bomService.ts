@@ -1,7 +1,12 @@
-import { Project, Zone, CabinetUnit, BOMGroup, BOMItem, CabinetType, PresetType, ProjectSettings, OptimizationResult, Obstacle, AutoFillOptions } from '../types';
+import { Project, Zone, CabinetUnit, BOMGroup, BOMItem, CabinetType, PresetType, ProjectSettings, OptimizationResult, Obstacle, AutoFillOptions, PartCategory } from '../types';
 import { SheetType } from '../types';
 import type { ConstructionPlanJSON } from '../types/construction';
 import { getCabinetTestingSettings } from '../components/CabinetTestingUtils';
+import { exportBaseCabinetDXF } from '../components/BaseCabinetTesting';
+import { exportWallCabinetDXF } from '../components/WallCabinetTesting';
+import { exportTallCabinetDXF } from '../components/TallCabinetTesting';
+import { exportBaseCornerCabinetDXF } from '../components/BaseCornerCabinetTesting';
+import { exportWallCornerCabinetDXF } from '../components/WallCornerCabinetTesting';
 
 // Helper to generate unique IDs
 const uuid = () => Math.random().toString(36).substr(2, 9);
@@ -286,7 +291,7 @@ export const resolveLocalCollisions = (zone: Zone, changedIndex: number, setting
 
 // --- AUTO FILL ---
 
-const STD_WIDTHS = [900, 800, 600, 500, 450, 400, 300, 250];
+const STD_WIDTHS = [1000, 900, 800, 600, 500, 450, 400, 300, 250];
 
 export const getIntersectingCabinets = (zone: Zone, cabinet: CabinetUnit): CabinetUnit[] => {
   return zone.cabinets.filter(c => {
@@ -331,6 +336,10 @@ export const autoFillZone = (
 
   // Helper to check if a spot is occupied by manual cabs or hard blocks
   const isOccupied = (x: number, w: number, type: CabinetType) => {
+    // Outside limits check
+    if (zone.startLimit !== undefined && x < zone.startLimit) return true;
+    if (zone.endLimit !== undefined && x + w > zone.endLimit) return true;
+
     const overlaps = hardBlocks.some(b => x < b.fromLeft + b.width && x + w > b.fromLeft) ||
       manualCabs.some(c => {
         const verticallyCompatible = type === CabinetType.TALL || c.type === CabinetType.TALL || type === c.type;
@@ -365,26 +374,36 @@ export const autoFillZone = (
 
   if (options.includeCooker && !existingCooker) {
     // Try to place cooker away from sink (working triangle)
-    const cookerWidth = 900;
-    const sinkCab = [...newCabinets, ...manualCabs].find(c => c.preset === PresetType.SINK_UNIT);
-    const preferredX = sinkCab ? (sinkCab.fromLeft + 1800 > totalLength - cookerWidth ? 0 : sinkCab.fromLeft + 1800) : 0;
+    const cookerWidth = 600;
+    const effectiveStart = zone.startLimit || 0;
+    const effectiveEnd = zone.endLimit || totalLength;
+    const effectiveLength = effectiveEnd - effectiveStart;
 
-    // Search from preferredX outwards
-    for (let offset = 0; offset < totalLength; offset += 50) {
-      const positions = [preferredX + offset, preferredX - offset];
-      let found = false;
-      for (const x of positions) {
-        if (x >= 0 && x <= totalLength - cookerWidth && !isOccupied(x, cookerWidth, CabinetType.BASE)) {
-          cookerCabinet = {
-            id: `auto-cooker-${x}`, preset: PresetType.BASE_DRAWER_3, type: CabinetType.BASE,
-            width: cookerWidth, qty: 1, isAutoFilled: true, fromLeft: x
-          };
-          newCabinets.push(cookerCabinet);
-          found = true;
-          break;
-        }
+    const preferredPositions = [
+      effectiveStart + Math.floor((effectiveLength - cookerWidth) / 2), // Center
+      effectiveStart,                                                  // Left
+      effectiveEnd - cookerWidth                                       // Right
+    ];
+
+    let bestX = preferredPositions[0];
+    const leftGap = bestX - effectiveStart;
+    const rightGap = effectiveEnd - (bestX + cookerWidth);
+    
+    // Ruby Rule: If centering creates gaps < 400mm, snap to one side to merge them
+    if ((leftGap > 0 && leftGap < 400) || (rightGap > 0 && rightGap < 400)) {
+      if (leftGap <= rightGap) {
+        bestX = 0;
+      } else {
+        bestX = totalLength - cookerWidth;
       }
-      if (found) break;
+    }
+
+    if (!isOccupied(bestX, cookerWidth, CabinetType.BASE)) {
+      cookerCabinet = {
+        id: `auto-cooker-${bestX}`, preset: PresetType.BASE_DRAWER_3, type: CabinetType.BASE,
+        width: cookerWidth, qty: 1, isAutoFilled: true, fromLeft: bestX
+      };
+      newCabinets.push(cookerCabinet);
     }
   } else {
     cookerCabinet = existingCooker || null;
@@ -409,7 +428,6 @@ export const autoFillZone = (
 
     let x = 0;
     while (x < totalLength) {
-      // Find next free spot
       let foundSpot = false;
       for (const w of STD_WIDTHS) {
         if (x + w <= totalLength && !isOccupied(x, w, type)) {
@@ -417,28 +435,38 @@ export const autoFillZone = (
             ? (options.preferDrawers ? PresetType.BASE_DRAWER_3 : PresetType.BASE_DOOR)
             : (type === CabinetType.WALL ? PresetType.WALL_STD : PresetType.TALL_UTILITY);
 
-          newCabinets.push({ id: `auto-box-${type}-${x}`, preset, type, width: w, qty: 1, isAutoFilled: true, fromLeft: x });
-          x += w;
+          const newUnit = { id: `auto-box-${type}-${x}`, preset, type, width: w, qty: 1, isAutoFilled: true, fromLeft: x };
+          
+          // Absorption Logic: Check if the remaining space after this unit is tiny (< 400mm)
+          let nextGap = 0;
+          let checkX = x + w;
+          while (checkX < totalLength && !isOccupied(checkX, 1, type)) {
+            nextGap++;
+            checkX++;
+          }
+          
+          if (nextGap > 0 && nextGap < 400) {
+            // Absorb the gap!
+            const totalWidth = w + nextGap;
+            if (totalWidth > 1000) {
+              // Split into two equal cabinets
+              const half = totalWidth / 2;
+              newCabinets.push({ ...newUnit, width: half });
+              newCabinets.push({ ...newUnit, id: `auto-box-${type}-${x}-2`, width: half, fromLeft: x + half });
+            } else {
+              newCabinets.push({ ...newUnit, width: totalWidth });
+            }
+            x += totalWidth;
+          } else {
+            newCabinets.push(newUnit);
+            x += w;
+          }
+          
           foundSpot = true;
           break;
         }
       }
-      if (!foundSpot) {
-        // Check if we have a small gap that could be a filler
-        let gapWidth = 0;
-        while (x + gapWidth < totalLength && !isOccupied(x + gapWidth, 1, type)) {
-          gapWidth++;
-        }
-        if (gapWidth >= 250) {
-          const preset = type === CabinetType.BASE
-            ? (options.preferDrawers ? PresetType.BASE_DRAWER_3 : PresetType.BASE_DOOR)
-            : (type === CabinetType.WALL ? PresetType.WALL_STD : PresetType.TALL_UTILITY);
-          newCabinets.push({ id: `auto-filler-${type}-${x}`, preset, type, width: gapWidth, qty: 1, isAutoFilled: true, fromLeft: x });
-          x += gapWidth;
-        } else {
-          x += 25;
-        }
-      }
+      if (!foundSpot) x += 25;
     }
   };
 
@@ -517,182 +545,57 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
     return parts;
   }
 
-  // 1. CARCASS SIDES
-  parts.push({ 
-    id: uuid(), 
-    name: 'Side Panel', 
-    qty: 2, 
-    width: depth, 
-    length: height - (unit.type === CabinetType.BASE || isTall ? t.toeKickHeight : 0), 
-    material: carcassMaterial, 
-    category: 'carcass', 
-    label: labelPrefix, 
-    cabinetId: unit.id, 
-    cabinetLabel: unit.label,
-    features: (() => {
-      // Gola logic: Only for Base cabinets and Lower section of Tall cabinets
-      // Note: 3D design does NOT have Gola for Wall cabinets or the physical top of Tall cabinets
-      const f: string[] = [];
-      const isBaseGola = !isTall && t.cabinetType === 'base' && t.enableGola;
-      
-      if (isBaseGola) {
-        f.push('gola-top-l');
-      }
-      
-      // Calculate Gola C-cuts (for drawers)
-      if (t.enableGola && t.showDrawers && t.numDrawers > 0) {
-        const golaVerticalGap = 13;
-        const golaTopGap = t.golaTopGap;
-        const doorOuterGap = 3;
-        const golaGapTotal = golaVerticalGap * 2;
-        
-        if (!isTall) {
-          const innerH = height - t.toeKickHeight;
-          const totalAvailablePool = (innerH - golaTopGap) - doorOuterGap - thickness;
-          const numGaps = t.numDrawers - 1;
-          const eachFrontH = (totalAvailablePool - numGaps * golaGapTotal) / t.numDrawers;
-          
-          let yBase = doorOuterGap;
-          for (let i = 0; i < t.numDrawers - 1; i++) {
-            const drawerFrontH = (i === 0) ? eachFrontH + thickness : eachFrontH;
-            const gh = yBase + drawerFrontH + golaVerticalGap;
-            f.push(`gola-mid-c:${gh}`);
-            yBase += drawerFrontH + golaGapTotal;
-          }
-        } else {
-          // Tall cabinet Gola logic
-          const stackH = t.lowerSectionDrawerStackHeight || 800;
-          const totalAvailablePool = (stackH - golaTopGap) - doorOuterGap - thickness;
-          const numGaps = t.numDrawers - 1;
-          const eachFrontH = (totalAvailablePool - (numGaps > 0 ? numGaps * golaGapTotal : 0)) / t.numDrawers;
+  const machiningDataMap: Record<string, any> = {};
+  const dataCollector = (data: any) => {
+    machiningDataMap[data.name] = data;
+  };
 
-          let yBase = doorOuterGap;
-          for (let i = 0; i < t.numDrawers; i++) {
-            const drawerFrontH = (i === 0) ? eachFrontH + thickness : eachFrontH;
-            
-            if (i < t.numDrawers - 1) {
-              // C-cut between drawers
-              const gh = yBase + drawerFrontH + golaVerticalGap;
-              f.push(`gola-mid-c:${gh}`);
-            } else {
-              // L-cut at the very top of the stack (Bottom Section Top)
-              const gh = yBase + drawerFrontH + golaTopGap/2; // Approximate center of the L-cut gap
-              f.push(`gola-mid-l:${gh}`);
-            }
-            
-            yBase += drawerFrontH + golaGapTotal;
-          }
-        }
-      }
-      
-      if (t.showBackPanel) f.push('groove-back');
-      if (t.showNailHoles) f.push('nail-holes');
-      return f;
-    })()
+  if (unit.preset === PresetType.BASE_CORNER) {
+    exportBaseCornerCabinetDXF(t, null, dataCollector);
+  } else if (unit.preset === PresetType.WALL_CORNER) {
+    exportWallCornerCabinetDXF(t, null, dataCollector);
+  } else if (t.cabinetType === 'base') {
+    exportBaseCabinetDXF(t, null, dataCollector);
+  } else if (t.cabinetType === 'wall') {
+    exportWallCabinetDXF(t, null, dataCollector);
+  } else if (t.cabinetType === 'tall') {
+    exportTallCabinetDXF(t, null, dataCollector);
+  }
+
+  const resolveCategory = (name: string): PartCategory => {
+    if (name.startsWith('Shelf')) return 'shelf';
+    if (name.startsWith('Drawer_Front')) return 'door';
+    if (name.startsWith('Drawer_')) return 'drawer';
+    if (name.includes('Door') || name.includes('Exposed')) return 'door';
+    if (name.includes('Back_Panel')) return 'back';
+    return 'carcass';
+  };
+
+  const resolveMaterial = (category: PartCategory) => {
+    if (category === 'back') return backMaterial;
+    if (category === 'shelf') return shelfMaterial;
+    if (category === 'door') return doorMaterial;
+    if (category === 'drawer') return drawerMaterial;
+    return carcassMaterial;
+  };
+
+  Object.values(machiningDataMap).forEach(data => {
+    const category = resolveCategory(data.name);
+    const material = resolveMaterial(category);
+    parts.push({
+      id: uuid(),
+      name: data.name.replace(/_/g, ' '),
+      qty: 1,
+      width: Math.round(data.width * 100) / 100,
+      length: Math.round(data.height * 100) / 100,
+      material,
+      category,
+      label: labelPrefix,
+      cabinetId: unit.id,
+      cabinetLabel: unit.label,
+      features: [JSON.stringify({ cnc: data })]
+    });
   });
-  
-  // Bottom Panel
-  parts.push({ 
-    id: uuid(), name: 'Bottom Panel', qty: 1, width: depth, length: innerWidth,
-    material: carcassMaterial, category: 'carcass', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label,
-    features: t.showBackPanel ? ['groove-back'] : []
-  });
-  
-  // Top/Divider logic
-  if (isTall) {
-    // Tall cabinets have a horizontal divider between sections
-    parts.push({ 
-      id: uuid(), name: 'Horizontal Divider', qty: 1, width: depth, length: innerWidth,
-      material: carcassMaterial, category: 'carcass', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label
-    });
-    // Top Stretchers
-    parts.push({ 
-      id: uuid(), name: 'Top Stretcher', qty: 2, width: 100, length: innerWidth,
-      material: carcassMaterial, category: 'carcass', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label 
-    });
-  } else if (unit.type === CabinetType.WALL) {
-    parts.push({ 
-      id: uuid(), name: 'Top Panel', qty: 1, width: depth, length: innerWidth,
-      material: carcassMaterial, category: 'carcass', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label 
-    });
-  } else {
-    parts.push({ 
-      id: uuid(), name: 'Top Stretcher', qty: 2, width: 100, length: innerWidth,
-      material: carcassMaterial, category: 'carcass', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label 
-    });
-  }
-  
-  // 2. BACK PANEL
-  if (t.showBackPanel) {
-    const backHeight = height - (unit.type === CabinetType.BASE || isTall ? t.toeKickHeight : 0);
-    parts.push({ 
-      id: uuid(), name: 'Back Panel', qty: 1, width: width - (2 * (thickness - t.grooveDepth)), length: backHeight, 
-      material: backMaterial, category: 'back', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label 
-    });
-  }
-  
-  // 3. SHELVES
-  if (t.showShelves && t.numShelves > 0) {
-    parts.push({ 
-      id: uuid(), name: 'Shelf', qty: t.numShelves, width: t.shelfDepth || (depth - 20), length: innerWidth,
-      material: shelfMaterial, category: 'shelf', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label 
-    });
-  }
-  
-  // 4. DOORS (Handle Tall specifically)
-  if (isTall) {
-    if (t.showLowerDoors) {
-      const doorConfig = calculateDoors(width, t.tallLowerSectionHeight - 6, settings);
-      parts.push({ 
-        id: uuid(), name: 'Lower Door', qty: doorConfig.qty, width: doorConfig.width, length: doorConfig.length,
-        material: doorMaterial, category: 'door', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label 
-      });
-      parts.push({ id: uuid(), name: HW.HINGE, qty: doorConfig.hinges, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
-    }
-    if (t.showDoors) { // Upper Doors
-      const doorConfig = calculateDoors(width, t.tallUpperSectionHeight - 6, settings);
-      parts.push({ 
-        id: uuid(), name: 'Upper Door', qty: doorConfig.qty, width: doorConfig.width, length: doorConfig.length,
-        material: doorMaterial, category: 'door', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label 
-      });
-      parts.push({ id: uuid(), name: HW.HINGE, qty: doorConfig.hinges, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
-    }
-  } else if (t.showDoors) {
-    const doorConfig = calculateDoors(width, height - (unit.type === CabinetType.BASE ? t.toeKickHeight : 0) - 4, settings);
-    parts.push({ 
-      id: uuid(), name: 'Door', qty: doorConfig.qty, width: doorConfig.width, length: doorConfig.length,
-      material: doorMaterial, category: 'door', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label 
-    });
-    parts.push({ id: uuid(), name: HW.HINGE, qty: doorConfig.hinges, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
-    parts.push({ id: uuid(), name: HW.HANDLE, qty: doorConfig.handles, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
-  }
-  
-  // 5. DRAWERS
-  if (t.showDrawers && t.numDrawers > 0) {
-    const stackHeight = isTall ? (t.lowerSectionDrawerStackHeight || 800) : (height - t.toeKickHeight);
-    const drawerFrontHeight = Math.round(stackHeight / t.numDrawers) - t.drawerToDrawerGap;
-    
-    parts.push({ 
-      id: uuid(), name: 'Drawer Front', qty: t.numDrawers, width: width - (2 * t.doorOuterGap), length: drawerFrontHeight, 
-      material: doorMaterial, category: 'door', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label 
-    });
-    
-    // Box Parts
-    parts.push({ 
-      id: uuid(), name: 'Drawer Bottom', qty: t.numDrawers, width: depth - 50, length: innerWidth - 26, 
-      material: drawerMaterial, category: 'drawer', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label 
-    });
-    parts.push({ 
-      id: uuid(), name: 'Drawer Side', qty: t.numDrawers * 2, width: depth - 10, length: 150, 
-      material: drawerMaterial, category: 'drawer', label: labelPrefix, cabinetId: unit.id, cabinetLabel: unit.label 
-    });
-    
-    // Hardware
-    parts.push({ id: uuid(), name: HW.SLIDE, qty: t.numDrawers, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
-    if (!t.enableGola) {
-      parts.push({ id: uuid(), name: HW.HANDLE, qty: t.numDrawers, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
-    }
-  }
   
   // 6. GENERAL HARDWARE
   if (unit.type === CabinetType.BASE || isTall) {
@@ -986,7 +889,7 @@ export const createNewProject = (logoUrl?: string): Project => ({
     wallHeight: 720,    // Ruby: 720mm
     tallHeight: 2080,  // Ruby: 2080mm (aligned)
     depthBase: 560,    // Ruby: 560mm
-    depthWall: 350,    // Ruby: 350mm
+    depthWall: 300,    // Ruby: 300mm
     depthTall: 560,    // Ruby: 560mm
     widthBase: 600,   // Default base cabinet width
     widthWall: 600,   // Default wall cabinet width
@@ -1030,8 +933,13 @@ export const createNewProject = (logoUrl?: string): Project => ({
       shelfMaterial: '',
       sheetSpecs: {}
     },
-    quotationStatus: 'quotation' as const,
-    quotationApprovedDate: undefined
+    quotationApprovedDate: undefined,
+    layoutPreferences: {
+      includeTall: true,
+      includeSink: true,
+      includeCooker: true,
+      includeDrawers: true
+    }
   },
   zones: [
     { id: 'Wall A', active: true, totalLength: 3000, wallHeight: 2400, obstacles: [], cabinets: [] }
