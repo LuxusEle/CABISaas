@@ -25,7 +25,7 @@ interface Props {
   lightTheme?: boolean;
   draggedCabinet?: CabinetUnit | null;
   onDropCabinet?: (zoneId: string, fromLeft: number, cabinet: CabinetUnit, targetWidth?: number) => void;
-  selectedCabinet?: { zoneId: string, index: number } | null;
+  selectedCabinet?: { zoneId: string, id: string } | null;
   onCabinetSelect?: (zoneId: string, index: number) => void;
   onSettingsUpdate?: (settings: Partial<ProjectSettings>) => void;
   viewMode?: string;
@@ -37,6 +37,7 @@ interface Props {
   skeletonView?: boolean;
   isStudio?: boolean;
   isMobile?: boolean;
+  swapSelection?: { zoneId: string, index: number }[];
 }
 
 const LoadingFallback = () => {
@@ -241,6 +242,7 @@ const Scene = ({
   draggedCabinet,
   onDropCabinet,
   selectedCabinet,
+  swapSelection,
   onCabinetSelect,
   opacity,
   skeletonView,
@@ -263,7 +265,8 @@ const Scene = ({
   forceGola?: boolean;
   draggedCabinet?: CabinetUnit | null;
   onDropCabinet?: (zoneId: string, fromLeft: number, cabinet: CabinetUnit, targetWidth?: number) => void;
-  selectedCabinet?: { zoneId: string, index: number } | null;
+  selectedCabinet?: { zoneId: string, id: string } | null;
+  swapSelection?: { zoneId: string, index: number }[];
   onCabinetSelect?: (zoneId: string, index: number) => void;
   opacity?: number;
   skeletonView?: boolean;
@@ -847,7 +850,9 @@ const Scene = ({
       )}
 
       {layoutData.cabinetPositions.map(({ unit, zone, position, rotation, wallIndex, cabinetIndex, label }) => {
-        const isSelected = !isStudio && selectedCabinet?.zoneId === zone.id && selectedCabinet?.index === cabinetIndex;
+        const isSelected = !isStudio && selectedCabinet?.zoneId === zone.id && selectedCabinet?.id === unit.id;
+        const isSwapSelected = !isStudio && swapSelection?.some(s => s.zoneId === zone.id && s.index === cabinetIndex);
+        
         return (
           <group key={unit.id} position={position} rotation={[0, rotation, 0]}>
             <Cabinet
@@ -859,6 +864,7 @@ const Scene = ({
               label={label}
               settings={project.settings}
               isSelected={isSelected}
+              isHighlighted={isSwapSelected}
               skeletonView={skeletonView}
               onClick={isStudio ? undefined : () => {
                 onCabinetSelect?.(zone.id, cabinetIndex);
@@ -917,14 +923,14 @@ const Scene = ({
       {/* 3D Alignment Guides */}
       {selectedCabinet && !isStudio && (() => {
         const selCabPos = layoutData.cabinetPositions.find(
-          cp => cp.zone.id === selectedCabinet.zoneId && cp.cabinetIndex === selectedCabinet.index
+          cp => cp.zone.id === selectedCabinet.zoneId && cp.unit.id === selectedCabinet.id
         );
         if (!selCabPos) return null;
         
         const sameWallCabinets = layoutData.cabinetPositions.filter(cp => cp.wallIndex === selCabPos.wallIndex);
         
         const otherEdges = new Set(
-          sameWallCabinets.flatMap(cp => cp.cabinetIndex === selectedCabinet.index ? [] : [cp.unit.fromLeft, cp.unit.fromLeft + cp.unit.width])
+          sameWallCabinets.flatMap(cp => cp.unit.id === selectedCabinet.id ? [] : [cp.unit.fromLeft, cp.unit.fromLeft + cp.unit.width])
         );
         
         const selEdges = [selCabPos.unit.fromLeft, selCabPos.unit.fromLeft + selCabPos.unit.width];
@@ -1026,7 +1032,8 @@ export const CabinetViewer: React.FC<Props> = ({
   opacity,
   skeletonView,
   isStudio = false,
-  isMobile: isMobileProp
+  isMobile: isMobileProp,
+  swapSelection
 }) => {
   const isMobile = useMemo(() => isMobileProp ?? (typeof window !== 'undefined' && window.innerWidth < 768), [isMobileProp]);
   // Link forceGola to project settings for persistence
@@ -1189,6 +1196,7 @@ export const CabinetViewer: React.FC<Props> = ({
             draggedCabinet={draggedCabinet}
             onDropCabinet={onDropCabinet}
             selectedCabinet={selectedCabinet}
+            swapSelection={swapSelection}
             onCabinetSelect={onCabinetSelect}
             opacity={opacity}
             skeletonView={skeletonView}

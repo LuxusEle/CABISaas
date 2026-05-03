@@ -32,6 +32,7 @@ interface Props {
   forceGola?: boolean;
   opacity?: number;
   isSelected?: boolean;
+  isHighlighted?: boolean;
   skeletonView?: boolean;
   isStudio?: boolean;
   isMobile?: boolean;
@@ -105,6 +106,7 @@ export const Cabinet: React.FC<Props> = ({
   forceGola,
   opacity = 1,
   isSelected = false,
+  isHighlighted = false,
   skeletonView = false,
   isStudio = false,
   isMobile = false
@@ -245,6 +247,27 @@ export const Cabinet: React.FC<Props> = ({
             screenspace
             transparent
             opacity={0.8}
+          />
+        </mesh>
+      )}
+
+      {isHighlighted && (
+        <mesh position={[width / 2, zBase + height / 2, depth / 2]}>
+          <boxGeometry args={[width + 10, height + 10, depth + 10]} />
+          <meshStandardMaterial 
+            color="#f59e0b" 
+            transparent 
+            opacity={0.25} 
+            emissive="#f59e0b"
+            emissiveIntensity={2}
+            side={THREE.DoubleSide}
+          />
+          <Outlines 
+            color="#f59e0b" 
+            thickness={6}
+            screenspace
+            transparent
+            opacity={0.9}
           />
         </mesh>
       )}

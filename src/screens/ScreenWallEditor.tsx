@@ -35,7 +35,128 @@ const ScreenWallEditor = ({
   
   const [isTransparent, setIsTransparent] = useState(false);
   const [isSkeleton, setIsSkeleton] = useState(false);
-  
+  const [swapMode, setSwapMode] = useState(false);
+  const [swapSelection, setSwapSelection] = useState<{ zoneId: string, index: number }[]>([]);
+
+  const handleCabinetSelection = (index: number, zoneId?: string) => {
+    const targetZoneId = zoneId || activeTab;
+    const zone = project.zones.find(z => z.id === targetZoneId);
+    if (!zone) return;
+    
+    const cab = zone.cabinets[index];
+    if (!cab) return;
+
+    if (swapMode) {
+      // LINKING & RESTRICTION LOGIC
+      const isCooker = (c: CabinetUnit) => c.preset === PresetType.COOKER_HOB || c.preset === PresetType.BASE_DRAWER_3;
+      const isHood = (c: CabinetUnit) => c.preset === PresetType.HOOD_UNIT;
+      const isCorner = (c: CabinetUnit) => c.preset === PresetType.BASE_CORNER || c.preset === PresetType.WALL_CORNER;
+      const hasDecorativePanel = (c: CabinetUnit) => !!c.exposedLeft || !!c.exposedRight;
+      
+      const getStack = (z: Zone, fromLeft: number) => z.cabinets.filter(c => c.fromLeft === fromLeft);
+      const hasAppliance = (stack: CabinetUnit[]) => stack.some(c => isCooker(c) || isHood(c));
+
+      // Prevent selecting restricted units
+      const currentStack = getStack(zone, cab.fromLeft);
+      if (currentStack.some(c => isCorner(c) || hasDecorativePanel(c))) {
+        return;
+      }
+      
+      // If we already have one selection, we can check both sides
+      if (swapSelection.length > 0) {
+        const s1 = swapSelection[0];
+        const z1 = project.zones.find(z => z.id === s1.zoneId);
+        const z2 = project.zones.find(z => z.id === targetZoneId);
+        
+        if (!z1 || !z2) return;
+        
+        const cab1 = z1.cabinets[s1.index];
+        const cab2 = z2.cabinets[index];
+        
+        const stack1 = getStack(z1, cab1.fromLeft);
+        const stack2 = getStack(z2, cab2.fromLeft);
+        
+        const shouldSwapStacks = hasAppliance(stack1) || hasAppliance(stack2);
+        
+        const s1Indices = shouldSwapStacks 
+          ? z1.cabinets.map((c, i) => ({ c, i })).filter(({ c }) => c.fromLeft === cab1.fromLeft).map(({ i }) => i)
+          : [s1.index];
+          
+        const s2Indices = shouldSwapStacks 
+          ? z2.cabinets.map((c, i) => ({ c, i })).filter(({ c }) => c.fromLeft === cab2.fromLeft).map(({ i }) => i)
+          : [index];
+
+        const s1Group = s1Indices.map(i => ({ zoneId: s1.zoneId, index: i }));
+        const s2Group = s2Indices.map(i => ({ zoneId: targetZoneId, index: i }));
+        
+        saveToHistory();
+        
+        setProject(prev => {
+          const newZones = [...prev.zones].map(z => ({ ...z, cabinets: [...z.cabinets].map(c => ({ ...c })) }));
+          const uz1 = newZones.find(z => z.id === s1Group[0].zoneId);
+          const uz2 = newZones.find(z => z.id === s2Group[0].zoneId);
+          
+          if (!uz1 || !uz2) return prev;
+          
+          const g1Cabs = s1Group.map(s => uz1.cabinets[s.index]);
+          const g2Cabs = s2Group.map(s => uz2.cabinets[s.index]);
+          
+          const p1 = g1Cabs[0].fromLeft;
+          const p2 = g2Cabs[0].fromLeft;
+          const w1 = g1Cabs[0].width;
+          const w2 = g2Cabs[0].width;
+          
+          // Update positions and widths
+          s1Group.forEach(s => {
+            const c = uz1.cabinets[s.index];
+            uz1.cabinets[s.index] = { ...c, fromLeft: p2, width: w2 };
+          });
+          s2Group.forEach(s => {
+            const c = uz2.cabinets[s.index];
+            uz2.cabinets[s.index] = { ...c, fromLeft: p1, width: w1 };
+          });
+          
+          // Cross-wall array movement
+          if (s1Group[0].zoneId !== s2Group[0].zoneId) {
+            const c1 = s1Group.map(s => ({ ...uz1.cabinets[s.index] }));
+            const c2 = s2Group.map(s => ({ ...uz2.cabinets[s.index] }));
+            
+            const sorted1 = [...s1Group].sort((a, b) => b.index - a.index);
+            const sorted2 = [...s2Group].sort((a, b) => b.index - a.index);
+            
+            sorted1.forEach(s => uz1.cabinets.splice(s.index, 1));
+            sorted2.forEach(s => uz2.cabinets.splice(s.index, 1));
+            
+            uz1.cabinets.push(...c2);
+            uz2.cabinets.push(...c1);
+          }
+          
+          const resZ1 = resolveCollisions(uz1);
+          const resZ2 = s1Group[0].zoneId === s2Group[0].zoneId ? resZ1 : resolveCollisions(uz2);
+          
+          return {
+            ...prev,
+            zones: newZones.map(z => {
+              if (z.id === s1Group[0].zoneId) return resZ1;
+              if (z.id === s2Group[0].zoneId) return resZ2;
+              return z;
+            })
+          };
+        });
+        
+        setSwapMode(false);
+        setSwapSelection([]);
+      } else {
+        // First selection: Just store it
+        setSwapSelection([{ zoneId: targetZoneId, index }]);
+      }
+    } else {
+      setSelectedCabinet({ zoneId: targetZoneId, id: cab.id });
+      if (targetZoneId !== activeTab) {
+        setActiveTab(targetZoneId);
+      }
+    }
+  };
   // Keep activeTab in sync if the current one is deleted or project changes
   useEffect(() => {
     if (!project.zones.some(z => z.id === activeTab)) {
@@ -64,7 +185,7 @@ const ScreenWallEditor = ({
   const [redoStack, setRedoStack] = useState<{ zones: typeof project.zones; activeTab: string; timestamp: number }[]>([]);
   const maxHistorySize = 20;
 
-  const [selectedCabinet, setSelectedCabinet] = useState<{ zoneId: string, index: number } | null>(null);
+  const [selectedCabinet, setSelectedCabinet] = useState<{ zoneId: string, id: string } | null>(null);
   
   // 3D View states migrated from CabinetViewer
   const [isoViewMode, setIsoViewMode] = useState<string>('isometric');
@@ -132,7 +253,7 @@ const ScreenWallEditor = ({
     } else {
       setInitialZoneCabinetsBackup(null);
     }
-  }, [selectedCabinet?.index, selectedCabinet?.zoneId]);
+  }, [selectedCabinet?.id, selectedCabinet?.zoneId]);
 
   // Undo function
   const handleUndo = () => {
@@ -243,7 +364,8 @@ const ScreenWallEditor = ({
 
   const openEdit = (type: 'cabinet' | 'obstacle', index: number) => {
     if (type === 'cabinet') {
-      setSelectedCabinet({ zoneId: activeTab, index });
+      const cab = currentZone.cabinets[index];
+      if (cab) setSelectedCabinet({ zoneId: activeTab, id: cab.id });
     }
   };
 
@@ -251,11 +373,13 @@ const ScreenWallEditor = ({
     if (!selectedCabinet) return;
     updateZone(z => {
       const cabs = [...z.cabinets];
-      const targetCab = cabs[selectedCabinet.index];
-      const oldWidth = targetCab.width;
+      const index = cabs.findIndex(c => c.id === selectedCabinet.id);
+      if (index === -1) return z;
+      
+      const targetCab = cabs[index];
       const oldFromLeft = targetCab.fromLeft;
       
-      cabs[selectedCabinet.index] = { ...targetCab, ...updates };
+      cabs[index] = { ...targetCab, ...updates };
       
       // SYNC LOGIC: If width or position changed, sync cooker/hood counterparts
       if ('width' in updates || 'fromLeft' in updates) {
@@ -266,14 +390,12 @@ const ScreenWallEditor = ({
         const isHoodType = targetCab.preset === PresetType.HOOD_UNIT;
         
         if (isCookerType || isHoodType) {
-          // Find potential counterpart (same position, opposite type)
           cabs.forEach((c, idx) => {
-            if (idx === selectedCabinet.index) return;
+            if (idx === index) return;
             
             const isOtherCooker = c.preset === PresetType.COOKER_HOB || c.preset === PresetType.BASE_DRAWER_3;
             const isOtherHood = c.preset === PresetType.HOOD_UNIT;
             
-            // Check if it's the counterpart (at same position)
             if (c.fromLeft === oldFromLeft) {
               if ((isCookerType && isOtherHood) || (isHoodType && isOtherCooker)) {
                 cabs[idx] = { ...c, width: newWidth, fromLeft: newFromLeft };
@@ -282,7 +404,7 @@ const ScreenWallEditor = ({
           });
         }
         
-        return resolveLocalCollisions({ ...z, cabinets: cabs }, selectedCabinet.index, project.settings);
+        return resolveLocalCollisions({ ...z, cabinets: cabs }, index, project.settings);
       }
       
       return resolveCollisions({ ...z, cabinets: cabs });
@@ -293,8 +415,11 @@ const ScreenWallEditor = ({
     if (!selectedCabinet) return;
     updateZone(z => {
       const cabs = [...z.cabinets];
-      const cab = cabs[selectedCabinet.index];
-      cabs[selectedCabinet.index] = {
+      const index = cabs.findIndex(c => c.id === selectedCabinet.id);
+      if (index === -1) return z;
+      
+      const cab = cabs[index];
+      cabs[index] = {
         ...cab,
         advancedSettings: { ...(cab.advancedSettings || {}), ...updates }
       };
@@ -308,7 +433,7 @@ const ScreenWallEditor = ({
       updateZone(z => ({ ...z, cabinets: originalCabinets }), false, selectedCabinet.zoneId);
       
       // Sync temp cabinet for editors
-      const cab = originalCabinets[selectedCabinet.index];
+      const cab = originalCabinets.find((c: any) => c.id === selectedCabinet.id);
       if (cab) setTempCabinet(JSON.parse(JSON.stringify(cab)));
     }
   };
@@ -329,12 +454,12 @@ const ScreenWallEditor = ({
   useEffect(() => {
     if (selectedCabinet) {
       const zone = project.zones.find(z => z.id === selectedCabinet.zoneId);
-      const cab = zone?.cabinets[selectedCabinet.index];
+      const cab = zone?.cabinets.find(c => c.id === selectedCabinet.id);
       if (cab) setTempCabinet(JSON.parse(JSON.stringify(cab)));
     } else {
       setTempCabinet(null);
     }
-  }, [selectedCabinet?.index, selectedCabinet?.zoneId]);
+  }, [selectedCabinet?.id, selectedCabinet?.zoneId]);
 
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 overflow-hidden relative">
@@ -424,13 +549,14 @@ const ScreenWallEditor = ({
                     zone={currentZone}
                     height={currentZone.wallHeight || 2400}
                     settings={project.settings}
-                    onCabinetClick={(i) => openEdit('cabinet', i)}
+                    onCabinetClick={(i) => handleCabinetSelection(i)}
                     onObstacleClick={(i) => openEdit('obstacle', i)}
                     onCabinetMove={handleCabinetMove}
                     onObstacleMove={handleObstacleMove}
                     onSwapCabinets={handleSwapCabinets}
                     onDragEnd={() => {}}
-                    selectedCabinet={selectedCabinet}
+                    selectedCabinet={swapMode ? null : selectedCabinet}
+                    swapSelection={swapMode ? swapSelection : []}
                     draggedCabinet={draggingCabinet}
                     onDropCabinet={handleDropCabinet}
                   />
@@ -438,7 +564,7 @@ const ScreenWallEditor = ({
                   <CabinetViewer 
                     project={project} 
                     activeWallId={activeTab} 
-                    onCabinetSelect={(zoneId, i) => setSelectedCabinet({ zoneId, index: i })}
+                    onCabinetSelect={(zoneId, i) => handleCabinetSelection(i, zoneId)}
                     onSettingsUpdate={(settings) => setProject(prev => ({ ...prev, settings: { ...prev.settings, ...settings } }))}
                     viewMode={isoViewMode}
                     onViewModeChange={setIsoViewMode}
@@ -447,7 +573,8 @@ const ScreenWallEditor = ({
                     showHardware={true}
                     lightTheme={!isDark}
                     opacity={isTransparent ? 0.4 : 1}
-                    selectedCabinet={selectedCabinet}
+                    selectedCabinet={swapMode ? null : selectedCabinet}
+                    swapSelection={swapMode ? swapSelection : []}
                     draggedCabinet={draggingCabinet}
                     onDropCabinet={handleDropCabinet}
                     skeletonView={isSkeleton}
@@ -597,6 +724,7 @@ const ScreenWallEditor = ({
                   onSwapCabinets={handleSwapCabinets}
                   onDragEnd={() => {}}
                   selectedCabinet={selectedCabinet}
+                  swapSelection={swapSelection}
                   draggedCabinet={draggingCabinet}
                   onDropCabinet={handleDropCabinet}
                 />
@@ -604,7 +732,7 @@ const ScreenWallEditor = ({
                 <CabinetViewer 
                   project={project} 
                   activeWallId={activeTab} 
-                  onCabinetSelect={visualMode === 'studio' ? undefined : ((zoneId, i) => setSelectedCabinet({ zoneId, index: i }))}
+                  onCabinetSelect={visualMode === 'studio' ? undefined : ((zoneId, i) => handleCabinetSelection(i, zoneId))}
                   onSettingsUpdate={(settings) => setProject(prev => ({ ...prev, settings: { ...prev.settings, ...settings } }))}
                   viewMode={isoViewMode}
                   onViewModeChange={setIsoViewMode}
@@ -618,6 +746,7 @@ const ScreenWallEditor = ({
                   opacity={isTransparent ? 0.4 : 1}
                   skeletonView={isSkeleton}
                   isStudio={visualMode === 'studio'}
+                  swapSelection={swapSelection}
                 />
               )}
 
@@ -634,7 +763,7 @@ const ScreenWallEditor = ({
                     <div>
                       {(() => {
                         const zone = project.zones.find(z => z.id === selectedCabinet.zoneId);
-                        const cab = zone?.cabinets[selectedCabinet.index];
+                        const cab = zone?.cabinets.find(c => c.id === selectedCabinet.id);
                         if (!cab) return null;
                         return (
                           <>
@@ -654,7 +783,7 @@ const ScreenWallEditor = ({
 
                   {(() => {
                     const zone = project.zones.find(z => z.id === selectedCabinet.zoneId);
-                    const cab = zone?.cabinets[selectedCabinet.index];
+                    const cab = zone?.cabinets.find(c => c.id === selectedCabinet.id);
                     if (!cab) return null;
                     return (
                       <div className="space-y-2">
@@ -745,37 +874,28 @@ const ScreenWallEditor = ({
                             const zone = project.zones.find(z => z.id === selectedCabinet.zoneId);
                             if (!zone) return [];
                             return Array.from(new Set(
-                              zone.cabinets.filter((_, i) => i !== selectedCabinet.index).flatMap(c => [c.fromLeft, c.fromLeft + c.width])
+                              zone.cabinets.filter(c => c.id !== selectedCabinet.id).flatMap(c => [c.fromLeft, c.fromLeft + c.width])
                             ));
                           })()}
                           onChange={(updates) => updateSelectedCabinet(updates)}
                         />
                         
-                        <div className="grid grid-cols-3 gap-2">
-                          <button 
-                            onClick={() => {
-                              if (isUserPro) setShowAdvancedCabinetEditor(true);
-                              else setScreen(Screen.PRICING);
-                            }}
-                            className="py-2.5 bg-slate-900 dark:bg-white dark:text-slate-900 text-white font-black uppercase tracking-widest text-[9px] rounded-lg flex items-center justify-center gap-1.5"
-                          >
-                            {isUserPro ? <Settings size={12} /> : <Lock size={12} />} Advanced
-                          </button>
+                        <div className="grid grid-cols-2 gap-2 mt-2">
                           <button 
                             onClick={handleResetCabinet}
-                            className="py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-black uppercase tracking-widest text-[9px] rounded-lg flex items-center justify-center gap-1.5"
+                            className="py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-black uppercase tracking-widest text-[10px] rounded-lg flex items-center justify-center gap-1.5"
                           >
                             <RotateCcw size={12} /> Reset
                           </button>
                           <button 
                             onClick={() => {
                               updateZone(z => {
-                                const cabs = z.cabinets.filter((_, i) => i !== selectedCabinet.index);
+                                const cabs = z.cabinets.filter(c => c.id !== selectedCabinet.id);
                                 return resolveCollisions({ ...z, cabinets: cabs });
                               }, false, selectedCabinet.zoneId);
                               setSelectedCabinet(null);
                             }}
-                            className="py-2.5 bg-rose-500 text-white font-black uppercase tracking-widest text-[9px] rounded-lg flex items-center justify-center gap-1.5"
+                            className="py-2.5 bg-rose-500 text-white font-black uppercase tracking-widest text-[10px] rounded-lg flex items-center justify-center gap-1.5"
                           >
                             <X size={12} /> Delete
                           </button>
@@ -893,6 +1013,28 @@ const ScreenWallEditor = ({
 
         {/* Desktop Sidebar: Presets or Selected Cabinet Editor */}
         <div className={`hidden md:flex w-80 h-full bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 flex-col overflow-hidden shrink-0 ${visualMode === 'studio' ? '!hidden' : ''}`}>
+          {/* Global Swap Control */}
+          <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 shadow-sm z-10">
+            <Button 
+              size="sm" 
+              variant={swapMode ? "primary" : "secondary"} 
+              onClick={() => {
+                setSwapMode(!swapMode);
+                setSwapSelection([]);
+                setSelectedCabinet(null);
+              }}
+              className={`w-full gap-2 transition-all duration-300 ${swapMode ? 'ring-2 ring-amber-500 shadow-lg' : ''}`}
+            >
+              <RotateCcw size={16} className={swapMode ? 'animate-spin' : ''} />
+              {swapMode ? 'Exit Swap Mode' : 'Swap Cabinets'}
+            </Button>
+            {swapMode && (
+              <p className="text-[9px] font-black text-amber-500 uppercase mt-2 animate-pulse text-center tracking-widest">
+                {swapSelection.length === 0 ? 'Select first cabinet' : 'Select second cabinet'}
+              </p>
+            )}
+          </div>
+
           {selectedCabinet ? (
             <div className="flex-1 flex flex-col p-4 space-y-6 overflow-y-auto">
               <div className="flex items-center justify-between">
@@ -907,8 +1049,10 @@ const ScreenWallEditor = ({
 
               {(() => {
                 const zone = project.zones.find(z => z.id === selectedCabinet.zoneId);
-                const cab = zone?.cabinets[selectedCabinet.index];
+                const cab = zone?.cabinets.find(c => c.id === selectedCabinet.id);
                 if (!cab) return null;
+
+                const cabIndex = zone?.cabinets.indexOf(cab) ?? -1;
 
                 const isCabinetChanged = initialZoneCabinetsBackup && (
                   JSON.stringify(zone.cabinets) !== JSON.stringify(initialZoneCabinetsBackup)
@@ -931,7 +1075,7 @@ const ScreenWallEditor = ({
                         const zone = project.zones.find(z => z.id === selectedCabinet.zoneId);
                         if (!zone) return [];
                         return Array.from(new Set(
-                          zone.cabinets.filter((_, i) => i !== selectedCabinet.index).flatMap(c => [c.fromLeft, c.fromLeft + c.width])
+                          zone.cabinets.filter(c => c.id !== selectedCabinet.id).flatMap(c => [c.fromLeft, c.fromLeft + c.width])
                         ));
                       })()}
                       onChange={(updates) => updateSelectedCabinet(updates)}
@@ -1230,7 +1374,7 @@ const ScreenWallEditor = ({
                     <button 
                       onClick={() => {
                         updateZone(z => {
-                          const cabs = z.cabinets.filter((_, i) => i !== selectedCabinet.index);
+                          const cabs = z.cabinets.filter(c => c.id !== selectedCabinet.id);
                           return resolveCollisions({ ...z, cabinets: cabs });
                         }, false, selectedCabinet.zoneId);
                         setSelectedCabinet(null);
