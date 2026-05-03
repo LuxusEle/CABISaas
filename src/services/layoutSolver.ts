@@ -195,7 +195,17 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
       } else {
         const minGap = gaps.find(g => g.length >= cookerWidth);
         if (minGap) {
-          targetX = minGap.start;
+          // Try to avoid placing immediately next to door/window
+          const isNearOpening = (x: number) => zone.obstacles.some(o => 
+            (o.type === 'door' || o.type === 'window') && 
+            (Math.abs(o.fromLeft + o.width - x) < 5 || Math.abs(o.fromLeft - (x + cookerWidth)) < 5)
+          );
+          
+          if (isNearOpening(minGap.start) && minGap.length >= cookerWidth + 300) {
+            targetX = minGap.start + 300;
+          } else {
+            targetX = minGap.start;
+          }
         }
       }
 
@@ -226,17 +236,22 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
       for (const gap of gaps) {
         if (gap.length >= cookerWidth) {
           // Snap to left, but try to leave space for exactly one lead cabinet (prefer 600)
-          let x = gap.start + 600;
-          if (x + cookerWidth > gap.end) x = gap.start + 450;
-          if (x + cookerWidth > gap.end) x = gap.start + 300;
-          if (x + cookerWidth > gap.end) x = gap.start + 250;
-          if (x + cookerWidth > gap.end) x = gap.start;
-
-          const leftGap = x - gap.start;
+          const candidates = [600, 500, 450, 400, 300, 250, 0];
+          let x = gap.start;
           
-          // Final sanity check on gaps to avoid tiny splinters
-          if (leftGap > 0 && leftGap < ABSOLUTE_MIN_WIDTH) {
-            x = gap.start;
+          for (const offset of candidates) {
+            const candidateX = gap.start + offset;
+            if (candidateX + cookerWidth > gap.end) continue;
+            
+            const nearOpening = zone.obstacles.some(o => 
+              (o.type === 'door' || o.type === 'window') && 
+              (Math.abs(o.fromLeft + o.width - candidateX) < 5 || Math.abs(o.fromLeft - (candidateX + cookerWidth)) < 5)
+            );
+            
+            if (!nearOpening) {
+              x = candidateX;
+              break;
+            }
           }
 
           placeUnit(zone, { id: uuid(), preset: PresetType.BASE_DRAWER_3, type: CabinetType.BASE, width: cookerWidth, qty: 1, fromLeft: x, isAutoFilled: true, label: '' });
