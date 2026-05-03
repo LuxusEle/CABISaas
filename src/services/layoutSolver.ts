@@ -489,8 +489,17 @@ function applyExposedSides(zone: Zone, settings: ProjectSettings) {
     // B. Obstacles (Door, Window)
     obstacles.forEach(obs => {
       if (obs.type === 'door' || obs.type === 'window') {
-        if (Math.abs(unit.fromLeft - (obs.fromLeft + obs.width)) < 15) leftExposed = true;
-        if (Math.abs((unit.fromLeft + unit.width) - obs.fromLeft) < 15) rightExposed = true;
+        // Ruby Rule: Windows only expose sides if they overlap vertically with the cabinet
+        let causesExposure = true;
+        if (obs.type === 'window' && unit.type === CabinetType.BASE) {
+          const sillHeight = obs.sillHeight || 0;
+          if (sillHeight >= (settings.baseHeight || 870)) causesExposure = false;
+        }
+
+        if (causesExposure) {
+          if (Math.abs(unit.fromLeft - (obs.fromLeft + obs.width)) < 15) leftExposed = true;
+          if (Math.abs((unit.fromLeft + unit.width) - obs.fromLeft) < 15) rightExposed = true;
+        }
       }
     });
 
