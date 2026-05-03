@@ -624,7 +624,7 @@ export const BaseCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
       {shouldShow('blindPanelFront') && (
         <mesh position={[blindPanelFrontX + getOffset('blindPanelFront')[0], blindPanelFrontY + getOffset('blindPanelFront')[1], doorZ + getOffset('blindPanelFront')[2]]} castShadow receiveShadow visible={!skeletonView}>
           <primitive object={blindPanelFrontGeo} attach="geometry" />
-          <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : darkerColor} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
+          <meshStandardMaterial color={settings.isStudio && settings.doorTexture ? '#ffffff' : doorColor} map={settings.isStudio ? settings.doorTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
         </mesh>
       )}
 
@@ -670,7 +670,7 @@ export const BaseCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
           {shouldShow('blindPanelFront') && (
             <lineSegments position={[blindPanelFrontX + getOffset('blindPanelFront')[0], blindPanelFrontY + getOffset('blindPanelFront')[1], doorZ + getOffset('blindPanelFront')[2]]}>
               <edgesGeometry args={[blindPanelFrontGeo]} />
-              <lineBasicMaterial color={darkerColor} linewidth={2} />
+              <lineBasicMaterial color={doorColor} linewidth={2} />
             </lineSegments>
           )}
           {shouldShow('upright') && (
