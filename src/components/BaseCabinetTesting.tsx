@@ -700,15 +700,15 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
       {/* --- Specialized Equipment --- */}
       
       {/* 1. SINK UNIT BASIN */}
-      {settings.preset === 'Sink Unit' && !skeletonView && (
-        <group position={[carcassXOffset, innerHeight / 2 + 1, 0]}>
+      {settings.preset === PresetType.SINK_UNIT && !skeletonView && (
+        <group position={[carcassXOffset, innerHeight / 2 + 35, 0]}>
           <RealisticSink width={innerWidth} depth={depth} cabinetHeight={innerHeight} opacity={settings.opacity} />
         </group>
       )}
 
       {/* 2. COOKER HOB */}
       {settings.preset === PresetType.COOKER_HOB && !skeletonView && (
-        <group position={[carcassXOffset, innerHeight / 2 + 5, 0]}>
+        <group position={[carcassXOffset, innerHeight / 2 + 35, 0]}>
           <RealisticCooker width={innerWidth} depth={depth} opacity={settings.opacity} />
         </group>
       )}

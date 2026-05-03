@@ -284,13 +284,10 @@ export const Cabinet: React.FC<Props> = ({
         )
       )}
 
-      {/* Granite Countertop - Rendered on top of base cabinets except Sink/Cooker */}
-      {isBase && 
-       unit.preset !== PresetType.SINK_UNIT && 
-       unit.preset !== PresetType.COOKER_HOB && 
-       !previewMode && (
-        <mesh position={[width / 2, height + counterThickness / 2, depth / 2 + 10]}>
-          <boxGeometry args={[width, counterThickness, depth + 20]} />
+      {/* Granite Countertop - Rendered on top of ALL base cabinets */}
+      {isBase && !previewMode && (
+        <mesh position={[width / 2, height + counterThickness / 2, depth / 2 + 25]}>
+          <boxGeometry args={[width, counterThickness, depth + 50]} />
           <meshStandardMaterial color="#0a0a0a" roughness={0.05} metalness={0.4} />
         </mesh>
       )}

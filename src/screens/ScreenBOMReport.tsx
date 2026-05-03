@@ -152,10 +152,8 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
     let areaMm2 = 0;
     project.zones.forEach(zone => {
       zone.cabinets.forEach(cab => {
-        if (cab.type === CabinetType.BASE && 
-            cab.preset !== PresetType.SINK_UNIT && 
-            cab.preset !== PresetType.COOKER_HOB) {
-          const depth = cab.advancedSettings?.depth || project.settings.depthBase || 560;
+        if (cab.type === CabinetType.BASE) {
+          const depth = (cab.advancedSettings?.depth || project.settings.depthBase || 560) + 50;
           areaMm2 += cab.width * depth;
         }
       });
