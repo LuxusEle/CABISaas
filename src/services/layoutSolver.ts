@@ -195,7 +195,17 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
       } else {
         const minGap = gaps.find(g => g.length >= cookerWidth);
         if (minGap) {
-          targetX = minGap.start;
+          // Try to avoid placing immediately next to door/window
+          const isNearOpening = (x: number) => zone.obstacles.some(o => 
+            (o.type === 'door' || o.type === 'window') && 
+            (Math.abs(o.fromLeft + o.width - x) < 5 || Math.abs(o.fromLeft - (x + cookerWidth)) < 5)
+          );
+          
+          if (isNearOpening(minGap.start) && minGap.length >= cookerWidth + 300) {
+            targetX = minGap.start + 300;
+          } else {
+            targetX = minGap.start;
+          }
         }
       }
 
@@ -226,17 +236,22 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
       for (const gap of gaps) {
         if (gap.length >= cookerWidth) {
           // Snap to left, but try to leave space for exactly one lead cabinet (prefer 600)
-          let x = gap.start + 600;
-          if (x + cookerWidth > gap.end) x = gap.start + 450;
-          if (x + cookerWidth > gap.end) x = gap.start + 300;
-          if (x + cookerWidth > gap.end) x = gap.start + 250;
-          if (x + cookerWidth > gap.end) x = gap.start;
-
-          const leftGap = x - gap.start;
+          const candidates = [600, 500, 450, 400, 300, 250, 0];
+          let x = gap.start;
           
-          // Final sanity check on gaps to avoid tiny splinters
-          if (leftGap > 0 && leftGap < ABSOLUTE_MIN_WIDTH) {
-            x = gap.start;
+          for (const offset of candidates) {
+            const candidateX = gap.start + offset;
+            if (candidateX + cookerWidth > gap.end) continue;
+            
+            const nearOpening = zone.obstacles.some(o => 
+              (o.type === 'door' || o.type === 'window') && 
+              (Math.abs(o.fromLeft + o.width - candidateX) < 5 || Math.abs(o.fromLeft - (candidateX + cookerWidth)) < 5)
+            );
+            
+            if (!nearOpening) {
+              x = candidateX;
+              break;
+            }
           }
 
           placeUnit(zone, { id: uuid(), preset: PresetType.BASE_DRAWER_3, type: CabinetType.BASE, width: cookerWidth, qty: 1, fromLeft: x, isAutoFilled: true, label: '' });
@@ -473,23 +488,19 @@ function applyExposedSides(zone: Zone, settings: ProjectSettings) {
     const sLimit = zone.startLimit || 0;
     const eLimit = zone.endLimit || zone.totalLength;
     
-    const isStart = unit.fromLeft <= sLimit + 15;
-    const isEnd = (unit.fromLeft + unit.width) >= eLimit - 15;
-
-    if (isStart) {
-      const hasCornerOffset = obstacles.some(o => o.fromLeft < sLimit + 10 && o.id.startsWith('corner_'));
-      if (!hasCornerOffset) leftExposed = true;
+    // Check if unit is at the very start or end of the wall
+    if (Math.abs(unit.fromLeft - sLimit) < 15) {
+       const hasCornerOffset = obstacles.some(o => o.fromLeft < sLimit + 10 && o.id.startsWith('corner_'));
+       if (!hasCornerOffset) leftExposed = true;
     }
-    
-    if (isEnd) {
-      const hasCornerCabinet = cabinets.some(c => (c.preset === PresetType.BASE_CORNER || c.preset === PresetType.WALL_CORNER) && c.fromLeft > unit.fromLeft);
-      if (!hasCornerCabinet) rightExposed = true;
+    if (Math.abs((unit.fromLeft + unit.width) - eLimit) < 15) {
+       const hasCornerCabinet = cabinets.some(c => (c.preset === PresetType.BASE_CORNER || c.preset === PresetType.WALL_CORNER) && c.fromLeft > unit.fromLeft);
+       if (!hasCornerCabinet) rightExposed = true;
     }
 
     // B. Obstacles (Door, Window)
     obstacles.forEach(obs => {
       if (obs.type === 'door' || obs.type === 'window') {
-        // Ruby Rule: Windows only expose sides if they overlap vertically with the cabinet
         let causesExposure = true;
         if (obs.type === 'window' && unit.type === CabinetType.BASE) {
           const sillHeight = obs.sillHeight || 0;
@@ -503,16 +514,47 @@ function applyExposedSides(zone: Zone, settings: ProjectSettings) {
       }
     });
 
+    // C. Neighbor Veto: If there's another cabinet touching this side, it's not exposed
+    const getDepth = (c: CabinetUnit) => {
+      if (c.depth) return c.depth;
+      if (c.type === CabinetType.TALL) return settings.depthTall || 600;
+      if (c.type === CabinetType.BASE) return settings.depthBase || 600;
+      return settings.depthWall || 300;
+    };
+
+    const unitDepth = getDepth(unit);
+    const neighbors = cabinets.filter(other => other.id !== unit.id);
+
+    if (unit.type === CabinetType.BASE || unit.type === CabinetType.WALL) {
+      const leftNeighbor = neighbors.find(other => 
+        (other.type === unit.type || other.type === CabinetType.TALL) &&
+        Math.abs((other.fromLeft + other.width) - unit.fromLeft) < 15 &&
+        getDepth(other) >= unitDepth - 15
+      );
+      if (leftNeighbor) leftExposed = false;
+
+      const rightNeighbor = neighbors.find(other => 
+        (other.type === unit.type || other.type === CabinetType.TALL) &&
+        Math.abs(other.fromLeft - (unit.fromLeft + unit.width)) < 15 &&
+        getDepth(other) >= unitDepth - 15
+      );
+      if (rightNeighbor) rightExposed = false;
+    }
+
     unit.exposedLeft = leftExposed;
     unit.exposedRight = rightExposed;
+  });
 
-    // C. Neighbor coverage for Tall cabinets
+  // 2. Tall Cabinet Specific Neighbor Logic (Check height-based coverage)
+  cabinets.forEach(unit => {
     if (unit.type === CabinetType.TALL) {
+      const th = unit.advancedSettings?.height || (settings.baseHeight + (settings.wallCabinetElevation || 450) + settings.wallHeight + 40);
+      const unitDepth = unit.depth || settings.depthTall || 600;
+      
       unit.leftCoverage = [];
       unit.rightCoverage = [];
 
-      cabinets.forEach(other => {
-        if (unit.id === other.id) return;
+      cabinets.filter(c => c.id !== unit.id).forEach(other => {
         if (other.preset === PresetType.FILLER) return;
 
         const isLeft = Math.abs((other.fromLeft + other.width) - unit.fromLeft) < 15;
@@ -521,11 +563,9 @@ function applyExposedSides(zone: Zone, settings: ProjectSettings) {
         if (isLeft || isRight) {
           const bh = settings.baseHeight || 820;
           const wh = settings.wallHeight || 720;
-          const th = settings.tallHeight || 2100;
-          const wallElev = settings.wallCabinetElevation || 450;
           const ct = settings.counterThickness || 40;
-
-          const unitDepth = unit.depth || settings.depthTall || 600;
+          const wallElev = settings.wallCabinetElevation || 450;
+          
           let otherDepth = other.depth;
           if (!otherDepth) {
             if (other.type === CabinetType.BASE) otherDepth = settings.depthBase;
@@ -536,7 +576,6 @@ function applyExposedSides(zone: Zone, settings: ProjectSettings) {
 
           let start = 0;
           let end = 0;
-
           if (other.type === CabinetType.BASE) {
             start = 0;
             end = bh;
@@ -568,25 +607,16 @@ function applyExposedSides(zone: Zone, settings: ProjectSettings) {
     }
   });
 
-  // 2. Width Adjustment Pass
-  // Sort by fromLeft to resolve overlaps correctly
-  const sorted = [...cabinets].sort((a, b) => a.fromLeft - b.fromLeft);
-  
-  sorted.forEach(unit => {
-    if (unit.exposedLeft) {
-      unit.width += thickness;
-      unit.fromLeft -= thickness;
-    }
-    if (unit.exposedRight) {
-      unit.width += thickness;
-    }
-  });
+  // 3. Finalization: No width adjustment pass is needed anymore.
+  // Decorative side panels are now counted AS PART OF the nominal width.
+  // The 3D component and BOM already shrink the carcass internally to fit them.
 
   // 3. Collision Resolution & Boundary Enforcement
   const sLimit = zone.startLimit || 0;
   const eLimit = zone.endLimit || zone.totalLength;
 
   // A. Left-to-Right Pass (Resolve overlaps and snap to left boundary)
+  const sorted = [...cabinets].sort((a, b) => a.fromLeft - b.fromLeft);
   for (let i = 0; i < sorted.length; i++) {
     const current = sorted[i];
     let minLeft = current.fromLeft;
