@@ -2,16 +2,14 @@ import React, { useMemo } from 'react';
 import { Html, Outlines, Text } from '@react-three/drei';
 import * as THREE from 'three';
 import { useLoader } from '@react-three/fiber';
-import { CabinetUnit, CabinetType, ProjectSettings } from '../../types';
+import { CabinetUnit, CabinetType, ProjectSettings, PresetType, Obstacle } from '../../types';
 import { getCabinetTestingSettings } from '../CabinetTestingUtils';
 import { BaseCabinetTesting } from '../BaseCabinetTesting';
 import { BaseCornerCabinetTesting } from '../BaseCornerCabinetTesting';
 import { WallCabinetTesting } from '../WallCabinetTesting';
 import { WallCornerCabinetTesting } from '../WallCornerCabinetTesting';
 import { TallCabinetTesting } from '../TallCabinetTesting';
-import { PresetType } from '../../types';
 
-import { RealisticCooker } from './RealisticCooker';
 import { RealisticHood } from './RealisticHood';
 
 interface Props {
@@ -36,6 +34,7 @@ interface Props {
   skeletonView?: boolean;
   isStudio?: boolean;
   isMobile?: boolean;
+  obstacles?: Obstacle[];
 }
 
 const DimensionLine: React.FC<{
@@ -109,7 +108,8 @@ export const Cabinet: React.FC<Props> = ({
   isHighlighted = false,
   skeletonView = false,
   isStudio = false,
-  isMobile = false
+  isMobile = false,
+  obstacles = []
 }) => {
   const [hovered, setHovered] = React.useState(false);
 
@@ -291,7 +291,6 @@ export const Cabinet: React.FC<Props> = ({
           <meshStandardMaterial color="#0a0a0a" roughness={0.05} metalness={0.4} />
         </mesh>
       )}
-      
 
       {isWall && (
         <group position={[0, zBase, 0]}>

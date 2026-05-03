@@ -142,7 +142,8 @@ export const expenseTemplateService = {
       { name: 'Handle/Knob', amount: 4.00 },
       { name: 'Wall Hanger (Pair)', amount: 6.00 },
       { name: 'Installation Nail', amount: 0.10 },
-      { name: 'Granite', amount: 0.00 }
+      { name: 'Granite', amount: 0.00 },
+      { name: 'Tile', amount: 0.00 }
     ];
 
     const existing = cachedTemplates || await this.getTemplates();
