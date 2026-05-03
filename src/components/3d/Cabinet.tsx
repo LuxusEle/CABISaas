@@ -283,6 +283,18 @@ export const Cabinet: React.FC<Props> = ({
           <BaseCabinetTesting settings={testingSettings} />
         )
       )}
+
+      {/* Granite Countertop - Rendered on top of base cabinets except Sink/Cooker */}
+      {isBase && 
+       unit.preset !== PresetType.SINK_UNIT && 
+       unit.preset !== PresetType.COOKER_HOB && 
+       !(unit.preset === PresetType.BASE_DRAWER_3 && width >= 600) && 
+       !previewMode && (
+        <mesh position={[width / 2, height + counterThickness / 2, depth / 2 + 10]}>
+          <boxGeometry args={[width, counterThickness, depth + 20]} />
+          <meshStandardMaterial color="#0a0a0a" roughness={0.05} metalness={0.4} />
+        </mesh>
+      )}
       
       {/* Standalone Visual Hood - Only for dedicated Cooker Hob appliance preset */}
       {showStandaloneHood && (

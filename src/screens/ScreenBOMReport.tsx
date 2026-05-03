@@ -146,6 +146,28 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
   const drawerSlideUnitCost = drawerSlideAccessory?.default_amount || project.settings.costs.pricePerHardwareUnit;
   const drawerSlideTotalCost = drawerSlideQuantity * drawerSlideUnitCost;
 
+  // Calculate total Granite area in square feet
+  // 1 sqft = 92903.04 mm2
+  const totalGraniteSqft = useMemo(() => {
+    let areaMm2 = 0;
+    project.zones.forEach(zone => {
+      zone.cabinets.forEach(cab => {
+        if (cab.type === CabinetType.BASE && 
+            cab.preset !== PresetType.SINK_UNIT && 
+            cab.preset !== PresetType.COOKER_HOB &&
+            !(cab.preset === PresetType.BASE_DRAWER_3 && cab.width >= 600)) {
+          const depth = cab.advancedSettings?.depth || project.settings.depthBase || 560;
+          areaMm2 += cab.width * depth;
+        }
+      });
+    });
+    return areaMm2 / 92903.04;
+  }, [project.zones, project.settings.depthBase]);
+
+  const graniteAccessory = accessories.find(acc => acc.name.toLowerCase() === 'granite');
+  const graniteUnitCost = graniteAccessory?.default_amount || 0;
+  const graniteTotalCost = totalGraniteSqft * graniteUnitCost;
+
   // Calculate total hardware cost from all individual items (only those actually used in project)
   const otherAccessoriesCost = useMemo(() => {
     return Object.entries(data.hardwareSummary)
@@ -155,7 +177,8 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
         return !lower.includes('hinge') && 
                !lower.includes('handle') && 
                !lower.includes('knob') && 
-               !lower.includes('slide');
+               !lower.includes('slide') &&
+               !lower.includes('granite');
       })
       .reduce((sum, [name, qty]) => {
         // Find best match in accessories list
@@ -170,7 +193,7 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
       }, 0);
   }, [data.hardwareSummary, accessories, project.settings.costs.pricePerHardwareUnit]);
 
-  const totalHardwareCost = hingeTotalCost + handleTotalCost + drawerSlideTotalCost + otherAccessoriesCost;
+  const totalHardwareCost = hingeTotalCost + handleTotalCost + drawerSlideTotalCost + graniteTotalCost + otherAccessoriesCost;
 
   // Calculate base costs with proper hardware total
   const baseCosts = useMemo(() => calculateProjectCost(data, cutPlan, project.settings, totalHardwareCost, sheetTypes), [data, cutPlan, project.settings.costs, totalHardwareCost, sheetTypes]);
@@ -257,8 +280,10 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
         !acc.name.toLowerCase().includes('handle') &&
         !acc.name.toLowerCase().includes('knob') &&
         !acc.name.toLowerCase().includes('drawer slide') &&
-        !acc.name.toLowerCase().includes('slide')
-      ).map(acc => ({ name: acc.name, qty: 1 }))
+        !acc.name.toLowerCase().includes('slide') &&
+        !acc.name.toLowerCase().includes('granite')
+      ).map(acc => ({ name: acc.name, qty: 1 })),
+      { name: `Granite Countertop (Sqft)`, qty: Number(totalGraniteSqft.toFixed(2)) }
     ];
 
     // Apply USER Exclusions
@@ -442,6 +467,14 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
                         <td className="p-3 font-bold text-slate-900 dark:text-white print:text-black">Drawer Slides (Pairs)</td>
                         <td className="p-3 text-center font-black text-amber-600">{drawerSlideQuantity}</td>
                         <td className="p-3 text-right font-medium">{currency}{drawerSlideTotalCost.toFixed(2)}</td>
+                      </tr>
+                    )}
+                    {/* Granite */}
+                    {totalGraniteSqft > 0 && (
+                      <tr className="hover:bg-slate-50/50 transition-colors">
+                        <td className="p-3 font-bold text-slate-900 dark:text-white print:text-black">Granite Countertop (Sqft)</td>
+                        <td className="p-3 text-center font-black text-amber-600">{totalGraniteSqft.toFixed(2)}</td>
+                        <td className="p-3 text-right font-medium">{currency}{graniteTotalCost.toFixed(2)}</td>
                       </tr>
                     )}
                     {/* Legs */}
