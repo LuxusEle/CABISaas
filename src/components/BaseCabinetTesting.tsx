@@ -13,6 +13,7 @@ import {
 } from './CabinetTestingUtils';
 import { RealisticSink } from './3d/RealisticSink';
 import { RealisticCooker } from './3d/RealisticCooker';
+import { PresetType } from '../types';
 
 interface Props {
   settings: TestingSettings;
@@ -33,6 +34,7 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
   } = settings;
 
   const isSelected = settings.isSelected;
+  const isCooker = settings.preset === PresetType.COOKER_HOB;
   const baseColor = new THREE.Color(isSelected ? '#3b82f6' : woodPalette.carcass);
   const backPanelColor = new THREE.Color(isSelected ? '#60a5fa' : woodPalette.backPanel);
   const doorColor = new THREE.Color(isSelected ? '#2563eb' : woodPalette.door);
@@ -546,8 +548,8 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
           <lineBasicMaterial color={getPanelColor('toeKick')} linewidth={2} />
         </lineSegments>
       )}
-
-      {!showDrawers && showDoors && actualNumDoors > 0 && Array.from({ length: actualNumDoors }).map((_, i) => {
+ 
+      {(showDoors || isCooker) && (!showDrawers || isCooker) && actualNumDoors > 0 && Array.from({ length: actualNumDoors }).map((_, i) => {
         const doorX = actualNumDoors === 1 ? 0 : (i === 0 ? -doorWidth / 2 - doorInnerGap / 2 : doorWidth / 2 + doorInnerGap / 2);
         const handleXOffset = actualNumDoors === 1 ? doorWidth / 2 - 30 : (i === 0 ? doorWidth / 2 - 30 : -doorWidth / 2 + 30);
         const hingeXOffset = actualNumDoors === 1 ? -doorWidth / 2 + hingeHorizontalOffset : (i === 0 ? -doorWidth / 2 + hingeHorizontalOffset : doorWidth / 2 - hingeHorizontalOffset);
@@ -593,7 +595,7 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
         );
       })}
 
-      {showDrawers && numDrawers > 0 && Array.from({ length: numDrawers }).map((_, i) => {
+      {showDrawers && numDrawers > 0 && !isCooker && Array.from({ length: numDrawers }).map((_, i) => {
         const { drawerYPositions, drawerFrontHeights, baseHeights, baseYPositions, boxWidth, boxDepth, boxZOffset } = drawerData;
         const { frontGeo, sideLGeo, sideRGeo, boxH } = getDrawerGeos(i);
         
@@ -662,9 +664,10 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
         );
       })}
 
-      {showShelves && numShelves > 0 && !showDrawers && skeletonView && Array.from({ length: numShelves }).map((_, i) => {
+      {(showShelves || isCooker) && (numShelves > 0 || isCooker) && (!showDrawers || isCooker) && skeletonView && Array.from({ length: Math.max(numShelves, isCooker ? 1 : 0) }).map((_, i) => {
+        const nS = Math.max(numShelves, isCooker ? 1 : 0);
         const availableHeight = innerHeight - panelThickness * 2;
-        const spacing = availableHeight / (numShelves + 1);
+        const spacing = availableHeight / (nS + 1);
         const shelfY = -innerHeight / 2 + panelThickness + spacing * (i + 1);
         const shelfZOffset = -depth / 2 + panelThickness + backPanelThickness + settings.shelfDepth / 2;
         return (
@@ -675,9 +678,10 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
         );
       })}
 
-      {showShelves && numShelves > 0 && !showDrawers && !skeletonView && Array.from({ length: numShelves }).map((_, i) => {
+      {(showShelves || isCooker) && (numShelves > 0 || isCooker) && (!showDrawers || isCooker) && !skeletonView && Array.from({ length: Math.max(numShelves, isCooker ? 1 : 0) }).map((_, i) => {
+        const nS = Math.max(numShelves, isCooker ? 1 : 0);
         const availableHeight = innerHeight - panelThickness * 2;
-        const spacing = availableHeight / (numShelves + 1);
+        const spacing = availableHeight / (nS + 1);
         const shelfY = -innerHeight / 2 + panelThickness + spacing * (i + 1);
         const shelfZOffset = -depth / 2 + panelThickness + backPanelThickness + settings.shelfDepth / 2;
         return (
@@ -703,7 +707,7 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
       )}
 
       {/* 2. COOKER HOB */}
-      {((settings.preset === 'Base 3-Drawer' && carcassWidth >= 600) || settings.preset === 'Cooker Hob') && !skeletonView && (
+      {settings.preset === PresetType.COOKER_HOB && !skeletonView && (
         <group position={[carcassXOffset, innerHeight / 2 + 5, 0]}>
           <RealisticCooker width={innerWidth} depth={depth} opacity={settings.opacity} />
         </group>

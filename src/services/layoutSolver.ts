@@ -210,7 +210,20 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
       }
 
       if (targetX !== -1) {
-        placeUnit(zone, { id: uuid(), preset: PresetType.BASE_DRAWER_3, type: CabinetType.BASE, width: cookerWidth, qty: 1, fromLeft: targetX, isAutoFilled: true, label: '' });
+        placeUnit(zone, { 
+          id: uuid(), 
+          preset: PresetType.COOKER_HOB, 
+          type: CabinetType.BASE, 
+          width: cookerWidth, 
+          qty: 1, 
+          fromLeft: targetX, 
+          isAutoFilled: true, 
+          label: '',
+          advancedSettings: {
+            showDrawers: true,
+            numDrawers: 3
+          }
+        });
         if (canPlace(zone, targetX, cookerWidth, CabinetType.WALL, settings)) {
           const wallHeight = settings.wallHeight || 720;
           placeUnit(zone, { 
@@ -254,7 +267,20 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
             }
           }
 
-          placeUnit(zone, { id: uuid(), preset: PresetType.BASE_DRAWER_3, type: CabinetType.BASE, width: cookerWidth, qty: 1, fromLeft: x, isAutoFilled: true, label: '' });
+          placeUnit(zone, { 
+            id: uuid(), 
+            preset: PresetType.COOKER_HOB, 
+            type: CabinetType.BASE, 
+            width: cookerWidth, 
+            qty: 1, 
+            fromLeft: x, 
+            isAutoFilled: true, 
+            label: '',
+            advancedSettings: {
+              showDrawers: true,
+              numDrawers: 3
+            }
+          });
           if (canPlace(zone, x, cookerWidth, CabinetType.WALL, settings)) {
             const wallHeight = settings.wallHeight || 720;
             placeUnit(zone, { 
@@ -287,7 +313,7 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
     if (cookerPlaced && prefs.includeCooker) {
       for (const zone of zones) {
         if (specialPlaced) break;
-        const cooker = zone.cabinets.find(c => c.preset === PresetType.BASE_DRAWER_3 && c.isAutoFilled);
+        const cooker = zone.cabinets.find(c => c.preset === PresetType.COOKER_HOB && c.isAutoFilled);
         if (cooker) {
           const nextX = cooker.fromLeft + cooker.width;
           // Try 600mm then 500mm immediately after cooker

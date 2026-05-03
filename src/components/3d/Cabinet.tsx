@@ -288,7 +288,6 @@ export const Cabinet: React.FC<Props> = ({
       {isBase && 
        unit.preset !== PresetType.SINK_UNIT && 
        unit.preset !== PresetType.COOKER_HOB && 
-       !(unit.preset === PresetType.BASE_DRAWER_3 && width >= 600) && 
        !previewMode && (
         <mesh position={[width / 2, height + counterThickness / 2, depth / 2 + 10]}>
           <boxGeometry args={[width, counterThickness, depth + 20]} />
@@ -296,17 +295,6 @@ export const Cabinet: React.FC<Props> = ({
         </mesh>
       )}
       
-      {/* Standalone Visual Hood - Only for dedicated Cooker Hob appliance preset */}
-      {showStandaloneHood && (
-        <group position={[width / 2, baseHeight + counterThickness + wallElevation - 30, depth / 2]}>
-          <RealisticHood 
-            width={width} 
-            depth={depth} 
-            opacity={opacity}
-            showChimney={true}
-          />
-        </group>
-      )}
 
       {isWall && (
         <group position={[0, zBase, 0]}>
