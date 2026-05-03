@@ -474,20 +474,6 @@ function applyExposedSides(zone: Zone, settings: ProjectSettings) {
   const cabinets = zone.cabinets;
   const obstacles = zone.obstacles;
 
-  // 0. Normalization Pass: Revert any previous decorative panel modifications to work with carcass dimensions
-  // This makes the function idempotent and fixes legacy state corruption (18mm/36mm overlaps).
-  cabinets.forEach(unit => {
-    if (unit.exposedLeft) {
-      unit.width -= thickness;
-      unit.fromLeft += thickness;
-      unit.exposedLeft = false; // Reset for recalculation
-    }
-    if (unit.exposedRight) {
-      unit.width -= thickness;
-      unit.exposedRight = false; // Reset for recalculation
-    }
-  });
-
   // 1. Detection Pass
   cabinets.forEach((unit) => {
     // Only for Base, Wall, Tall

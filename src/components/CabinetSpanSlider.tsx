@@ -14,6 +14,12 @@ const NudgeInput = ({ label, value, onNudge, colorClass, subtitle }: any) => {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [inputValue, setInputValue] = useState(value.toString());
+
+  // Sync internal state with external value when not focused
+  useEffect(() => {
+    setInputValue(value.toString());
+  }, [value]);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -47,6 +53,26 @@ const NudgeInput = ({ label, value, onNudge, colorClass, subtitle }: any) => {
     if (intervalRef.current) clearInterval(intervalRef.current);
   };
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const str = e.target.value;
+    setInputValue(str);
+    
+    const val = parseInt(str);
+    if (!isNaN(val) && val >= 10) {
+      onNudge(val - value);
+    }
+  };
+
+  const handleBlur = () => {
+    const val = parseInt(inputValue);
+    if (isNaN(val)) {
+      setInputValue(value.toString());
+    } else {
+      onNudge(val - value);
+      setInputValue(value.toString()); // Sync back after parent resolves it
+    }
+  };
+
   return (
     <div className="space-y-1">
       <label className={`text-[8px] font-black uppercase tracking-widest block ${colorClass}`}>{label}</label>
@@ -66,12 +92,13 @@ const NudgeInput = ({ label, value, onNudge, colorClass, subtitle }: any) => {
         </button>
         <input 
           type="number"
-          value={value}
-          onChange={(e) => {
-            const val = parseInt(e.target.value) || 0;
-            onNudge(val - value);
+          value={inputValue}
+          onChange={handleInputChange}
+          onBlur={handleBlur}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') handleBlur();
           }}
-          className="w-full bg-transparent py-1.5 px-1 text-[11px] font-mono font-bold text-slate-900 dark:text-white outline-none text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none cursor-ns-resize"
+          className="w-full bg-transparent py-1.5 px-1 text-[11px] font-mono font-bold text-slate-900 dark:text-white outline-none text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none cursor-text"
         />
         <button 
           onMouseDown={() => startNudging(1)}
@@ -192,6 +219,8 @@ export const CabinetSpanSlider: React.FC<CabinetSpanSliderProps> = ({
   const leftPercent = (fromLeft / totalLength) * 100;
   const widthPercent = (width / totalLength) * 100;
 
+  const [anchor, setAnchor] = useState<'left' | 'center' | 'right'>('left');
+
   return (
     <div className="space-y-2 py-4 px-1">
       <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest">
@@ -249,44 +278,56 @@ export const CabinetSpanSlider: React.FC<CabinetSpanSliderProps> = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 mt-4">
-        <NudgeInput 
-          label="Left Edge" 
-          value={fromLeft} 
-          colorClass="text-amber-500"
-          subtitle="Moves left"
-          onNudge={(delta: number) => {
-            const rightEdge = fromLeft + width;
-            const newFromLeft = Math.max(0, Math.min(rightEdge - 150, fromLeft + delta));
-            const newWidth = rightEdge - newFromLeft;
-            onChange({ fromLeft: newFromLeft, width: newWidth });
-          }}
-        />
+      <div className="mt-6 space-y-4">
+        {/* Anchor Side Selection */}
+        <div className="space-y-2">
+          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Resize Direction</label>
+          <div className="grid grid-cols-3 gap-1 bg-slate-100 dark:bg-slate-800/50 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
+            {(['left', 'center', 'right'] as const).map((side) => (
+              <button
+                key={side}
+                onClick={() => setAnchor(side)}
+                className={`py-2 px-1 text-[9px] font-bold uppercase rounded-lg transition-all ${
+                  anchor === side 
+                    ? 'bg-amber-500 text-white shadow-md' 
+                    : 'text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700'
+                }`}
+              >
+                {side}
+              </button>
+            ))}
+          </div>
+        </div>
 
+        {/* Width Precision Input */}
         <NudgeInput 
-          label="Width" 
+          label="Adjust Width (mm)" 
           value={width} 
-          colorClass="text-slate-400"
-          subtitle="Pins left"
+          colorClass="text-amber-500"
+          subtitle={anchor === 'left' ? 'Moves left edge' : anchor === 'right' ? 'Moves right edge' : 'Moves both edges'}
           onNudge={(delta: number) => {
-            onChange({ width: Math.max(150, Math.min(totalLength - fromLeft, width + delta)) });
-          }}
-        />
+            const newWidth = Math.max(10, Math.min(totalLength, width + delta));
+            const actualDelta = newWidth - width;
 
-        <NudgeInput 
-          label="Right Edge" 
-          value={fromLeft + width} 
-          colorClass="text-blue-500"
-          subtitle="Moves right"
-          onNudge={(delta: number) => {
-            const newWidth = Math.max(150, Math.min(totalLength - fromLeft, (fromLeft + width + delta) - fromLeft));
-            onChange({ width: newWidth });
+            if (anchor === 'right') {
+              // Standard behavior: grow right, fromLeft stays
+              onChange({ width: newWidth });
+            } else if (anchor === 'left') {
+              // Grow left: subtract delta from fromLeft
+              const newFromLeft = Math.max(0, fromLeft - actualDelta);
+              onChange({ fromLeft: newFromLeft, width: newWidth });
+            } else {
+              // Center: split delta between both sides
+              const halfDelta = actualDelta / 2;
+              const newFromLeft = Math.max(0, fromLeft - halfDelta);
+              onChange({ fromLeft: newFromLeft, width: newWidth });
+            }
           }}
         />
       </div>
 
-      <div className="flex justify-between text-[9px] font-mono text-slate-400 pt-2 border-t dark:border-slate-800 mt-2">
-        <span>Wall Start: 0</span>
+      <div className="flex justify-between text-[9px] font-mono text-slate-400 pt-2 border-t dark:border-slate-800 mt-4">
+        <span>Wall: 0</span>
         <span className="text-amber-500 font-black italic">Precision Control</span>
         <span>End: {totalLength}</span>
       </div>
