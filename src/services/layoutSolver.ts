@@ -140,23 +140,34 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
         const wallCornerOffset = zone.obstacles.find(o => o.id === 'corner_base_offset');
         const startX = Math.max(zone.startLimit || 0, wallCornerOffset ? (wallCornerOffset.fromLeft + wallCornerOffset.width) : 0);
         
-        let xSink = windowStart; // Try left snap first
-        const leftGap = xSink - startX;
+        // Find all gaps that can fit the sink and overlap with the window
+        const potentialGaps = gaps.filter(g => g.length >= sw && g.end > windowStart && g.start < windowEnd);
         
-        if (leftGap > 0 && leftGap < ABSOLUTE_MIN_WIDTH) {
-          // Left snap leaves a tiny gap! Try snapping to the right side of the window
-          const rightX = windowEnd - sw;
-          const rightGap = rightX - startX;
-          if (rightGap >= ABSOLUTE_MIN_WIDTH || rightGap === 0) {
-            xSink = rightX;
+        if (potentialGaps.length > 0) {
+          // Prefer the gap that contains windowStart, otherwise just the first one
+          const gap = potentialGaps.find(g => windowStart >= g.start && windowStart <= g.end) || potentialGaps[0];
+          
+          let targetX = Math.max(gap.start, windowStart);
+          if (targetX + sw > gap.end) {
+            targetX = gap.end - sw;
           }
-        }
+          
+          // Ruby Rule: Choose snap side to avoid tiny unfillable gaps
+          const leftGap = targetX - startX;
+          if (leftGap > 0 && leftGap < ABSOLUTE_MIN_WIDTH) {
+            // Try snapping to the right side of the window IF it fits in the SAME gap
+            const rightX = Math.min(gap.end - sw, windowEnd - sw);
+            const rightGap = rightX - startX;
+            if (rightGap >= ABSOLUTE_MIN_WIDTH || rightGap === 0) {
+              targetX = rightX;
+            } else if (gap.start === startX) {
+              // If the gap starts at startX, just snap to startX to avoid splinter
+              targetX = startX;
+            }
+          }
 
-        const windowGap = gaps.find(g => xSink >= g.start && xSink + sw <= g.end);
-        
-        if (windowGap) {
-          if (canPlace(zone, xSink, sw, CabinetType.BASE, settings)) {
-            placeUnit(zone, { id: uuid(), preset: PresetType.SINK_UNIT, type: CabinetType.BASE, width: sw, qty: 1, fromLeft: xSink, isAutoFilled: true, label: '' });
+          if (canPlace(zone, targetX, sw, CabinetType.BASE, settings)) {
+            placeUnit(zone, { id: uuid(), preset: PresetType.SINK_UNIT, type: CabinetType.BASE, width: sw, qty: 1, fromLeft: targetX, isAutoFilled: true, label: '' });
             sinkPlaced = true;
           }
         }
@@ -562,28 +573,84 @@ function applyExposedSides(zone: Zone, settings: ProjectSettings) {
     }
   });
 
-  // 3. Collision Resolution (Push Right)
+  // 3. Collision Resolution & Boundary Enforcement
+  const sLimit = zone.startLimit || 0;
+  const eLimit = zone.endLimit || zone.totalLength;
+
+  // A. Left-to-Right Pass (Resolve overlaps and snap to left boundary)
   for (let i = 0; i < sorted.length; i++) {
     const current = sorted[i];
-    let maxRight = current.fromLeft;
+    let minLeft = current.fromLeft;
     
+    // Snap first unit to sLimit if it was pushed left by exposed panel
+    if (i === 0 && minLeft < sLimit) minLeft = sLimit;
+
     for (let j = 0; j < i; j++) {
       const prev = sorted[j];
-      const collide = current.type === prev.type || current.type === CabinetType.TALL || prev.type === CabinetType.TALL;
+      const collide = (current.type === prev.type || current.type === CabinetType.TALL || prev.type === CabinetType.TALL);
       if (collide) {
         const prevRight = prev.fromLeft + prev.width;
-        if (prevRight > maxRight) maxRight = prevRight;
+        if (prevRight > minLeft) minLeft = prevRight;
       }
     }
-    current.fromLeft = maxRight;
+    current.fromLeft = minLeft;
   }
 
-  // 4. Boundary Enforcement (Don't let cabinets fall off the left edge)
-  sorted.forEach(unit => {
-    if (unit.fromLeft < 0) {
-      // If pushed off left, we might need to push everything right
-      // But for now, just snap to 0 and let it overlap if it must
-      unit.fromLeft = 0;
+  // B. Right-to-Left Pass (Snap to right boundary and push back)
+  for (let i = sorted.length - 1; i >= 0; i--) {
+    const current = sorted[i];
+    const rightEdge = current.fromLeft + current.width;
+    if (rightEdge > eLimit + 0.1) {
+      const pushback = rightEdge - eLimit;
+      current.fromLeft = Math.max(sLimit, current.fromLeft - pushback);
+      
+      // Push previous cabinets back
+      for (let j = i - 1; j >= 0; j--) {
+        const prev = sorted[j];
+        const collide = (current.type === prev.type || current.type === CabinetType.TALL || prev.type === CabinetType.TALL);
+        if (collide) {
+          const overlap = (prev.fromLeft + prev.width) - current.fromLeft;
+          if (overlap > 0) {
+            prev.fromLeft = Math.max(sLimit, prev.fromLeft - overlap);
+          }
+        }
+      }
+    }
+  }
+
+  // C. Final Compression Pass (If still exceeding limits after pushing, shrink cabinets)
+  [CabinetType.BASE, CabinetType.WALL].forEach(type => {
+    const levelUnits = sorted.filter(c => c.type === type || c.type === CabinetType.TALL);
+    if (levelUnits.length === 0) return;
+    
+    const lastUnit = levelUnits[levelUnits.length - 1];
+    const rightEdge = lastUnit.fromLeft + lastUnit.width;
+    
+    if (rightEdge > eLimit + 0.1) {
+      let debt = rightEdge - eLimit;
+      // Shrink auto-filled cabinets to absorb the extra panel thickness
+      const shrinkable = levelUnits.filter(c => c.isAutoFilled && c.preset !== PresetType.SINK_UNIT && c.preset !== PresetType.HOOD_UNIT);
+      
+      if (shrinkable.length > 0) {
+        const totalAvailable = shrinkable.reduce((acc, c) => acc + Math.max(0, c.width - ABSOLUTE_MIN_WIDTH), 0);
+        if (totalAvailable > 0) {
+          const ratio = Math.min(1, debt / totalAvailable);
+          shrinkable.forEach(c => {
+            const reduction = Math.max(0, c.width - ABSOLUTE_MIN_WIDTH) * ratio;
+            c.width -= reduction;
+          });
+          
+          // Re-align this level after shrinking
+          for (let i = 0; i < levelUnits.length; i++) {
+            if (i === 0) {
+               if (levelUnits[i].fromLeft < sLimit) levelUnits[i].fromLeft = sLimit;
+            } else {
+               const prevRight = levelUnits[i-1].fromLeft + levelUnits[i-1].width;
+               if (levelUnits[i].fromLeft < prevRight) levelUnits[i].fromLeft = prevRight;
+            }
+          }
+        }
+      }
     }
   });
 }
