@@ -960,7 +960,7 @@ export const exportWallCornerCabinetDXF = async (settings: TestingSettings, zip:
       }
     }
   }
-  const leftGroove = !isLShort ? { x: panelThickness, y: 0, w: backPanelThickness + 2, h: leftH - panelThickness + wallBottomRecess } : undefined;
+  const leftGroove = !isLShort ? { x: panelThickness, y: 0, w: backPanelThickness + 2, h: leftH - panelThickness } : undefined;
   addPanelToZip('Left_Panel', leftW, leftH, leftHoles, leftGroove);
 
   // Right Panel
@@ -995,7 +995,7 @@ export const exportWallCornerCabinetDXF = async (settings: TestingSettings, zip:
       }
     }
   }
-  const rightGroove = !isRShort ? { x: panelThickness, y: 0, w: backPanelThickness + 2, h: rightH - panelThickness + wallBottomRecess } : undefined;
+  const rightGroove = !isRShort ? { x: panelThickness, y: 0, w: backPanelThickness + 2, h: rightH - panelThickness } : undefined;
   addPanelToZip('Right_Panel', rightW, rightH, rightHoles, rightGroove);
 
   // Bottom Panel
@@ -1158,8 +1158,40 @@ export const exportWallCornerCabinetDXF = async (settings: TestingSettings, zip:
 
   // Column Return Panels
   if (enableColumn) {
-    addPanelToZip('Column_Side_Return', columnDepth, sidePanelHeight, [], { x: panelThickness, y: 0, w: backPanelThickness + 2, h: sidePanelHeight });
-    addPanelToZip('Column_Back_Return', columnWidth, sidePanelHeight);
+    const columnPanelHeight = innerHeight - panelThickness;
+    const csrHoles: any[] = [];
+    const technicalR = nailHoleDiameter / 2;
+    const zBack = -columnDepth / 2 + panelThickness / 2;
+
+    // Top Panel connection
+    const yTopPanel = columnPanelHeight / 2 - panelThickness / 2;
+    csrHoles.push({ y: yTopPanel, z: -columnDepth / 2 + 50, r: technicalR });
+    csrHoles.push({ y: yTopPanel, z: columnDepth / 2 - 50, r: technicalR });
+
+    // Bottom panel connection
+    const yBottomPanel = -columnPanelHeight / 2 + panelThickness / 2 + wallBottomRecess;
+    csrHoles.push({ y: yBottomPanel, z: -columnDepth / 2 + 50, r: technicalR });
+    csrHoles.push({ y: yBottomPanel, z: columnDepth / 2 - 50, r: technicalR });
+
+    if (showBackStretchers) {
+      const topStretcherYTop = columnPanelHeight / 2;
+      const bottomStretcherYTop = -columnPanelHeight / 2 + wallBottomRecess + 100;
+      
+      csrHoles.push({ y: topStretcherYTop - 25, z: zBack, r: technicalR });
+      csrHoles.push({ y: topStretcherYTop - 80, z: zBack, r: technicalR });
+      
+      csrHoles.push({ y: bottomStretcherYTop - 25, z: zBack, r: technicalR });
+      csrHoles.push({ y: bottomStretcherYTop - 80, z: zBack, r: technicalR });
+    }
+
+    addPanelToZip('Column_Side_Return', columnDepth, columnPanelHeight, csrHoles, { x: panelThickness, y: 0, w: backPanelThickness + 2, h: columnPanelHeight - (panelThickness - grooveDepth) });
+    
+    const cbHoles: any[] = [];
+    calculateNailHolePositions(columnPanelHeight).forEach(offset => {
+      const zAttach = blindCornerSide === 'left' ? columnWidth / 2 - panelThickness / 2 : -columnWidth / 2 + panelThickness / 2;
+      cbHoles.push({ y: offset, z: zAttach, r: nailHoleDiameter / 2 });
+    });
+    addPanelToZip('Column_Back_Return', columnWidth, columnPanelHeight, cbHoles);
   }
 
   // Shelves
