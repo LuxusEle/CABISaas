@@ -474,6 +474,20 @@ function applyExposedSides(zone: Zone, settings: ProjectSettings) {
   const cabinets = zone.cabinets;
   const obstacles = zone.obstacles;
 
+  // 0. Normalization Pass: Revert any previous decorative panel modifications to work with carcass dimensions
+  // This makes the function idempotent and fixes legacy state corruption (18mm/36mm overlaps).
+  cabinets.forEach(unit => {
+    if (unit.exposedLeft) {
+      unit.width -= thickness;
+      unit.fromLeft += thickness;
+      unit.exposedLeft = false; // Reset for recalculation
+    }
+    if (unit.exposedRight) {
+      unit.width -= thickness;
+      unit.exposedRight = false; // Reset for recalculation
+    }
+  });
+
   // 1. Detection Pass
   cabinets.forEach((unit) => {
     // Only for Base, Wall, Tall
@@ -488,23 +502,19 @@ function applyExposedSides(zone: Zone, settings: ProjectSettings) {
     const sLimit = zone.startLimit || 0;
     const eLimit = zone.endLimit || zone.totalLength;
     
-    const isStart = unit.fromLeft <= sLimit + 15;
-    const isEnd = (unit.fromLeft + unit.width) >= eLimit - 15;
-
-    if (isStart) {
-      const hasCornerOffset = obstacles.some(o => o.fromLeft < sLimit + 10 && o.id.startsWith('corner_'));
-      if (!hasCornerOffset) leftExposed = true;
+    // Check if unit is at the very start or end of the wall
+    if (Math.abs(unit.fromLeft - sLimit) < 15) {
+       const hasCornerOffset = obstacles.some(o => o.fromLeft < sLimit + 10 && o.id.startsWith('corner_'));
+       if (!hasCornerOffset) leftExposed = true;
     }
-    
-    if (isEnd) {
-      const hasCornerCabinet = cabinets.some(c => (c.preset === PresetType.BASE_CORNER || c.preset === PresetType.WALL_CORNER) && c.fromLeft > unit.fromLeft);
-      if (!hasCornerCabinet) rightExposed = true;
+    if (Math.abs((unit.fromLeft + unit.width) - eLimit) < 15) {
+       const hasCornerCabinet = cabinets.some(c => (c.preset === PresetType.BASE_CORNER || c.preset === PresetType.WALL_CORNER) && c.fromLeft > unit.fromLeft);
+       if (!hasCornerCabinet) rightExposed = true;
     }
 
     // B. Obstacles (Door, Window)
     obstacles.forEach(obs => {
       if (obs.type === 'door' || obs.type === 'window') {
-        // Ruby Rule: Windows only expose sides if they overlap vertically with the cabinet
         let causesExposure = true;
         if (obs.type === 'window' && unit.type === CabinetType.BASE) {
           const sillHeight = obs.sillHeight || 0;
@@ -518,16 +528,47 @@ function applyExposedSides(zone: Zone, settings: ProjectSettings) {
       }
     });
 
+    // C. Neighbor Veto: If there's another cabinet touching this side, it's not exposed
+    const getDepth = (c: CabinetUnit) => {
+      if (c.depth) return c.depth;
+      if (c.type === CabinetType.TALL) return settings.depthTall || 600;
+      if (c.type === CabinetType.BASE) return settings.depthBase || 600;
+      return settings.depthWall || 300;
+    };
+
+    const unitDepth = getDepth(unit);
+    const neighbors = cabinets.filter(other => other.id !== unit.id);
+
+    if (unit.type === CabinetType.BASE || unit.type === CabinetType.WALL) {
+      const leftNeighbor = neighbors.find(other => 
+        (other.type === unit.type || other.type === CabinetType.TALL) &&
+        Math.abs((other.fromLeft + other.width) - unit.fromLeft) < 15 &&
+        getDepth(other) >= unitDepth - 15
+      );
+      if (leftNeighbor) leftExposed = false;
+
+      const rightNeighbor = neighbors.find(other => 
+        (other.type === unit.type || other.type === CabinetType.TALL) &&
+        Math.abs(other.fromLeft - (unit.fromLeft + unit.width)) < 15 &&
+        getDepth(other) >= unitDepth - 15
+      );
+      if (rightNeighbor) rightExposed = false;
+    }
+
     unit.exposedLeft = leftExposed;
     unit.exposedRight = rightExposed;
+  });
 
-    // C. Neighbor coverage for Tall cabinets
+  // 2. Tall Cabinet Specific Neighbor Logic (Check height-based coverage)
+  cabinets.forEach(unit => {
     if (unit.type === CabinetType.TALL) {
+      const th = unit.advancedSettings?.height || (settings.baseHeight + (settings.wallCabinetElevation || 450) + settings.wallHeight + 40);
+      const unitDepth = unit.depth || settings.depthTall || 600;
+      
       unit.leftCoverage = [];
       unit.rightCoverage = [];
 
-      cabinets.forEach(other => {
-        if (unit.id === other.id) return;
+      cabinets.filter(c => c.id !== unit.id).forEach(other => {
         if (other.preset === PresetType.FILLER) return;
 
         const isLeft = Math.abs((other.fromLeft + other.width) - unit.fromLeft) < 15;
@@ -536,11 +577,9 @@ function applyExposedSides(zone: Zone, settings: ProjectSettings) {
         if (isLeft || isRight) {
           const bh = settings.baseHeight || 820;
           const wh = settings.wallHeight || 720;
-          const th = settings.tallHeight || 2100;
-          const wallElev = settings.wallCabinetElevation || 450;
           const ct = settings.counterThickness || 40;
-
-          const unitDepth = unit.depth || settings.depthTall || 600;
+          const wallElev = settings.wallCabinetElevation || 450;
+          
           let otherDepth = other.depth;
           if (!otherDepth) {
             if (other.type === CabinetType.BASE) otherDepth = settings.depthBase;
@@ -551,7 +590,6 @@ function applyExposedSides(zone: Zone, settings: ProjectSettings) {
 
           let start = 0;
           let end = 0;
-
           if (other.type === CabinetType.BASE) {
             start = 0;
             end = bh;
@@ -583,25 +621,16 @@ function applyExposedSides(zone: Zone, settings: ProjectSettings) {
     }
   });
 
-  // 2. Width Adjustment Pass
-  // Sort by fromLeft to resolve overlaps correctly
-  const sorted = [...cabinets].sort((a, b) => a.fromLeft - b.fromLeft);
-  
-  sorted.forEach(unit => {
-    if (unit.exposedLeft) {
-      unit.width += thickness;
-      unit.fromLeft -= thickness;
-    }
-    if (unit.exposedRight) {
-      unit.width += thickness;
-    }
-  });
+  // 3. Finalization: No width adjustment pass is needed anymore.
+  // Decorative side panels are now counted AS PART OF the nominal width.
+  // The 3D component and BOM already shrink the carcass internally to fit them.
 
   // 3. Collision Resolution & Boundary Enforcement
   const sLimit = zone.startLimit || 0;
   const eLimit = zone.endLimit || zone.totalLength;
 
   // A. Left-to-Right Pass (Resolve overlaps and snap to left boundary)
+  const sorted = [...cabinets].sort((a, b) => a.fromLeft - b.fromLeft);
   for (let i = 0; i < sorted.length; i++) {
     const current = sorted[i];
     let minLeft = current.fromLeft;
