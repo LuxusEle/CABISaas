@@ -276,7 +276,6 @@ export default function App() {
               <NavButton active={location.pathname === '/walls'} path="/walls?view=iso" icon={<Box size={24} />} label="Walls" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
               <NavButton active={location.pathname === '/bom'} path="/bom" icon={<Table2 size={24} />} label="BOM" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
               <NavButton active={location.pathname === '/pricing'} path="/pricing" icon={<CreditCard size={24} />} label="Pricing" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
-              <NavButton active={location.pathname === '/testing'} path="/testing" icon={<Wrench size={24} />} label="Testing" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
               <NavButton active={location.pathname === '/docs'} path="/docs" icon={<Book size={24} />} label="Docs" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
             </nav>
             <div className="mt-auto flex flex-col gap-2">
@@ -398,7 +397,6 @@ export default function App() {
           <MobileNavButton active={location.pathname === '/setup'} path="/setup" icon={<Settings size={20} />} label="Setup" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
           <MobileNavButton active={location.pathname === '/walls'} path="/walls?view=iso" icon={<Box size={20} />} label="Editor" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
           <MobileNavButton active={location.pathname === '/bom'} path="/bom" icon={<Table2 size={20} />} label="BOM" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
-          <MobileNavButton active={location.pathname === '/testing'} path="/testing" icon={<Wrench size={20} />} label="Test" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
           <MobileNavButton active={location.pathname === '/docs'} path="/docs" icon={<Book size={20} />} label="Docs" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
         </div>
       )}
