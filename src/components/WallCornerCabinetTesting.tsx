@@ -933,7 +933,7 @@ export const exportWallCornerCabinetDXF = async (settings: TestingSettings, zip:
   const leftW = isLShort ? depth - columnDepth : depth;
   const leftH = innerHeight - panelThickness;
   const leftHoles: any[] = [];
-  const shouldMirrorL = blindCornerSide === 'right';
+  const shouldMirrorL = true;
 
   if (showBackStretchers && !isLShort) {
     const zBack = -depth / 2 + panelThickness / 2;

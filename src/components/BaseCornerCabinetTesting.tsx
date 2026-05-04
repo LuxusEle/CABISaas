@@ -1045,7 +1045,7 @@ export const exportBaseCornerCabinetDXF = async (settings: TestingSettings, zip:
   const leftH = innerHeight - panelThickness;
   const leftHoles: any[] = [];
   const leftNotches: any[] = [];
-  const shouldMirrorL = blindCornerSide === 'right';
+  const shouldMirrorL = true;
   if (isGolaActive && isDoorOnLeft) {
     leftNotches.push({ u: leftW / 2, v: leftH / 2, width: settings.golaLCutoutDepth, height: settings.golaLCutoutHeight, alignV: 'top' });
   }
@@ -1063,10 +1063,12 @@ export const exportBaseCornerCabinetDXF = async (settings: TestingSettings, zip:
   });
   // Top back stretcher
   const zCenterBackGlobal = -depth / 2 + topStretcherWidth / 2;
-  calculateNailHolePositions(topStretcherWidth).forEach(offset => {
-    const z = (zCenterBackGlobal + offset) - zOffsetL;
-    leftHoles.push({ y: yStr, z: shouldMirrorL ? -z : z, r: nailHoleDiameter / 2 });
-  });
+  if (!isLShort) {
+    calculateNailHolePositions(topStretcherWidth).forEach(offset => {
+      const z = (zCenterBackGlobal + offset) - zOffsetL;
+      leftHoles.push({ y: yStr, z: shouldMirrorL ? -z : z, r: nailHoleDiameter / 2 });
+    });
+  }
 
   if (showBackStretchers && !isLShort) {
     const zBackStretcher = -depth / 2 + panelThickness / 2;
@@ -1138,9 +1140,11 @@ export const exportBaseCornerCabinetDXF = async (settings: TestingSettings, zip:
   calculateNailHolePositions(rebatedWidthR).forEach(offset => {
     rightHoles.push({ y: yStr, z: (zCenterFrontGlobalR + offset) - zOffsetR, r: nailHoleDiameter / 2 });
   });
-  calculateNailHolePositions(topStretcherWidth).forEach(offset => {
-    rightHoles.push({ y: yStr, z: (zCenterBackGlobal + offset) - zOffsetR, r: nailHoleDiameter / 2 });
-  });
+  if (!isRShort) {
+    calculateNailHolePositions(topStretcherWidth).forEach(offset => {
+      rightHoles.push({ y: yStr, z: (zCenterBackGlobal + offset) - zOffsetR, r: nailHoleDiameter / 2 });
+    });
+  }
 
   if (showBackStretchers && !isRShort) {
     const zBackStretcher = -depth / 2 + panelThickness / 2;
