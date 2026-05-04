@@ -48,25 +48,125 @@ export const generateSheetDXF = (sheet: SheetLayout, settings: ProjectSettings):
     ];
 
     if (cncData && cncData.cutouts && cncData.cutouts.length > 0) {
-       const cutouts = cncData.cutouts;
+       const notches = cncData.cutouts;
        const cncW = cncData.width;
        const cncH = cncData.height;
+       const tol = 0.01;
        
-       let panelPoints = [{x: 0, y: 0}, {x: cncW, y: 0}];
-       const sorted = [...cutouts].sort((a: any, b: any) => a.y - b.y);
-       sorted.forEach((c: any) => {
-         panelPoints.push({x: cncW, y: c.y});
-         panelPoints.push({x: c.x, y: c.y});
-         panelPoints.push({x: c.x, y: c.y + c.h});
-         if (c.y + c.h < cncH - 0.1) panelPoints.push({x: cncW, y: c.y + c.h});
-       });
+       // Detect format: new format uses 'u' or 'side'
+       const isNewFormat = notches[0].u !== undefined || notches[0].side !== undefined;
        
-       const lastCutout = sorted[sorted.length - 1];
-       if (!lastCutout || lastCutout.y + lastCutout.h < cncH - 0.1) {
-           panelPoints.push({x: cncW, y: cncH});
+       const panelPoints: {x: number, y: number}[] = [];
+
+       if (isNewFormat) {
+         const uMin = -cncW / 2;
+         const uMax = cncW / 2;
+         const vMin = -cncH / 2;
+         const vMax = cncH / 2;
+
+         const uMinNotches = notches.filter((n: any) => n.side === 'uMin').map((n: any) => {
+            const vMinRaw = n.alignV === 'top' ? n.v - n.height : (n.alignV === 'center' ? n.v - n.height/2 : n.v);
+            return { vMin: Math.max(vMin, vMinRaw), vMax: Math.min(vMax, vMinRaw + n.height), width: n.width };
+         }).sort((a: any, b: any) => a.vMin - b.vMin);
+
+         const uMaxNotches = notches.filter((n: any) => n.side === 'uMax' || !n.side).map((n: any) => {
+            const vMinRaw = n.alignV === 'top' ? n.v - n.height : (n.alignV === 'center' ? n.v - n.height/2 : n.v);
+            return { vMin: Math.max(vMin, vMinRaw), vMax: Math.min(vMax, vMinRaw + n.height), width: n.width };
+         }).sort((a: any, b: any) => a.vMin - b.vMin);
+
+         const vMinNotches = notches.filter((n: any) => n.side === 'vMin').map((n: any) => {
+            const uMinRaw = n.alignV === 'right' ? n.u - n.width : (n.alignV === 'center' ? n.u - n.width/2 : n.u);
+            return { uMin: Math.max(uMin, uMinRaw), uMax: Math.min(uMax, uMinRaw + n.width), height: n.height };
+         }).sort((a: any, b: any) => a.uMin - b.uMin);
+
+         const vMaxNotches = notches.filter((n: any) => n.side === 'vMax').map((n: any) => {
+            const uMinRaw = n.alignV === 'right' ? n.u - n.width : (n.alignV === 'center' ? n.u - n.width/2 : n.u);
+            return { uMin: Math.max(uMin, uMinRaw), uMax: Math.min(uMax, uMinRaw + n.width), height: n.height };
+         }).sort((a: any, b: any) => a.uMin - b.uMin);
+
+         // Perimeter tracing
+         // 1. Bottom (vMin)
+         const vMinCL = !!(uMinNotches.find((n: any) => Math.abs(n.vMin - vMin) < tol) || vMinNotches.find((n: any) => Math.abs(n.uMin - uMin) < tol));
+         const vMinCR = !!(uMaxNotches.find((n: any) => Math.abs(n.vMin - vMin) < tol) || vMinNotches.find((n: any) => Math.abs(n.uMax - uMax) < tol));
+         
+         let curU = vMinCL ? uMin + (uMinNotches.find((n: any) => Math.abs(n.vMin - vMin) < tol)?.width || 0) : uMin;
+         if (!vMinCL) panelPoints.push({ x: uMin, y: vMin });
+         vMinNotches.forEach((n: any) => {
+            if (n.uMin > curU + tol) panelPoints.push({ x: n.uMin, y: vMin });
+            panelPoints.push({ x: n.uMin, y: vMin + n.height });
+            panelPoints.push({ x: n.uMax, y: vMin + n.height });
+            if (n.uMax < uMax - tol) panelPoints.push({ x: n.uMax, y: vMin });
+            curU = n.uMax;
+         });
+         if (!vMinCR) panelPoints.push({ x: uMax, y: vMin });
+
+         // 2. Right (uMax)
+         const uMaxCB = !!(vMinNotches.find((n: any) => Math.abs(n.uMax - uMax) < tol) || uMaxNotches.find((n: any) => Math.abs(n.vMin - vMin) < tol));
+         const uMaxCT = !!(vMaxNotches.find((n: any) => Math.abs(n.uMax - uMax) < tol) || vMaxNotches.find((n: any) => Math.abs(n.vMax - vMax) < tol));
+         
+         let curV = uMaxCB ? vMin + (vMinNotches.find((n: any) => Math.abs(n.uMax - uMax) < tol)?.height || 0) : vMin;
+         if (!uMaxCB) panelPoints.push({ x: uMax, y: vMin });
+         uMaxNotches.forEach((n: any) => {
+            if (n.vMin > curV + tol) panelPoints.push({ x: uMax, y: n.vMin });
+            panelPoints.push({ x: uMax - n.width, y: n.vMin });
+            panelPoints.push({ x: uMax - n.width, y: n.vMax });
+            if (n.vMax < vMax - tol) panelPoints.push({ x: uMax, y: n.vMax });
+            curV = n.vMax;
+         });
+         if (!uMaxCT) panelPoints.push({ x: uMax, y: vMax });
+
+         // 3. Top (vMax)
+         const vMaxCR = !!(uMaxNotches.find((n: any) => Math.abs(n.vMax - vMax) < tol) || vMaxNotches.find((n: any) => Math.abs(n.uMax - uMax) < tol));
+         const vMaxCL = !!(uMinNotches.find((n: any) => Math.abs(n.vMax - vMax) < tol) || vMinNotches.find((n: any) => Math.abs(n.uMin - uMin) < tol));
+         
+         curU = vMaxCR ? uMax - (uMaxNotches.find((n: any) => Math.abs(n.vMax - vMax) < tol)?.width || 0) : uMax;
+         if (!vMaxCR) panelPoints.push({ x: uMax, y: vMax });
+         [...vMaxNotches].reverse().forEach((n: any) => {
+            if (n.uMax < curU - tol) panelPoints.push({ x: n.uMax, y: vMax });
+            panelPoints.push({ x: n.uMax, y: vMax - n.height });
+            panelPoints.push({ x: n.uMin, y: vMax - n.height });
+            if (n.uMin > uMin + tol) panelPoints.push({ x: n.uMin, y: vMax });
+            curU = n.uMin;
+         });
+         if (!vMaxCL) panelPoints.push({ x: uMin, y: vMax });
+
+         // 4. Left (uMin)
+         const uMinCT = !!(vMaxNotches.find((n: any) => Math.abs(n.uMin - uMin) < tol) || uMinNotches.find((n: any) => Math.abs(n.vMax - vMax) < tol));
+         const uMinCB = !!(vMinNotches.find((n: any) => Math.abs(n.uMin - uMin) < tol) || vMinNotches.find((n: any) => Math.abs(n.vMin - vMin) < tol));
+         
+         curV = uMinCT ? vMax - (vMaxNotches.find((n: any) => Math.abs(n.uMin - uMin) < tol)?.height || 0) : vMax;
+         if (!uMinCT) panelPoints.push({ x: uMin, y: vMax });
+         [...uMinNotches].reverse().forEach((n: any) => {
+            if (n.vMax < curV - tol) panelPoints.push({ x: uMin, y: n.vMax });
+            panelPoints.push({ x: uMin + n.width, y: n.vMax });
+            panelPoints.push({ x: uMin + n.width, y: n.vMin });
+            if (n.vMin > vMin + tol) panelPoints.push({ x: uMin, y: n.vMin });
+            curV = n.vMin;
+         });
+         if (!uMinCB) panelPoints.push({ x: uMin, y: vMin });
+
+         // Map from center-relative to 0-relative
+         panelPoints.forEach(p => {
+           p.x += cncW / 2;
+           p.y += cncH / 2;
+         });
+       } else {
+          // Legacy Format {x, y, w, h} - 0-relative
+          panelPoints.push({x: 0, y: 0});
+          panelPoints.push({x: cncW, y: 0});
+          const sorted = [...notches].sort((a: any, b: any) => a.y - b.y);
+          sorted.forEach((c: any) => {
+            panelPoints.push({x: cncW, y: c.y});
+            panelPoints.push({x: c.x, y: c.y});
+            panelPoints.push({x: c.x, y: c.y + c.h});
+            if (c.y + c.h < cncH - 0.1) panelPoints.push({x: cncW, y: c.y + c.h});
+          });
+          const lastCutout = sorted[sorted.length - 1];
+          if (!lastCutout || lastCutout.y + lastCutout.h < cncH - 0.1) {
+              panelPoints.push({x: cncW, y: cncH});
+          }
+          panelPoints.push({x: 0, y: cncH});
        }
-       
-       panelPoints.push({x: 0, y: cncH});
        
        if (cncData.mirrorX) {
          panelPoints.forEach(p => p.x = cncW - p.x);
