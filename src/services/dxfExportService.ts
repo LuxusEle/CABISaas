@@ -1,4 +1,4 @@
-import { DxfWriter, point3d, Units, LWPolylineFlags } from '@tarikjabiri/dxf';
+import { DxfWriter, point3d, Units, LWPolylineFlags, TextHorizontalAlignment, TextVerticalAlignment } from '@tarikjabiri/dxf';
 import JSZip from 'jszip';
 import { SheetLayout, ProjectSettings, CabinetUnit } from '../types';
 import { PanelDrillingPattern, CabinetDrillingPattern, DrillingPoint } from './hardware';
@@ -16,7 +16,7 @@ export const generateSheetDXF = (sheet: SheetLayout, settings: ProjectSettings):
   const layerSheetOutline = writer.tables.layerTable.addLayer('SHEET_OUTLINE', 7, 'CONTINUOUS');
   const layerParts = writer.tables.layerTable.addLayer('PARTS', 5, 'CONTINUOUS');
   const layerKerf = writer.tables.layerTable.addLayer('KERF', 1, 'CONTINUOUS');
-  const layerLabels = writer.tables.layerTable.addLayer('LABELS', 2, 'CONTINUOUS');
+  const layerLabels = writer.tables.layerTable.addLayer('LABELS', 3, 'CONTINUOUS');
   const layerDimensions = writer.tables.layerTable.addLayer('DIMENSIONS', 4, 'CONTINUOUS');
   const layerMachining = writer.tables.layerTable.addLayer('MACHINING', 1, 'CONTINUOUS'); // Red color
 
@@ -48,25 +48,125 @@ export const generateSheetDXF = (sheet: SheetLayout, settings: ProjectSettings):
     ];
 
     if (cncData && cncData.cutouts && cncData.cutouts.length > 0) {
-       const cutouts = cncData.cutouts;
+       const notches = cncData.cutouts;
        const cncW = cncData.width;
        const cncH = cncData.height;
+       const tol = 0.01;
        
-       let panelPoints = [{x: 0, y: 0}, {x: cncW, y: 0}];
-       const sorted = [...cutouts].sort((a: any, b: any) => a.y - b.y);
-       sorted.forEach((c: any) => {
-         panelPoints.push({x: cncW, y: c.y});
-         panelPoints.push({x: c.x, y: c.y});
-         panelPoints.push({x: c.x, y: c.y + c.h});
-         if (c.y + c.h < cncH - 0.1) panelPoints.push({x: cncW, y: c.y + c.h});
-       });
+       // Detect format: new format uses 'u' or 'side'
+       const isNewFormat = notches[0].u !== undefined || notches[0].side !== undefined;
        
-       const lastCutout = sorted[sorted.length - 1];
-       if (!lastCutout || lastCutout.y + lastCutout.h < cncH - 0.1) {
-           panelPoints.push({x: cncW, y: cncH});
+       const panelPoints: {x: number, y: number}[] = [];
+
+       if (isNewFormat) {
+         const uMin = -cncW / 2;
+         const uMax = cncW / 2;
+         const vMin = -cncH / 2;
+         const vMax = cncH / 2;
+
+         const uMinNotches = notches.filter((n: any) => n.side === 'uMin').map((n: any) => {
+            const vMinRaw = n.alignV === 'top' ? n.v - n.height : (n.alignV === 'center' ? n.v - n.height/2 : n.v);
+            return { vMin: Math.max(vMin, vMinRaw), vMax: Math.min(vMax, vMinRaw + n.height), width: n.width };
+         }).sort((a: any, b: any) => a.vMin - b.vMin);
+
+         const uMaxNotches = notches.filter((n: any) => n.side === 'uMax' || !n.side).map((n: any) => {
+            const vMinRaw = n.alignV === 'top' ? n.v - n.height : (n.alignV === 'center' ? n.v - n.height/2 : n.v);
+            return { vMin: Math.max(vMin, vMinRaw), vMax: Math.min(vMax, vMinRaw + n.height), width: n.width };
+         }).sort((a: any, b: any) => a.vMin - b.vMin);
+
+         const vMinNotches = notches.filter((n: any) => n.side === 'vMin').map((n: any) => {
+            const uMinRaw = n.alignV === 'right' ? n.u - n.width : (n.alignV === 'center' ? n.u - n.width/2 : n.u);
+            return { uMin: Math.max(uMin, uMinRaw), uMax: Math.min(uMax, uMinRaw + n.width), height: n.height };
+         }).sort((a: any, b: any) => a.uMin - b.uMin);
+
+         const vMaxNotches = notches.filter((n: any) => n.side === 'vMax').map((n: any) => {
+            const uMinRaw = n.alignV === 'right' ? n.u - n.width : (n.alignV === 'center' ? n.u - n.width/2 : n.u);
+            return { uMin: Math.max(uMin, uMinRaw), uMax: Math.min(uMax, uMinRaw + n.width), height: n.height };
+         }).sort((a: any, b: any) => a.uMin - b.uMin);
+
+         // Perimeter tracing
+         // 1. Bottom (vMin)
+         const vMinCL = !!(uMinNotches.find((n: any) => Math.abs(n.vMin - vMin) < tol) || vMinNotches.find((n: any) => Math.abs(n.uMin - uMin) < tol));
+         const vMinCR = !!(uMaxNotches.find((n: any) => Math.abs(n.vMin - vMin) < tol) || vMinNotches.find((n: any) => Math.abs(n.uMax - uMax) < tol));
+         
+         let curU = vMinCL ? uMin + (uMinNotches.find((n: any) => Math.abs(n.vMin - vMin) < tol)?.width || 0) : uMin;
+         if (!vMinCL) panelPoints.push({ x: uMin, y: vMin });
+         vMinNotches.forEach((n: any) => {
+            if (n.uMin > curU + tol) panelPoints.push({ x: n.uMin, y: vMin });
+            panelPoints.push({ x: n.uMin, y: vMin + n.height });
+            panelPoints.push({ x: n.uMax, y: vMin + n.height });
+            if (n.uMax < uMax - tol) panelPoints.push({ x: n.uMax, y: vMin });
+            curU = n.uMax;
+         });
+         if (!vMinCR) panelPoints.push({ x: uMax, y: vMin });
+
+         // 2. Right (uMax)
+         const uMaxCB = !!(vMinNotches.find((n: any) => Math.abs(n.uMax - uMax) < tol) || uMaxNotches.find((n: any) => Math.abs(n.vMin - vMin) < tol));
+         const uMaxCT = !!(vMaxNotches.find((n: any) => Math.abs(n.uMax - uMax) < tol) || vMaxNotches.find((n: any) => Math.abs(n.vMax - vMax) < tol));
+         
+         let curV = uMaxCB ? vMin + (vMinNotches.find((n: any) => Math.abs(n.uMax - uMax) < tol)?.height || 0) : vMin;
+         if (!uMaxCB) panelPoints.push({ x: uMax, y: vMin });
+         uMaxNotches.forEach((n: any) => {
+            if (n.vMin > curV + tol) panelPoints.push({ x: uMax, y: n.vMin });
+            panelPoints.push({ x: uMax - n.width, y: n.vMin });
+            panelPoints.push({ x: uMax - n.width, y: n.vMax });
+            if (n.vMax < vMax - tol) panelPoints.push({ x: uMax, y: n.vMax });
+            curV = n.vMax;
+         });
+         if (!uMaxCT) panelPoints.push({ x: uMax, y: vMax });
+
+         // 3. Top (vMax)
+         const vMaxCR = !!(uMaxNotches.find((n: any) => Math.abs(n.vMax - vMax) < tol) || vMaxNotches.find((n: any) => Math.abs(n.uMax - uMax) < tol));
+         const vMaxCL = !!(uMinNotches.find((n: any) => Math.abs(n.vMax - vMax) < tol) || vMinNotches.find((n: any) => Math.abs(n.uMin - uMin) < tol));
+         
+         curU = vMaxCR ? uMax - (uMaxNotches.find((n: any) => Math.abs(n.vMax - vMax) < tol)?.width || 0) : uMax;
+         if (!vMaxCR) panelPoints.push({ x: uMax, y: vMax });
+         [...vMaxNotches].reverse().forEach((n: any) => {
+            if (n.uMax < curU - tol) panelPoints.push({ x: n.uMax, y: vMax });
+            panelPoints.push({ x: n.uMax, y: vMax - n.height });
+            panelPoints.push({ x: n.uMin, y: vMax - n.height });
+            if (n.uMin > uMin + tol) panelPoints.push({ x: n.uMin, y: vMax });
+            curU = n.uMin;
+         });
+         if (!vMaxCL) panelPoints.push({ x: uMin, y: vMax });
+
+         // 4. Left (uMin)
+         const uMinCT = !!(vMaxNotches.find((n: any) => Math.abs(n.uMin - uMin) < tol) || uMinNotches.find((n: any) => Math.abs(n.vMax - vMax) < tol));
+         const uMinCB = !!(vMinNotches.find((n: any) => Math.abs(n.uMin - uMin) < tol) || vMinNotches.find((n: any) => Math.abs(n.vMin - vMin) < tol));
+         
+         curV = uMinCT ? vMax - (vMaxNotches.find((n: any) => Math.abs(n.uMin - uMin) < tol)?.height || 0) : vMax;
+         if (!uMinCT) panelPoints.push({ x: uMin, y: vMax });
+         [...uMinNotches].reverse().forEach((n: any) => {
+            if (n.vMax < curV - tol) panelPoints.push({ x: uMin, y: n.vMax });
+            panelPoints.push({ x: uMin + n.width, y: n.vMax });
+            panelPoints.push({ x: uMin + n.width, y: n.vMin });
+            if (n.vMin > vMin + tol) panelPoints.push({ x: uMin, y: n.vMin });
+            curV = n.vMin;
+         });
+         if (!uMinCB) panelPoints.push({ x: uMin, y: vMin });
+
+         // Map from center-relative to 0-relative
+         panelPoints.forEach(p => {
+           p.x += cncW / 2;
+           p.y += cncH / 2;
+         });
+       } else {
+          // Legacy Format {x, y, w, h} - 0-relative
+          panelPoints.push({x: 0, y: 0});
+          panelPoints.push({x: cncW, y: 0});
+          const sorted = [...notches].sort((a: any, b: any) => a.y - b.y);
+          sorted.forEach((c: any) => {
+            panelPoints.push({x: cncW, y: c.y});
+            panelPoints.push({x: c.x, y: c.y});
+            panelPoints.push({x: c.x, y: c.y + c.h});
+            if (c.y + c.h < cncH - 0.1) panelPoints.push({x: cncW, y: c.y + c.h});
+          });
+          const lastCutout = sorted[sorted.length - 1];
+          if (!lastCutout || lastCutout.y + lastCutout.h < cncH - 0.1) {
+              panelPoints.push({x: cncW, y: cncH});
+          }
+          panelPoints.push({x: 0, y: cncH});
        }
-       
-       panelPoints.push({x: 0, y: cncH});
        
        if (cncData.mirrorX) {
          panelPoints.forEach(p => p.x = cncW - p.x);
@@ -101,33 +201,38 @@ export const generateSheetDXF = (sheet: SheetLayout, settings: ProjectSettings):
       { layerName: layerKerf.name }
     );
 
-    const [partName, cabRef] = part.label.split(' (');
-    const cabinetName = cabRef ? cabRef.replace(')', '') : '';
+    const fullLabel = part.label.replace(' (', ' | ').replace(')', '');
     
     const centerX = part.x + part.width / 2;
     const centerY = part.y + part.length / 2;
 
-    const fontSize = Math.min(50, Math.max(20, Math.min(part.width, part.length) / 5));
-    const showText = part.width > 100 && part.length > 100;
+    const rotation = part.length > part.width ? 90 : 0;
+    const availableW = rotation === 90 ? part.length : part.width;
+    const availableH = rotation === 90 ? part.width : part.length;
+
+    // Dynamic Font Scaling
+    let fontSize = Math.min(50, Math.max(16, availableH / 6));
+    const labelWidth = fullLabel.length * fontSize * 0.65; // Estimated width
+    if (labelWidth > availableW * 0.9) {
+      fontSize = (availableW * 0.9) / (fullLabel.length * 0.65);
+    }
+    fontSize = Math.max(12, fontSize); // Don't go too small
+
+    const showText = part.width > 50 && part.length > 50;
 
     if (showText) {
-      const rotation = part.length > part.width ? 90 : 0;
-      
       modelSpace.addText(
-        point3d(centerX, centerY - fontSize * 0.3, 0),
+        point3d(centerX, centerY, 0),
         fontSize,
-        partName,
-        { layerName: layerLabels.name, rotation }
+        fullLabel,
+        { 
+          layerName: layerLabels.name, 
+          rotation,
+          horizontalAlignment: TextHorizontalAlignment.Center,
+          verticalAlignment: TextVerticalAlignment.Middle,
+          secondAlignmentPoint: point3d(centerX, centerY, 0) // Required for certain alignments in DXF
+        }
       );
-
-      if (cabinetName) {
-        modelSpace.addText(
-          point3d(centerX, centerY + fontSize * 0.5, 0),
-          fontSize * 0.7,
-          cabinetName,
-          { layerName: layerLabels.name, rotation }
-        );
-      }
     }
 
     const dimText = `${Math.round(part.length)}x${Math.round(part.width)}`;

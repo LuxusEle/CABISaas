@@ -7,6 +7,7 @@ import { CutPlanVisualizer } from '../components/CutPlanVisualizer';
 import { WallVisualizer } from '../components/WallVisualizer';
 import { KitchenPlanCanvas } from '../components/KitchenPlanCanvas';
 import { generateProjectBOM, exportToExcel, calculateProjectCost, buildProjectConstructionData } from '../services/bomService';
+import { getCabinetTestingSettings } from '../components/CabinetTestingUtils';
 import { sheetTypeService } from '../services/sheetTypeService';
 import { expenseTemplateService, ExpenseTemplate } from '../services/expenseTemplateService';
 import { optimizeCuts } from '../services/nestingService';
@@ -50,63 +51,16 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
   }, []);
 
 
-  // Calculate total doors for hinge calculation
-  // Ruby CBX door threshold: < 599.5mm = single door, >= 600mm = double doors
-  const RUBY_DOOR_THRESHOLD = 599.5;
-  const totalDoors = useMemo(() => {
-    let doors = 0;
-    project.zones.forEach(zone => {
-      zone.cabinets.forEach(cab => {
-        // Count doors: base door cabinets have 1 or 2 doors depending on width
-        if (cab.preset === PresetType.BASE_DOOR) {
-          doors += cab.width >= RUBY_DOOR_THRESHOLD ? 2 : 1;
-        }
-        // Wall cabinets also have doors
-        if (cab.type === CabinetType.WALL && cab.preset !== PresetType.OPEN_BOX) {
-          doors += cab.width >= RUBY_DOOR_THRESHOLD ? 2 : 1;
-        }
-        // Tall cabinets
-        if (cab.type === CabinetType.TALL) {
-          doors += 1;
-        }
-      });
-    });
-    return doors;
-  }, [project.zones]);
+  // Use pre-calculated values from generateProjectBOM for consistency
+  const hingeQuantity = data.hardwareSummary['Soft-Close Hinge'] || 0;
+  const handleQuantity = data.hardwareSummary['Handle/Knob'] || 0;
+  const drawerSlideQuantity = data.hardwareSummary['Drawer Slide (Pair)'] || 0;
+  const totalLegs = data.hardwareSummary['Adjustable Leg'] || 0;
+  const totalHangers = data.hardwareSummary['Wall Hanger'] || 0;
+  const totalGraniteSqft = data.totalGraniteSqft || 0;
+  const totalTileSqft = data.totalTileSqft || 0;
 
-  // Calculate hinge quantity (2 per door)
-  const hingeQuantity = totalDoors * 2;
-
-  // Calculate installation nails (6 per hinge)
-  const totalNails = hingeQuantity * 6;
-
-  // Calculate adjustable legs (4 per BASE or TALL cabinet)
-  const totalLegs = useMemo(() => {
-    let legs = 0;
-    project.zones.forEach(zone => {
-      zone.cabinets.forEach(cab => {
-        if (cab.type === CabinetType.BASE || cab.type === CabinetType.TALL) {
-          legs += 4;
-        }
-      });
-    });
-    return legs;
-  }, [project.zones]);
-
-  // Calculate wall hangers (1 per WALL cabinet)
-  const totalHangers = useMemo(() => {
-    let hangers = 0;
-    project.zones.forEach(zone => {
-      zone.cabinets.forEach(cab => {
-        if (cab.type === CabinetType.WALL) {
-          hangers += 1;
-        }
-      });
-    });
-    return hangers;
-  }, [project.zones]);
-
-  // Get hinge cost from accessories
+  // Accessory Costs
   const hingeAccessory = accessories.find(acc =>
     acc.name.toLowerCase().includes('hinge') ||
     acc.name.toLowerCase().includes('soft-close')
@@ -114,22 +68,6 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
   const hingeUnitCost = hingeAccessory?.default_amount || project.settings.costs.pricePerHardwareUnit;
   const hingeTotalCost = hingeQuantity * hingeUnitCost;
 
-  // Calculate total drawers (from drawer cabinets)
-  const totalDrawers = useMemo(() => {
-    let drawers = 0;
-    project.zones.forEach(zone => {
-      zone.cabinets.forEach(cab => {
-        // Base drawer cabinets have 3 drawers
-        if (cab.preset === PresetType.BASE_DRAWER_3) {
-          drawers += 3;
-        }
-      });
-    });
-    return drawers;
-  }, [project.zones]);
-
-  // Calculate Handle/Knob quantity (doors + drawers)
-  const handleQuantity = totalDoors + totalDrawers;
   const handleAccessory = accessories.find(acc =>
     acc.name.toLowerCase().includes('handle') ||
     acc.name.toLowerCase().includes('knob')
@@ -137,8 +75,6 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
   const handleUnitCost = handleAccessory?.default_amount || project.settings.costs.pricePerHardwareUnit;
   const handleTotalCost = handleQuantity * handleUnitCost;
 
-  // Calculate Drawer Slide quantity (pairs) = number of drawers
-  const drawerSlideQuantity = totalDrawers;
   const drawerSlideAccessory = accessories.find(acc =>
     acc.name.toLowerCase().includes('drawer slide') ||
     acc.name.toLowerCase().includes('slide')
@@ -146,40 +82,9 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
   const drawerSlideUnitCost = drawerSlideAccessory?.default_amount || project.settings.costs.pricePerHardwareUnit;
   const drawerSlideTotalCost = drawerSlideQuantity * drawerSlideUnitCost;
 
-  // Calculate total Granite area in square feet
-  // 1 sqft = 92903.04 mm2
-  const totalGraniteSqft = useMemo(() => {
-    let areaMm2 = 0;
-    project.zones.forEach(zone => {
-      zone.cabinets.forEach(cab => {
-        if (cab.type === CabinetType.BASE) {
-          const depth = (cab.advancedSettings?.depth || project.settings.depthBase || 560) + 50;
-          areaMm2 += cab.width * depth;
-        }
-      });
-    });
-    return areaMm2 / 92903.04;
-  }, [project.zones, project.settings.depthBase]);
-
   const graniteAccessory = accessories.find(acc => acc.name.toLowerCase() === 'granite');
   const graniteUnitCost = graniteAccessory?.default_amount || 0;
   const graniteTotalCost = totalGraniteSqft * graniteUnitCost;
-
-  // Calculate total Tile area in square feet
-  const totalTileSqft = useMemo(() => {
-    let areaMm2 = 0;
-    const wallElev = project.settings.wallCabinetElevation || 600;
-    const counterThick = project.settings.counterThickness || 40;
-    const tileH = wallElev; // from top of counter to wall cabinet bottom is wallElev
-    project.zones.forEach(zone => {
-      zone.cabinets.forEach(cab => {
-        if (cab.type === CabinetType.BASE) {
-          areaMm2 += cab.width * tileH;
-        }
-      });
-    });
-    return areaMm2 / 92903.04;
-  }, [project.zones, project.settings.wallCabinetElevation]);
 
   const tileAccessory = accessories.find(acc => acc.name.toLowerCase() === 'tile');
   const tileUnitCost = tileAccessory?.default_amount || 0;
@@ -366,7 +271,7 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
           <Button 
             variant="secondary" 
             size="sm" 
-            onClick={() => isUserPro ? exportToExcel(data.groups, cutPlan, project) : navigate('/pricing')} 
+            onClick={() => isUserPro ? exportToExcel(data.groups, cutPlan, project, data, accessories, sheetTypes) : navigate('/pricing')} 
             className="h-9 text-[10px] sm:text-xs px-3 gap-1.5"
           >
             {isUserPro ? <FileSpreadsheet size={14} /> : <Lock size={12} className="text-amber-500" />}
@@ -421,34 +326,6 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
 
           {/* MATERIAL & HARDWARE SUMMARY */}
           <div className={`${activeView === 'list' ? 'grid' : 'hidden print:grid'} grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 break-inside-avoid`}>
-            {/* Sheet Material Summary */}
-            <div className="space-y-4">
-              <h3 className="text-lg sm:text-xl font-black uppercase tracking-widest flex items-center gap-2 border-b-2 border-black pb-2">
-                <Layers size={18} /> Sheet Materials
-              </h3>
-              <div className="overflow-x-auto border border-slate-200 dark:border-slate-800">
-                <table className="w-full text-xs sm:text-sm text-left border-collapse">
-                  <thead className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
-                    <tr>
-                      <th className="p-3 font-black uppercase text-[10px] tracking-wider text-slate-500">Material</th>
-                      <th className="p-3 font-black uppercase text-[10px] tracking-wider text-slate-500 text-center">Size</th>
-                      <th className="p-3 font-black uppercase text-[10px] tracking-wider text-slate-500 text-center">Qty</th>
-                      <th className="p-3 font-black uppercase text-[10px] tracking-wider text-slate-500 text-right">Cost</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {materialSummary.map((m) => (
-                      <tr key={m.material} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="p-3 font-bold text-slate-900 dark:text-white print:text-black">{m.material}</td>
-                        <td className="p-3 text-center font-mono text-slate-500">{m.dims}</td>
-                        <td className="p-3 text-center font-black text-lg text-amber-600">{m.sheets}</td>
-                        <td className="p-3 text-right font-medium">{currency}{m.cost.toFixed(2)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
 
             {/* Hardware Summary */}
             <div className="space-y-4">
@@ -513,25 +390,63 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
                         <td className="p-3 text-right font-medium">{currency}{(totalLegs * (accessories.find(a => a.name.toLowerCase().includes('adjustable leg'))?.default_amount || 2)).toFixed(2)}</td>
                       </tr>
                     )}
-                    {/* Other Accessories */}
-                    {accessories
-                      .filter(acc =>
-                        !acc.name.toLowerCase().includes('hinge') &&
-                        !acc.name.toLowerCase().includes('handle') &&
-                        !acc.name.toLowerCase().includes('knob') &&
-                        !acc.name.toLowerCase().includes('drawer slide') &&
-                        !acc.name.toLowerCase().includes('slide') &&
-                        !acc.name.toLowerCase().includes('adjustable leg') &&
-                        !acc.name.toLowerCase().includes('wall hanger') &&
-                        !acc.name.toLowerCase().includes('installation nail')
-                      )
-                      .map((acc) => (
-                        <tr key={acc.id} className="hover:bg-slate-50/50 transition-colors">
-                          <td className="p-3 font-bold text-slate-900 dark:text-white print:text-black">{acc.name}</td>
-                          <td className="p-3 text-center font-black text-amber-600">1</td>
-                          <td className="p-3 text-right font-medium">{currency}{acc.default_amount.toFixed(2)}</td>
-                        </tr>
-                      ))}
+                    {/* Other Hardware from Automated Calculation */}
+                    {Object.entries(data.hardwareSummary)
+                      .filter(([name]) => {
+                        const lower = name.toLowerCase();
+                        // Skip items already shown explicitly above
+                        return !lower.includes('hinge') && 
+                               !lower.includes('handle') && 
+                               !lower.includes('knob') && 
+                               !lower.includes('slide') &&
+                               !lower.includes('adjustable leg') &&
+                               !lower.includes('granite') &&
+                               !lower.includes('tile');
+                      })
+                      .map(([name, qty]) => {
+                        const acc = accessories.find(a => 
+                          a.name.toLowerCase() === name.toLowerCase() ||
+                          a.name.toLowerCase().includes(name.toLowerCase()) ||
+                          name.toLowerCase().includes(a.name.toLowerCase())
+                        );
+                        const unitCost = acc?.default_amount || project.settings.costs.pricePerHardwareUnit;
+                        return (
+                          <tr key={name} className="hover:bg-slate-50/50 transition-colors">
+                            <td className="p-3 font-bold text-slate-900 dark:text-white print:text-black">{name}</td>
+                            <td className="p-3 text-center font-black text-amber-600">{qty}</td>
+                            <td className="p-3 text-right font-medium">{currency}{(qty * unitCost).toFixed(2)}</td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Sheet Material Summary */}
+            <div className="space-y-4">
+              <h3 className="text-lg sm:text-xl font-black uppercase tracking-widest flex items-center gap-2 border-b-2 border-black pb-2">
+                <Layers size={18} /> Sheet Materials
+              </h3>
+              <div className="overflow-x-auto border border-slate-200 dark:border-slate-800">
+                <table className="w-full text-xs sm:text-sm text-left border-collapse">
+                  <thead className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+                    <tr>
+                      <th className="p-3 font-black uppercase text-[10px] tracking-wider text-slate-500">Material</th>
+                      <th className="p-3 font-black uppercase text-[10px] tracking-wider text-slate-500 text-center">Size</th>
+                      <th className="p-3 font-black uppercase text-[10px] tracking-wider text-slate-500 text-center">Qty</th>
+                      <th className="p-3 font-black uppercase text-[10px] tracking-wider text-slate-500 text-right">Cost</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {materialSummary.map((m) => (
+                      <tr key={m.material} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="p-3 font-bold text-slate-900 dark:text-white print:text-black">{m.material}</td>
+                        <td className="p-3 text-center font-mono text-slate-500">{m.dims}</td>
+                        <td className="p-3 text-center font-black text-lg text-amber-600">{m.sheets}</td>
+                        <td className="p-3 text-right font-medium">{currency}{m.cost.toFixed(2)}</td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>

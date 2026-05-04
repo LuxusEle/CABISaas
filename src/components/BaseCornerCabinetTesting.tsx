@@ -99,18 +99,14 @@ export const BaseCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
   const topStretcherBackHoles = useMemo(() => {
     if (!showNailHoles || !showBackStretchers) return [];
     
-    const length = width - panelThickness * 2;
+    const actualWidth = enableColumn ? width - panelThickness * 2 - columnWidth : width - panelThickness * 2;
     const technicalR = nailHoleDiameter / 2;
-    const y1 = -length / 2 + 50;
-    const y2 = 0;
-    const y3 = length / 2 - 50;
     const z = -topStretcherWidth / 2 + panelThickness / 2;
-    return [
-      { y: y1, z, r: technicalR, through: true },
-      { y: y2, z, r: technicalR, through: true },
-      { y: y3, z, r: technicalR, through: true }
-    ];
-  }, [showNailHoles, showBackStretchers, width, panelThickness, nailHoleDiameter, topStretcherWidth]);
+    
+    return calculateNailHolePositions(actualWidth).map(offset => ({
+      y: offset, z, r: technicalR, through: true
+    }));
+  }, [showNailHoles, showBackStretchers, width, panelThickness, nailHoleDiameter, topStretcherWidth, enableColumn, columnWidth]);
 
   const uprightX = blindCornerSide === 'left'
     ? -width / 2 + blindPanelWidth + panelThickness / 2
@@ -291,7 +287,7 @@ export const BaseCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
     return createPanelWithHolesGeo(
       panelThickness, actualWidth, topStretcherWidth,
       -topStretcherWidth / 2 + panelThickness + backPanelThickness, -topStretcherWidth / 2 + panelThickness,
-      grooveDepth, 'ny', topStretcherBackHoles.filter(h => Math.abs(h.y) < actualWidth/2), nailHoleDepth, 0, 0,
+      grooveDepth, 'ny', topStretcherBackHoles, nailHoleDepth, 0, 0,
       notches
     );
   }, [width, panelThickness, topStretcherWidth, backPanelThickness, grooveDepth, topStretcherBackHoles, nailHoleDepth, enableColumn, columnWidth]);
@@ -865,96 +861,597 @@ export const exportBaseCornerCabinetDXF = async (settings: TestingSettings, zip:
   const {
     width, height, depth, panelThickness, backPanelThickness,
     grooveDepth, toeKickHeight, backStretcherHeight, topStretcherWidth, blindPanelWidth, blindCornerSide,
-    showBackPanel, showShelves, numShelves, doorOuterGap
+    showBackPanel, showShelves, numShelves, doorOuterGap, enableColumn, columnWidth, columnDepth,
+    showBackStretchers, nailHoleDiameter, shelfHoleDiameter, doorMaterialThickness, hingeDiameter,
+    hingeHorizontalOffset, hingeVerticalOffset, nailHoleDepth, showNailHoles
   } = settings;
 
   const innerWidth = width;
   const innerHeight = height - toeKickHeight;
   const innerDepth = depth;
 
-  const doorWidth = width - blindPanelWidth - doorOuterGap * 2;
-  const doorHeight = innerHeight;
-  const isLeftDoor = blindCornerSide === 'left';
-  const hingeXOffset = isLeftDoor 
-    ? -doorWidth / 2 + settings.hingeHorizontalOffset 
-    : doorWidth / 2 - settings.hingeHorizontalOffset;
-
-  const addPanelToZip = (name: string, w: number, h: number, notch?: { x: number, y: number, w: number, h: number }, holesInput?: { y: number, z: number, r: number }[]) => {
+  const addPanelToZip = (
+    name: string, 
+    w: number, 
+    h: number, 
+    holes?: { y: number, z: number, r: number }[],
+    groove?: { x: number, y: number, w: number, h: number },
+    notches: { u: number, v: number, width: number, height: number, alignV: 'top' | 'bottom' | 'center' | 'left' | 'right', side?: 'uMax' | 'uMin' | 'vMax' | 'vMin' }[] = []
+  ) => {
     if (dataCollector) {
-      dataCollector({ name, width: w, height: h, holes: holesInput, cutouts: notch ? [notch] : [] });
+      dataCollector({ name, width: w, height: h, holes, groove, cutouts: notches });
     }
     if (!zip) return;
     const writer = new DxfWriter();
     writer.setUnits(Units.Millimeters);
     const modelSpace = writer.modelSpace;
     
-    const points = [
-      { point: { x: 0, y: 0 } },
-      { point: { x: w, y: 0 } }
-    ];
+    writer.addLayer('PANEL', 7, 'CONTINUOUS');
+    writer.addLayer('HOLES', 4, 'CONTINUOUS');
+    writer.addLayer('GROOVE', 3, 'CONTINUOUS');
 
-    if (notch) {
-      // In this coordinate system for DXF: 
-      // w is along X, h is along Y. 
-      // Shelf is exported as W x D. 
-      // Notch is at front (Y=h).
-      points.push({ point: { x: w, y: notch.y } });
-      points.push({ point: { x: notch.x + notch.w / 2, y: notch.y } });
-      points.push({ point: { x: notch.x + notch.w / 2, y: h - notch.h } });
-      points.push({ point: { x: notch.x - notch.w / 2, y: h - notch.h } });
-      points.push({ point: { x: notch.x - notch.w / 2, y: notch.y } });
+    const uMin = -w / 2;
+    const uMax = w / 2;
+    const vMin = -h / 2;
+    const vMax = h / 2;
+
+    const points: { x: number, y: number }[] = [];
+    const tol = 0.01;
+
+    // Filters for each side
+    const uMinNotches = notches.filter(n => n.side === 'uMin').map(n => {
+      const vMinRaw = n.alignV === 'top' ? n.v - n.height : (n.alignV === 'center' ? n.v - n.height/2 : n.v);
+      return { vMin: Math.max(vMin, vMinRaw), vMax: Math.min(vMax, vMinRaw + n.height), width: n.width };
+    }).sort((a, b) => a.vMin - b.vMin);
+
+    const uMaxNotches = notches.filter(n => n.side === 'uMax' || !n.side).map(n => {
+      const vMinRaw = n.alignV === 'top' ? n.v - n.height : (n.alignV === 'center' ? n.v - n.height/2 : n.v);
+      return { vMin: Math.max(vMin, vMinRaw), vMax: Math.min(vMax, vMinRaw + n.height), width: n.width };
+    }).sort((a, b) => a.vMin - b.vMin);
+
+    const vMinNotches = notches.filter(n => n.side === 'vMin').map(n => {
+      const uMinRaw = n.alignV === 'right' ? n.u - n.width : (n.alignV === 'center' ? n.u - n.width/2 : n.u);
+      return { uMin: Math.max(uMin, uMinRaw), uMax: Math.min(uMax, uMinRaw + n.width), height: n.height };
+    }).sort((a, b) => a.uMin - b.uMin);
+
+    const vMaxNotches = notches.filter(n => n.side === 'vMax').map(n => {
+      const uMinRaw = n.alignV === 'right' ? n.u - n.width : (n.alignV === 'center' ? n.u - n.width/2 : n.u);
+      return { uMin: Math.max(uMin, uMinRaw), uMax: Math.min(uMax, uMinRaw + n.width), height: n.height };
+    }).sort((a, b) => a.uMin - b.uMin);
+
+    // 1. Bottom edge (vMin) - Go from uMin to uMax
+    const vMinCornerNotchL_u = uMinNotches.find(n => Math.abs(n.vMin - vMin) < tol);
+    const vMinCornerNotchL_v = vMinNotches.find(n => Math.abs(n.uMin - uMin) < tol);
+    const vMinCornerNotchL = !!(vMinCornerNotchL_u || vMinCornerNotchL_v);
+
+    const vMinCornerNotchR_u = uMaxNotches.find(n => Math.abs(n.vMin - vMin) < tol);
+    const vMinCornerNotchR_v = vMinNotches.find(n => Math.abs(n.uMax - uMax) < tol);
+    const vMinCornerNotchR = !!(vMinCornerNotchR_u || vMinCornerNotchR_v);
+    
+    let currentU = vMinCornerNotchL_u ? uMin + vMinCornerNotchL_u.width : (vMinCornerNotchL_v ? vMinCornerNotchL_v.uMax : uMin);
+    const uMaxBound = vMinCornerNotchR_u ? uMax - vMinCornerNotchR_u.width : (vMinCornerNotchR_v ? vMinCornerNotchR_v.uMin : uMax);
+
+    if (vMinNotches.length > 0 || vMinCornerNotchL || vMinCornerNotchR) {
+      if (!vMinCornerNotchL) points.push({ x: uMin, y: vMin });
+      vMinNotches.forEach(n => {
+        if (n.uMin > currentU + tol) points.push({ x: n.uMin, y: vMin });
+        points.push({ x: n.uMin, y: vMin + n.height });
+        points.push({ x: n.uMax, y: vMin + n.height });
+        if (n.uMax < uMaxBound - tol) points.push({ x: n.uMax, y: vMin });
+        currentU = n.uMax;
+      });
+      if (!vMinCornerNotchR && currentU < uMax - tol) points.push({ x: uMax, y: vMin });
+    } else {
+      points.push({ x: uMin, y: vMin });
+      points.push({ x: uMax, y: vMin });
     }
 
-    points.push({ point: { x: 0, y: h } });
-    points.push({ point: { x: 0, y: 0 } });
+    // 2. Right edge (uMax) - Go from vMin to vMax
+    const uMaxCornerNotchB_v = vMinNotches.find(n => Math.abs(n.uMax - uMax) < tol);
+    const uMaxCornerNotchB_u = uMaxNotches.find(n => Math.abs(n.vMin - vMin) < tol);
+    const uMaxCornerNotchB = !!(uMaxCornerNotchB_v || uMaxCornerNotchB_u);
 
-    modelSpace.addLWPolyline(points, { flags: LWPolylineFlags.Closed });
+    const uMaxCornerNotchT_v = vMaxNotches.find(n => Math.abs(n.uMax - uMax) < tol);
+    const uMaxCornerNotchT_u = uMaxNotches.find(n => Math.abs(n.vMax - vMax) < tol);
+    const uMaxCornerNotchT = !!(uMaxCornerNotchT_v || uMaxCornerNotchT_u);
+    
+    let currentV = uMaxCornerNotchB_v ? vMin + uMaxCornerNotchB_v.height : (uMaxCornerNotchB_u ? uMaxCornerNotchB_u.vMax : vMin);
+    const vMaxBound = uMaxCornerNotchT_v ? vMax - uMaxCornerNotchT_v.height : (uMaxCornerNotchT_u ? uMaxCornerNotchT_u.vMin : vMax);
 
-    if (holesInput) {
-      writer.addLayer('HOLES', 4, 'CONTINUOUS');
-      holesInput.forEach(hole => {
+    if (uMaxNotches.length > 0 || uMaxCornerNotchB || uMaxCornerNotchT) {
+      if (!uMaxCornerNotchB) points.push({ x: uMax, y: vMin });
+      uMaxNotches.forEach(n => {
+        if (n.vMin > currentV + tol) points.push({ x: uMax, y: n.vMin });
+        points.push({ x: uMax - n.width, y: n.vMin });
+        points.push({ x: uMax - n.width, y: n.vMax });
+        if (n.vMax < vMaxBound - tol) points.push({ x: uMax, y: n.vMax });
+        currentV = n.vMax;
+      });
+      if (!uMaxCornerNotchT && currentV < vMax - tol) points.push({ x: uMax, y: vMax });
+    } else {
+      points.push({ x: uMax, y: vMax });
+    }
+
+    // 3. Top edge (vMax) - Go from uMax to uMin
+    const vMaxCornerNotchR_u = uMaxNotches.find(n => Math.abs(n.vMax - vMax) < tol);
+    const vMaxCornerNotchR_v = vMaxNotches.find(n => Math.abs(n.uMax - uMax) < tol);
+    const vMaxCornerNotchR = !!(vMaxCornerNotchR_u || vMaxCornerNotchR_v);
+
+    const vMaxCornerNotchL_u = uMinNotches.find(n => Math.abs(n.vMax - vMax) < tol);
+    const vMaxCornerNotchL_v = vMaxNotches.find(n => Math.abs(n.uMin - uMin) < tol);
+    const vMaxCornerNotchL = !!(vMaxCornerNotchL_u || vMaxCornerNotchL_v);
+    
+    currentU = vMaxCornerNotchR_u ? uMax - vMaxCornerNotchR_u.width : (vMaxCornerNotchR_v ? vMaxCornerNotchR_v.uMin : uMax);
+    const uMinBound = vMaxCornerNotchL_u ? uMin + vMaxCornerNotchL_u.width : (vMaxCornerNotchL_v ? vMaxCornerNotchL_v.uMax : uMin);
+
+    if (vMaxNotches.length > 0 || vMaxCornerNotchR || vMaxCornerNotchL) {
+      if (!vMaxCornerNotchR) points.push({ x: uMax, y: vMax });
+      const vMaxNotchesRev = [...vMaxNotches].reverse();
+      vMaxNotchesRev.forEach(n => {
+        if (n.uMax < currentU - tol) points.push({ x: n.uMax, y: vMax });
+        points.push({ x: n.uMax, y: vMax - n.height });
+        points.push({ x: n.uMin, y: vMax - n.height });
+        if (n.uMin > uMinBound + tol) points.push({ x: n.uMin, y: vMax });
+        currentU = n.uMin;
+      });
+      if (!vMaxCornerNotchL && currentU > uMin + tol) points.push({ x: uMin, y: vMax });
+    } else {
+      points.push({ x: uMin, y: vMax });
+    }
+
+    // 4. Left edge (uMin) - Go from vMax to vMin
+    const uMinCornerNotchT_v = vMaxNotches.find(n => Math.abs(n.uMin - uMin) < tol);
+    const uMinCornerNotchT_u = uMinNotches.find(n => Math.abs(n.vMax - vMax) < tol);
+    const uMinCornerNotchT = !!(uMinCornerNotchT_v || uMinCornerNotchT_u);
+
+    const uMinCornerNotchB_v = vMinNotches.find(n => Math.abs(n.uMin - uMin) < tol);
+    const uMinCornerNotchB_u = uMinNotches.find(n => Math.abs(n.vMin - vMin) < tol);
+    const uMinCornerNotchB = !!(uMinCornerNotchB_v || uMinCornerNotchB_u);
+    
+    currentV = uMinCornerNotchT_v ? vMax - uMinCornerNotchT_v.height : (uMinCornerNotchT_u ? uMinCornerNotchT_u.vMin : vMax);
+    const vMinBound = uMinCornerNotchB_v ? vMin + uMinCornerNotchB_v.height : (uMinCornerNotchB_u ? uMinCornerNotchB_u.vMax : vMin);
+
+    if (uMinNotches.length > 0 || uMinCornerNotchT || uMinCornerNotchB) {
+      if (!uMinCornerNotchT) points.push({ x: uMin, y: vMax });
+      const uMinNotchesRev = [...uMinNotches].reverse();
+      uMinNotchesRev.forEach(n => {
+        if (n.vMax < currentV - tol) points.push({ x: uMin, y: n.vMax });
+        points.push({ x: uMin + n.width, y: n.vMax });
+        points.push({ x: uMin + n.width, y: n.vMin });
+        if (n.vMin > vMinBound + tol) points.push({ x: uMin, y: n.vMin });
+        currentV = n.vMin;
+      });
+      if (!uMinCornerNotchB && currentV > vMin + tol) points.push({ x: uMin, y: vMin });
+    } else {
+      points.push({ x: uMin, y: vMin });
+    }
+
+
+    const dxfPoints = points.map(p => ({ point: { x: p.x + w/2, y: p.y + h/2 } }));
+    modelSpace.addLWPolyline(dxfPoints, { flags: LWPolylineFlags.Closed, layerName: 'PANEL' });
+
+    if (holes) {
+      holes.forEach(hole => {
         modelSpace.addCircle(point3d(w/2 + hole.z, h/2 + hole.y, 0), hole.r, { layerName: 'HOLES' });
       });
+    }
+
+    if (groove) {
+      modelSpace.addLWPolyline([
+        { point: { x: groove.x, y: groove.y } },
+        { point: { x: groove.x + groove.w, y: groove.y } },
+        { point: { x: groove.x + groove.w, y: groove.y + groove.h } },
+        { point: { x: groove.x, y: groove.y + groove.h } }
+      ], { flags: LWPolylineFlags.Closed, layerName: 'GROOVE' });
     }
 
     modelSpace.addText(point3d(w/2, h/2, 0), 10, name);
     zip.file(`${name}.dxf`, writer.stringify());
   };
 
-  addPanelToZip('Left_Panel', depth, innerHeight - panelThickness);
-  addPanelToZip('Right_Panel', depth, innerHeight - panelThickness);
-  addPanelToZip('Bottom_Panel', width, depth);
-  addPanelToZip('Front_Blind_Panel', blindPanelWidth - doorOuterGap * 2, innerHeight);
-  
-  const hingeHoles = [{ y: doorHeight / 2 - settings.hingeVerticalOffset, z: hingeXOffset, r: settings.hingeDiameter / 2 }, { y: -doorHeight / 2 + settings.hingeVerticalOffset, z: hingeXOffset, r: settings.hingeDiameter / 2 }];
-  addPanelToZip('Front_Door', doorWidth, doorHeight, undefined, hingeHoles);
-  const supportH = innerHeight - panelThickness * 2;
-  addPanelToZip('Internal_Support', topStretcherWidth, supportH);
-  
-  if (showBackPanel) {
-    addPanelToZip('Back_Panel', width - panelThickness * 2 + grooveDepth * 2, innerHeight - panelThickness * 2 + grooveDepth * 2);
+
+  const isGolaActive = settings.enableGola && settings.showDoors;
+  const isDoorOnLeft = blindCornerSide === 'right';
+  const isDoorOnRight = blindCornerSide === 'left';
+  const uprightX = blindCornerSide === 'left' ? -width / 2 + blindPanelWidth + panelThickness / 2 : width / 2 - blindPanelWidth - panelThickness / 2;
+
+  // Left Panel
+  const isLShort = enableColumn && blindCornerSide === 'left';
+  const leftW = isLShort ? depth - columnDepth : depth;
+  const leftH = innerHeight - panelThickness;
+  const leftHoles: any[] = [];
+  const leftNotches: any[] = [];
+  const shouldMirrorL = true;
+  if (isGolaActive && isDoorOnLeft) {
+    leftNotches.push({ u: -leftW / 2, v: leftH / 2, width: settings.golaLCutoutDepth, height: settings.golaLCutoutHeight, alignV: 'top', side: 'uMin' });
   }
 
-  const stretcherW = width - panelThickness * 2;
-  addPanelToZip('Top_Stretcher_Front', stretcherW, topStretcherWidth);
-  addPanelToZip('Top_Stretcher_Back', stretcherW, topStretcherWidth);
-  addPanelToZip('Back_Stretcher_Top', stretcherW, backStretcherHeight);
-  addPanelToZip('Back_Stretcher_Bottom', stretcherW, backStretcherHeight);
+  // Calculate Holes for Left Panel
+  const zOffsetL = isLShort ? columnDepth / 2 : 0;
+  // Top front stretcher
+  const yStr = leftH / 2 - panelThickness / 2;
+  const golaLDepthOffset = (isGolaActive && isDoorOnLeft) ? settings.golaLCutoutDepth : 0;
+  const rebatedWidth = topStretcherWidth - golaLDepthOffset;
+  const zCenterFrontGlobal = depth / 2 - golaLDepthOffset - rebatedWidth / 2;
+  calculateNailHolePositions(rebatedWidth).forEach(offset => {
+    const z = (zCenterFrontGlobal + offset) - zOffsetL;
+    leftHoles.push({ y: yStr, z: shouldMirrorL ? -z : z, r: nailHoleDiameter / 2 });
+  });
+  // Top back stretcher
+  const zCenterBackGlobal = -depth / 2 + topStretcherWidth / 2;
+  if (!isLShort) {
+    calculateNailHolePositions(topStretcherWidth).forEach(offset => {
+      const z = (zCenterBackGlobal + offset) - zOffsetL;
+      leftHoles.push({ y: yStr, z: shouldMirrorL ? -z : z, r: nailHoleDiameter / 2 });
+    });
+  }
 
-  if (showShelves && numShelves > 0) {
-    const shelfW = width - panelThickness * 2 - 2;
-    const shelfD = depth - panelThickness - backPanelThickness - 2;
-    const notchV = blindCornerSide === 'left' ? -shelfW / 2 + blindPanelWidth : shelfW / 2 - blindPanelWidth;
+  if (showBackStretchers && !isLShort) {
+    const zBackStretcher = -depth / 2 + panelThickness / 2;
+    const yTopBackMax = leftH / 2;
+    const yBottomBackMin = -leftH / 2 + panelThickness;
     
+    [
+      yTopBackMax - (backStretcherHeight / 4) - panelThickness,
+      yTopBackMax - (backStretcherHeight * 3 / 4) - panelThickness,
+      (yBottomBackMin + (backStretcherHeight / 4)) - panelThickness,
+      (yBottomBackMin + (backStretcherHeight * 3 / 4)) - panelThickness
+    ].forEach(y => {
+      const z = zBackStretcher - zOffsetL;
+      leftHoles.push({ y, z: shouldMirrorL ? -z : z, r: nailHoleDiameter / 2 });
+    });
+  }
+  // Column attachment if blind
+  if (isLShort) {
+    const zAttach = -leftW / 2 + panelThickness / 2;
+    calculateNailHolePositions(leftH).forEach(offset => {
+      leftHoles.push({ y: offset, z: shouldMirrorL ? -zAttach : zAttach, r: nailHoleDiameter / 2 });
+    });
+  }
+  // Shelf holes
+  if (showShelves && numShelves > 0) {
+    const availableHeight = innerHeight - panelThickness * 2;
+    const spacing = availableHeight / (numShelves + 1);
+    const shelfLengthFull = depth - panelThickness - backPanelThickness;
+    const shelfZStartGlobal = -depth / 2 + panelThickness + backPanelThickness;
+    const zCenterShelfFull = shelfZStartGlobal + shelfLengthFull / 2;
     for (let i = 0; i < numShelves; i++) {
-      addPanelToZip(`Shelf_${i + 1}`, shelfW, shelfD, { 
-        x: shelfW / 2 + notchV, 
-        y: shelfD, 
-        w: panelThickness + 2, 
-        h: topStretcherWidth 
-      });
+      const shelfYCabinet = -innerHeight / 2 + panelThickness + spacing * (i + 1);
+      const holeY = shelfYCabinet - panelThickness - (shelfHoleDiameter / 2) - panelThickness / 2;
+      if (isLShort) {
+        const z1 = (depth / 2 - 50) - zOffsetL;
+        const z2 = (-depth / 2 + columnDepth + 50) - zOffsetL;
+        leftHoles.push({ y: holeY, z: shouldMirrorL ? -z1 : z1, r: shelfHoleDiameter / 2 });
+        leftHoles.push({ y: holeY, z: shouldMirrorL ? -z2 : z2, r: shelfHoleDiameter / 2 });
+      } else {
+        const shelfHoleOffsets = calculateNailHolePositions(shelfLengthFull);
+        [shelfHoleOffsets[0], shelfHoleOffsets[shelfHoleOffsets.length - 1]].forEach(offset => {
+          const z = (zCenterShelfFull + offset) - zOffsetL;
+          leftHoles.push({ y: holeY, z: shouldMirrorL ? -z : z, r: shelfHoleDiameter / 2 });
+        });
+      }
     }
   }
 
+  // Groove only if not shortened blind side
+  const leftGrooveX = shouldMirrorL ? leftW - panelThickness - (backPanelThickness + 2) : panelThickness;
+  const leftGroove = !isLShort ? { x: leftGrooveX, y: 0, w: backPanelThickness + 2, h: leftH - panelThickness } : undefined;
+  addPanelToZip('Left_Panel', leftW, leftH, leftHoles, leftGroove, leftNotches);
+
+  // Right Panel
+  const isRShort = enableColumn && blindCornerSide === 'right';
+  const rightW = isRShort ? depth - columnDepth : depth;
+  const rightH = innerHeight - panelThickness;
+  const rightHoles: any[] = [];
+  const rightNotches: any[] = [];
+  if (isGolaActive && isDoorOnRight) {
+    rightNotches.push({ u: rightW / 2, v: rightH / 2, width: settings.golaLCutoutDepth, height: settings.golaLCutoutHeight, alignV: 'top' });
+  }
+
+  // Calculate Holes for Right Panel
+  const zOffsetR = isRShort ? columnDepth / 2 : 0;
+  const golaRDepthOffset = (isGolaActive && isDoorOnRight) ? settings.golaLCutoutDepth : 0;
+  const rebatedWidthR = topStretcherWidth - golaRDepthOffset;
+  const zCenterFrontGlobalR = depth / 2 - golaRDepthOffset - rebatedWidthR / 2;
+  calculateNailHolePositions(rebatedWidthR).forEach(offset => {
+    rightHoles.push({ y: yStr, z: (zCenterFrontGlobalR + offset) - zOffsetR, r: nailHoleDiameter / 2 });
+  });
+  if (!isRShort) {
+    calculateNailHolePositions(topStretcherWidth).forEach(offset => {
+      rightHoles.push({ y: yStr, z: (zCenterBackGlobal + offset) - zOffsetR, r: nailHoleDiameter / 2 });
+    });
+  }
+
+  if (showBackStretchers && !isRShort) {
+    const zBackStretcher = -depth / 2 + panelThickness / 2;
+    const yTopBackMax = rightH / 2;
+    const yBottomBackMin = -rightH / 2 + panelThickness;
+    
+    [
+      yTopBackMax - (backStretcherHeight / 4) - panelThickness,
+      yTopBackMax - (backStretcherHeight * 3 / 4) - panelThickness,
+      (yBottomBackMin + (backStretcherHeight / 4)) - panelThickness,
+      (yBottomBackMin + (backStretcherHeight * 3 / 4)) - panelThickness
+    ].forEach(y => {
+      const z = zBackStretcher - zOffsetR;
+      rightHoles.push({ y, z, r: nailHoleDiameter / 2 });
+    });
+  }
+  if (isRShort) {
+    const zAttach = -rightW / 2 + panelThickness / 2;
+    calculateNailHolePositions(rightH).forEach(offset => {
+      rightHoles.push({ y: offset, z: zAttach, r: nailHoleDiameter / 2 });
+    });
+  }
+  if (showShelves && numShelves > 0) {
+    const availableHeight = innerHeight - panelThickness * 2;
+    const spacing = availableHeight / (numShelves + 1);
+    const shelfLengthFull = depth - panelThickness - backPanelThickness;
+    const shelfZStartGlobal = -depth / 2 + panelThickness + backPanelThickness;
+    const zCenterShelfFull = shelfZStartGlobal + shelfLengthFull / 2;
+    for (let i = 0; i < numShelves; i++) {
+      const shelfYCabinet = -innerHeight / 2 + panelThickness + spacing * (i + 1);
+      const holeY = shelfYCabinet - panelThickness - (shelfHoleDiameter / 2) - panelThickness / 2;
+      if (isRShort) {
+        rightHoles.push({ y: holeY, z: (depth / 2 - 50) - zOffsetR, r: shelfHoleDiameter / 2 });
+        rightHoles.push({ y: holeY, z: (-depth / 2 + columnDepth + 50) - zOffsetR, r: shelfHoleDiameter / 2 });
+      } else {
+        const shelfHoleOffsets = calculateNailHolePositions(shelfLengthFull);
+        [shelfHoleOffsets[0], shelfHoleOffsets[shelfHoleOffsets.length - 1]].forEach(offset => {
+          rightHoles.push({ y: holeY, z: (zCenterShelfFull + offset) - zOffsetR, r: shelfHoleDiameter / 2 });
+        });
+      }
+    }
+  }
+
+  // Groove only if not shortened blind side
+  const rightGroove = !isRShort ? { x: panelThickness, y: 0, w: backPanelThickness + 2, h: rightH - panelThickness } : undefined;
+  addPanelToZip('Right_Panel', rightW, rightH, rightHoles, rightGroove, rightNotches);
+
+  // Bottom Panel
+  const bottomHoles: any[] = [];
+  const bottomNotches: any[] = [];
+  // ... (Holes for Bottom Panel)
+  // Toekick
+  const tkZ = depth / 2 - 50 - panelThickness / 2;
+  calculateNailHolePositions(innerWidth).forEach(offset => {
+    bottomHoles.push({ z: offset, y: -tkZ, r: nailHoleDiameter / 2 });
+  });
+
+  // Side Panels
+  const lpX = -innerWidth / 2 + panelThickness / 2;
+  const rpX = innerWidth / 2 - panelThickness / 2;
+  calculateNailHolePositions(leftW).forEach(offset => {
+    const centerZ = isLShort ? depth / 2 - leftW / 2 : 0;
+    bottomHoles.push({ z: lpX, y: -(centerZ + offset), r: nailHoleDiameter / 2 });
+  });
+  calculateNailHolePositions(rightW).forEach(offset => {
+    const centerZ = isRShort ? depth / 2 - rightW / 2 : 0;
+    bottomHoles.push({ z: rpX, y: -(centerZ + offset), r: nailHoleDiameter / 2 });
+  });
+
+  // Column
+  if (enableColumn) {
+    const columnSideX = blindCornerSide === 'left' ? -width / 2 + columnWidth + panelThickness / 2 : width / 2 - columnWidth - panelThickness / 2;
+    const columnSideCenterZ = -depth / 2 + columnDepth / 2;
+    calculateNailHolePositions(columnDepth).forEach(offset => {
+      bottomHoles.push({ z: columnSideX, y: -(columnSideCenterZ + offset), r: nailHoleDiameter / 2 });
+    });
+
+    const columnBackCenterY = blindCornerSide === 'left' ? -width / 2 + columnWidth / 2 + panelThickness : width / 2 - columnWidth / 2 - panelThickness;
+    const columnBackZ = -depth / 2 + columnDepth + panelThickness / 2;
+    calculateNailHolePositions(columnWidth).forEach(offset => {
+      bottomHoles.push({ z: columnBackCenterY + offset, y: -columnBackZ, r: nailHoleDiameter / 2 });
+    });
+  }
+
+  // Back Bottom Stretcher
+  if (showBackStretchers) {
+    const bbsZ = -depth / 2 + panelThickness / 2;
+    const backWidth = enableColumn ? innerWidth - columnWidth : innerWidth;
+    const startX = (enableColumn && blindCornerSide === 'left') ? -innerWidth / 2 + columnWidth : -innerWidth / 2;
+    calculateNailHolePositions(backWidth).forEach(offset => {
+      bottomHoles.push({ z: startX + backWidth / 2 + offset, y: -bbsZ, r: nailHoleDiameter / 2 });
+    });
+  }
+
+  // Internal divider / Vertical Support
+  const zCenterUpright = depth / 2 - topStretcherWidth / 2;
+  calculateNailHolePositions(topStretcherWidth).forEach(offset => {
+    bottomHoles.push({ z: uprightX, y: -(zCenterUpright + offset), r: nailHoleDiameter / 2 });
+  });
+  
+  if (enableColumn) {
+    bottomNotches.push({
+      u: blindCornerSide === 'left' ? -width / 2 : width / 2,
+      v: depth / 2,
+      width: columnWidth,
+      height: columnDepth,
+      alignV: 'top',
+      side: blindCornerSide === 'left' ? 'uMin' : 'uMax'
+    });
+  }
+  
+  // Groove length adjusted for column and side panels
+  const bGrooveX_base = panelThickness - grooveDepth;
+  const bGrooveW_base = width - panelThickness * 2 + grooveDepth * 2;
+  const bGrooveW = enableColumn ? bGrooveW_base - columnWidth : bGrooveW_base;
+  const bGrooveX = (enableColumn && blindCornerSide === 'left') ? bGrooveX_base + columnWidth : bGrooveX_base;
+  addPanelToZip('Bottom_Panel', width, depth, bottomHoles, { x: bGrooveX, y: depth - panelThickness - backPanelThickness - 2, w: bGrooveW, h: backPanelThickness + 2 }, bottomNotches);
+
+
+
+
+
+
+  // Front Blind Panel
+  const fbpW = blindPanelWidth - doorOuterGap * 2;
+  const fbpH = innerHeight - doorOuterGap;
+  const fbpHoles: any[] = [];
+  const technicalR = nailHoleDiameter / 2;
+
+  // Top front stretcher
+  const yTopStretcher = fbpH / 2 - panelThickness / 2;
+  calculateNailHolePositions(fbpW).forEach(offset => {
+    fbpHoles.push({ y: yTopStretcher, z: offset, r: technicalR });
+  });
+
+  // Bottom panel
+  const yBottomPanel = -fbpH / 2 + panelThickness / 2;
+  calculateNailHolePositions(fbpW).forEach(offset => {
+    fbpHoles.push({ y: yBottomPanel, z: offset, r: technicalR });
+  });
+
+  // Side panel
+  const sidePanelLocalX = blindCornerSide === 'left' 
+    ? panelThickness / 2 - blindPanelWidth / 2 
+    : blindPanelWidth / 2 - panelThickness / 2;
+    
+  calculateNailHolePositions(fbpH).forEach(offset => {
+    fbpHoles.push({ y: offset, z: sidePanelLocalX, r: technicalR });
+  });
+
+  addPanelToZip('Front_Blind_Panel', fbpW, fbpH, fbpHoles);
+  
+  // Door
+  const doorWidth = width - blindPanelWidth - doorOuterGap * 2;
+  const doorHeight = innerHeight - (isGolaActive ? settings.doorOverride : 0);
+  const isLeftDoor = blindCornerSide === 'left';
+  const hingeX = isLeftDoor ? -doorWidth / 2 + hingeHorizontalOffset : doorWidth / 2 - hingeHorizontalOffset;
+  const hingeHoles = [
+    { y: doorHeight / 2 - hingeVerticalOffset, z: hingeX, r: hingeDiameter / 2 }, 
+    { y: -doorHeight / 2 + hingeVerticalOffset, z: hingeX, r: hingeDiameter / 2 }
+  ];
+  addPanelToZip('Front_Door', doorWidth, doorHeight, hingeHoles);
+
+  // Internal Support
+  const supportH = innerHeight - panelThickness * 2;
+  addPanelToZip('Internal_Support', topStretcherWidth, supportH);
+  
+  // Back Panel
+  if (showBackPanel) {
+    const backW = innerWidth - panelThickness * 2 + grooveDepth * 2 - (enableColumn ? columnWidth : 0);
+    const backH = innerHeight - panelThickness * 2 + grooveDepth * 2;
+    addPanelToZip('Back_Panel', backW, backH);
+  }
+
+  // Top Stretchers
+  const stretcherW = innerWidth - panelThickness * 2;
+  const dXFFrontHoles: any[] = [];
+  const dXFFrontNotches: any[] = [];
+  const doorCoverageLength = innerWidth - blindPanelWidth - panelThickness * 2;
+  
+  if (showNailHoles) {
+    const technicalR = nailHoleDiameter / 2;
+    calculateNailHolePositions(topStretcherWidth).forEach(offset => {
+      dXFFrontHoles.push({ z: uprightX, y: offset, r: technicalR });
+    });
+  }
+  
+  if (isGolaActive) {
+    dXFFrontNotches.push({
+      u: isDoorOnLeft ? -stretcherW / 2 : stretcherW / 2,
+      v: topStretcherWidth / 2,
+      width: doorCoverageLength,
+      height: settings.golaLCutoutDepth,
+      alignV: isDoorOnLeft ? 'left' : 'right',
+      side: 'vMax'
+    });
+  }
+  addPanelToZip('Top_Stretcher_Front', stretcherW, topStretcherWidth, dXFFrontHoles, undefined, dXFFrontNotches);
+  const topBackActualW = enableColumn ? width - panelThickness * 2 - columnWidth : width - panelThickness * 2;
+  
+  let dXFBackHoles: any[] = [];
+  if (showNailHoles && showBackStretchers) {
+    const technicalR = nailHoleDiameter / 2;
+    const yBackHole = -topStretcherWidth / 2 + panelThickness / 2;
+    dXFBackHoles = calculateNailHolePositions(topBackActualW).map(offset => ({
+      z: offset, y: yBackHole, r: technicalR
+    }));
+  }
+  addPanelToZip('Top_Stretcher_Back', topBackActualW, topStretcherWidth, dXFBackHoles, { x: 0, y: panelThickness, w: topBackActualW, h: backPanelThickness + 2 });
+
+  // Back Stretchers
+  if (showBackStretchers) {
+    const backStretcherW = innerWidth - panelThickness * 2 - (enableColumn ? columnWidth : 0);
+    addPanelToZip('Back_Stretcher_Top', backStretcherW, backStretcherHeight);
+    addPanelToZip('Back_Stretcher_Bottom', backStretcherW, backStretcherHeight);
+  }
+
+  // Column Return Panels
+  if (enableColumn) {
+    const sidePanelHeight = innerHeight - panelThickness;
+    const csrHoles: any[] = [];
+    const technicalR = nailHoleDiameter / 2;
+    const isBlindLeft = blindCornerSide === 'left';
+
+    // Top Stretcher Back connection
+    const yTopStretcher = sidePanelHeight / 2 - panelThickness / 2;
+    const zBack1 = -columnDepth / 2 + (topStretcherWidth / 4);
+    const zBack2 = -columnDepth / 2 + (topStretcherWidth * 3 / 4);
+    csrHoles.push({ y: yTopStretcher, z: isBlindLeft ? -zBack1 : zBack1, r: technicalR });
+    csrHoles.push({ y: yTopStretcher, z: isBlindLeft ? -zBack2 : zBack2, r: technicalR });
+
+    if (showBackStretchers) {
+      const zBackStretcher = -columnDepth / 2 + panelThickness / 2;
+      const yTopBackMax = sidePanelHeight / 2;
+      csrHoles.push({ y: yTopBackMax - (backStretcherHeight / 4) - panelThickness, z: isBlindLeft ? -zBackStretcher : zBackStretcher, r: technicalR });
+      csrHoles.push({ y: yTopBackMax - (backStretcherHeight * 3 / 4) - panelThickness, z: isBlindLeft ? -zBackStretcher : zBackStretcher, r: technicalR });
+      
+      const yBottomBackMin = -sidePanelHeight / 2 + panelThickness;
+      csrHoles.push({ y: (yBottomBackMin + (backStretcherHeight / 4)) - panelThickness, z: isBlindLeft ? -zBackStretcher : zBackStretcher, r: technicalR });
+      csrHoles.push({ y: (yBottomBackMin + (backStretcherHeight * 3 / 4)) - panelThickness, z: isBlindLeft ? -zBackStretcher : zBackStretcher, r: technicalR });
+    }
+
+    if (showShelves && numShelves > 0) {
+      const availableHeight = innerHeight - panelThickness * 2;
+      const spacing = availableHeight / (numShelves + 1);
+      const sR = shelfHoleDiameter / 2;
+      for (let i = 0; i < numShelves; i++) {
+        const shelfYCabinet = -innerHeight / 2 + panelThickness + spacing * (i + 1);
+        const holeY = shelfYCabinet - panelThickness - (shelfHoleDiameter / 2) - panelThickness / 2;
+        const localZ = (panelThickness + backPanelThickness + 50) - (columnDepth / 2);
+        csrHoles.push({ y: holeY, z: isBlindLeft ? -localZ : localZ, r: sR });
+      }
+    }
+
+    const grooveX = isBlindLeft ? columnDepth - panelThickness - (backPanelThickness + 2) : panelThickness;
+    addPanelToZip('Column_Side_Return', columnDepth, sidePanelHeight, csrHoles, { x: grooveX, y: 0, w: backPanelThickness + 2, h: sidePanelHeight - (panelThickness - grooveDepth) });
+    
+    const cbHoles: any[] = [];
+    calculateNailHolePositions(sidePanelHeight).forEach(offset => {
+      const zAttach = blindCornerSide === 'left' ? columnWidth / 2 - panelThickness / 2 : -columnWidth / 2 + panelThickness / 2;
+      cbHoles.push({ y: offset, z: zAttach, r: nailHoleDiameter / 2 });
+    });
+    addPanelToZip('Column_Back_Return', columnWidth, sidePanelHeight, cbHoles);
+  }
+
+  // Shelves
+  if (showShelves && numShelves > 0) {
+    const shelfW = width - panelThickness * 2 - 2;
+    const shelfD = depth - panelThickness - backPanelThickness - 2;
+    const shelfNotchX = uprightX; 
+    
+    for (let i = 0; i < numShelves; i++) {
+      const notches: any[] = [
+        { u: shelfNotchX, v: -shelfD / 2, width: panelThickness + 2, height: topStretcherWidth, alignV: 'bottom', side: 'vMin' }
+      ];
+      if (enableColumn) {
+        notches.push({
+          u: blindCornerSide === 'left' ? -shelfW / 2 : shelfW / 2,
+          v: shelfD / 2,
+          width: columnWidth,
+          height: columnDepth - backPanelThickness,
+          alignV: 'top',
+          side: blindCornerSide === 'left' ? 'uMin' : 'uMax'
+        });
+      }
+
+      addPanelToZip(`Shelf_${i + 1}`, shelfW, shelfD, [], undefined, notches);
+    }
+  }
+
+
   addPanelToZip('Toe_Kick', width, toeKickHeight);
 };
+
