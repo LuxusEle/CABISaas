@@ -99,18 +99,14 @@ export const BaseCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
   const topStretcherBackHoles = useMemo(() => {
     if (!showNailHoles || !showBackStretchers) return [];
     
-    const length = width - panelThickness * 2;
+    const actualWidth = enableColumn ? width - panelThickness * 2 - columnWidth : width - panelThickness * 2;
     const technicalR = nailHoleDiameter / 2;
-    const y1 = -length / 2 + 50;
-    const y2 = 0;
-    const y3 = length / 2 - 50;
     const z = -topStretcherWidth / 2 + panelThickness / 2;
-    return [
-      { y: y1, z, r: technicalR, through: true },
-      { y: y2, z, r: technicalR, through: true },
-      { y: y3, z, r: technicalR, through: true }
-    ];
-  }, [showNailHoles, showBackStretchers, width, panelThickness, nailHoleDiameter, topStretcherWidth]);
+    
+    return calculateNailHolePositions(actualWidth).map(offset => ({
+      y: offset, z, r: technicalR, through: true
+    }));
+  }, [showNailHoles, showBackStretchers, width, panelThickness, nailHoleDiameter, topStretcherWidth, enableColumn, columnWidth]);
 
   const uprightX = blindCornerSide === 'left'
     ? -width / 2 + blindPanelWidth + panelThickness / 2
@@ -291,7 +287,7 @@ export const BaseCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
     return createPanelWithHolesGeo(
       panelThickness, actualWidth, topStretcherWidth,
       -topStretcherWidth / 2 + panelThickness + backPanelThickness, -topStretcherWidth / 2 + panelThickness,
-      grooveDepth, 'ny', topStretcherBackHoles.filter(h => Math.abs(h.y) < actualWidth/2), nailHoleDepth, 0, 0,
+      grooveDepth, 'ny', topStretcherBackHoles, nailHoleDepth, 0, 0,
       notches
     );
   }, [width, panelThickness, topStretcherWidth, backPanelThickness, grooveDepth, topStretcherBackHoles, nailHoleDepth, enableColumn, columnWidth]);
@@ -867,7 +863,7 @@ export const exportBaseCornerCabinetDXF = async (settings: TestingSettings, zip:
     grooveDepth, toeKickHeight, backStretcherHeight, topStretcherWidth, blindPanelWidth, blindCornerSide,
     showBackPanel, showShelves, numShelves, doorOuterGap, enableColumn, columnWidth, columnDepth,
     showBackStretchers, nailHoleDiameter, shelfHoleDiameter, doorMaterialThickness, hingeDiameter,
-    hingeHorizontalOffset, hingeVerticalOffset, nailHoleDepth
+    hingeHorizontalOffset, hingeVerticalOffset, nailHoleDepth, showNailHoles
   } = settings;
 
   const innerWidth = width;
@@ -1321,9 +1317,25 @@ export const exportBaseCornerCabinetDXF = async (settings: TestingSettings, zip:
 
   // Top Stretchers
   const stretcherW = innerWidth - panelThickness * 2;
-  addPanelToZip('Top_Stretcher_Front', stretcherW, topStretcherWidth);
+  const dXFFrontHoles: any[] = [];
+  if (showNailHoles) {
+    const technicalR = nailHoleDiameter / 2;
+    calculateNailHolePositions(topStretcherWidth).forEach(offset => {
+      dXFFrontHoles.push({ z: uprightX, y: offset, r: technicalR });
+    });
+  }
+  addPanelToZip('Top_Stretcher_Front', stretcherW, topStretcherWidth, dXFFrontHoles);
   const topBackActualW = enableColumn ? width - panelThickness * 2 - columnWidth : width - panelThickness * 2;
-  addPanelToZip('Top_Stretcher_Back', topBackActualW, topStretcherWidth, [], { x: 0, y: panelThickness, w: topBackActualW, h: backPanelThickness + 2 });
+  
+  let dXFBackHoles: any[] = [];
+  if (showNailHoles && showBackStretchers) {
+    const technicalR = nailHoleDiameter / 2;
+    const yBackHole = -topStretcherWidth / 2 + panelThickness / 2;
+    dXFBackHoles = calculateNailHolePositions(topBackActualW).map(offset => ({
+      z: offset, y: yBackHole, r: technicalR
+    }));
+  }
+  addPanelToZip('Top_Stretcher_Back', topBackActualW, topStretcherWidth, dXFBackHoles, { x: 0, y: panelThickness, w: topBackActualW, h: backPanelThickness + 2 });
 
   // Back Stretchers
   if (showBackStretchers) {
