@@ -4,7 +4,7 @@ import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls, Grid, Html, useProgress, PerspectiveCamera, Environment, ContactShadows, Line, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import { Video } from 'lucide-react';
-import { Project, CabinetType, CabinetUnit, Zone, Obstacle, ProjectSettings } from '../../types';
+import { Project, CabinetType, CabinetUnit, Zone, Obstacle, ProjectSettings, PresetType } from '../../types';
 import { Cabinet } from './Cabinet';
 import { Wall } from './Wall';
 // @ts-ignore
@@ -25,7 +25,7 @@ interface Props {
   lightTheme?: boolean;
   draggedCabinet?: CabinetUnit | null;
   onDropCabinet?: (zoneId: string, fromLeft: number, cabinet: CabinetUnit, targetWidth?: number) => void;
-  selectedCabinet?: { zoneId: string, index: number } | null;
+  selectedCabinet?: { zoneId: string, id: string } | null;
   onCabinetSelect?: (zoneId: string, index: number) => void;
   onSettingsUpdate?: (settings: Partial<ProjectSettings>) => void;
   viewMode?: string;
@@ -37,7 +37,139 @@ interface Props {
   skeletonView?: boolean;
   isStudio?: boolean;
   isMobile?: boolean;
+  swapSelection?: { zoneId: string, index: number }[];
 }
+
+const ZoneBacksplash: React.FC<{ zone: Zone; project: Project; position: [number, number, number]; rotation: number }> = ({ zone, project, position, rotation }) => {
+  const baseCabinets = zone.cabinets.filter(c => c.type === CabinetType.BASE);
+  if (baseCabinets.length === 0) return null;
+
+  const baseHeight = project.settings.baseHeight || 870;
+  const counterThickness = project.settings.counterThickness || 40;
+  const wallElevation = project.settings.wallCabinetElevation || 450;
+  const wallCabinetHeight = project.settings.wallHeight || 720;
+
+  // Cover exactly from the startLimit to the endLimit (the granite boundaries)
+  const minX = zone.startLimit || 0;
+  const maxX = zone.endLimit || (baseCabinets.length > 0 ? Math.max(...baseCabinets.map(c => (c.fromLeft || 0) + c.width)) : zone.totalLength);
+  const fullWidth = maxX - minX;
+  
+  const tileBottomY = baseHeight + counterThickness;
+  const tileTopY = tileBottomY + wallElevation;
+
+  // Obstacle avoidance
+  const obstacles = zone.obstacles || [];
+  const overlappingObstacles = obstacles.filter(obs => {
+    const obsLeft = obs.fromLeft;
+    const obsRight = obsLeft + obs.width;
+    const obsBottom = obs.sillHeight || obs.elevation || 0;
+    const obsTop = obsBottom + obs.height;
+    
+    const horizontalOverlap = Math.max(minX, obsLeft) < Math.min(maxX, obsRight);
+    const verticalOverlap = Math.max(tileBottomY, obsBottom) < Math.min(tileTopY + wallCabinetHeight, obsTop);
+    
+    return horizontalOverlap && verticalOverlap;
+  });
+
+  const pieces: { x: number; y: number; w: number; h: number }[] = [];
+  
+  // Define the base tiling areas
+  // We'll also identify cooker areas to make them higher
+  const cookerCabinets = zone.cabinets.filter(c => c.preset === PresetType.COOKER_HOB || (c.preset === PresetType.BASE_DRAWER_3 && c.width >= 600));
+  const wallCabinets = zone.cabinets.filter(c => c.type === CabinetType.WALL);
+
+  const renderPiece = (startX: number, endX: number) => {
+    if (startX >= endX) return;
+    
+    let currentPieceX = startX;
+    
+    // Check if this segment contains a cooker
+    cookerCabinets.forEach(cooker => {
+      const cL = cooker.fromLeft || 0;
+      const cR = cL + cooker.width;
+      
+      if (Math.max(startX, cL) < Math.min(endX, cR)) {
+        // Piece before cooker
+        if (cL > currentPieceX) {
+          pieces.push({ x: currentPieceX + (cL - currentPieceX) / 2, y: tileBottomY + wallElevation / 2, w: cL - currentPieceX, h: wallElevation });
+        }
+        
+        // Piece behind cooker (Higher, but respect wall cabinets)
+        const activeL = Math.max(startX, cL);
+        const activeR = Math.min(endX, cR);
+        
+        // Find if there's a wall cabinet above this cooker
+        const wallCabAbove = wallCabinets.find(wc => {
+          const wcL = wc.fromLeft || 0;
+          const wcR = wcL + wc.width;
+          return Math.max(activeL, wcL) < Math.min(activeR, wcR);
+        });
+
+        // If there's a wall cabinet above, we only tile up to its bottom (zBase - tileBottomY)
+        // wall cabinet zBase = baseHeight + counterThickness + wallElevation + offset
+        const wallCabOffset = wallCabAbove?.advancedSettings?.elevationOffset || 0;
+        const hoodTileH = wallElevation + wallCabOffset;
+        
+        pieces.push({ x: activeL + (activeR - activeL) / 2, y: tileBottomY + hoodTileH / 2, w: activeR - activeL, h: hoodTileH });
+        
+        currentPieceX = activeR;
+      }
+    });
+
+    // Final piece in this segment
+    if (currentPieceX < endX) {
+      pieces.push({ x: currentPieceX + (endX - currentPieceX) / 2, y: tileBottomY + wallElevation / 2, w: endX - currentPieceX, h: wallElevation });
+    }
+  };
+
+  if (overlappingObstacles.length === 0) {
+    renderPiece(minX, maxX);
+  } else {
+    let currentX = minX;
+    const sortedObs = [...overlappingObstacles].sort((a, b) => a.fromLeft - b.fromLeft);
+    
+    sortedObs.forEach(obs => {
+      const obsL = Math.max(minX, obs.fromLeft);
+      const obsR = Math.min(maxX, obs.fromLeft + obs.width);
+      const obsB = (obs.sillHeight || obs.elevation || 0);
+      const obsT = obsB + obs.height;
+
+      // Piece before this obstacle
+      if (obsL > currentX) {
+        renderPiece(currentX, obsL);
+      }
+
+      // Piece below obstacle
+      if (obsB > tileBottomY) {
+        const h = Math.min(wallElevation, obsB - tileBottomY);
+        pieces.push({ x: obsL + (obsR - obsL) / 2, y: tileBottomY + h / 2, w: obsR - obsL, h });
+      }
+
+      // Piece above obstacle
+      if (obsT < tileTopY) {
+        const h = Math.min(wallElevation, tileTopY - obsT);
+        pieces.push({ x: obsL + (obsR - obsL) / 2, y: tileTopY - h / 2, w: obsR - obsL, h });
+      }
+
+      currentX = obsR;
+    });
+
+    if (currentX < maxX) {
+      renderPiece(currentX, maxX);
+    }
+  }
+
+  return (
+    <group position={position} rotation={[0, rotation, 0]}>
+      {pieces.map((p, i) => (
+        <mesh key={i} position={[p.x, p.y, 0.5]}>
+          <boxGeometry args={[p.w, p.h, 1]} />
+          <meshStandardMaterial color="#f8fafc" roughness={0.3} metalness={0.1} />
+        </mesh>
+      ))}
+    </group>
+  );
+};
 
 const LoadingFallback = () => {
   const { progress } = useProgress();
@@ -241,6 +373,7 @@ const Scene = ({
   draggedCabinet,
   onDropCabinet,
   selectedCabinet,
+  swapSelection,
   onCabinetSelect,
   opacity,
   skeletonView,
@@ -263,7 +396,8 @@ const Scene = ({
   forceGola?: boolean;
   draggedCabinet?: CabinetUnit | null;
   onDropCabinet?: (zoneId: string, fromLeft: number, cabinet: CabinetUnit, targetWidth?: number) => void;
-  selectedCabinet?: { zoneId: string, index: number } | null;
+  selectedCabinet?: { zoneId: string, id: string } | null;
+  swapSelection?: { zoneId: string, index: number }[];
   onCabinetSelect?: (zoneId: string, index: number) => void;
   opacity?: number;
   skeletonView?: boolean;
@@ -793,32 +927,43 @@ const Scene = ({
       {isStudio && <StudioEnvironment center={sceneBounds.center} size={sceneBounds.size} />}
 
 
-      {layoutData.wallPositions.map(({ zone, position, width, height, rotation }, index) => (
-        <Wall
-          key={`wall-${zone.id}`}
-          name={`wall-group-${index}`}
-          position={position}
-          width={width}
-          height={height}
-          rotation={rotation}
-          obstacles={zone.obstacles}
-          wallIndex={index}
-          isActive={activeWallId === zone.id}
-          onClick={() => onWallClick?.(zone.id)}
-          onPointerMove={(e) => {
-            e.stopPropagation();
-            updatePreview(e.point, index);
-          }}
-          onPointerUp={(e) => {
-            e.stopPropagation();
-            handleDrop();
-          }}
-          lightTheme={lightTheme}
-          showGrid={!!draggedCabinet}
-          opacity={opacity}
-          isStudio={isStudio}
-        />
-      ))}
+      {layoutData.wallPositions.map(({ zone, position, width, height, rotation }, index) => {
+        return (
+          <React.Fragment key={`zone-elements-${zone.id}`}>
+            <Wall
+              name={`wall-group-${index}`}
+              position={position}
+              width={width}
+              height={height}
+              rotation={rotation}
+              obstacles={zone.obstacles}
+              wallIndex={index}
+              isActive={activeWallId === zone.id}
+              onClick={() => onWallClick?.(zone.id)}
+              onPointerMove={(e) => {
+                e.stopPropagation();
+                updatePreview(e.point, index);
+              }}
+              onPointerUp={(e) => {
+                e.stopPropagation();
+                handleDrop();
+              }}
+              lightTheme={lightTheme}
+              showGrid={!!draggedCabinet}
+              opacity={opacity}
+              isStudio={isStudio}
+            />
+            {!previewPos && !draggedCabinet && (
+              <ZoneBacksplash 
+                zone={zone} 
+                project={project} 
+                position={position} 
+                rotation={rotation} 
+              />
+            )}
+          </React.Fragment>
+        );
+      })}
 
       {previewPos && draggedCabinet && (
         <Cabinet
@@ -847,7 +992,9 @@ const Scene = ({
       )}
 
       {layoutData.cabinetPositions.map(({ unit, zone, position, rotation, wallIndex, cabinetIndex, label }) => {
-        const isSelected = !isStudio && selectedCabinet?.zoneId === zone.id && selectedCabinet?.index === cabinetIndex;
+        const isSelected = !isStudio && selectedCabinet?.zoneId === zone.id && selectedCabinet?.id === unit.id;
+        const isSwapSelected = !isStudio && swapSelection?.some(s => s.zoneId === zone.id && s.index === cabinetIndex);
+        
         return (
           <group key={unit.id} position={position} rotation={[0, rotation, 0]}>
             <Cabinet
@@ -859,6 +1006,7 @@ const Scene = ({
               label={label}
               settings={project.settings}
               isSelected={isSelected}
+              isHighlighted={isSwapSelected}
               skeletonView={skeletonView}
               onClick={isStudio ? undefined : () => {
                 onCabinetSelect?.(zone.id, cabinetIndex);
@@ -868,6 +1016,7 @@ const Scene = ({
               opacity={opacity}
               isStudio={isStudio}
               isMobile={isMobile}
+              obstacles={zone.obstacles}
             />
             {!isStudio && isSelected && !isMobile && (() => {
               const baseH = project.settings.baseHeight || 870;
@@ -917,14 +1066,14 @@ const Scene = ({
       {/* 3D Alignment Guides */}
       {selectedCabinet && !isStudio && (() => {
         const selCabPos = layoutData.cabinetPositions.find(
-          cp => cp.zone.id === selectedCabinet.zoneId && cp.cabinetIndex === selectedCabinet.index
+          cp => cp.zone.id === selectedCabinet.zoneId && cp.unit.id === selectedCabinet.id
         );
         if (!selCabPos) return null;
         
         const sameWallCabinets = layoutData.cabinetPositions.filter(cp => cp.wallIndex === selCabPos.wallIndex);
         
         const otherEdges = new Set(
-          sameWallCabinets.flatMap(cp => cp.cabinetIndex === selectedCabinet.index ? [] : [cp.unit.fromLeft, cp.unit.fromLeft + cp.unit.width])
+          sameWallCabinets.flatMap(cp => cp.unit.id === selectedCabinet.id ? [] : [cp.unit.fromLeft, cp.unit.fromLeft + cp.unit.width])
         );
         
         const selEdges = [selCabPos.unit.fromLeft, selCabPos.unit.fromLeft + selCabPos.unit.width];
@@ -1026,7 +1175,8 @@ export const CabinetViewer: React.FC<Props> = ({
   opacity,
   skeletonView,
   isStudio = false,
-  isMobile: isMobileProp
+  isMobile: isMobileProp,
+  swapSelection
 }) => {
   const isMobile = useMemo(() => isMobileProp ?? (typeof window !== 'undefined' && window.innerWidth < 768), [isMobileProp]);
   // Link forceGola to project settings for persistence
@@ -1189,6 +1339,7 @@ export const CabinetViewer: React.FC<Props> = ({
             draggedCabinet={draggedCabinet}
             onDropCabinet={onDropCabinet}
             selectedCabinet={selectedCabinet}
+            swapSelection={swapSelection}
             onCabinetSelect={onCabinetSelect}
             opacity={opacity}
             skeletonView={skeletonView}

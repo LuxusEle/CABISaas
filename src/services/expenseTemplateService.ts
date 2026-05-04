@@ -141,11 +141,12 @@ export const expenseTemplateService = {
       { name: 'Adjustable Leg', amount: 2.00 },
       { name: 'Handle/Knob', amount: 4.00 },
       { name: 'Wall Hanger (Pair)', amount: 6.00 },
-      { name: 'Installation Nail', amount: 0.10 }
+      { name: 'Installation Nail', amount: 0.10 },
+      { name: 'Granite', amount: 0.00 },
+      { name: 'Tile', amount: 0.00 }
     ];
 
     const existing = cachedTemplates || await this.getTemplates();
-    if (existing.length > 0) return; // Skip if items already exist
 
     for (const item of hardwareItems) {
       if (!existing.find(e => e.name === item.name)) {

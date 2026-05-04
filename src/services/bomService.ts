@@ -153,6 +153,7 @@ export const resolveLocalCollisions = (zone: Zone, changedIndex: number, setting
     t1 === t2 || t1 === CabinetType.TALL || t2 === CabinetType.TALL;
 
   const MIN_WIDTH = 150;
+  const ABS_MIN_WIDTH = 10;
 
   // --- 1. RESOLVE WITH OBSTACLES (Hard Boundaries) ---
   const baseH = settings?.baseHeight || 870;
@@ -196,12 +197,12 @@ export const resolveLocalCollisions = (zone: Zone, changedIndex: number, setting
 
       if (midCab < midObs) {
         // Collision on the right side of cabinet
-        cab.width = Math.max(MIN_WIDTH, obs.fromLeft - cab.fromLeft);
+        cab.width = Math.max(ABS_MIN_WIDTH, obs.fromLeft - cab.fromLeft);
       } else {
         // Collision on the left side of cabinet
         const oldRight = cab.fromLeft + cab.width;
         cab.fromLeft = obsRight;
-        cab.width = Math.max(MIN_WIDTH, oldRight - cab.fromLeft);
+        cab.width = Math.max(ABS_MIN_WIDTH, oldRight - cab.fromLeft);
       }
     }
   });
@@ -238,7 +239,7 @@ export const resolveLocalCollisions = (zone: Zone, changedIndex: number, setting
         const overlap = (cab.fromLeft + cab.width) - next.fromLeft;
         if (overlap > 0) {
           if (isTallPriority) {
-            cab.width = next.fromLeft - cab.fromLeft;
+            cab.width = Math.max(ABS_MIN_WIDTH, next.fromLeft - cab.fromLeft);
           } else if (next.width - overlap >= MIN_WIDTH) {
             next.fromLeft += overlap;
             next.width -= overlap;
@@ -246,7 +247,7 @@ export const resolveLocalCollisions = (zone: Zone, changedIndex: number, setting
             const allowedShrink = next.width - MIN_WIDTH;
             next.fromLeft += allowedShrink;
             next.width = MIN_WIDTH;
-            cab.width = Math.max(MIN_WIDTH, next.fromLeft - cab.fromLeft);
+            cab.width = Math.max(ABS_MIN_WIDTH, next.fromLeft - cab.fromLeft);
           }
         }
       } else {
@@ -255,7 +256,7 @@ export const resolveLocalCollisions = (zone: Zone, changedIndex: number, setting
           if (isTallPriority) {
             const oldRight = cab.fromLeft + cab.width;
             cab.fromLeft = next.fromLeft + next.width;
-            cab.width = Math.max(MIN_WIDTH, oldRight - cab.fromLeft);
+            cab.width = Math.max(ABS_MIN_WIDTH, oldRight - cab.fromLeft);
           } else if (next.width - overlap >= MIN_WIDTH) {
             next.width -= overlap;
           } else {
@@ -263,7 +264,7 @@ export const resolveLocalCollisions = (zone: Zone, changedIndex: number, setting
             next.width = MIN_WIDTH;
             const excess = overlap - allowedShrink;
             cab.fromLeft += excess;
-            cab.width = Math.max(MIN_WIDTH, cab.width - excess);
+            cab.width = Math.max(ABS_MIN_WIDTH, cab.width - excess);
           }
         }
       }
@@ -277,10 +278,10 @@ export const resolveLocalCollisions = (zone: Zone, changedIndex: number, setting
   if (cab.fromLeft < 0) {
     const excess = -cab.fromLeft;
     cab.fromLeft = 0;
-    cab.width = Math.max(MIN_WIDTH, cab.width - excess);
+    cab.width = Math.max(ABS_MIN_WIDTH, cab.width - excess);
   }
   if (cab.fromLeft + cab.width > zone.totalLength) {
-    cab.width = Math.max(MIN_WIDTH, zone.totalLength - cab.fromLeft);
+    cab.width = Math.max(ABS_MIN_WIDTH, zone.totalLength - cab.fromLeft);
   }
 
   return {

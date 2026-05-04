@@ -196,16 +196,19 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
       <h3 className="text-[10px] sm:text-xs font-black text-slate-900 dark:text-white mb-0.5 uppercase tracking-tight">{title}</h3>
       <p className="text-[9px] text-slate-500 dark:text-slate-400 font-medium line-clamp-1">{subtitle}</p>
       
-      {isRequired && !isDone && (
-        <div className="mt-2 flex items-center gap-1 px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-full text-[8px] font-black uppercase tracking-wider">
-          Required
-        </div>
-      )}
-      {isDone && (
-        <div className="mt-2 px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full text-[8px] font-black uppercase tracking-wider">
-          Done
-        </div>
-      )}
+      {/* Status Badge Placeholder (Ensures consistent card height) */}
+      <div className="mt-2 min-h-[18px]">
+        {isRequired && !isDone && (
+          <div className="flex items-center gap-1 px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-full text-[8px] font-black uppercase tracking-wider">
+            Required
+          </div>
+        )}
+        {isDone && (
+          <div className="px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full text-[8px] font-black uppercase tracking-wider">
+            Done
+          </div>
+        )}
+      </div>
     </button>
   );
 

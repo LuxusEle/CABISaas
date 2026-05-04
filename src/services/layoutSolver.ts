@@ -140,23 +140,34 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
         const wallCornerOffset = zone.obstacles.find(o => o.id === 'corner_base_offset');
         const startX = Math.max(zone.startLimit || 0, wallCornerOffset ? (wallCornerOffset.fromLeft + wallCornerOffset.width) : 0);
         
-        let xSink = windowStart; // Try left snap first
-        const leftGap = xSink - startX;
+        // Find all gaps that can fit the sink and overlap with the window
+        const potentialGaps = gaps.filter(g => g.length >= sw && g.end > windowStart && g.start < windowEnd);
         
-        if (leftGap > 0 && leftGap < ABSOLUTE_MIN_WIDTH) {
-          // Left snap leaves a tiny gap! Try snapping to the right side of the window
-          const rightX = windowEnd - sw;
-          const rightGap = rightX - startX;
-          if (rightGap >= ABSOLUTE_MIN_WIDTH || rightGap === 0) {
-            xSink = rightX;
+        if (potentialGaps.length > 0) {
+          // Prefer the gap that contains windowStart, otherwise just the first one
+          const gap = potentialGaps.find(g => windowStart >= g.start && windowStart <= g.end) || potentialGaps[0];
+          
+          let targetX = Math.max(gap.start, windowStart);
+          if (targetX + sw > gap.end) {
+            targetX = gap.end - sw;
           }
-        }
+          
+          // Ruby Rule: Choose snap side to avoid tiny unfillable gaps
+          const leftGap = targetX - startX;
+          if (leftGap > 0 && leftGap < ABSOLUTE_MIN_WIDTH) {
+            // Try snapping to the right side of the window IF it fits in the SAME gap
+            const rightX = Math.min(gap.end - sw, windowEnd - sw);
+            const rightGap = rightX - startX;
+            if (rightGap >= ABSOLUTE_MIN_WIDTH || rightGap === 0) {
+              targetX = rightX;
+            } else if (gap.start === startX) {
+              // If the gap starts at startX, just snap to startX to avoid splinter
+              targetX = startX;
+            }
+          }
 
-        const windowGap = gaps.find(g => xSink >= g.start && xSink + sw <= g.end);
-        
-        if (windowGap) {
-          if (canPlace(zone, xSink, sw, CabinetType.BASE, settings)) {
-            placeUnit(zone, { id: uuid(), preset: PresetType.SINK_UNIT, type: CabinetType.BASE, width: sw, qty: 1, fromLeft: xSink, isAutoFilled: true, label: '' });
+          if (canPlace(zone, targetX, sw, CabinetType.BASE, settings)) {
+            placeUnit(zone, { id: uuid(), preset: PresetType.SINK_UNIT, type: CabinetType.BASE, width: sw, qty: 1, fromLeft: targetX, isAutoFilled: true, label: '' });
             sinkPlaced = true;
           }
         }
@@ -184,12 +195,35 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
       } else {
         const minGap = gaps.find(g => g.length >= cookerWidth);
         if (minGap) {
-          targetX = minGap.start;
+          // Try to avoid placing immediately next to door/window
+          const isNearOpening = (x: number) => zone.obstacles.some(o => 
+            (o.type === 'door' || o.type === 'window') && 
+            (Math.abs(o.fromLeft + o.width - x) < 5 || Math.abs(o.fromLeft - (x + cookerWidth)) < 5)
+          );
+          
+          if (isNearOpening(minGap.start) && minGap.length >= cookerWidth + 300) {
+            targetX = minGap.start + 300;
+          } else {
+            targetX = minGap.start;
+          }
         }
       }
 
       if (targetX !== -1) {
-        placeUnit(zone, { id: uuid(), preset: PresetType.BASE_DRAWER_3, type: CabinetType.BASE, width: cookerWidth, qty: 1, fromLeft: targetX, isAutoFilled: true, label: '' });
+        placeUnit(zone, { 
+          id: uuid(), 
+          preset: PresetType.COOKER_HOB, 
+          type: CabinetType.BASE, 
+          width: cookerWidth, 
+          qty: 1, 
+          fromLeft: targetX, 
+          isAutoFilled: true, 
+          label: '',
+          advancedSettings: {
+            showDrawers: true,
+            numDrawers: 3
+          }
+        });
         if (canPlace(zone, targetX, cookerWidth, CabinetType.WALL, settings)) {
           const wallHeight = settings.wallHeight || 720;
           placeUnit(zone, { 
@@ -215,20 +249,38 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
       for (const gap of gaps) {
         if (gap.length >= cookerWidth) {
           // Snap to left, but try to leave space for exactly one lead cabinet (prefer 600)
-          let x = gap.start + 600;
-          if (x + cookerWidth > gap.end) x = gap.start + 450;
-          if (x + cookerWidth > gap.end) x = gap.start + 300;
-          if (x + cookerWidth > gap.end) x = gap.start + 250;
-          if (x + cookerWidth > gap.end) x = gap.start;
-
-          const leftGap = x - gap.start;
+          const candidates = [600, 500, 450, 400, 300, 250, 0];
+          let x = gap.start;
           
-          // Final sanity check on gaps to avoid tiny splinters
-          if (leftGap > 0 && leftGap < ABSOLUTE_MIN_WIDTH) {
-            x = gap.start;
+          for (const offset of candidates) {
+            const candidateX = gap.start + offset;
+            if (candidateX + cookerWidth > gap.end) continue;
+            
+            const nearOpening = zone.obstacles.some(o => 
+              (o.type === 'door' || o.type === 'window') && 
+              (Math.abs(o.fromLeft + o.width - candidateX) < 5 || Math.abs(o.fromLeft - (candidateX + cookerWidth)) < 5)
+            );
+            
+            if (!nearOpening) {
+              x = candidateX;
+              break;
+            }
           }
 
-          placeUnit(zone, { id: uuid(), preset: PresetType.BASE_DRAWER_3, type: CabinetType.BASE, width: cookerWidth, qty: 1, fromLeft: x, isAutoFilled: true, label: '' });
+          placeUnit(zone, { 
+            id: uuid(), 
+            preset: PresetType.COOKER_HOB, 
+            type: CabinetType.BASE, 
+            width: cookerWidth, 
+            qty: 1, 
+            fromLeft: x, 
+            isAutoFilled: true, 
+            label: '',
+            advancedSettings: {
+              showDrawers: true,
+              numDrawers: 3
+            }
+          });
           if (canPlace(zone, x, cookerWidth, CabinetType.WALL, settings)) {
             const wallHeight = settings.wallHeight || 720;
             placeUnit(zone, { 
@@ -261,7 +313,7 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
     if (cookerPlaced && prefs.includeCooker) {
       for (const zone of zones) {
         if (specialPlaced) break;
-        const cooker = zone.cabinets.find(c => c.preset === PresetType.BASE_DRAWER_3 && c.isAutoFilled);
+        const cooker = zone.cabinets.find(c => c.preset === PresetType.COOKER_HOB && c.isAutoFilled);
         if (cooker) {
           const nextX = cooker.fromLeft + cooker.width;
           // Try 600mm then 500mm immediately after cooker
@@ -462,37 +514,73 @@ function applyExposedSides(zone: Zone, settings: ProjectSettings) {
     const sLimit = zone.startLimit || 0;
     const eLimit = zone.endLimit || zone.totalLength;
     
-    const isStart = unit.fromLeft <= sLimit + 15;
-    const isEnd = (unit.fromLeft + unit.width) >= eLimit - 15;
-
-    if (isStart) {
-      const hasCornerOffset = obstacles.some(o => o.fromLeft < sLimit + 10 && o.id.startsWith('corner_'));
-      if (!hasCornerOffset) leftExposed = true;
+    // Check if unit is at the very start or end of the wall
+    if (Math.abs(unit.fromLeft - sLimit) < 15) {
+       const hasCornerOffset = obstacles.some(o => o.fromLeft < sLimit + 10 && o.id.startsWith('corner_'));
+       if (!hasCornerOffset) leftExposed = true;
     }
-    
-    if (isEnd) {
-      const hasCornerCabinet = cabinets.some(c => (c.preset === PresetType.BASE_CORNER || c.preset === PresetType.WALL_CORNER) && c.fromLeft > unit.fromLeft);
-      if (!hasCornerCabinet) rightExposed = true;
+    if (Math.abs((unit.fromLeft + unit.width) - eLimit) < 15) {
+       const hasCornerCabinet = cabinets.some(c => (c.preset === PresetType.BASE_CORNER || c.preset === PresetType.WALL_CORNER) && c.fromLeft > unit.fromLeft);
+       if (!hasCornerCabinet) rightExposed = true;
     }
 
     // B. Obstacles (Door, Window)
     obstacles.forEach(obs => {
       if (obs.type === 'door' || obs.type === 'window') {
-        if (Math.abs(unit.fromLeft - (obs.fromLeft + obs.width)) < 15) leftExposed = true;
-        if (Math.abs((unit.fromLeft + unit.width) - obs.fromLeft) < 15) rightExposed = true;
+        let causesExposure = true;
+        if (obs.type === 'window' && unit.type === CabinetType.BASE) {
+          const sillHeight = obs.sillHeight || 0;
+          if (sillHeight >= (settings.baseHeight || 870)) causesExposure = false;
+        }
+
+        if (causesExposure) {
+          if (Math.abs(unit.fromLeft - (obs.fromLeft + obs.width)) < 15) leftExposed = true;
+          if (Math.abs((unit.fromLeft + unit.width) - obs.fromLeft) < 15) rightExposed = true;
+        }
       }
     });
 
+    // C. Neighbor Veto: If there's another cabinet touching this side, it's not exposed
+    const getDepth = (c: CabinetUnit) => {
+      if (c.depth) return c.depth;
+      if (c.type === CabinetType.TALL) return settings.depthTall || 600;
+      if (c.type === CabinetType.BASE) return settings.depthBase || 600;
+      return settings.depthWall || 300;
+    };
+
+    const unitDepth = getDepth(unit);
+    const neighbors = cabinets.filter(other => other.id !== unit.id);
+
+    if (unit.type === CabinetType.BASE || unit.type === CabinetType.WALL) {
+      const leftNeighbor = neighbors.find(other => 
+        (other.type === unit.type || other.type === CabinetType.TALL) &&
+        Math.abs((other.fromLeft + other.width) - unit.fromLeft) < 15 &&
+        getDepth(other) >= unitDepth - 15
+      );
+      if (leftNeighbor) leftExposed = false;
+
+      const rightNeighbor = neighbors.find(other => 
+        (other.type === unit.type || other.type === CabinetType.TALL) &&
+        Math.abs(other.fromLeft - (unit.fromLeft + unit.width)) < 15 &&
+        getDepth(other) >= unitDepth - 15
+      );
+      if (rightNeighbor) rightExposed = false;
+    }
+
     unit.exposedLeft = leftExposed;
     unit.exposedRight = rightExposed;
+  });
 
-    // C. Neighbor coverage for Tall cabinets
+  // 2. Tall Cabinet Specific Neighbor Logic (Check height-based coverage)
+  cabinets.forEach(unit => {
     if (unit.type === CabinetType.TALL) {
+      const th = unit.advancedSettings?.height || (settings.baseHeight + (settings.wallCabinetElevation || 450) + settings.wallHeight + 40);
+      const unitDepth = unit.depth || settings.depthTall || 600;
+      
       unit.leftCoverage = [];
       unit.rightCoverage = [];
 
-      cabinets.forEach(other => {
-        if (unit.id === other.id) return;
+      cabinets.filter(c => c.id !== unit.id).forEach(other => {
         if (other.preset === PresetType.FILLER) return;
 
         const isLeft = Math.abs((other.fromLeft + other.width) - unit.fromLeft) < 15;
@@ -501,11 +589,9 @@ function applyExposedSides(zone: Zone, settings: ProjectSettings) {
         if (isLeft || isRight) {
           const bh = settings.baseHeight || 820;
           const wh = settings.wallHeight || 720;
-          const th = settings.tallHeight || 2100;
-          const wallElev = settings.wallCabinetElevation || 450;
           const ct = settings.counterThickness || 40;
-
-          const unitDepth = unit.depth || settings.depthTall || 600;
+          const wallElev = settings.wallCabinetElevation || 450;
+          
           let otherDepth = other.depth;
           if (!otherDepth) {
             if (other.type === CabinetType.BASE) otherDepth = settings.depthBase;
@@ -516,7 +602,6 @@ function applyExposedSides(zone: Zone, settings: ProjectSettings) {
 
           let start = 0;
           let end = 0;
-
           if (other.type === CabinetType.BASE) {
             start = 0;
             end = bh;
@@ -548,42 +633,89 @@ function applyExposedSides(zone: Zone, settings: ProjectSettings) {
     }
   });
 
-  // 2. Width Adjustment Pass
-  // Sort by fromLeft to resolve overlaps correctly
-  const sorted = [...cabinets].sort((a, b) => a.fromLeft - b.fromLeft);
-  
-  sorted.forEach(unit => {
-    if (unit.exposedLeft) {
-      unit.width += thickness;
-      unit.fromLeft -= thickness;
-    }
-    if (unit.exposedRight) {
-      unit.width += thickness;
-    }
-  });
+  // 3. Finalization: No width adjustment pass is needed anymore.
+  // Decorative side panels are now counted AS PART OF the nominal width.
+  // The 3D component and BOM already shrink the carcass internally to fit them.
 
-  // 3. Collision Resolution (Push Right)
+  // 3. Collision Resolution & Boundary Enforcement
+  const sLimit = zone.startLimit || 0;
+  const eLimit = zone.endLimit || zone.totalLength;
+
+  // A. Left-to-Right Pass (Resolve overlaps and snap to left boundary)
+  const sorted = [...cabinets].sort((a, b) => a.fromLeft - b.fromLeft);
   for (let i = 0; i < sorted.length; i++) {
     const current = sorted[i];
-    let maxRight = current.fromLeft;
+    let minLeft = current.fromLeft;
     
+    // Snap first unit to sLimit if it was pushed left by exposed panel
+    if (i === 0 && minLeft < sLimit) minLeft = sLimit;
+
     for (let j = 0; j < i; j++) {
       const prev = sorted[j];
-      const collide = current.type === prev.type || current.type === CabinetType.TALL || prev.type === CabinetType.TALL;
+      const collide = (current.type === prev.type || current.type === CabinetType.TALL || prev.type === CabinetType.TALL);
       if (collide) {
         const prevRight = prev.fromLeft + prev.width;
-        if (prevRight > maxRight) maxRight = prevRight;
+        if (prevRight > minLeft) minLeft = prevRight;
       }
     }
-    current.fromLeft = maxRight;
+    current.fromLeft = minLeft;
   }
 
-  // 4. Boundary Enforcement (Don't let cabinets fall off the left edge)
-  sorted.forEach(unit => {
-    if (unit.fromLeft < 0) {
-      // If pushed off left, we might need to push everything right
-      // But for now, just snap to 0 and let it overlap if it must
-      unit.fromLeft = 0;
+  // B. Right-to-Left Pass (Snap to right boundary and push back)
+  for (let i = sorted.length - 1; i >= 0; i--) {
+    const current = sorted[i];
+    const rightEdge = current.fromLeft + current.width;
+    if (rightEdge > eLimit + 0.1) {
+      const pushback = rightEdge - eLimit;
+      current.fromLeft = Math.max(sLimit, current.fromLeft - pushback);
+      
+      // Push previous cabinets back
+      for (let j = i - 1; j >= 0; j--) {
+        const prev = sorted[j];
+        const collide = (current.type === prev.type || current.type === CabinetType.TALL || prev.type === CabinetType.TALL);
+        if (collide) {
+          const overlap = (prev.fromLeft + prev.width) - current.fromLeft;
+          if (overlap > 0) {
+            prev.fromLeft = Math.max(sLimit, prev.fromLeft - overlap);
+          }
+        }
+      }
+    }
+  }
+
+  // C. Final Compression Pass (If still exceeding limits after pushing, shrink cabinets)
+  [CabinetType.BASE, CabinetType.WALL].forEach(type => {
+    const levelUnits = sorted.filter(c => c.type === type || c.type === CabinetType.TALL);
+    if (levelUnits.length === 0) return;
+    
+    const lastUnit = levelUnits[levelUnits.length - 1];
+    const rightEdge = lastUnit.fromLeft + lastUnit.width;
+    
+    if (rightEdge > eLimit + 0.1) {
+      let debt = rightEdge - eLimit;
+      // Shrink auto-filled cabinets to absorb the extra panel thickness
+      const shrinkable = levelUnits.filter(c => c.isAutoFilled && c.preset !== PresetType.SINK_UNIT && c.preset !== PresetType.HOOD_UNIT);
+      
+      if (shrinkable.length > 0) {
+        const totalAvailable = shrinkable.reduce((acc, c) => acc + Math.max(0, c.width - ABSOLUTE_MIN_WIDTH), 0);
+        if (totalAvailable > 0) {
+          const ratio = Math.min(1, debt / totalAvailable);
+          shrinkable.forEach(c => {
+            const reduction = Math.max(0, c.width - ABSOLUTE_MIN_WIDTH) * ratio;
+            c.width -= reduction;
+          });
+          
+          // Re-align this level after shrinking
+          for (let i = 0; i < levelUnits.length; i++) {
+            if (i === 0) {
+               if (levelUnits[i].fromLeft < sLimit) levelUnits[i].fromLeft = sLimit;
+            } else {
+               const prevRight = levelUnits[i-1].fromLeft + levelUnits[i-1].width;
+               if (levelUnits[i].fromLeft < prevRight) levelUnits[i].fromLeft = prevRight;
+            }
+          }
+        }
+      }
     }
   });
 }
