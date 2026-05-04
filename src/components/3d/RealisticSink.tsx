@@ -14,7 +14,7 @@ export const RealisticSink: React.FC<RealisticSinkProps> = ({ width, depth, cabi
   const bowlWidth = Math.min(width * 0.5, 450);
   const bowlDepth = Math.min(depth * 0.7, 400);
   const bowlHeight = 180;
-  const thickness = 2;
+  const thickness = 5;
   
   // Position bowl to the left to leave space for drainer
   const bowlX = width > 600 ? -plateWidth * 0.2 : 0;
@@ -57,8 +57,8 @@ export const RealisticSink: React.FC<RealisticSinkProps> = ({ width, depth, cabi
 
       {/* 2. Drainer Ribs (Decorative) */}
       {width > 600 && Array.from({ length: 8 }).map((_, i) => (
-        <mesh key={i} position={[plateWidth * 0.25, 1, -bowlDepth/3 + i * 25]} rotation={[-Math.PI/2, 0, 0]}>
-          <capsuleGeometry args={[2, plateWidth * 0.3, 4, 8]} />
+        <mesh key={i} position={[plateWidth * 0.25, 2, -bowlDepth/3 + i * 25]} rotation={[-Math.PI/2, 0, 0]}>
+          <capsuleGeometry args={[4, plateWidth * 0.3, 4, 8]} />
           <meshStandardMaterial 
             color="#c0c0c0" 
             metalness={0.8} 

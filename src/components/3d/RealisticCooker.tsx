@@ -13,7 +13,7 @@ export const RealisticCooker: React.FC<RealisticCookerProps> = ({ width, depth, 
   return (
     <group>
       {/* Glass Top */}
-      <mesh castShadow receiveShadow>
+      <mesh castShadow receiveShadow position={[0, 2, 0]}>
         <boxGeometry args={[width * 0.85, 10, depth * 0.8]} />
         <meshStandardMaterial 
           color="#0f172a" 
@@ -22,6 +22,11 @@ export const RealisticCooker: React.FC<RealisticCookerProps> = ({ width, depth, 
           transparent={opacity < 1} 
           opacity={opacity} 
         />
+      </mesh>
+      {/* Metallic Frame */}
+      <mesh castShadow receiveShadow position={[0, 1, 0]}>
+        <boxGeometry args={[width * 0.87, 12, depth * 0.82]} />
+        <meshStandardMaterial color="#cbd5e1" metalness={0.9} roughness={0.1} />
       </mesh>
       {/* Burners */}
       {[[-1, -1], [1, -1], [-1, 1], [1, 1]].map(([sx, sz], i) => (

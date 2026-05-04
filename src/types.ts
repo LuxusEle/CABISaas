@@ -215,6 +215,9 @@ export interface Project {
   name: string;
   designer: string;
   company: string;
+  customerName?: string;
+  customerAddress?: string;
+  customerPhone?: string;
   settings: ProjectSettings;
   zones: Zone[];
 }

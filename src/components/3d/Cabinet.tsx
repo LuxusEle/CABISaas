@@ -2,16 +2,14 @@ import React, { useMemo } from 'react';
 import { Html, Outlines, Text } from '@react-three/drei';
 import * as THREE from 'three';
 import { useLoader } from '@react-three/fiber';
-import { CabinetUnit, CabinetType, ProjectSettings } from '../../types';
+import { CabinetUnit, CabinetType, ProjectSettings, PresetType, Obstacle } from '../../types';
 import { getCabinetTestingSettings } from '../CabinetTestingUtils';
 import { BaseCabinetTesting } from '../BaseCabinetTesting';
 import { BaseCornerCabinetTesting } from '../BaseCornerCabinetTesting';
 import { WallCabinetTesting } from '../WallCabinetTesting';
 import { WallCornerCabinetTesting } from '../WallCornerCabinetTesting';
 import { TallCabinetTesting } from '../TallCabinetTesting';
-import { PresetType } from '../../types';
 
-import { RealisticCooker } from './RealisticCooker';
 import { RealisticHood } from './RealisticHood';
 
 interface Props {
@@ -32,9 +30,11 @@ interface Props {
   forceGola?: boolean;
   opacity?: number;
   isSelected?: boolean;
+  isHighlighted?: boolean;
   skeletonView?: boolean;
   isStudio?: boolean;
   isMobile?: boolean;
+  obstacles?: Obstacle[];
 }
 
 const DimensionLine: React.FC<{
@@ -105,9 +105,11 @@ export const Cabinet: React.FC<Props> = ({
   forceGola,
   opacity = 1,
   isSelected = false,
+  isHighlighted = false,
   skeletonView = false,
   isStudio = false,
-  isMobile = false
+  isMobile = false,
+  obstacles = []
 }) => {
   const [hovered, setHovered] = React.useState(false);
 
@@ -249,6 +251,27 @@ export const Cabinet: React.FC<Props> = ({
         </mesh>
       )}
 
+      {isHighlighted && (
+        <mesh position={[width / 2, zBase + height / 2, depth / 2]}>
+          <boxGeometry args={[width + 10, height + 10, depth + 10]} />
+          <meshStandardMaterial 
+            color="#f59e0b" 
+            transparent 
+            opacity={0.25} 
+            emissive="#f59e0b"
+            emissiveIntensity={2}
+            side={THREE.DoubleSide}
+          />
+          <Outlines 
+            color="#f59e0b" 
+            thickness={6}
+            screenspace
+            transparent
+            opacity={0.9}
+          />
+        </mesh>
+      )}
+
       {/* 
           Testing models already center themselves internally at [width/2, height/2, depth/2].
           We just need to handle the vertical baseline (zBase) for wall cabinets.
@@ -260,17 +283,13 @@ export const Cabinet: React.FC<Props> = ({
           <BaseCabinetTesting settings={testingSettings} />
         )
       )}
-      
-      {/* Standalone Visual Hood - Only for dedicated Cooker Hob appliance preset */}
-      {showStandaloneHood && (
-        <group position={[width / 2, baseHeight + counterThickness + wallElevation - 30, depth / 2]}>
-          <RealisticHood 
-            width={width} 
-            depth={depth} 
-            opacity={opacity}
-            showChimney={true}
-          />
-        </group>
+
+      {/* Granite Countertop - Rendered on top of ALL base cabinets */}
+      {isBase && !previewMode && (
+        <mesh position={[width / 2, height + counterThickness / 2, depth / 2 + 25]}>
+          <boxGeometry args={[width, counterThickness, depth + 50]} />
+          <meshStandardMaterial color="#0a0a0a" roughness={0.05} metalness={0.4} />
+        </mesh>
       )}
 
       {isWall && (

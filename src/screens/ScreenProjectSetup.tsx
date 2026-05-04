@@ -379,37 +379,53 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
                   {activeModal === 'project' && (
                     <div className="space-y-6 sm:space-y-8">
                       <div className="grid md:grid-cols-2 gap-4 sm:gap-8">
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Project Name</label>
-                          <input className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border-2 border-transparent focus:border-amber-500 outline-none dark:text-white font-bold text-sm" placeholder="e.g., Lakeview Kitchen" value={project.name} onChange={e => setProject({ ...project, name: e.target.value })} />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Company Name</label>
-                          <input className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border-2 border-transparent focus:border-amber-500 outline-none dark:text-white font-bold text-sm" placeholder="Your Business" value={project.company} onChange={e => setProject({ ...project, company: e.target.value })} />
-                        </div>
-                      </div>
-                      <div className="space-y-3">
-                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Company Branding</label>
-                        <div className="p-6 sm:p-8 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[2rem] flex flex-col items-center gap-4 bg-slate-50/50 dark:bg-slate-800/30">
-                          {logoPreview ? (
-                            <div className="relative group">
-                              <img src={logoPreview} alt="Preview" className="h-24 sm:h-32 w-auto object-contain drop-shadow-xl" />
-                              <button onClick={handleRemoveLogo} className="absolute -top-2 -right-2 bg-rose-500 text-white p-1.5 rounded-full shadow-lg">
-                                <X size={14} />
-                              </button>
+                        <div className="space-y-4">
+                          <h4 className="text-[11px] font-black uppercase text-amber-500 tracking-widest">Company Info</h4>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Company Name</label>
+                            <input className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border-2 border-transparent focus:border-amber-500 outline-none dark:text-white font-bold text-sm" placeholder="Your Business" value={project.company} onChange={e => setProject({ ...project, company: e.target.value })} />
+                          </div>
+
+                          <div className="space-y-3">
+                            <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Logo Branding</label>
+                            <div className="p-6 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[2rem] flex flex-col items-center gap-4 bg-slate-50/50 dark:bg-slate-800/30">
+                              {logoPreview ? (
+                                <div className="relative group">
+                                  <img src={logoPreview} alt="Preview" className="h-20 w-auto object-contain drop-shadow-xl" />
+                                  <button onClick={handleRemoveLogo} className="absolute -top-2 -right-2 bg-rose-500 text-white p-1 rounded-full shadow-lg">
+                                    <X size={12} />
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="text-slate-400 text-center">
+                                  <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-1">
+                                    <Upload size={20} className="opacity-30" />
+                                  </div>
+                                  <p className="text-[9px] font-bold">Logo</p>
+                                </div>
+                              )}
+                              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" id="logo-modal" />
+                              <label htmlFor="logo-modal" className="px-5 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[9px] font-black rounded-full cursor-pointer hover:scale-105 transition-transform">
+                                {isUploadingLogo ? 'UPLOADING...' : 'UPLOAD'}
+                              </label>
                             </div>
-                          ) : (
-                            <div className="text-slate-400 text-center">
-                              <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-2">
-                                <Upload size={24} className="opacity-30" />
-                              </div>
-                              <p className="text-xs font-bold">Drop logo here</p>
-                            </div>
-                          )}
-                          <input ref={fileInputRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" id="logo-modal" />
-                          <label htmlFor="logo-modal" className="px-6 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[10px] font-black rounded-full cursor-pointer">
-                            {isUploadingLogo ? 'UPLOADING...' : 'UPLOAD LOGO'}
-                          </label>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          <h4 className="text-[11px] font-black uppercase text-blue-500 tracking-widest">Customer Details</h4>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Project / Customer Name</label>
+                            <input className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border-2 border-transparent focus:border-amber-500 outline-none dark:text-white font-bold text-sm" placeholder="e.g., Lakeview Kitchen" value={project.name} onChange={e => setProject({ ...project, name: e.target.value })} />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Customer Address</label>
+                            <input className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border-2 border-transparent focus:border-amber-500 outline-none dark:text-white font-bold text-sm" placeholder="Installation Site Address" value={project.customerAddress || ''} onChange={e => setProject({ ...project, customerAddress: e.target.value })} />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Customer Phone</label>
+                            <input className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border-2 border-transparent focus:border-amber-500 outline-none dark:text-white font-bold text-sm" placeholder="Customer Contact" value={project.customerPhone || ''} onChange={e => setProject({ ...project, customerPhone: e.target.value })} />
+                          </div>
                         </div>
                       </div>
                     </div>

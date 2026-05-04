@@ -5,6 +5,8 @@ export interface ExpenseTemplate {
   user_id: string;
   name: string;
   default_amount: number;
+  width?: number;
+  length?: number;
   sort_order: number;
   created_at: string;
   updated_at: string;
@@ -37,7 +39,7 @@ export const expenseTemplateService = {
     return cachedTemplates;
   },
 
-  async saveTemplate(name: string, defaultAmount: number = 0): Promise<ExpenseTemplate | null> {
+  async saveTemplate(name: string, defaultAmount: number = 0, width?: number, length?: number): Promise<ExpenseTemplate | null> {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) return null;
 
@@ -54,6 +56,8 @@ export const expenseTemplateService = {
           user_id: userData.user.id,
           name,
           default_amount: defaultAmount,
+          width,
+          length,
           sort_order: count || 0
         }
       ])
@@ -141,15 +145,18 @@ export const expenseTemplateService = {
       { name: 'Adjustable Leg', amount: 2.00 },
       { name: 'Handle/Knob', amount: 4.00 },
       { name: 'Wall Hanger (Pair)', amount: 6.00 },
-      { name: 'Installation Nail', amount: 0.10 }
+      { name: 'Installation Nail', amount: 0.10 },
+      { name: 'Granite', amount: 0.00 },
+      { name: 'Tile', amount: 0.00 }
     ];
 
     const existing = cachedTemplates || await this.getTemplates();
-    if (existing.length > 0) return; // Skip if items already exist
 
     for (const item of hardwareItems) {
       if (!existing.find(e => e.name === item.name)) {
-        await this.saveTemplate(item.name, item.amount);
+        const width = item.name === 'Tile' ? 600 : undefined;
+        const length = item.name === 'Tile' ? 600 : undefined;
+        await this.saveTemplate(item.name, item.amount, width, length);
       }
     }
   }

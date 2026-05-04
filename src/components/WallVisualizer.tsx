@@ -14,7 +14,9 @@ interface Props {
   onDragEnd?: () => void;
   onSwapCabinets?: (index1: number, index2: number) => void;
   hideArrows?: boolean;
-  selectedCabinet?: { zoneId: string, index: number } | null;
+  selectedCabinet?: { zoneId: string, id: string } | null;
+  swapSelection?: { zoneId: string, index: number }[];
+  onCabinetSelect?: (zoneId: string, index: number) => void;
   draggedCabinet?: CabinetUnit | null;
   onDropCabinet?: (zoneId: string, fromLeft: number, cabinet: CabinetUnit) => void;
   isStatic?: boolean;
@@ -30,6 +32,8 @@ export const WallVisualizer: React.FC<Props> = ({
   onSwapCabinets,
   hideArrows = false,
   selectedCabinet,
+  swapSelection = [],
+  onCabinetSelect,
   draggedCabinet,
   onDropCabinet,
   isStatic = false,
@@ -155,26 +159,21 @@ export const WallVisualizer: React.FC<Props> = ({
     });
   };
 
-  // Swap cabinet with adjacent cabinet
   const handleSwapCabinet = (currentIndex: number, direction: 'left' | 'right') => {
     const currentCabinet = zone.cabinets[currentIndex];
     if (!currentCabinet) return;
 
-    // Find adjacent cabinet of compatible type
     const currentX = currentCabinet.fromLeft;
     const candidates = zone.cabinets
       .map((cab, idx) => ({ cab, idx }))
       .filter(({ cab, idx }) => {
         if (idx === currentIndex) return false;
         
-        // Check if types are compatible for swapping
         const currentType = currentCabinet.type;
         const targetType = cab.type;
         
-        // Tall can swap with anything
         if (currentType === CabinetType.TALL || targetType === CabinetType.TALL) return true;
         
-        // Same type can swap
         if (currentType === targetType) return true;
         
         return false;
@@ -184,11 +183,9 @@ export const WallVisualizer: React.FC<Props> = ({
     let targetIndex = -1;
     
     if (direction === 'right') {
-      // Find first cabinet to the right
       const target = candidates.find(({ cab }) => cab.fromLeft > currentX);
       if (target) targetIndex = target.idx;
     } else {
-      // Find last cabinet to the left
       const target = candidates.reverse().find(({ cab }) => cab.fromLeft < currentX);
       if (target) targetIndex = target.idx;
     }
@@ -227,7 +224,6 @@ export const WallVisualizer: React.FC<Props> = ({
     const isTall = unit.type === CabinetType.TALL;
     const isWall = unit.type === CabinetType.WALL;
     
-    // Use project settings with fallbacks
     const baseHeight = settings?.baseHeight || 870;
     const wallHeight = settings?.wallHeight || 720;
     const counterThickness = settings?.counterThickness || 40;
@@ -243,84 +239,65 @@ export const WallVisualizer: React.FC<Props> = ({
     }
     else if (isWall) { 
         h = unit.advancedSettings?.height || wallHeight; 
-        // Wall cabinet sits above counter top using settings
         const wallElevation = settings?.wallCabinetElevation || 450;
-        // Top alignment: stay flush with the standard top edge
         y = (height || 2400) - baseHeight - counterThickness - wallElevation - wallHeight;
     }
 
     const x = unit.fromLeft;
     const w = unit.width;
-    const isAuto = unit.isAutoFilled;
-    const isSelected = selectedCabinet?.zoneId === zone.id && selectedCabinet?.index === index;
+    const isSelected = selectedCabinet?.zoneId === zone.id && selectedCabinet?.id === unit.id;
+    const isSwapSelected = swapSelection.some(s => s.zoneId === zone.id && s.index === index);
     const activeColor = getActiveColor(unit.preset);
-    const strokeColor = isSelected ? '#3b82f6' : activeColor.stroke;
-    const fillColor = isSelected ? 'rgba(59, 130, 246, 0.2)' : activeColor.fill;
+    
+    // Selection and Swap colors
+    const strokeColor = isSwapSelected ? '#f59e0b' : (isSelected ? '#3b82f6' : activeColor.stroke);
+    const fillColor = isSwapSelected ? 'rgba(245, 158, 11, 0.2)' : (isSelected ? 'rgba(59, 130, 246, 0.2)' : activeColor.fill);
 
-    // Check if can swap left/right - show arrows for immediate neighbors with compatible types
-    // Sort cabinets by position to find immediate neighbors
     const sortedCabs = zone.cabinets
       .map((cab, idx) => ({ cab, idx }))
       .filter(({ idx }) => idx !== index)
       .sort((a, b) => a.cab.fromLeft - b.cab.fromLeft);
     
-    // Find immediate left neighbor
     const leftNeighbors = sortedCabs.filter(({ cab }) => cab.fromLeft < x);
     const immediateLeft = leftNeighbors.length > 0 ? leftNeighbors[leftNeighbors.length - 1] : null;
     
-    // Find immediate right neighbor
     const rightNeighbors = sortedCabs.filter(({ cab }) => cab.fromLeft > x);
     const immediateRight = rightNeighbors.length > 0 ? rightNeighbors[0] : null;
     
-    // Check type compatibility for left swap
     const canSwapLeft = immediateLeft ? (
       (unit.type === CabinetType.TALL || immediateLeft.cab.type === CabinetType.TALL) ||
       (unit.type === immediateLeft.cab.type)
     ) : false;
     
-    // Check type compatibility for right swap
     const canSwapRight = immediateRight ? (
       (unit.type === CabinetType.TALL || immediateRight.cab.type === CabinetType.TALL) ||
       (unit.type === immediateRight.cab.type)
     ) : false;
 
-    // --- Visual detail logic to match 3D ISO models ---
     const adv = unit.advancedSettings || {};
     
-    // Align defaults with ScreenWallEditor sidebar logic
     const isSink = unit.preset === PresetType.SINK_UNIT;
-    const isDrawerPreset = unit.preset === PresetType.BASE_DRAWER_3;
-    const isOpenBox = unit.preset === PresetType.OPEN_BOX;
-
     const showDrawers = adv.showDrawers ?? false;
     const numDrawers = adv.numDrawers ?? (isSink ? 0 : 3);
-    
     const showShelves = adv.showShelves ?? (isSink ? false : true);
     const numShelves = adv.numShelves ?? (isSink ? 0 : 2);
-    
     const showDoors = adv.showDoors ?? true;
 
     const detailLines: React.ReactNode[] = [];
-    const detailOpacity = "0.8"; // Increased for better visibility
-
+    const detailOpacity = "0.8";
 
     if (isTall) {
-      // Tall cabinet sections
       const lowerH = adv.tallLowerSectionHeight ?? (settings?.baseHeight || 870) - toeKick;
       const upperH = adv.tallUpperSectionHeight ?? (settings?.wallHeight || 720);
       const dividerY = y + h - lowerH;
       
-      // Horizontal divider for tall cabinet sections
       detailLines.push(<line key="tall-divider" x1={x} y1={dividerY} x2={x + w} y2={dividerY} stroke={strokeColor} strokeWidth="2" />);
       
-      // Bottom panel of upper section
       const upperBottomY = y + upperH;
-      // Only show if it's not effectively at the same position as the tall-divider
       if (Math.abs(upperBottomY - dividerY) > 5) {
         detailLines.push(<line key="tall-upper-bottom" x1={x} y1={upperBottomY} x2={x + w} y2={upperBottomY} stroke={strokeColor} strokeWidth="2" />);
       }
       
-      // Upper section shelves
       if (adv.showShelves !== false && (adv.numShelves ?? 2) > 0) {
         const ns = adv.numShelves ?? 2;
         const spacing = upperH / ns;
@@ -330,7 +307,6 @@ export const WallVisualizer: React.FC<Props> = ({
         }
       }
 
-      // Lower section - drawers or shelves
       if (adv.showDrawers) {
         const nd = adv.numDrawers ?? 3;
         const stackH = adv.lowerSectionDrawerStackHeight ?? lowerH;
@@ -338,11 +314,9 @@ export const WallVisualizer: React.FC<Props> = ({
         const startY = y + h - stackH;
         for (let i = 0; i < nd; i++) {
           const dy = startY + dh * i;
-          // Drawer panel gap
           if (i > 0) {
             detailLines.push(<line key={`lower-drawer-line-${i}`} x1={x} y1={dy} x2={x + w} y2={dy} stroke={strokeColor} strokeWidth="2" />);
           }
-          // Drawer handle indicator
           detailLines.push(
             <rect 
               key={`lower-drawer-handle-${i}`} 
@@ -365,11 +339,9 @@ export const WallVisualizer: React.FC<Props> = ({
         }
       }
 
-      // Upper door lines (V-lines)
       if (adv.showDoors !== false) {
         detailLines.push(<path key="upper-door-v" d={`M${x + w} ${y} L${x + w / 2} ${y + upperH / 2} L${x + w} ${y + upperH}`} fill="none" stroke={strokeColor} strokeWidth="1.5" opacity={detailOpacity} />);
       }
-      // Lower door lines (V-lines)
       if (adv.showLowerDoors !== false && !adv.showDrawers) {
         detailLines.push(<path key="lower-door-v" d={`M${x + w} ${dividerY} L${x + w / 2} ${dividerY + lowerH / 2} L${x + w} ${y + h}`} fill="none" stroke={strokeColor} strokeWidth="1.5" opacity={detailOpacity} />);
       }
@@ -382,13 +354,11 @@ export const WallVisualizer: React.FC<Props> = ({
           <rect x={x + 50} y={y - 10} width={w - 100} height={20} rx="2" fill="#94a3b8" />
           <path d={`M${x + w / 2 - 20} ${y - 10} L${x + w / 2 + 20} ${y - 10} L${x + w / 2} ${y - 60} Z`} fill="#94a3b8" />
           <path d={`M${x + w / 2} ${y - 60} Q${x + w / 2 + 20} ${y - 80} ${x + w / 2 + 30} ${y - 50}`} fill="none" stroke="#94a3b8" strokeWidth="4" />
-          {/* Sink doors */}
           <line x1={x + w / 2} y1={y} x2={x + w / 2} y2={y + h} stroke={strokeColor} strokeWidth="1" opacity="0.3" />
           <path d={`M${x + w} ${y} L${x + w / 2} ${y + h / 2} L${x + w} ${y + h}`} fill="none" stroke={strokeColor} strokeWidth="0.5" opacity={detailOpacity} />
         </g>
       );
     } else if (unit.preset === PresetType.HOOD_UNIT) {
-      // Hood specific details
       if (showShelves && numShelves > 0) {
         const spacing = h / (numShelves + 1);
         for (let i = 1; i <= numShelves; i++) {
@@ -409,22 +379,15 @@ export const WallVisualizer: React.FC<Props> = ({
         }
       }
       
-      // Optional: Add a subtle visual indicator for the hood area if needed, 
-      // but usually the height difference is enough.
       detailLines.push(<path key="door-v" d={`M${x + w} ${y} L${x + w / 2} ${y + h / 2} L${x + w} ${y + h}`} fill="none" stroke={strokeColor} strokeWidth="1.5" opacity={detailOpacity} />);
     } else {
-      // General Base/Wall cabinet logic
-      
-      // Drawers
       if (showDrawers && numDrawers > 0) {
         const dh = h / numDrawers;
         for (let i = 0; i < numDrawers; i++) {
           const dy = y + dh * i;
-          // Drawer panel gap
           if (i > 0) {
             detailLines.push(<line key={`drawer-line-${i}`} x1={x} y1={dy} x2={x + w} y2={dy} stroke={strokeColor} strokeWidth="2" />);
           }
-          // Drawer handle indicator
           detailLines.push(
             <rect 
               key={`drawer-handle-${i}`} 
@@ -439,7 +402,6 @@ export const WallVisualizer: React.FC<Props> = ({
           );
         }
       } 
-      // Shelves
       else if (showShelves && numShelves > 0) {
         const spacing = h / (numShelves + 1);
         for (let i = 1; i <= numShelves; i++) {
@@ -460,7 +422,6 @@ export const WallVisualizer: React.FC<Props> = ({
         }
       }
       
-      // Doors (V-lines)
       if (showDoors && !showDrawers) {
         if (w >= 600) {
           detailLines.push(<line key="door-split" x1={x + w / 2} y1={y} x2={x + w / 2} y2={y + h} stroke={strokeColor} strokeWidth="1" opacity="0.3" />);
@@ -473,18 +434,15 @@ export const WallVisualizer: React.FC<Props> = ({
 
     return (
       <g key={unit.id}>
-        {/* Cabinet Body - Clickable for edit */}
         <g
           onClick={(e) => { e.stopPropagation(); onCabinetClick?.(index); }}
           className="cursor-pointer"
           style={{ pointerEvents: 'all' }}
         >
-          {/* Cabinet Base */}
           <rect x={x} y={y} width={w} height={h} rx="2" fill={fillColor} stroke={strokeColor} strokeWidth="2" />
           
-          {/* Cabinet Label - Selection highlight ONLY, no text as per user request */}
           <g>
-            {isSelected && (
+            {(isSelected || isSwapSelected) && (
               <rect
                 x={x + 5}
                 y={y + 5}
@@ -500,7 +458,6 @@ export const WallVisualizer: React.FC<Props> = ({
             )}
           </g>
           
-          {/* Width Label - Outside (for editing view) */}
           {!hideArrows && (
             <text x={x + w / 2} y={y + h + 40} textAnchor="middle" fontSize="24" fontWeight="bold" fill="#475569" pointerEvents="none" className="font-mono">
               {unit.width}
@@ -620,10 +577,13 @@ export const WallVisualizer: React.FC<Props> = ({
         />
 
         {/* Alignment Guides - Show when a cabinet is selected */}
-        {selectedCabinet && zone.cabinets[selectedCabinet.index] && (() => {
-          const selCab = zone.cabinets[selectedCabinet.index];
+        {(() => {
+          if (!selectedCabinet) return null;
+          const selCab = zone.cabinets.find(c => c.id === selectedCabinet.id);
+          if (!selCab) return null;
+
           const otherEdges = new Set(
-            zone.cabinets.flatMap((c, i) => i === selectedCabinet.index ? [] : [c.fromLeft, c.fromLeft + c.width])
+            zone.cabinets.filter(c => c.id !== selectedCabinet.id).flatMap(c => [c.fromLeft, c.fromLeft + c.width])
           );
           
           // Edges of the selected cabinet

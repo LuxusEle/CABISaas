@@ -215,14 +215,14 @@ export const WallCabinetTesting: React.FC<Props> = ({ settings }) => {
     <group position={[width / 2, height / 2, depth / 2]}>
       {/* Additional Exposed Side Panels (Door Material) */}
       {settings.exposedLeft && (
-        <mesh position={[-width / 2 + doorMaterialThickness / 2, 0, 0]} rotation={[0, -Math.PI / 2, 0]} castShadow receiveShadow>
-          <primitive object={createPanelWithHolesGeo(doorMaterialThickness, height, depth, 0, 0, 0, 'none', [], 0)} attach="geometry" />
+        <mesh position={[-width / 2 + doorMaterialThickness / 2, doorYOffset, doorMaterialThickness / 2]} rotation={[0, -Math.PI / 2, 0]} castShadow receiveShadow>
+          <primitive object={createPanelWithHolesGeo(doorMaterialThickness, doorHeight, depth + doorMaterialThickness, 0, 0, 0, 'none', [], 0)} attach="geometry" />
           <meshStandardMaterial color={settings.isStudio && settings.doorTexture ? '#ffffff' : doorColor} map={settings.isStudio ? settings.doorTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} side={THREE.DoubleSide} />
         </mesh>
       )}
       {settings.exposedRight && (
-        <mesh position={[width / 2 - doorMaterialThickness / 2, 0, 0]} rotation={[0, -Math.PI / 2, 0]} castShadow receiveShadow>
-          <primitive object={createPanelWithHolesGeo(doorMaterialThickness, height, depth, 0, 0, 0, 'none', [], 0)} attach="geometry" />
+        <mesh position={[width / 2 - doorMaterialThickness / 2, doorYOffset, doorMaterialThickness / 2]} rotation={[0, -Math.PI / 2, 0]} castShadow receiveShadow>
+          <primitive object={createPanelWithHolesGeo(doorMaterialThickness, doorHeight, depth + doorMaterialThickness, 0, 0, 0, 'none', [], 0)} attach="geometry" />
           <meshStandardMaterial color={settings.isStudio && settings.doorTexture ? '#ffffff' : doorColor} map={settings.isStudio ? settings.doorTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} side={THREE.DoubleSide} />
         </mesh>
       )}
@@ -517,10 +517,10 @@ export const exportWallCabinetDXF = async (settings: TestingSettings, zip: JSZip
   addPanelToZip('Right_Panel', sideW, sideH_Panel, nailHoles, sideGroove, true, rightNotches);
 
   if (settings.exposedLeft) {
-    addPanelToZip('Exposed_Left_Panel', depth, height);
+    addPanelToZip('Exposed_Left_Panel', depth + doorMaterialThickness, doorHeight);
   }
   if (settings.exposedRight) {
-    addPanelToZip('Exposed_Right_Panel', depth, height);
+    addPanelToZip('Exposed_Right_Panel', depth + doorMaterialThickness, doorHeight);
   }
   const actualBottomDepthDXF = innerDepth;
   const bottomNailHoles = [];
