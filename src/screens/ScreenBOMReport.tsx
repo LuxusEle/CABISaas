@@ -51,64 +51,16 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
   }, []);
 
 
-  // Calculate total doors for hinge calculation
-  // Ruby CBX door threshold: < 599.5mm = single door, >= 600mm = double doors
-  const RUBY_DOOR_THRESHOLD = 599.5;
-  const totalDoors = useMemo(() => {
-    let doors = 0;
-    project.zones.forEach(zone => {
-      zone.cabinets.forEach(unit => {
-        const t = getCabinetTestingSettings(unit, project.settings);
-        
-        // Count doors based on rendering logic
-        if (t.showDoors) {
-          // Standard doors (Base/Wall/Tall upper)
-          const actualNumDoors = t.width < RUBY_DOOR_THRESHOLD ? 1 : 2;
-          doors += actualNumDoors;
-        }
-        
-        // Tall cabinets also have lower doors
-        if (unit.type === CabinetType.TALL && t.showLowerDoors) {
-          doors += 1; // Lower door is usually single
-        }
-      });
-    });
-    return doors;
-  }, [project.zones, project.settings]);
+  // Use pre-calculated values from generateProjectBOM for consistency
+  const hingeQuantity = data.hardwareSummary['Soft-Close Hinge'] || 0;
+  const handleQuantity = data.hardwareSummary['Handle/Knob'] || 0;
+  const drawerSlideQuantity = data.hardwareSummary['Drawer Slide (Pair)'] || 0;
+  const totalLegs = data.hardwareSummary['Adjustable Leg'] || 0;
+  const totalHangers = data.hardwareSummary['Wall Hanger'] || 0;
+  const totalGraniteSqft = data.totalGraniteSqft || 0;
+  const totalTileSqft = data.totalTileSqft || 0;
 
-  // Calculate hinge quantity (2 per door)
-  const hingeQuantity = totalDoors * 2;
-
-  // Calculate installation nails (6 per hinge)
-  const totalNails = hingeQuantity * 6;
-
-  // Calculate adjustable legs (4 per BASE or TALL cabinet)
-  const totalLegs = useMemo(() => {
-    let legs = 0;
-    project.zones.forEach(zone => {
-      zone.cabinets.forEach(cab => {
-        if (cab.type === CabinetType.BASE || cab.type === CabinetType.TALL) {
-          legs += 4;
-        }
-      });
-    });
-    return legs;
-  }, [project.zones]);
-
-  // Calculate wall hangers (1 per WALL cabinet)
-  const totalHangers = useMemo(() => {
-    let hangers = 0;
-    project.zones.forEach(zone => {
-      zone.cabinets.forEach(cab => {
-        if (cab.type === CabinetType.WALL) {
-          hangers += 1;
-        }
-      });
-    });
-    return hangers;
-  }, [project.zones]);
-
-  // Get hinge cost from accessories
+  // Accessory Costs
   const hingeAccessory = accessories.find(acc =>
     acc.name.toLowerCase().includes('hinge') ||
     acc.name.toLowerCase().includes('soft-close')
@@ -116,22 +68,6 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
   const hingeUnitCost = hingeAccessory?.default_amount || project.settings.costs.pricePerHardwareUnit;
   const hingeTotalCost = hingeQuantity * hingeUnitCost;
 
-  // Calculate total drawers (from drawer cabinets)
-  const totalDrawers = useMemo(() => {
-    let drawers = 0;
-    project.zones.forEach(zone => {
-      zone.cabinets.forEach(cab => {
-        const t = getCabinetTestingSettings(cab, project.settings);
-        if (t.showDrawers && t.numDrawers > 0) {
-          drawers += t.numDrawers;
-        }
-      });
-    });
-    return drawers;
-  }, [project.zones, project.settings]);
-
-  // Calculate Handle/Knob quantity (doors + drawers)
-  const handleQuantity = totalDoors + totalDrawers;
   const handleAccessory = accessories.find(acc =>
     acc.name.toLowerCase().includes('handle') ||
     acc.name.toLowerCase().includes('knob')
@@ -139,8 +75,6 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
   const handleUnitCost = handleAccessory?.default_amount || project.settings.costs.pricePerHardwareUnit;
   const handleTotalCost = handleQuantity * handleUnitCost;
 
-  // Calculate Drawer Slide quantity (pairs) = number of drawers
-  const drawerSlideQuantity = totalDrawers;
   const drawerSlideAccessory = accessories.find(acc =>
     acc.name.toLowerCase().includes('drawer slide') ||
     acc.name.toLowerCase().includes('slide')
@@ -148,40 +82,9 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
   const drawerSlideUnitCost = drawerSlideAccessory?.default_amount || project.settings.costs.pricePerHardwareUnit;
   const drawerSlideTotalCost = drawerSlideQuantity * drawerSlideUnitCost;
 
-  // Calculate total Granite area in square feet
-  // 1 sqft = 92903.04 mm2
-  const totalGraniteSqft = useMemo(() => {
-    let areaMm2 = 0;
-    project.zones.forEach(zone => {
-      zone.cabinets.forEach(cab => {
-        if (cab.type === CabinetType.BASE) {
-          const depth = (cab.advancedSettings?.depth || project.settings.depthBase || 560) + 50;
-          areaMm2 += cab.width * depth;
-        }
-      });
-    });
-    return areaMm2 / 92903.04;
-  }, [project.zones, project.settings.depthBase]);
-
   const graniteAccessory = accessories.find(acc => acc.name.toLowerCase() === 'granite');
   const graniteUnitCost = graniteAccessory?.default_amount || 0;
   const graniteTotalCost = totalGraniteSqft * graniteUnitCost;
-
-  // Calculate total Tile area in square feet
-  const totalTileSqft = useMemo(() => {
-    let areaMm2 = 0;
-    const wallElev = project.settings.wallCabinetElevation || 600;
-    const counterThick = project.settings.counterThickness || 40;
-    const tileH = wallElev; // from top of counter to wall cabinet bottom is wallElev
-    project.zones.forEach(zone => {
-      zone.cabinets.forEach(cab => {
-        if (cab.type === CabinetType.BASE) {
-          areaMm2 += cab.width * tileH;
-        }
-      });
-    });
-    return areaMm2 / 92903.04;
-  }, [project.zones, project.settings.wallCabinetElevation]);
 
   const tileAccessory = accessories.find(acc => acc.name.toLowerCase() === 'tile');
   const tileUnitCost = tileAccessory?.default_amount || 0;
@@ -368,7 +271,7 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
           <Button 
             variant="secondary" 
             size="sm" 
-            onClick={() => isUserPro ? exportToExcel(data.groups, cutPlan, project) : navigate('/pricing')} 
+            onClick={() => isUserPro ? exportToExcel(data.groups, cutPlan, project, data, accessories, sheetTypes) : navigate('/pricing')} 
             className="h-9 text-[10px] sm:text-xs px-3 gap-1.5"
           >
             {isUserPro ? <FileSpreadsheet size={14} /> : <Lock size={12} className="text-amber-500" />}
@@ -515,27 +418,34 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
                         <td className="p-3 text-right font-medium">{currency}{(totalLegs * (accessories.find(a => a.name.toLowerCase().includes('adjustable leg'))?.default_amount || 2)).toFixed(2)}</td>
                       </tr>
                     )}
-                    {/* Other Accessories */}
-                    {accessories
-                      .filter(acc =>
-                        !acc.name.toLowerCase().includes('hinge') &&
-                        !acc.name.toLowerCase().includes('handle') &&
-                        !acc.name.toLowerCase().includes('knob') &&
-                        !acc.name.toLowerCase().includes('drawer slide') &&
-                        !acc.name.toLowerCase().includes('slide') &&
-                        !acc.name.toLowerCase().includes('adjustable leg') &&
-                        !acc.name.toLowerCase().includes('wall hanger') &&
-                        !acc.name.toLowerCase().includes('installation nail') &&
-                        !acc.name.toLowerCase().includes('granite') &&
-                        !acc.name.toLowerCase().includes('tile')
-                      )
-                      .map((acc) => (
-                        <tr key={acc.id} className="hover:bg-slate-50/50 transition-colors">
-                          <td className="p-3 font-bold text-slate-900 dark:text-white print:text-black">{acc.name}</td>
-                          <td className="p-3 text-center font-black text-amber-600">1</td>
-                          <td className="p-3 text-right font-medium">{currency}{acc.default_amount.toFixed(2)}</td>
-                        </tr>
-                      ))}
+                    {/* Other Hardware from Automated Calculation */}
+                    {Object.entries(data.hardwareSummary)
+                      .filter(([name]) => {
+                        const lower = name.toLowerCase();
+                        // Skip items already shown explicitly above
+                        return !lower.includes('hinge') && 
+                               !lower.includes('handle') && 
+                               !lower.includes('knob') && 
+                               !lower.includes('slide') &&
+                               !lower.includes('adjustable leg') &&
+                               !lower.includes('granite') &&
+                               !lower.includes('tile');
+                      })
+                      .map(([name, qty]) => {
+                        const acc = accessories.find(a => 
+                          a.name.toLowerCase() === name.toLowerCase() ||
+                          a.name.toLowerCase().includes(name.toLowerCase()) ||
+                          name.toLowerCase().includes(a.name.toLowerCase())
+                        );
+                        const unitCost = acc?.default_amount || project.settings.costs.pricePerHardwareUnit;
+                        return (
+                          <tr key={name} className="hover:bg-slate-50/50 transition-colors">
+                            <td className="p-3 font-bold text-slate-900 dark:text-white print:text-black">{name}</td>
+                            <td className="p-3 text-center font-black text-amber-600">{qty}</td>
+                            <td className="p-3 text-right font-medium">{currency}{(qty * unitCost).toFixed(2)}</td>
+                          </tr>
+                        );
+                      })}
                   </tbody>
                 </table>
               </div>

@@ -606,6 +606,21 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
     parts.push({ id: uuid(), name: HW.HANGER, qty: 1, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
   }
 
+  // Hinges and Handles
+  const RUBY_DOOR_THRESHOLD = 599.5;
+  let cabinetDoors = 0;
+  if (t.showDoors) {
+    cabinetDoors += (t.width < RUBY_DOOR_THRESHOLD ? 1 : 2);
+  }
+  if (unit.type === CabinetType.TALL && t.showLowerDoors) {
+    cabinetDoors += 1;
+  }
+
+  if (cabinetDoors > 0) {
+    parts.push({ id: uuid(), name: 'Soft-Close Hinge', qty: cabinetDoors * 2, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
+    parts.push({ id: uuid(), name: 'Handle/Knob', qty: cabinetDoors, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
+  }
+
   const connectorsPerCabinet = isTall ? 12 : 8;
   parts.push({ id: uuid(), name: HW.CAM_LOCK, qty: connectorsPerCabinet, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
   parts.push({ id: uuid(), name: HW.CONFIRMAT, qty: connectorsPerCabinet, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
@@ -613,17 +628,28 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
   // 7. DRAWER SLIDES
   if (t.showDrawers && t.numDrawers > 0) {
     parts.push({ id: uuid(), name: HW.SLIDE, qty: t.numDrawers, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
+    parts.push({ id: uuid(), name: 'Handle/Knob', qty: t.numDrawers, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
   }
 
   return parts;
 };
 
-export const generateProjectBOM = (project: Project): { groups: BOMGroup[], hardwareSummary: Record<string, number>, totalArea: number, totalLinearFeet: number, cabinetCount: number } => {
+export const generateProjectBOM = (project: Project): { 
+  groups: BOMGroup[], 
+  hardwareSummary: Record<string, number>, 
+  totalArea: number, 
+  totalLinearFeet: number, 
+  cabinetCount: number,
+  totalGraniteSqft: number,
+  totalTileSqft: number
+} => {
   const groups: BOMGroup[] = [];
   const hardwareSummary: Record<string, number> = {};
   let totalArea = 0;
   let totalLinearFeet = 0;
   let cabinetCount = 0;
+  let totalGraniteSqft = 0;
+  let totalTileSqft = 0;
 
   project.zones.filter(z => z.active).forEach((zone, zIdx) => {
     let zoneLen = 0;
@@ -666,9 +692,19 @@ export const generateProjectBOM = (project: Project): { groups: BOMGroup[], hard
       groups.push({
         cabinetId: unit.id,
         cabinetName: `${effectiveLabel} - ${unit.preset} (${unit.width}mm)`,
-        items: woodParts
+        items: parts // Include all parts (wood + hardware)
       });
+      
+      // Accessory Calculations
+      if (unit.type === CabinetType.BASE) {
+        const depth = (unit.advancedSettings?.depth || project.settings.depthBase || 560) + 50;
+        totalGraniteSqft += (unit.width * depth) / 92903.04;
+      }
     });
+
+    // Tile Backsplash
+    const backsplashHeight = project.settings.wallCabinetElevation || 450;
+    totalTileSqft += (zone.totalLength * backsplashHeight) / 92903.04;
 
     totalLinearFeet += (zoneLen / 304.8);
   });
@@ -684,7 +720,9 @@ export const generateProjectBOM = (project: Project): { groups: BOMGroup[], hard
     hardwareSummary,
     totalArea: parseFloat(totalArea.toFixed(2)),
     totalLinearFeet: parseFloat(totalLinearFeet.toFixed(1)),
-    cabinetCount
+    cabinetCount,
+    totalGraniteSqft,
+    totalTileSqft
   };
 };
 
@@ -953,7 +991,7 @@ export const createNewProject = (logoUrl?: string): Project => ({
 });
 
 // EXCEL (XML Spreadsheet) EXPORT
-export const exportToExcel = (groups: BOMGroup[], nestingData: OptimizationResult, project: Project) => {
+export const exportToExcel = (groups: BOMGroup[], nestingData: OptimizationResult, project: Project, bomData?: any, accessories: any[] = [], sheetTypes: any[] = []) => {
   const timestamp = new Date().toISOString().slice(0, 10);
 
   // 1. Prepare Data for Sheets
@@ -993,23 +1031,150 @@ export const exportToExcel = (groups: BOMGroup[], nestingData: OptimizationResul
     materialCounts[sheet.material].count += 1;
   });
 
-  let materialRows = '';
+  // 2. Prepare Sheet Materials Report Rows
+  let sheetReportRows = '';
+  let totalSheetCost = 0;
+  let rowIdx = 1;
+
   Object.keys(materialCounts).forEach(mat => {
     const data = materialCounts[mat];
-    const avgWaste = Math.round(data.wasteSum / data.count);
-    const estCost = data.sheets * project.settings.costs.pricePerSheet;
+    const findSheetPrice = (materialName: string): number => {
+      const matched = sheetTypes.find(st =>
+        materialName.toLowerCase().includes(st.name.toLowerCase()) ||
+        st.name.toLowerCase().includes(materialName.toLowerCase())
+      );
+      return matched?.price_per_sheet || project.settings.costs.pricePerSheet || 85.00;
+    };
 
-    materialRows += `
+    const unitPrice = findSheetPrice(mat);
+    const lineCost = data.sheets * unitPrice;
+    totalSheetCost += lineCost;
+
+    const isEven = rowIdx % 2 === 0;
+    const rowStyle = isEven ? ' ss:StyleID="EvenRow"' : '';
+    const currStyle = isEven ? 'ss:StyleID="EvenCurrency"' : 'ss:StyleID="Currency"';
+    const numStyle = isEven ? 'ss:StyleID="EvenLeftAlign"' : 'ss:StyleID="LeftAlign"';
+
+    sheetReportRows += `
     <Row>
-      <Cell><Data ss:Type="String">${mat}</Data></Cell>
-      <Cell><Data ss:Type="Number">${data.sheets}</Data></Cell>
-      <Cell><Data ss:Type="String">${data.length} x ${data.width}</Data></Cell>
-      <Cell><Data ss:Type="Number">${avgWaste}</Data></Cell>
-      <Cell><Data ss:Type="Number">${estCost}</Data></Cell>
+      <Cell ${numStyle}><Data ss:Type="Number">${rowIdx++}</Data></Cell>
+      <Cell ${rowStyle}><Data ss:Type="String">${mat}</Data></Cell>
+      <Cell ${rowStyle}><Data ss:Type="String">Color ${mat} - ${data.length}x${data.width}</Data></Cell>
+      <Cell ${numStyle}><Data ss:Type="Number">${data.sheets}</Data></Cell>
+      <Cell ${rowStyle}><Data ss:Type="String">Sheet</Data></Cell>
+      <Cell ${currStyle}><Data ss:Type="Number">${unitPrice}</Data></Cell>
+      <Cell ${rowStyle}><Data ss:Type="Number">1</Data></Cell>
+      <Cell ${currStyle}><Data ss:Type="Number">${lineCost}</Data></Cell>
+      <Cell ${rowStyle}><Data ss:Type="String"></Data></Cell>
     </Row>`;
   });
 
-  // XML Template
+  // 3. Prepare Other Costs Report Rows
+  let otherReportRows = '';
+  let totalOtherCost = 0;
+  let oRowIdx = 1;
+
+  const hwSummary: Record<string, number> = bomData?.hardwareSummary || {};
+  const findPrice = (name: string, def: number) => {
+    const acc = accessories.find(a => 
+      a.name.toLowerCase() === name.toLowerCase() || 
+      a.name.toLowerCase().includes(name.toLowerCase()) ||
+      name.toLowerCase().includes(a.name.toLowerCase())
+    );
+    return acc?.default_amount || def;
+  };
+
+  const defaultPrice = project.settings.costs.pricePerHardwareUnit;
+  const itemsToReport = [
+    { name: 'Soft-Close Hinges', qty: hwSummary['Soft-Close Hinge'] || 0, price: findPrice('hinge', defaultPrice), unit: 'Unit' },
+    { name: 'Handle/Knob Set', qty: hwSummary['Handle/Knob'] || 0, price: findPrice('handle', defaultPrice), unit: 'Unit' },
+    { name: 'Drawer Slides (Pairs)', qty: hwSummary[HW.SLIDE] || 0, price: findPrice('slide', defaultPrice), unit: 'Pair' },
+    { name: 'Granite Countertop (Sqft)', qty: bomData?.totalGraniteSqft || 0, price: findPrice('granite', 3000), unit: 'Sqft' },
+    { name: 'Tile Backsplash (Sqft)', qty: bomData?.totalTileSqft || 0, price: findPrice('tile', 1500), unit: 'Sqft' },
+    { name: 'Adjustable Legs', qty: hwSummary[HW.LEG] || 0, price: findPrice('leg', 350), unit: 'Unit' }
+  ];
+
+  // Add remaining hardware (Cam-Locks, etc.)
+  Object.entries(hwSummary).forEach(([name, qty]) => {
+    const lower = name.toLowerCase();
+    if (!lower.includes('hinge') && !lower.includes('handle') && !lower.includes('slide') && !lower.includes('leg')) {
+      itemsToReport.push({ name, qty, price: findPrice(name, defaultPrice), unit: 'Unit' });
+    }
+  });
+
+  itemsToReport.forEach(item => {
+    if (item.qty <= 0) return;
+    const lineAmount = item.qty * item.price;
+    totalOtherCost += lineAmount;
+    
+    const isEven = oRowIdx % 2 === 0;
+    const rowStyle = isEven ? ' ss:StyleID="EvenRow"' : '';
+    const currStyle = isEven ? 'ss:StyleID="EvenCurrency"' : 'ss:StyleID="Currency"';
+    const numStyle = isEven ? 'ss:StyleID="EvenLeftAlign"' : 'ss:StyleID="LeftAlign"';
+
+    otherReportRows += `
+    <Row>
+      <Cell ${numStyle}><Data ss:Type="Number">${oRowIdx++}</Data></Cell>
+      <Cell ${rowStyle}><Data ss:Type="String">${item.name}</Data></Cell>
+      <Cell ${rowStyle}><Data ss:Type="String"></Data></Cell>
+      <Cell ${numStyle}><Data ss:Type="Number">${item.name.includes('Sqft') ? item.qty.toFixed(2) : item.qty}</Data></Cell>
+      <Cell ${rowStyle}><Data ss:Type="String">${item.unit}</Data></Cell>
+      <Cell ${currStyle}><Data ss:Type="Number">${item.price}</Data></Cell>
+      <Cell ${rowStyle}><Data ss:Type="Number">1</Data></Cell>
+      <Cell ${currStyle}><Data ss:Type="Number">${lineAmount}</Data></Cell>
+      <Cell ${rowStyle}><Data ss:Type="String"></Data></Cell>
+    </Row>`;
+  });
+
+  // 4. Prepare Extra Costs (Labour, Transport)
+  let extraCostsRows = '';
+  let totalExtraCost = 0;
+  let eRowIdx = 1;
+
+  const labor = project.settings.costs.laborCost || 0;
+  const transport = project.settings.costs.transportCost || 0;
+
+  if (labor > 0) {
+    totalExtraCost += labor;
+    const isEven = eRowIdx % 2 === 0;
+    const rowStyle = isEven ? ' ss:StyleID="EvenRow"' : '';
+    const currStyle = isEven ? 'ss:StyleID="EvenCurrency"' : 'ss:StyleID="Currency"';
+    const numStyle = isEven ? 'ss:StyleID="EvenLeftAlign"' : 'ss:StyleID="LeftAlign"';
+    extraCostsRows += `
+    <Row>
+      <Cell ${numStyle}><Data ss:Type="Number">${eRowIdx++}</Data></Cell>
+      <Cell ${rowStyle}><Data ss:Type="String">Labour</Data></Cell>
+      <Cell ${rowStyle}><Data ss:Type="String">Manufacturing &amp; Assembly</Data></Cell>
+      <Cell ${numStyle}><Data ss:Type="Number">1</Data></Cell>
+      <Cell ${rowStyle}><Data ss:Type="String">Project</Data></Cell>
+      <Cell ${currStyle}><Data ss:Type="Number">${labor}</Data></Cell>
+      <Cell ${rowStyle}><Data ss:Type="Number">1</Data></Cell>
+      <Cell ${currStyle}><Data ss:Type="Number">${labor}</Data></Cell>
+      <Cell ${rowStyle}><Data ss:Type="String"></Data></Cell>
+    </Row>`;
+  }
+
+  if (transport > 0) {
+    totalExtraCost += transport;
+    const isEven = eRowIdx % 2 === 0;
+    const rowStyle = isEven ? ' ss:StyleID="EvenRow"' : '';
+    const currStyle = isEven ? 'ss:StyleID="EvenCurrency"' : 'ss:StyleID="Currency"';
+    const numStyle = isEven ? 'ss:StyleID="EvenLeftAlign"' : 'ss:StyleID="LeftAlign"';
+    extraCostsRows += `
+    <Row>
+      <Cell ${numStyle}><Data ss:Type="Number">${eRowIdx++}</Data></Cell>
+      <Cell ${rowStyle}><Data ss:Type="String">Transport</Data></Cell>
+      <Cell ${rowStyle}><Data ss:Type="String">Delivery &amp; Logistics</Data></Cell>
+      <Cell ${numStyle}><Data ss:Type="Number">1</Data></Cell>
+      <Cell ${rowStyle}><Data ss:Type="String">Trip</Data></Cell>
+      <Cell ${currStyle}><Data ss:Type="Number">${transport}</Data></Cell>
+      <Cell ${rowStyle}><Data ss:Type="Number">1</Data></Cell>
+      <Cell ${currStyle}><Data ss:Type="Number">${transport}</Data></Cell>
+      <Cell ${rowStyle}><Data ss:Type="String"></Data></Cell>
+    </Row>`;
+  }
+
+  // 5. GENERATE XML
   const xml = `<?xml version="1.0"?>
 <?mso-application progid="Excel.Sheet"?>
 <Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
@@ -1030,20 +1195,136 @@ export const exportToExcel = (groups: BOMGroup[], nestingData: OptimizationResul
    <NumberFormat/>
    <Protection/>
   </Style>
+  <Style ss:ID="Title">
+   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+   <Font ss:FontName="Calibri" ss:Size="14" ss:Bold="1" ss:Color="#0D9488"/>
+  </Style>
   <Style ss:ID="Header">
-   <Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="11" ss:Color="#FFFFFF" ss:Bold="1"/>
-   <Interior ss:Color="#D97706" ss:Pattern="Solid"/>
+   <Alignment ss:Vertical="Center" ss:Horizontal="Center"/>
+   <Font ss:FontName="Calibri" ss:Size="10" ss:Color="#FFFFFF" ss:Bold="1"/>
+   <Interior ss:Color="#0D9488" ss:Pattern="Solid"/>
+   <Borders>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
+    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/>
+   </Borders>
+  </Style>
+  <Style ss:ID="SectionHeader">
+   <Alignment ss:Vertical="Center"/>
+   <Font ss:FontName="Calibri" ss:Size="10" ss:Bold="1" ss:Color="#0F766E"/>
+   <Interior ss:Color="#CCFBF1" ss:Pattern="Solid"/>
+  </Style>
+  <Style ss:ID="Currency">
+   <NumberFormat ss:Format="#,##0.00"/>
+  </Style>
+  <Style ss:ID="Total">
+   <Alignment ss:Horizontal="Right" ss:Vertical="Center"/>
+   <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1" ss:Color="#FFFFFF"/>
+   <Interior ss:Color="#0D9488" ss:Pattern="Solid"/>
+   <NumberFormat ss:Format="#,##0.00"/>
+  </Style>
+  <Style ss:ID="SectionTotal">
+   <Alignment ss:Horizontal="Right" ss:Vertical="Center"/>
+   <Font ss:FontName="Calibri" ss:Size="10" ss:Bold="1" ss:Color="#0F766E"/>
+   <Interior ss:Color="#CCFBF1" ss:Pattern="Solid"/>
+   <NumberFormat ss:Format="#,##0.00"/>
+  </Style>
+  <Style ss:ID="EvenRow">
+   <Interior ss:Color="#F1F5F9" ss:Pattern="Solid"/>
+  </Style>
+  <Style ss:ID="EvenCurrency">
+   <Interior ss:Color="#F1F5F9" ss:Pattern="Solid"/>
+   <NumberFormat ss:Format="#,##0.00"/>
+  </Style>
+  <Style ss:ID="LeftAlign">
+   <Alignment ss:Horizontal="Left" ss:Vertical="Center"/>
+  </Style>
+  <Style ss:ID="EvenLeftAlign">
+   <Alignment ss:Horizontal="Left" ss:Vertical="Center"/>
+   <Interior ss:Color="#F1F5F9" ss:Pattern="Solid"/>
   </Style>
  </Styles>
+
+ <Worksheet ss:Name="BOM Report">
+  <Table ss:ExpandedColumnCount="9">
+   <Column ss:Width="30"/>
+   <Column ss:Width="150"/>
+   <Column ss:Width="200"/>
+   <Column ss:Width="60"/>
+   <Column ss:Width="50"/>
+   <Column ss:Width="80"/>
+   <Column ss:Width="50"/>
+   <Column ss:Width="100"/>
+   <Column ss:Width="120"/>
+
+   <!-- Company Info Header -->
+   <Row ss:Height="30">
+    <Cell ss:MergeAcross="2"><Data ss:Type="String">${project.company}</Data></Cell>
+    <Cell ss:Index="4" ss:MergeAcross="2"><Data ss:Type="String">COST ESTIMATE</Data></Cell>
+    <Cell ss:Index="8" ss:MergeAcross="1"><Data ss:Type="String">Order Code: ${project.id.slice(0, 8)}</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:Index="4" ss:MergeAcross="2"><Data ss:Type="String">Customer: ${project.name}</Data></Cell>
+    <Cell ss:Index="8" ss:MergeAcross="1"><Data ss:Type="String">Date: ${timestamp}</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:Index="4" ss:MergeAcross="2"><Data ss:Type="String">Address: ${project.customerAddress || '-'}</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:Index="4" ss:MergeAcross="2"><Data ss:Type="String">Phone: ${project.customerPhone || '-'}</Data></Cell>
+   </Row>
+   <Row ss:Height="10"/>
+
+   <!-- Main Header -->
+   <Row ss:Height="20">
+    <Cell ss:StyleID="Header"><Data ss:Type="String">No.</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">Type</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">Description</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">Quantity</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">Unit</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">Unit Price</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">Factor</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">Amount</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">Total Amount</Data></Cell>
+   </Row>
+
+   <!-- SHEET SECTION -->
+   <Row>
+    <Cell ss:MergeAcross="7" ss:StyleID="SectionHeader"><Data ss:Type="String">SHEET</Data></Cell>
+    <Cell ss:StyleID="SectionTotal"><Data ss:Type="Number">${totalSheetCost}</Data></Cell>
+   </Row>
+   ${sheetReportRows}
+
+   <!-- OTHER COSTS SECTION -->
+   <Row>
+     <Cell ss:MergeAcross="7" ss:StyleID="SectionHeader"><Data ss:Type="String">HARDWARE &amp; ACCESSORIES</Data></Cell>
+     <Cell ss:StyleID="SectionTotal"><Data ss:Type="Number">${totalOtherCost}</Data></Cell>
+   </Row>
+   ${otherReportRows}
+
+   <!-- OTHER COSTS SECTION -->
+   <Row>
+     <Cell ss:MergeAcross="7" ss:StyleID="SectionHeader"><Data ss:Type="String">OTHER COSTS</Data></Cell>
+     <Cell ss:StyleID="SectionTotal"><Data ss:Type="Number">${totalExtraCost}</Data></Cell>
+   </Row>
+   ${extraCostsRows}
+
+   <!-- TOTAL COST SECTION -->
+   <Row ss:Height="25">
+    <Cell ss:MergeAcross="7" ss:StyleID="Total"><Data ss:Type="String">TOTAL COST</Data></Cell>
+    <Cell ss:StyleID="Total"><Data ss:Type="Number">${totalSheetCost + totalOtherCost + totalExtraCost}</Data></Cell>
+   </Row>
+  </Table>
+ </Worksheet>
+
  <Worksheet ss:Name="Parts List">
   <Table>
-   <Column ss:Width="200"/>
-   <Column ss:Width="120"/>
-   <Column ss:Width="120"/>
-   <Column ss:Width="80"/>
-   <Column ss:Width="80"/>
-   <Column ss:Width="60"/>
    <Column ss:Width="150"/>
+   <Column ss:Width="150"/>
+   <Column ss:Width="120"/>
+   <Column ss:Width="80"/>
+   <Column ss:Width="80"/>
+   <Column ss:Width="50"/>
+   <Column ss:Width="100"/>
    <Row ss:StyleID="Header">
     <Cell><Data ss:Type="String">Cabinet</Data></Cell>
     <Cell><Data ss:Type="String">Part Name</Data></Cell>
@@ -1054,23 +1335,6 @@ export const exportToExcel = (groups: BOMGroup[], nestingData: OptimizationResul
     <Cell><Data ss:Type="String">Label</Data></Cell>
    </Row>
    ${partsRows}
-  </Table>
- </Worksheet>
- <Worksheet ss:Name="Material BOM">
-  <Table>
-   <Column ss:Width="150"/>
-   <Column ss:Width="100"/>
-   <Column ss:Width="150"/>
-   <Column ss:Width="100"/>
-   <Column ss:Width="100"/>
-   <Row ss:StyleID="Header">
-    <Cell><Data ss:Type="String">Material</Data></Cell>
-    <Cell><Data ss:Type="String">Sheets Required</Data></Cell>
-    <Cell><Data ss:Type="String">Sheet Size</Data></Cell>
-    <Cell><Data ss:Type="String">Avg Waste %</Data></Cell>
-    <Cell><Data ss:Type="String">Est. Cost</Data></Cell>
-   </Row>
-   ${materialRows}
   </Table>
  </Worksheet>
 </Workbook>`;
