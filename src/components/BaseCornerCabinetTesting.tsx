@@ -1045,6 +1045,7 @@ export const exportBaseCornerCabinetDXF = async (settings: TestingSettings, zip:
   const leftH = innerHeight - panelThickness;
   const leftHoles: any[] = [];
   const leftNotches: any[] = [];
+  const shouldMirrorL = blindCornerSide === 'right';
   if (isGolaActive && isDoorOnLeft) {
     leftNotches.push({ u: leftW / 2, v: leftH / 2, width: settings.golaLCutoutDepth, height: settings.golaLCutoutHeight, alignV: 'top' });
   }
@@ -1057,18 +1058,36 @@ export const exportBaseCornerCabinetDXF = async (settings: TestingSettings, zip:
   const rebatedWidth = topStretcherWidth - golaLDepthOffset;
   const zCenterFrontGlobal = depth / 2 - golaLDepthOffset - rebatedWidth / 2;
   calculateNailHolePositions(rebatedWidth).forEach(offset => {
-    leftHoles.push({ y: yStr, z: (zCenterFrontGlobal + offset) - zOffsetL, r: nailHoleDiameter / 2 });
+    const z = (zCenterFrontGlobal + offset) - zOffsetL;
+    leftHoles.push({ y: yStr, z: shouldMirrorL ? -z : z, r: nailHoleDiameter / 2 });
   });
   // Top back stretcher
   const zCenterBackGlobal = -depth / 2 + topStretcherWidth / 2;
   calculateNailHolePositions(topStretcherWidth).forEach(offset => {
-    leftHoles.push({ y: yStr, z: (zCenterBackGlobal + offset) - zOffsetL, r: nailHoleDiameter / 2 });
+    const z = (zCenterBackGlobal + offset) - zOffsetL;
+    leftHoles.push({ y: yStr, z: shouldMirrorL ? -z : z, r: nailHoleDiameter / 2 });
   });
+
+  if (showBackStretchers && !isLShort) {
+    const zBackStretcher = -depth / 2 + panelThickness / 2;
+    const yTopBackMax = leftH / 2;
+    const yBottomBackMin = -leftH / 2 + panelThickness;
+    
+    [
+      yTopBackMax - (backStretcherHeight / 4) - panelThickness,
+      yTopBackMax - (backStretcherHeight * 3 / 4) - panelThickness,
+      (yBottomBackMin + (backStretcherHeight / 4)) - panelThickness,
+      (yBottomBackMin + (backStretcherHeight * 3 / 4)) - panelThickness
+    ].forEach(y => {
+      const z = zBackStretcher - zOffsetL;
+      leftHoles.push({ y, z: shouldMirrorL ? -z : z, r: nailHoleDiameter / 2 });
+    });
+  }
   // Column attachment if blind
   if (isLShort) {
     const zAttach = -leftW / 2 + panelThickness / 2;
     calculateNailHolePositions(leftH).forEach(offset => {
-      leftHoles.push({ y: offset, z: zAttach, r: nailHoleDiameter / 2 });
+      leftHoles.push({ y: offset, z: shouldMirrorL ? -zAttach : zAttach, r: nailHoleDiameter / 2 });
     });
   }
   // Shelf holes
@@ -1082,19 +1101,23 @@ export const exportBaseCornerCabinetDXF = async (settings: TestingSettings, zip:
       const shelfYCabinet = -innerHeight / 2 + panelThickness + spacing * (i + 1);
       const holeY = shelfYCabinet - panelThickness - (shelfHoleDiameter / 2) - panelThickness / 2;
       if (isLShort) {
-        leftHoles.push({ y: holeY, z: (depth / 2 - 50) - zOffsetL, r: shelfHoleDiameter / 2 });
-        leftHoles.push({ y: holeY, z: (-depth / 2 + columnDepth + 50) - zOffsetL, r: shelfHoleDiameter / 2 });
+        const z1 = (depth / 2 - 50) - zOffsetL;
+        const z2 = (-depth / 2 + columnDepth + 50) - zOffsetL;
+        leftHoles.push({ y: holeY, z: shouldMirrorL ? -z1 : z1, r: shelfHoleDiameter / 2 });
+        leftHoles.push({ y: holeY, z: shouldMirrorL ? -z2 : z2, r: shelfHoleDiameter / 2 });
       } else {
         const shelfHoleOffsets = calculateNailHolePositions(shelfLengthFull);
         [shelfHoleOffsets[0], shelfHoleOffsets[shelfHoleOffsets.length - 1]].forEach(offset => {
-          leftHoles.push({ y: holeY, z: (zCenterShelfFull + offset) - zOffsetL, r: shelfHoleDiameter / 2 });
+          const z = (zCenterShelfFull + offset) - zOffsetL;
+          leftHoles.push({ y: holeY, z: shouldMirrorL ? -z : z, r: shelfHoleDiameter / 2 });
         });
       }
     }
   }
 
   // Groove only if not shortened blind side
-  const leftGroove = !isLShort ? { x: panelThickness, y: 0, w: backPanelThickness + 2, h: leftH - panelThickness } : undefined;
+  const leftGrooveX = shouldMirrorL ? leftW - panelThickness - (backPanelThickness + 2) : panelThickness;
+  const leftGroove = !isLShort ? { x: leftGrooveX, y: 0, w: backPanelThickness + 2, h: leftH - panelThickness } : undefined;
   addPanelToZip('Left_Panel', leftW, leftH, leftHoles, leftGroove, leftNotches);
 
   // Right Panel
@@ -1118,6 +1141,22 @@ export const exportBaseCornerCabinetDXF = async (settings: TestingSettings, zip:
   calculateNailHolePositions(topStretcherWidth).forEach(offset => {
     rightHoles.push({ y: yStr, z: (zCenterBackGlobal + offset) - zOffsetR, r: nailHoleDiameter / 2 });
   });
+
+  if (showBackStretchers && !isRShort) {
+    const zBackStretcher = -depth / 2 + panelThickness / 2;
+    const yTopBackMax = rightH / 2;
+    const yBottomBackMin = -rightH / 2 + panelThickness;
+    
+    [
+      yTopBackMax - (backStretcherHeight / 4) - panelThickness,
+      yTopBackMax - (backStretcherHeight * 3 / 4) - panelThickness,
+      (yBottomBackMin + (backStretcherHeight / 4)) - panelThickness,
+      (yBottomBackMin + (backStretcherHeight * 3 / 4)) - panelThickness
+    ].forEach(y => {
+      const z = zBackStretcher - zOffsetR;
+      rightHoles.push({ y, z, r: nailHoleDiameter / 2 });
+    });
+  }
   if (isRShort) {
     const zAttach = -rightW / 2 + panelThickness / 2;
     calculateNailHolePositions(rightH).forEach(offset => {
