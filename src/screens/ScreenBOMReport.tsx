@@ -523,7 +523,9 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
                         !acc.name.toLowerCase().includes('slide') &&
                         !acc.name.toLowerCase().includes('adjustable leg') &&
                         !acc.name.toLowerCase().includes('wall hanger') &&
-                        !acc.name.toLowerCase().includes('installation nail')
+                        !acc.name.toLowerCase().includes('installation nail') &&
+                        !acc.name.toLowerCase().includes('granite') &&
+                        !acc.name.toLowerCase().includes('tile')
                       )
                       .map((acc) => (
                         <tr key={acc.id} className="hover:bg-slate-50/50 transition-colors">
