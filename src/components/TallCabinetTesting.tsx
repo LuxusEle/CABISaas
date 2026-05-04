@@ -509,23 +509,23 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
   return (
     <group position={[width / 2, innerHeight / 2 + toeKickHeight, depth / 2]}>
       {/* Additional Exposed Side Panels (Door Material) */}
-      {settings.exposedLeft && getExposedFragments(height, depth, settings.leftCoverage).map((frag, idx) => {
+      {settings.exposedLeft && getExposedFragments(height, depth + doorMaterialThickness, settings.leftCoverage).map((frag, idx) => {
         const rangeHeight = frag.end - frag.start;
         const rangeCenterY = (frag.start + frag.end) / 2;
         const localY = rangeCenterY - (toeKickHeight + innerHeight / 2);
         return (
-          <mesh key={`exp-left-${idx}`} position={[-width / 2 + doorMaterialThickness / 2, localY, frag.zOffset]} rotation={[0, -Math.PI / 2, 0]} castShadow receiveShadow>
+          <mesh key={`exp-left-${idx}`} position={[-width / 2 + doorMaterialThickness / 2, localY, frag.zOffset + doorMaterialThickness / 2]} rotation={[0, -Math.PI / 2, 0]} castShadow receiveShadow>
             <primitive object={createPanelWithHolesGeo(doorMaterialThickness, rangeHeight, frag.depth, 0, 0, 0, 'none', [], 0)} attach="geometry" />
             <meshStandardMaterial color={settings.isStudio && settings.doorTexture ? '#ffffff' : doorColor} map={settings.isStudio ? settings.doorTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} side={THREE.DoubleSide} />
           </mesh>
         );
       })}
-      {settings.exposedRight && getExposedFragments(height, depth, settings.rightCoverage).map((frag, idx) => {
+      {settings.exposedRight && getExposedFragments(height, depth + doorMaterialThickness, settings.rightCoverage).map((frag, idx) => {
         const rangeHeight = frag.end - frag.start;
         const rangeCenterY = (frag.start + frag.end) / 2;
         const localY = rangeCenterY - (toeKickHeight + innerHeight / 2);
         return (
-          <mesh key={`exp-right-${idx}`} position={[width / 2 - doorMaterialThickness / 2, localY, frag.zOffset]} rotation={[0, -Math.PI / 2, 0]} castShadow receiveShadow>
+          <mesh key={`exp-right-${idx}`} position={[width / 2 - doorMaterialThickness / 2, localY, frag.zOffset + doorMaterialThickness / 2]} rotation={[0, -Math.PI / 2, 0]} castShadow receiveShadow>
             <primitive object={createPanelWithHolesGeo(doorMaterialThickness, rangeHeight, frag.depth, 0, 0, 0, 'none', [], 0)} attach="geometry" />
             <meshStandardMaterial color={settings.isStudio && settings.doorTexture ? '#ffffff' : doorColor} map={settings.isStudio ? settings.doorTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} side={THREE.DoubleSide} />
           </mesh>
@@ -1031,13 +1031,13 @@ export const exportTallCabinetDXF = async (settings: TestingSettings, zip: JSZip
   nailHoles.push({ y: holeY, z: szS + settings.shelfDepth * 0.25, r: sR, through: false }, { y: holeY, z: szS + settings.shelfDepth * 0.75, r: sR, through: false });
 
   if (settings.exposedLeft) {
-    const leftFrags = getExposedFragments(height, depth, settings.leftCoverage);
+    const leftFrags = getExposedFragments(height, depth + doorMaterialThickness, settings.leftCoverage);
     leftFrags.forEach((frag, idx) => {
       addPanelToZip(`Exposed_Left_Panel_${idx + 1}`, frag.depth, frag.end - frag.start);
     });
   }
   if (settings.exposedRight) {
-    const rightFrags = getExposedFragments(height, depth, settings.rightCoverage);
+    const rightFrags = getExposedFragments(height, depth + doorMaterialThickness, settings.rightCoverage);
     rightFrags.forEach((frag, idx) => {
       addPanelToZip(`Exposed_Right_Panel_${idx + 1}`, frag.depth, frag.end - frag.start);
     });

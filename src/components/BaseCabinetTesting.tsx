@@ -422,14 +422,14 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
     <group position={[width / 2, toeKickHeight + innerHeight / 2, depth / 2]}>
       {/* Additional Exposed Side Panels (Door Material) */}
       {settings.exposedLeft && (
-        <mesh position={[-width / 2 + doorMaterialThickness / 2, -toeKickHeight / 2, 0]} rotation={[0, -Math.PI / 2, 0]} castShadow receiveShadow>
-          <primitive object={createPanelWithHolesGeo(doorMaterialThickness, height, depth, 0, 0, 0, 'none', [], 0)} attach="geometry" />
+        <mesh position={[-width / 2 + doorMaterialThickness / 2, -toeKickHeight / 2, doorMaterialThickness / 2]} rotation={[0, -Math.PI / 2, 0]} castShadow receiveShadow>
+          <primitive object={createPanelWithHolesGeo(doorMaterialThickness, height, depth + doorMaterialThickness, 0, 0, 0, 'none', [], 0)} attach="geometry" />
           <meshStandardMaterial color={settings.isStudio && settings.doorTexture ? '#ffffff' : doorColor} map={settings.isStudio ? settings.doorTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} side={THREE.DoubleSide} />
         </mesh>
       )}
       {settings.exposedRight && (
-        <mesh position={[width / 2 - doorMaterialThickness / 2, -toeKickHeight / 2, 0]} rotation={[0, -Math.PI / 2, 0]} castShadow receiveShadow>
-          <primitive object={createPanelWithHolesGeo(doorMaterialThickness, height, depth, 0, 0, 0, 'none', [], 0)} attach="geometry" />
+        <mesh position={[width / 2 - doorMaterialThickness / 2, -toeKickHeight / 2, doorMaterialThickness / 2]} rotation={[0, -Math.PI / 2, 0]} castShadow receiveShadow>
+          <primitive object={createPanelWithHolesGeo(doorMaterialThickness, height, depth + doorMaterialThickness, 0, 0, 0, 'none', [], 0)} attach="geometry" />
           <meshStandardMaterial color={settings.isStudio && settings.doorTexture ? '#ffffff' : doorColor} map={settings.isStudio ? settings.doorTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} side={THREE.DoubleSide} />
         </mesh>
       )}
@@ -874,10 +874,10 @@ export const exportBaseCabinetDXF = async (settings: TestingSettings, zip: JSZip
   addPanelToZip('Right_Panel', sideW, sideH_Panel, nailHoles, sideGroove, golaCutoutsArr, true);
 
   if (settings.exposedLeft) {
-    addPanelToZip('Exposed_Left_Panel', depth, height);
+    addPanelToZip('Exposed_Left_Panel', depth + doorMaterialThickness, height);
   }
   if (settings.exposedRight) {
-    addPanelToZip('Exposed_Right_Panel', depth, height);
+    addPanelToZip('Exposed_Right_Panel', depth + doorMaterialThickness, height);
   }
 
   const bottomHoles = [];
