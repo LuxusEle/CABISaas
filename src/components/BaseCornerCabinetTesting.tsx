@@ -920,11 +920,16 @@ export const exportBaseCornerCabinetDXF = async (settings: TestingSettings, zip:
     }).sort((a, b) => a.uMin - b.uMin);
 
     // 1. Bottom edge (vMin) - Go from uMin to uMax
-    const vMinCornerNotchL = uMinNotches.find(n => Math.abs(n.vMin - vMin) < tol);
-    const vMinCornerNotchR = uMaxNotches.find(n => Math.abs(n.vMin - vMin) < tol);
+    const vMinCornerNotchL_u = uMinNotches.find(n => Math.abs(n.vMin - vMin) < tol);
+    const vMinCornerNotchL_v = vMinNotches.find(n => Math.abs(n.uMin - uMin) < tol);
+    const vMinCornerNotchL = !!(vMinCornerNotchL_u || vMinCornerNotchL_v);
+
+    const vMinCornerNotchR_u = uMaxNotches.find(n => Math.abs(n.vMin - vMin) < tol);
+    const vMinCornerNotchR_v = vMinNotches.find(n => Math.abs(n.uMax - uMax) < tol);
+    const vMinCornerNotchR = !!(vMinCornerNotchR_u || vMinCornerNotchR_v);
     
-    let currentU = vMinCornerNotchL ? uMin + vMinCornerNotchL.width : uMin;
-    const uMaxBound = vMinCornerNotchR ? uMax - vMinCornerNotchR.width : uMax;
+    let currentU = vMinCornerNotchL_u ? uMin + vMinCornerNotchL_u.width : (vMinCornerNotchL_v ? vMinCornerNotchL_v.uMax : uMin);
+    const uMaxBound = vMinCornerNotchR_u ? uMax - vMinCornerNotchR_u.width : (vMinCornerNotchR_v ? vMinCornerNotchR_v.uMin : uMax);
 
     if (vMinNotches.length > 0 || vMinCornerNotchL || vMinCornerNotchR) {
       if (!vMinCornerNotchL) points.push({ x: uMin, y: vMin });
@@ -942,11 +947,16 @@ export const exportBaseCornerCabinetDXF = async (settings: TestingSettings, zip:
     }
 
     // 2. Right edge (uMax) - Go from vMin to vMax
-    const uMaxCornerNotchB = vMinNotches.find(n => Math.abs(n.uMax - uMax) < tol);
-    const uMaxCornerNotchT = vMaxNotches.find(n => Math.abs(n.uMax - uMax) < tol);
+    const uMaxCornerNotchB_v = vMinNotches.find(n => Math.abs(n.uMax - uMax) < tol);
+    const uMaxCornerNotchB_u = uMaxNotches.find(n => Math.abs(n.vMin - vMin) < tol);
+    const uMaxCornerNotchB = !!(uMaxCornerNotchB_v || uMaxCornerNotchB_u);
+
+    const uMaxCornerNotchT_v = vMaxNotches.find(n => Math.abs(n.uMax - uMax) < tol);
+    const uMaxCornerNotchT_u = uMaxNotches.find(n => Math.abs(n.vMax - vMax) < tol);
+    const uMaxCornerNotchT = !!(uMaxCornerNotchT_v || uMaxCornerNotchT_u);
     
-    let currentV = uMaxCornerNotchB ? vMin + uMaxCornerNotchB.height : vMin;
-    const vMaxBound = uMaxCornerNotchT ? vMax - uMaxCornerNotchT.height : vMax;
+    let currentV = uMaxCornerNotchB_v ? vMin + uMaxCornerNotchB_v.height : (uMaxCornerNotchB_u ? uMaxCornerNotchB_u.vMax : vMin);
+    const vMaxBound = uMaxCornerNotchT_v ? vMax - uMaxCornerNotchT_v.height : (uMaxCornerNotchT_u ? uMaxCornerNotchT_u.vMin : vMax);
 
     if (uMaxNotches.length > 0 || uMaxCornerNotchB || uMaxCornerNotchT) {
       if (!uMaxCornerNotchB) points.push({ x: uMax, y: vMin });
@@ -963,11 +973,16 @@ export const exportBaseCornerCabinetDXF = async (settings: TestingSettings, zip:
     }
 
     // 3. Top edge (vMax) - Go from uMax to uMin
-    const vMaxCornerNotchR = uMaxNotches.find(n => Math.abs(n.vMax - vMax) < tol);
-    const vMaxCornerNotchL = uMinNotches.find(n => Math.abs(n.vMax - vMax) < tol);
+    const vMaxCornerNotchR_u = uMaxNotches.find(n => Math.abs(n.vMax - vMax) < tol);
+    const vMaxCornerNotchR_v = vMaxNotches.find(n => Math.abs(n.uMax - uMax) < tol);
+    const vMaxCornerNotchR = !!(vMaxCornerNotchR_u || vMaxCornerNotchR_v);
+
+    const vMaxCornerNotchL_u = uMinNotches.find(n => Math.abs(n.vMax - vMax) < tol);
+    const vMaxCornerNotchL_v = vMaxNotches.find(n => Math.abs(n.uMin - uMin) < tol);
+    const vMaxCornerNotchL = !!(vMaxCornerNotchL_u || vMaxCornerNotchL_v);
     
-    currentU = vMaxCornerNotchR ? uMax - vMaxCornerNotchR.width : uMax;
-    const uMinBound = vMaxCornerNotchL ? uMin + vMaxCornerNotchL.width : uMin;
+    currentU = vMaxCornerNotchR_u ? uMax - vMaxCornerNotchR_u.width : (vMaxCornerNotchR_v ? vMaxCornerNotchR_v.uMin : uMax);
+    const uMinBound = vMaxCornerNotchL_u ? uMin + vMaxCornerNotchL_u.width : (vMaxCornerNotchL_v ? vMaxCornerNotchL_v.uMax : uMin);
 
     if (vMaxNotches.length > 0 || vMaxCornerNotchR || vMaxCornerNotchL) {
       if (!vMaxCornerNotchR) points.push({ x: uMax, y: vMax });
@@ -985,11 +1000,16 @@ export const exportBaseCornerCabinetDXF = async (settings: TestingSettings, zip:
     }
 
     // 4. Left edge (uMin) - Go from vMax to vMin
-    const uMinCornerNotchT = vMaxNotches.find(n => Math.abs(n.uMin - uMin) < tol);
-    const uMinCornerNotchB = vMinNotches.find(n => Math.abs(n.uMin - uMin) < tol);
+    const uMinCornerNotchT_v = vMaxNotches.find(n => Math.abs(n.uMin - uMin) < tol);
+    const uMinCornerNotchT_u = uMinNotches.find(n => Math.abs(n.vMax - vMax) < tol);
+    const uMinCornerNotchT = !!(uMinCornerNotchT_v || uMinCornerNotchT_u);
+
+    const uMinCornerNotchB_v = vMinNotches.find(n => Math.abs(n.uMin - uMin) < tol);
+    const uMinCornerNotchB_u = uMinNotches.find(n => Math.abs(n.vMin - vMin) < tol);
+    const uMinCornerNotchB = !!(uMinCornerNotchB_v || uMinCornerNotchB_u);
     
-    currentV = uMinCornerNotchT ? vMax - uMinCornerNotchT.height : vMax;
-    const vMinBound = uMinCornerNotchB ? vMin + uMinCornerNotchB.height : vMin;
+    currentV = uMinCornerNotchT_v ? vMax - uMinCornerNotchT_v.height : (uMinCornerNotchT_u ? uMinCornerNotchT_u.vMin : vMax);
+    const vMinBound = uMinCornerNotchB_v ? vMin + uMinCornerNotchB_v.height : (uMinCornerNotchB_u ? uMinCornerNotchB_u.vMax : vMin);
 
     if (uMinNotches.length > 0 || uMinCornerNotchT || uMinCornerNotchB) {
       if (!uMinCornerNotchT) points.push({ x: uMin, y: vMax });
@@ -1318,13 +1338,27 @@ export const exportBaseCornerCabinetDXF = async (settings: TestingSettings, zip:
   // Top Stretchers
   const stretcherW = innerWidth - panelThickness * 2;
   const dXFFrontHoles: any[] = [];
+  const dXFFrontNotches: any[] = [];
+  const doorCoverageLength = innerWidth - blindPanelWidth - panelThickness * 2;
+  
   if (showNailHoles) {
     const technicalR = nailHoleDiameter / 2;
     calculateNailHolePositions(topStretcherWidth).forEach(offset => {
       dXFFrontHoles.push({ z: uprightX, y: offset, r: technicalR });
     });
   }
-  addPanelToZip('Top_Stretcher_Front', stretcherW, topStretcherWidth, dXFFrontHoles);
+  
+  if (isGolaActive) {
+    dXFFrontNotches.push({
+      u: isDoorOnLeft ? -stretcherW / 2 : stretcherW / 2,
+      v: topStretcherWidth / 2,
+      width: doorCoverageLength,
+      height: settings.golaLCutoutDepth,
+      alignV: isDoorOnLeft ? 'left' : 'right',
+      side: 'vMax'
+    });
+  }
+  addPanelToZip('Top_Stretcher_Front', stretcherW, topStretcherWidth, dXFFrontHoles, undefined, dXFFrontNotches);
   const topBackActualW = enableColumn ? width - panelThickness * 2 - columnWidth : width - panelThickness * 2;
   
   let dXFBackHoles: any[] = [];
