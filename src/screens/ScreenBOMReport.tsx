@@ -326,34 +326,6 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
 
           {/* MATERIAL & HARDWARE SUMMARY */}
           <div className={`${activeView === 'list' ? 'grid' : 'hidden print:grid'} grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 break-inside-avoid`}>
-            {/* Sheet Material Summary */}
-            <div className="space-y-4">
-              <h3 className="text-lg sm:text-xl font-black uppercase tracking-widest flex items-center gap-2 border-b-2 border-black pb-2">
-                <Layers size={18} /> Sheet Materials
-              </h3>
-              <div className="overflow-x-auto border border-slate-200 dark:border-slate-800">
-                <table className="w-full text-xs sm:text-sm text-left border-collapse">
-                  <thead className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
-                    <tr>
-                      <th className="p-3 font-black uppercase text-[10px] tracking-wider text-slate-500">Material</th>
-                      <th className="p-3 font-black uppercase text-[10px] tracking-wider text-slate-500 text-center">Size</th>
-                      <th className="p-3 font-black uppercase text-[10px] tracking-wider text-slate-500 text-center">Qty</th>
-                      <th className="p-3 font-black uppercase text-[10px] tracking-wider text-slate-500 text-right">Cost</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {materialSummary.map((m) => (
-                      <tr key={m.material} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="p-3 font-bold text-slate-900 dark:text-white print:text-black">{m.material}</td>
-                        <td className="p-3 text-center font-mono text-slate-500">{m.dims}</td>
-                        <td className="p-3 text-center font-black text-lg text-amber-600">{m.sheets}</td>
-                        <td className="p-3 text-right font-medium">{currency}{m.cost.toFixed(2)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
 
             {/* Hardware Summary */}
             <div className="space-y-4">
@@ -446,6 +418,35 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
                           </tr>
                         );
                       })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Sheet Material Summary */}
+            <div className="space-y-4">
+              <h3 className="text-lg sm:text-xl font-black uppercase tracking-widest flex items-center gap-2 border-b-2 border-black pb-2">
+                <Layers size={18} /> Sheet Materials
+              </h3>
+              <div className="overflow-x-auto border border-slate-200 dark:border-slate-800">
+                <table className="w-full text-xs sm:text-sm text-left border-collapse">
+                  <thead className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+                    <tr>
+                      <th className="p-3 font-black uppercase text-[10px] tracking-wider text-slate-500">Material</th>
+                      <th className="p-3 font-black uppercase text-[10px] tracking-wider text-slate-500 text-center">Size</th>
+                      <th className="p-3 font-black uppercase text-[10px] tracking-wider text-slate-500 text-center">Qty</th>
+                      <th className="p-3 font-black uppercase text-[10px] tracking-wider text-slate-500 text-right">Cost</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {materialSummary.map((m) => (
+                      <tr key={m.material} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="p-3 font-bold text-slate-900 dark:text-white print:text-black">{m.material}</td>
+                        <td className="p-3 text-center font-mono text-slate-500">{m.dims}</td>
+                        <td className="p-3 text-center font-black text-lg text-amber-600">{m.sheets}</td>
+                        <td className="p-3 text-right font-medium">{currency}{m.cost.toFixed(2)}</td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
