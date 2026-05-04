@@ -1043,7 +1043,7 @@ export const exportBaseCornerCabinetDXF = async (settings: TestingSettings, zip:
   const leftNotches: any[] = [];
   const shouldMirrorL = true;
   if (isGolaActive && isDoorOnLeft) {
-    leftNotches.push({ u: leftW / 2, v: leftH / 2, width: settings.golaLCutoutDepth, height: settings.golaLCutoutHeight, alignV: 'top' });
+    leftNotches.push({ u: -leftW / 2, v: leftH / 2, width: settings.golaLCutoutDepth, height: settings.golaLCutoutHeight, alignV: 'top', side: 'uMin' });
   }
 
   // Calculate Holes for Left Panel
