@@ -1125,7 +1125,33 @@ export const exportWallCornerCabinetDXF = async (settings: TestingSettings, zip:
 
 
   // Front Blind Panel
-  addPanelToZip('Front_Blind_Panel', blindPanelWidth - doorOuterGap * 2, innerHeight);
+  const fbpW = blindPanelWidth - doorOuterGap * 2;
+  const fbpH = innerHeight;
+  const fbpHoles: any[] = [];
+  const technicalR = nailHoleDiameter / 2;
+
+  // Top Panel
+  const yTopPanel = fbpH / 2 - panelThickness / 2;
+  fbpHoles.push({ y: yTopPanel, z: -fbpW / 2 + 50, r: technicalR });
+  fbpHoles.push({ y: yTopPanel, z: 0, r: technicalR });
+  fbpHoles.push({ y: yTopPanel, z: fbpW / 2 - 50, r: technicalR });
+
+  // Bottom Panel
+  const yBottomPanel = -fbpH / 2 + panelThickness / 2 + wallBottomRecess;
+  fbpHoles.push({ y: yBottomPanel, z: -fbpW / 2 + 50, r: technicalR });
+  fbpHoles.push({ y: yBottomPanel, z: 0, r: technicalR });
+  fbpHoles.push({ y: yBottomPanel, z: fbpW / 2 - 50, r: technicalR });
+
+  // Side Panel
+  const sidePanelLocalX = blindCornerSide === 'left' 
+    ? panelThickness / 2 - blindPanelWidth / 2 
+    : blindPanelWidth / 2 - panelThickness / 2;
+    
+  calculateNailHolePositions(fbpH).forEach(offset => {
+    fbpHoles.push({ y: offset, z: sidePanelLocalX, r: technicalR });
+  });
+
+  addPanelToZip('Front_Blind_Panel', fbpW, fbpH, fbpHoles);
   
   // Door
   const doorWidth = width - blindPanelWidth - doorOuterGap * 2;
@@ -1161,6 +1187,7 @@ export const exportWallCornerCabinetDXF = async (settings: TestingSettings, zip:
     const columnPanelHeight = innerHeight - panelThickness;
     const csrHoles: any[] = [];
     const technicalR = nailHoleDiameter / 2;
+    const isBlindLeft = blindCornerSide === 'left';
     const zBack = -columnDepth / 2 + panelThickness / 2;
 
     // Top Panel connection
@@ -1177,14 +1204,27 @@ export const exportWallCornerCabinetDXF = async (settings: TestingSettings, zip:
       const topStretcherYTop = columnPanelHeight / 2;
       const bottomStretcherYTop = -columnPanelHeight / 2 + wallBottomRecess + 100;
       
-      csrHoles.push({ y: topStretcherYTop - 25, z: zBack, r: technicalR });
-      csrHoles.push({ y: topStretcherYTop - 80, z: zBack, r: technicalR });
+      csrHoles.push({ y: topStretcherYTop - 25, z: isBlindLeft ? -zBack : zBack, r: technicalR });
+      csrHoles.push({ y: topStretcherYTop - 80, z: isBlindLeft ? -zBack : zBack, r: technicalR });
       
-      csrHoles.push({ y: bottomStretcherYTop - 25, z: zBack, r: technicalR });
-      csrHoles.push({ y: bottomStretcherYTop - 80, z: zBack, r: technicalR });
+      csrHoles.push({ y: bottomStretcherYTop - 25, z: isBlindLeft ? -zBack : zBack, r: technicalR });
+      csrHoles.push({ y: bottomStretcherYTop - 80, z: isBlindLeft ? -zBack : zBack, r: technicalR });
     }
 
-    addPanelToZip('Column_Side_Return', columnDepth, columnPanelHeight, csrHoles, { x: panelThickness, y: 0, w: backPanelThickness + 2, h: columnPanelHeight - (panelThickness - grooveDepth) });
+    if (showShelves && numShelves > 0) {
+      const availableHeight = innerHeight - panelThickness * 2;
+      const spacing = availableHeight / (numShelves + 1);
+      const sR = shelfHoleDiameter / 2;
+      for (let i = 0; i < numShelves; i++) {
+        const shelfYCabinet = -innerHeight / 2 + panelThickness + spacing * (i + 1);
+        const holeY = shelfYCabinet - panelThickness - (shelfHoleDiameter / 2);
+        const localZ = (panelThickness + backPanelThickness + 50) - (columnDepth / 2);
+        csrHoles.push({ y: holeY, z: isBlindLeft ? -localZ : localZ, r: sR });
+      }
+    }
+
+    const grooveX = isBlindLeft ? columnDepth - panelThickness - (backPanelThickness + 2) : panelThickness;
+    addPanelToZip('Column_Side_Return', columnDepth, columnPanelHeight, csrHoles, { x: grooveX, y: 0, w: backPanelThickness + 2, h: columnPanelHeight - (panelThickness - grooveDepth) });
     
     const cbHoles: any[] = [];
     calculateNailHolePositions(columnPanelHeight).forEach(offset => {
