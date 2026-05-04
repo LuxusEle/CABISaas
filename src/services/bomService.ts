@@ -371,7 +371,7 @@ export const autoFillZone = (
 
   // 3. Intelligent Placement: Cooker (Exactly One)
   let cookerCabinet: CabinetUnit | null = null;
-  const existingCooker = manualCabs.find(c => c.preset === PresetType.BASE_DRAWER_3);
+  const existingCooker = manualCabs.find(c => c.preset === PresetType.COOKER_HOB || c.preset === PresetType.BASE_DRAWER_3);
 
   if (options.includeCooker && !existingCooker) {
     // Try to place cooker away from sink (working triangle)
@@ -401,7 +401,7 @@ export const autoFillZone = (
 
     if (!isOccupied(bestX, cookerWidth, CabinetType.BASE)) {
       cookerCabinet = {
-        id: `auto-cooker-${bestX}`, preset: PresetType.BASE_DRAWER_3, type: CabinetType.BASE,
+        id: `auto-cooker-${bestX}`, preset: PresetType.COOKER_HOB, type: CabinetType.BASE,
         width: cookerWidth, qty: 1, isAutoFilled: true, fromLeft: bestX
       };
       newCabinets.push(cookerCabinet);
@@ -609,6 +609,11 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
   const connectorsPerCabinet = isTall ? 12 : 8;
   parts.push({ id: uuid(), name: HW.CAM_LOCK, qty: connectorsPerCabinet, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
   parts.push({ id: uuid(), name: HW.CONFIRMAT, qty: connectorsPerCabinet, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
+
+  // 7. DRAWER SLIDES
+  if (t.showDrawers && t.numDrawers > 0) {
+    parts.push({ id: uuid(), name: HW.SLIDE, qty: t.numDrawers, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
+  }
 
   return parts;
 };

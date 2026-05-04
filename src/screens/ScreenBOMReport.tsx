@@ -7,6 +7,7 @@ import { CutPlanVisualizer } from '../components/CutPlanVisualizer';
 import { WallVisualizer } from '../components/WallVisualizer';
 import { KitchenPlanCanvas } from '../components/KitchenPlanCanvas';
 import { generateProjectBOM, exportToExcel, calculateProjectCost, buildProjectConstructionData } from '../services/bomService';
+import { getCabinetTestingSettings } from '../components/CabinetTestingUtils';
 import { sheetTypeService } from '../services/sheetTypeService';
 import { expenseTemplateService, ExpenseTemplate } from '../services/expenseTemplateService';
 import { optimizeCuts } from '../services/nestingService';
@@ -56,23 +57,24 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
   const totalDoors = useMemo(() => {
     let doors = 0;
     project.zones.forEach(zone => {
-      zone.cabinets.forEach(cab => {
-        // Count doors: base door cabinets have 1 or 2 doors depending on width
-        if (cab.preset === PresetType.BASE_DOOR) {
-          doors += cab.width >= RUBY_DOOR_THRESHOLD ? 2 : 1;
+      zone.cabinets.forEach(unit => {
+        const t = getCabinetTestingSettings(unit, project.settings);
+        
+        // Count doors based on rendering logic
+        if (t.showDoors) {
+          // Standard doors (Base/Wall/Tall upper)
+          const actualNumDoors = t.width < RUBY_DOOR_THRESHOLD ? 1 : 2;
+          doors += actualNumDoors;
         }
-        // Wall cabinets also have doors
-        if (cab.type === CabinetType.WALL && cab.preset !== PresetType.OPEN_BOX) {
-          doors += cab.width >= RUBY_DOOR_THRESHOLD ? 2 : 1;
-        }
-        // Tall cabinets
-        if (cab.type === CabinetType.TALL) {
-          doors += 1;
+        
+        // Tall cabinets also have lower doors
+        if (unit.type === CabinetType.TALL && t.showLowerDoors) {
+          doors += 1; // Lower door is usually single
         }
       });
     });
     return doors;
-  }, [project.zones]);
+  }, [project.zones, project.settings]);
 
   // Calculate hinge quantity (2 per door)
   const hingeQuantity = totalDoors * 2;
@@ -119,14 +121,14 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
     let drawers = 0;
     project.zones.forEach(zone => {
       zone.cabinets.forEach(cab => {
-        // Base drawer cabinets have 3 drawers
-        if (cab.preset === PresetType.BASE_DRAWER_3) {
-          drawers += 3;
+        const t = getCabinetTestingSettings(cab, project.settings);
+        if (t.showDrawers && t.numDrawers > 0) {
+          drawers += t.numDrawers;
         }
       });
     });
     return drawers;
-  }, [project.zones]);
+  }, [project.zones, project.settings]);
 
   // Calculate Handle/Knob quantity (doors + drawers)
   const handleQuantity = totalDoors + totalDrawers;

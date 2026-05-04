@@ -220,8 +220,8 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
           isAutoFilled: true, 
           label: '',
           advancedSettings: {
-            showDrawers: true,
-            numDrawers: 3
+            showDoors: true, // Lead cabinet logic often uses doors
+            showDrawers: false
           }
         });
         if (canPlace(zone, targetX, cookerWidth, CabinetType.WALL, settings)) {
@@ -277,8 +277,8 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
             isAutoFilled: true, 
             label: '',
             advancedSettings: {
-              showDrawers: true,
-              numDrawers: 3
+              showDoors: true,
+              showDrawers: false
             }
           });
           if (canPlace(zone, x, cookerWidth, CabinetType.WALL, settings)) {
@@ -352,7 +352,7 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
     if (!specialPlaced && cookerPlaced && prefs.includeCooker) {
       for (const zone of zones) {
         if (specialPlaced) break;
-        const cooker = zone.cabinets.find(c => c.preset === PresetType.BASE_DRAWER_3 && c.isAutoFilled);
+        const cooker = zone.cabinets.find(c => (c.preset === PresetType.COOKER_HOB || c.preset === PresetType.BASE_DRAWER_3) && c.isAutoFilled);
         if (cooker) {
           const cookerX = cooker.fromLeft;
           const cookerW = cooker.width;

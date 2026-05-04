@@ -765,11 +765,13 @@ export const getCabinetTestingSettings = (
   }
 
   // 4. Preset-specific defaults
-  if (unit.preset === 'Sink Unit') {
-    merged.showBackPanel = false;
+  const isCooker = unit.preset === 'Cooker Hob' || (unit.preset === 'Base 3-Drawer' && merged.width >= 600);
+  if (unit.preset === 'Sink Unit' || isCooker) {
+    if (unit.preset === 'Sink Unit') merged.showBackPanel = false;
     merged.showShelves = false;
     merged.showDrawers = false;
     merged.numShelves = 0;
+    merged.numDrawers = 0;
   }
 
   // 5. Override with previously saved unit-specific advancedSettings
