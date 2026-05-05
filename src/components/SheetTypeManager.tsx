@@ -27,9 +27,9 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
   const [accessories, setAccessories] = useState<ExpenseTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editFormData, setEditFormData] = useState<{ name: string; thickness: number; width: number; length: number; price_per_sheet: number; default_amount?: number; accessory_width?: number; accessory_length?: number }>({ name: '', thickness: 16, width: 1220, length: 2440, price_per_sheet: 0 });
+  const [editFormData, setEditFormData] = useState<{ name: string; thickness: number; width: number; length: number; price_per_sheet: number; default_amount?: number; accessory_width?: number; accessory_length?: number; accessory_unit?: string }>({ name: '', thickness: 16, width: 1220, length: 2440, price_per_sheet: 0 });
   const [newSheetType, setNewSheetType] = useState({ name: '', thickness: 16, width: 1220, length: 2440, price_per_sheet: 0 });
-  const [newAccessory, setNewAccessory] = useState({ name: '', price: 0, width: 0, length: 0 });
+  const [newAccessory, setNewAccessory] = useState({ name: '', price: 0, width: 0, length: 0, unit: 'mm2' });
   const [showAddForm, setShowAddForm] = useState<'sheet' | 'accessory' | null>(null);
 
   // Internal state for standalone usage
@@ -143,7 +143,7 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
     };
 
     setAccessories(prev => [...prev, optimisticAcc]);
-    setNewAccessory({ name: '', price: 0, width: 0, length: 0 });
+    setNewAccessory({ name: '', price: 0, width: 0, length: 0, unit: 'mm2' });
     setShowAddForm(null);
 
     // Save to database in background
@@ -151,7 +151,8 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
       newAccessory.name, 
       newAccessory.price, 
       newAccessory.name.toLowerCase().includes('tile') ? (newAccessory.width || 600) : 0, 
-      newAccessory.name.toLowerCase().includes('tile') ? (newAccessory.length || 600) : 0
+      newAccessory.name.toLowerCase().includes('tile') ? (newAccessory.length || 600) : 0,
+      newAccessory.unit
     );
     if (result) {
       setAccessories(prev => prev.map(a => a.id === tempId ? result : a));
@@ -182,7 +183,8 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
       price_per_sheet: 0,
       default_amount: acc.default_amount,
       accessory_width: acc.width || (acc.name.toLowerCase().includes('tile') ? 600 : 0),
-      accessory_length: acc.length || (acc.name.toLowerCase().includes('tile') ? 600 : 0)
+      accessory_length: acc.length || (acc.name.toLowerCase().includes('tile') ? 600 : 0),
+      accessory_unit: acc.unit || 'mm2'
     });
   };
 
@@ -219,7 +221,7 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
     // Optimistic update - update local state immediately
     setAccessories(prev => prev.map(a =>
       a.id === id
-        ? { ...a, name: editFormData.name, default_amount: editFormData.default_amount || 0, width: editFormData.accessory_width, length: editFormData.accessory_length }
+        ? { ...a, name: editFormData.name, default_amount: editFormData.default_amount || 0, width: editFormData.accessory_width, length: editFormData.accessory_length, unit: editFormData.accessory_unit }
         : a
     ));
     setEditingId(null);
@@ -229,7 +231,8 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
       name: editFormData.name,
       default_amount: editFormData.default_amount || 0,
       width: editFormData.accessory_width,
-      length: editFormData.accessory_length
+      length: editFormData.accessory_length,
+      unit: editFormData.accessory_unit
     });
 
     if (!success && originalAcc) {
@@ -429,6 +432,7 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
                     <thead>
                       <tr className="text-[10px] uppercase tracking-widest text-slate-400 border-b dark:border-slate-700">
                         <th className="px-3 py-3 text-left font-bold">Item Name</th>
+                        <th className="px-3 py-3 text-left font-bold">Unit</th>
                         <th className="px-3 py-3 text-left font-bold">Dimensions</th>
                         <th className="px-3 py-3 text-left font-bold">Price/Unit</th>
                         <th className="px-3 py-3 text-right font-bold">Actions</th>
@@ -441,10 +445,21 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
                             <>
                               <td className="px-3 py-3"><input type="text" value={editFormData.name} onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })} className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm font-bold bg-white dark:bg-slate-700 dark:text-white" autoFocus /></td>
                               <td className="px-3 py-3">
+                                <select 
+                                  value={editFormData.accessory_unit} 
+                                  onChange={(e) => setEditFormData({ ...editFormData, accessory_unit: e.target.value })}
+                                  className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-xs bg-white dark:bg-slate-700 dark:text-white font-bold"
+                                >
+                                  <option value="mm2">mm²</option>
+                                  <option value="sqft">Sqft</option>
+                                </select>
+                              </td>
+                              <td className="px-3 py-3">
                                 <div className="flex items-center gap-1">
-                                  <input type="number" value={editFormData.accessory_width} onChange={(e) => setEditFormData({ ...editFormData, accessory_width: Number(e.target.value) })} className="w-16 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-xs bg-white dark:bg-slate-700 dark:text-white" />
+                                  <input type="number" step="0.1" value={editFormData.accessory_width} onChange={(e) => setEditFormData({ ...editFormData, accessory_width: Number(e.target.value) })} className="w-16 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-xs bg-white dark:bg-slate-700 dark:text-white" title={editFormData.accessory_unit === 'sqft' ? 'Feet' : 'Millimeters'} />
                                   <span className="text-slate-400">x</span>
-                                  <input type="number" value={editFormData.accessory_length} onChange={(e) => setEditFormData({ ...editFormData, accessory_length: Number(e.target.value) })} className="w-16 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-xs bg-white dark:bg-slate-700 dark:text-white" />
+                                  <input type="number" step="0.1" value={editFormData.accessory_length} onChange={(e) => setEditFormData({ ...editFormData, accessory_length: Number(e.target.value) })} className="w-16 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-xs bg-white dark:bg-slate-700 dark:text-white" title={editFormData.accessory_unit === 'sqft' ? 'Feet' : 'Millimeters'} />
+                                  <span className="text-[10px] text-slate-400 font-bold">{editFormData.accessory_unit === 'sqft' ? 'ft' : 'mm'}</span>
                                 </div>
                               </td>
                               <td className="px-3 py-3"><input type="number" value={editFormData.default_amount} onChange={(e) => setEditFormData({ ...editFormData, default_amount: Number(e.target.value) })} className="w-24 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 dark:text-white" /></td>
@@ -458,7 +473,11 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
                           ) : (
                             <>
                               <td className="px-3 py-4 text-slate-900 dark:text-white font-bold">{acc.name}</td>
-                              <td className="px-3 py-4 text-slate-500 font-mono text-xs">{acc.width || 600} x {acc.length || 600}mm</td>
+                              <td className="px-3 py-4 text-slate-500 font-mono text-xs uppercase">{acc.unit || 'mm2'}</td>
+                              <td className="px-3 py-4 text-slate-500 font-mono text-xs">
+                                {acc.width || (acc.unit === 'sqft' ? 2 : 600)} x {acc.length || (acc.unit === 'sqft' ? 2 : 600)}
+                                {acc.unit === 'sqft' ? 'ft' : 'mm'}
+                              </td>
                               <td className="px-3 py-4 text-slate-900 dark:text-amber-400 font-black">{currency}{acc.default_amount.toFixed(2)}</td>
                               <td className="px-3 py-4 text-right">
                                 <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -517,12 +536,23 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
                   {newAccessory.name.toLowerCase().includes('tile') && (
                     <>
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase">Width (mm)</label>
-                        <input type="number" value={newAccessory.width || 600} onChange={(e) => setNewAccessory({ ...newAccessory, width: Number(e.target.value) })} className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-sm font-bold" />
+                        <label className="text-[10px] font-bold text-slate-400 uppercase">Unit</label>
+                        <select 
+                          value={newAccessory.unit} 
+                          onChange={(e) => setNewAccessory({ ...newAccessory, unit: e.target.value })}
+                          className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-sm font-bold"
+                        >
+                          <option value="mm2">mm²</option>
+                          <option value="sqft">Sqft</option>
+                        </select>
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase">Length (mm)</label>
-                        <input type="number" value={newAccessory.length || 600} onChange={(e) => setNewAccessory({ ...newAccessory, length: Number(e.target.value) })} className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-sm font-bold" />
+                        <label className="text-[10px] font-bold text-slate-400 uppercase">Width ({newAccessory.unit === 'sqft' ? 'ft' : 'mm'})</label>
+                        <input type="number" step="0.1" value={newAccessory.width || (newAccessory.unit === 'sqft' ? 2 : 600)} onChange={(e) => setNewAccessory({ ...newAccessory, width: Number(e.target.value) })} className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-sm font-bold" />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase">Length ({newAccessory.unit === 'sqft' ? 'ft' : 'mm'})</label>
+                        <input type="number" step="0.1" value={newAccessory.length || (newAccessory.unit === 'sqft' ? 2 : 600)} onChange={(e) => setNewAccessory({ ...newAccessory, length: Number(e.target.value) })} className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-sm font-bold" />
                       </div>
                     </>
                   )}

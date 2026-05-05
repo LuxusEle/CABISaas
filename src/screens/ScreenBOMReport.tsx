@@ -58,7 +58,7 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
   const totalLegs = data.hardwareSummary['Adjustable Leg'] || 0;
   const totalHangers = data.hardwareSummary['Wall Hanger'] || 0;
   const totalGraniteSqft = data.totalGraniteSqft || 0;
-  const totalTileSqft = data.totalTileSqft || 0;
+  const totalTileAreaMm2 = data.totalTileAreaMm2 || 0;
 
   // Accessory Costs
   const hingeAccessory = accessories.find(acc =>
@@ -86,9 +86,22 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
   const graniteUnitCost = graniteAccessory?.default_amount || 0;
   const graniteTotalCost = totalGraniteSqft * graniteUnitCost;
 
-  const tileAccessory = accessories.find(acc => acc.name.toLowerCase() === 'tile');
+  const tileAccessory = accessories.find(acc => acc.name.toLowerCase().includes('tile'));
+  const tileWidth = tileAccessory?.width || 600;
+  const tileLength = tileAccessory?.length || 600;
+  const tileUnit = tileAccessory?.unit || 'mm2';
+  
+  let totalTileCount = 0;
+  if (tileUnit === 'sqft') {
+    const tileAreaSqft = tileWidth * tileLength; // Dimensions are in FEET
+    const totalAreaSqft = totalTileAreaMm2 / 92903.04;
+    totalTileCount = tileAreaSqft > 0 ? Math.ceil(totalAreaSqft / tileAreaSqft) : 0;
+  } else {
+    const singleTileAreaMm2 = tileWidth * tileLength;
+    totalTileCount = singleTileAreaMm2 > 0 ? Math.ceil(totalTileAreaMm2 / singleTileAreaMm2) : 0;
+  }
   const tileUnitCost = tileAccessory?.default_amount || 0;
-  const tileTotalCost = totalTileSqft * tileUnitCost;
+  const tileTotalCost = totalTileCount * tileUnitCost;
 
   // Calculate total hardware cost from all individual items (only those actually used in project)
   const otherAccessoriesCost = useMemo(() => {
@@ -208,7 +221,7 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
         !acc.name.toLowerCase().includes('tile')
       ).map(acc => ({ name: acc.name, qty: 1 })),
       { name: `Granite Countertop (Sqft)`, qty: Number(totalGraniteSqft.toFixed(2)) },
-      { name: `Tile Backsplash (Sqft)`, qty: Number(totalTileSqft.toFixed(2)) }
+      { name: `Tile Backsplash (Pcs)`, qty: totalTileCount }
     ];
 
     // Apply USER Exclusions
@@ -222,7 +235,7 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
     });
 
     return specs;
-  }, [project.settings.materialSettings, project.zones, materialSummary, hingeQuantity, handleQuantity, drawerSlideQuantity, accessories]);
+  }, [project.settings.materialSettings, project.zones, materialSummary, hingeQuantity, handleQuantity, drawerSlideQuantity, accessories, totalTileCount, totalGraniteSqft]);
 
   const handlePrint = () => {
     setTimeout(() => window.print(), 100);
@@ -375,10 +388,10 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
                       </tr>
                     )}
                     {/* Tile */}
-                    {totalTileSqft > 0 && (
+                    {totalTileCount > 0 && (
                       <tr className="hover:bg-slate-50/50 transition-colors">
-                        <td className="p-3 font-bold text-slate-900 dark:text-white print:text-black">Tile Backsplash (Sqft)</td>
-                        <td className="p-3 text-center font-black text-amber-600">{totalTileSqft.toFixed(2)}</td>
+                        <td className="p-3 font-bold text-slate-900 dark:text-white print:text-black">Tile Backsplash (Pcs)</td>
+                        <td className="p-3 text-center font-black text-amber-600">{totalTileCount}</td>
                         <td className="p-3 text-right font-medium">{currency}{tileTotalCost.toFixed(2)}</td>
                       </tr>
                     )}

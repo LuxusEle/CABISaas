@@ -641,7 +641,7 @@ export const generateProjectBOM = (project: Project): {
   totalLinearFeet: number, 
   cabinetCount: number,
   totalGraniteSqft: number,
-  totalTileSqft: number
+  totalTileAreaMm2: number
 } => {
   const groups: BOMGroup[] = [];
   const hardwareSummary: Record<string, number> = {};
@@ -649,7 +649,7 @@ export const generateProjectBOM = (project: Project): {
   let totalLinearFeet = 0;
   let cabinetCount = 0;
   let totalGraniteSqft = 0;
-  let totalTileSqft = 0;
+  let totalTileAreaMm2 = 0;
 
   project.zones.filter(z => z.active).forEach((zone, zIdx) => {
     let zoneLen = 0;
@@ -704,7 +704,7 @@ export const generateProjectBOM = (project: Project): {
 
     // Tile Backsplash
     const backsplashHeight = project.settings.wallCabinetElevation || 450;
-    totalTileSqft += (zone.totalLength * backsplashHeight) / 92903.04;
+    totalTileAreaMm2 += (zone.totalLength * backsplashHeight);
 
     totalLinearFeet += (zoneLen / 304.8);
   });
@@ -722,7 +722,7 @@ export const generateProjectBOM = (project: Project): {
     totalLinearFeet: parseFloat(totalLinearFeet.toFixed(1)),
     cabinetCount,
     totalGraniteSqft,
-    totalTileSqft
+    totalTileAreaMm2
   };
 };
 
@@ -986,7 +986,7 @@ export const createNewProject = (logoUrl?: string): Project => ({
     }
   },
   zones: [
-    { id: 'Wall A', active: true, totalLength: 3000, wallHeight: 2400, obstacles: [], cabinets: [] }
+    { id: 'Wall A', active: true, totalLength: 0, wallHeight: 2400, obstacles: [], cabinets: [] }
   ]
 });
 
@@ -1084,15 +1084,32 @@ export const exportToExcel = (groups: BOMGroup[], nestingData: OptimizationResul
     return acc?.default_amount || def;
   };
 
-  const defaultPrice = project.settings.costs.pricePerHardwareUnit;
-  const itemsToReport = [
-    { name: 'Soft-Close Hinges', qty: hwSummary['Soft-Close Hinge'] || 0, price: findPrice('hinge', defaultPrice), unit: 'Unit' },
-    { name: 'Handle/Knob Set', qty: hwSummary['Handle/Knob'] || 0, price: findPrice('handle', defaultPrice), unit: 'Unit' },
-    { name: 'Drawer Slides (Pairs)', qty: hwSummary[HW.SLIDE] || 0, price: findPrice('slide', defaultPrice), unit: 'Pair' },
-    { name: 'Granite Countertop (Sqft)', qty: bomData?.totalGraniteSqft || 0, price: findPrice('granite', 3000), unit: 'Sqft' },
-    { name: 'Tile Backsplash (Sqft)', qty: bomData?.totalTileSqft || 0, price: findPrice('tile', 1500), unit: 'Sqft' },
-    { name: 'Adjustable Legs', qty: hwSummary[HW.LEG] || 0, price: findPrice('leg', 350), unit: 'Unit' }
-  ];
+    const tileAcc = accessories.find(a => a.name.toLowerCase().includes('tile'));
+    const tWidth = tileAcc?.width || 600;
+    const tLength = tileAcc?.length || 600;
+    const tUnit = tileAcc?.unit || 'mm2';
+    const totalTileAreaMm2 = bomData?.totalTileAreaMm2 || 0;
+    
+    let tQty = 0;
+    if (tUnit === 'sqft') {
+      const tileAreaSqft = tWidth * tLength; // Dimensions are in FEET
+      const totalAreaSqft = totalTileAreaMm2 / 92903.04;
+      tQty = tileAreaSqft > 0 ? Math.ceil(totalAreaSqft / tileAreaSqft) : 0;
+    } else {
+      const singleTileAreaMm2 = tWidth * tLength;
+      tQty = singleTileAreaMm2 > 0 ? Math.ceil(totalTileAreaMm2 / singleTileAreaMm2) : 0;
+    }
+    const tPrice = tileAcc?.default_amount || 0;
+    const defaultPrice = project.settings.costs.pricePerHardwareUnit;
+
+    const itemsToReport = [
+      { name: 'Soft-Close Hinges', qty: hwSummary['Soft-Close Hinge'] || 0, price: findPrice('hinge', defaultPrice), unit: 'Unit' },
+      { name: 'Handle/Knob Set', qty: hwSummary['Handle/Knob'] || 0, price: findPrice('handle', defaultPrice), unit: 'Unit' },
+      { name: 'Drawer Slides (Pairs)', qty: hwSummary[HW.SLIDE] || 0, price: findPrice('slide', defaultPrice), unit: 'Pair' },
+      { name: 'Granite Countertop (Sqft)', qty: bomData?.totalGraniteSqft || 0, price: findPrice('granite', 3000), unit: 'Sqft' },
+      { name: 'Tile Backsplash', qty: tQty, price: tPrice, unit: 'Pcs' },
+      { name: 'Adjustable Legs', qty: hwSummary[HW.LEG] || 0, price: findPrice('leg', 350), unit: 'Unit' }
+    ];
 
   // Add remaining hardware (Cam-Locks, etc.)
   Object.entries(hwSummary).forEach(([name, qty]) => {
