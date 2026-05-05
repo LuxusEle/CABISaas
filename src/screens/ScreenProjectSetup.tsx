@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Save, FileText, Upload, DollarSign, Settings, Box, Lock, CheckCircle2, AlertCircle, Wand2, ArrowRight, X, MousePointer2 } from 'lucide-react';
 import { Project } from '../types';
@@ -62,8 +63,8 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
   const isCostsDone = visitedSteps.has('costs');
 
   const isReadyToGenerate = isIdentityDone && isWallsDone && isLimitsDone && isConstructionDone && isPreferencesDone && isSheetsDone;
-
   const wizardSteps = ['project', 'walls', 'limits', 'preferences', 'sheets', 'hardware', 'construction', 'costs'];
+  const [direction, setDirection] = useState<'forward' | 'backward'>('forward');
 
   // Handle auto-open from URL
   useEffect(() => {
@@ -126,8 +127,6 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
   };
 
   const handleRemoveLogo = async () => {
-      // For removing, we just clear it in the settings. 
-      // The old logo will be cleaned up on the next upload by the service.
       setLogoPreview(null);
       setProject(prev => ({
         ...prev,
@@ -135,21 +134,24 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
       }));
   };
 
-  const handleNextStep = () => {
+  const handleNextStep = async () => {
+    if (!activeModal) return;
     const currentIndex = wizardSteps.indexOf(activeModal as string);
     if (currentIndex !== -1 && currentIndex < wizardSteps.length - 1) {
+      setDirection('forward');
       const nextStep = wizardSteps[currentIndex + 1];
       setActiveModal(nextStep as any);
     } else {
-      setActiveModal(null);
+      handleGenerateLayout();
     }
   };
 
   const handlePrevStep = () => {
+    if (!activeModal) return;
     const currentIndex = wizardSteps.indexOf(activeModal as string);
     if (currentIndex > 0) {
-      const prevStep = wizardSteps[currentIndex - 1];
-      setActiveModal(prevStep as any);
+      setDirection('backward');
+      setActiveModal(wizardSteps[currentIndex - 1] as any);
     }
   };
 
@@ -198,31 +200,71 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
     };
 
     return (
-      <button
+      <motion.button
+        layout
         onClick={() => {
           if (activeModal) setVisitedSteps(prev => new Set([...prev, activeModal]));
+          const newIndex = wizardSteps.indexOf(step as any);
+          const currentIndex = wizardSteps.indexOf(activeModal as any);
+          setDirection(newIndex > currentIndex ? 'forward' : 'backward');
           setActiveModal(step as any);
         }}
-        className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all border-2 text-left group ${
+        initial={false}
+        animate={{ 
+          height: isActive ? 'auto' : '64px',
+          padding: isActive ? '24px 20px' : '14px 16px',
+          scale: isActive ? 1.02 : 1
+        }}
+        transition={{ 
+          duration: 0.4, 
+          ease: [0.4, 0, 0.2, 1] // Custom cubic-bezier for a more 'premium' feel
+        }}
+        className={`w-full flex items-center gap-5 rounded-2xl transition-all border-2 text-left group overflow-hidden relative ${
           isActive 
-            ? 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400' 
-            : 'bg-white dark:bg-slate-900 border-transparent hover:bg-slate-50 dark:hover:bg-slate-800'
+            ? 'bg-amber-500/10 border-amber-500/40 text-amber-600 dark:text-amber-400 shadow-xl shadow-amber-500/10 z-10' 
+            : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700'
         }`}
       >
-        <div className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
-          isActive ? 'bg-amber-500 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
+        {isActive && (
+          <motion.div 
+            layoutId="active-bg"
+            className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent pointer-events-none"
+          />
+        )}
+        <div className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
+          isActive ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
         }`}>
           {getIcon()}
         </div>
-        <div className="min-w-0">
-          <p className={`text-[10px] font-black uppercase tracking-tight truncate ${isActive ? 'text-amber-600' : 'text-slate-500 dark:text-slate-400'}`}>
-            Step {index + 1}
-          </p>
-          <h4 className={`text-xs font-bold uppercase truncate ${isActive ? 'text-slate-900 dark:text-white' : 'text-slate-400'}`}>
+        <div className="flex-1 min-w-0">
+          <div className="flex justify-between items-center mb-0.5">
+            <p className={`text-[10px] font-black uppercase tracking-[0.15em] truncate ${isActive ? 'text-amber-600' : 'text-slate-500 dark:text-slate-400'}`}>
+              Step {index + 1}
+            </p>
+            {isActive && (
+              <motion.span 
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="text-[8px] font-black bg-amber-500 text-white px-2 py-0.5 rounded-full tracking-widest"
+              >
+                ACTIVE
+              </motion.span>
+            )}
+          </div>
+          <h4 className={`text-xs font-bold uppercase truncate tracking-wide ${isActive ? 'text-slate-900 dark:text-white' : 'text-slate-400'}`}>
             {getLabel()}
           </h4>
+          {isActive && (
+            <motion.p 
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-[9px] font-medium text-amber-700/60 dark:text-amber-500/50 mt-1 italic leading-tight"
+            >
+              Current phase of your design journey.
+            </motion.p>
+          )}
         </div>
-      </button>
+      </motion.button>
     );
   };
 
@@ -267,14 +309,41 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
                   <h1 className="text-5xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">Ready to <span className="text-amber-500">Begin?</span></h1>
                   <p className="text-lg text-slate-500 font-medium italic max-w-lg mx-auto">Let's guide you through the setup process to generate your perfect 3D cabinetry design.</p>
                   
-                  <button onClick={() => setActiveModal('project')} className="px-8 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-full font-black uppercase tracking-[0.2em] shadow-xl hover:scale-105 transition-all flex items-center gap-3 mx-auto group text-xs">
+                  <button onClick={() => { setDirection('forward'); setActiveModal('project'); }} className="px-8 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-full font-black uppercase tracking-[0.2em] shadow-xl hover:scale-105 transition-all flex items-center gap-3 mx-auto group text-xs">
                     Start Journey <ArrowRight size={18} className="group-hover:translate-x-2 transition-transform" />
                   </button>
                 </div>
               ) : (
-                <div className="h-full w-full animate-in zoom-in-95 duration-500">
-                  <div className={`h-full w-full flex flex-col overflow-hidden bg-white dark:bg-slate-900 rounded-[2rem] border-2 border-slate-200/60 dark:border-slate-800 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.15)] dark:shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)] ${['walls', 'limits'].includes(activeModal as string) ? '' : 'p-4 sm:p-10 overflow-y-auto'}`}>
-                    <div className={`${['walls', 'limits'].includes(activeModal as string) ? 'h-full w-full' : 'max-w-5xl mx-auto w-full'}`}>
+                <div className="h-full w-full relative overflow-hidden">
+                  <AnimatePresence initial={false} custom={direction}>
+                    <motion.div 
+                      key={activeModal}
+                      custom={direction}
+                      variants={{
+                        enter: (dir: string) => ({
+                          x: dir === 'forward' ? '100%' : '-100%',
+                          opacity: 0
+                        }),
+                        center: {
+                          x: 0,
+                          opacity: 1
+                        },
+                        exit: (dir: string) => ({
+                          x: dir === 'forward' ? '-100%' : '100%',
+                          opacity: 0
+                        })
+                      }}
+                      initial="enter"
+                      animate="center"
+                      exit="exit"
+                      transition={{
+                        x: { type: "spring", stiffness: 300, damping: 35 },
+                        opacity: { duration: 0.2 }
+                      }}
+                      className="absolute inset-0 h-full w-full"
+                    >
+                      <div className={`h-full w-full flex flex-col overflow-hidden bg-white dark:bg-slate-900 rounded-[2rem] border-2 border-slate-200/60 dark:border-slate-800 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.15)] dark:shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)] ${['walls', 'limits'].includes(activeModal as string) ? '' : 'p-4 sm:p-10 overflow-y-auto'}`}>
+                        <div className={`${['walls', 'limits'].includes(activeModal as string) ? 'h-full w-full' : 'max-w-5xl mx-auto w-full'}`}>
                     
                     {activeModal === 'walls' && (
                       <WallEditModal
@@ -528,12 +597,14 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
                         />
                       </div>
                     )}
+                      </div>
                     </div>
-                  </div>
-                </div>
-              )}
-            </div>
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+            )}
           </div>
+        </div>
 
           {/* Fixed Footer Navigation - ALWAYS VISIBLE */}
           {activeModal && (
@@ -642,22 +713,6 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
                 />
               );
             })}
-          </div>
-
-          <div className="p-8 border-t dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20">
-             <div className={`p-6 rounded-[2rem] border-2 transition-all duration-500 ${isReadyToGenerate ? 'bg-amber-500 shadow-2xl shadow-amber-500/40 border-transparent text-white' : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 opacity-60'}`}>
-                <div className="flex items-center gap-4 mb-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg ${isReadyToGenerate ? 'bg-white text-amber-500' : 'bg-slate-100 dark:bg-slate-700 text-slate-400'}`}>
-                    <CheckCircle2 size={20} />
-                  </div>
-                  <span className={`text-xs font-black uppercase tracking-[0.1em] ${isReadyToGenerate ? 'text-white' : 'text-slate-400'}`}>System Status</span>
-                </div>
-                <p className="text-[10px] font-bold uppercase leading-relaxed tracking-wider">
-                  {isReadyToGenerate 
-                    ? "Calibration Complete. The system is now ready to generate your production-grade 3D model."
-                    : "Please finish the mandatory setup steps to activate the design generation engine."}
-                </p>
-             </div>
           </div>
         </aside>
       </div>
