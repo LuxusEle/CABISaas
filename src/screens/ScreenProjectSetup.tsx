@@ -38,12 +38,37 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
   const [editingCabinetType, setEditingCabinetType] = useState<'base' | 'wall' | 'tall'>('base');
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
 
+  // Persistence for wizard steps
+  const [visitedSteps, setVisitedSteps] = useState<Set<string>>(new Set(project.settings.completedSteps || ['project']));
+
+  useEffect(() => {
+    if (project.settings.completedSteps) {
+      setVisitedSteps(new Set(project.settings.completedSteps));
+    }
+  }, [project.settings.completedSteps]);
+
+  const updateProgress = (step: string) => {
+    if (!visitedSteps.has(step)) {
+      const newVisited = new Set([...visitedSteps, step]);
+      setVisitedSteps(newVisited);
+      
+      const updatedProject = {
+        ...project,
+        settings: {
+          ...project.settings,
+          completedSteps: Array.from(newVisited)
+        }
+      };
+      setProject(updatedProject);
+      onSaveProject?.(updatedProject);
+    }
+  };
+
   // Logo upload state
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string | null>(project.settings.logoUrl || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showAdvancedConstruction, setShowAdvancedConstruction] = useState(false);
-  const [visitedSteps, setVisitedSteps] = useState<Set<string>>(new Set(['project']));
   const wallEditRef = useRef<any>(null);
   const wallLimitsRef = useRef<any>(null);
 
@@ -137,6 +162,9 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
 
   const handleNextStep = async () => {
     if (!activeModal) return;
+    
+    updateProgress(activeModal);
+    
     const currentIndex = wizardSteps.indexOf(activeModal as string);
     if (currentIndex !== -1 && currentIndex < wizardSteps.length - 1) {
       setDirection('forward');
@@ -212,17 +240,10 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
     if (!onSaveProject) return;
     
     try {
-      // 1. Save the project state first
       await onSaveProject(project);
-      
-      // 2. Generate the 3D design using Ruby Layout Solver
       const result = generateRubyLayout(project);
       const updatedProject = result.project;
-      
-      // 3. Save the final design
       await onSaveProject(updatedProject);
-      
-      // 4. Navigate to Studio
       navigate('/studio');
     } catch (err) {
       console.error('Failed to generate design:', err);
@@ -256,7 +277,7 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
       <motion.button
         layout
         onClick={() => {
-          if (activeModal) setVisitedSteps(prev => new Set([...prev, activeModal]));
+          if (activeModal) updateProgress(activeModal);
           const newIndex = wizardSteps.indexOf(step as any);
           const currentIndex = wizardSteps.indexOf(activeModal as any);
           setDirection(newIndex > currentIndex ? 'forward' : 'backward');
@@ -270,7 +291,7 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
         }}
         transition={{ 
           duration: 0.4, 
-          ease: [0.4, 0, 0.2, 1] // Custom cubic-bezier for a more 'premium' feel
+          ease: [0.4, 0, 0.2, 1]
         }}
         className={`w-full flex items-center gap-5 rounded-2xl transition-all border-2 text-left group overflow-hidden relative ${
           isActive 
@@ -324,11 +345,7 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
   return (
     <div className="flex flex-col h-full w-full overflow-hidden bg-slate-50 dark:bg-slate-950">
       <div className="flex-1 flex overflow-hidden relative">
-        
-        {/* Main Stage */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-white dark:bg-slate-900 shadow-2xl relative">
-          
-          {/* Top Bar */}
           <div className="px-6 py-4 border-b dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md flex justify-between items-center shrink-0 z-20">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center text-white shadow-lg shadow-amber-500/30">
@@ -351,7 +368,6 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
             </div>
           </div>
 
-          {/* Main Stage Content Area */}
           <div className="flex-1 relative bg-slate-100 dark:bg-slate-950 overflow-hidden p-4">
             <div className="h-full w-full max-w-none transition-all duration-500 relative">
               {!activeModal ? (
@@ -409,7 +425,7 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
                         hideCabinets={true}
                         readOnly={!isPro && isLayoutLocked}
                         onSave={(newZones) => {
-                          setVisitedSteps(prev => new Set([...prev, 'walls']));
+                          updateProgress('walls');
                           const updatedProject = { ...project, zones: newZones };
                           setProject(updatedProject);
                           setActiveModal('limits');
@@ -426,7 +442,7 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
                         isDark={isDark}
                         isInline={true}
                         onSave={(newZones) => {
-                          setVisitedSteps(prev => new Set([...prev, 'limits']));
+                          updateProgress('limits');
                           const updatedProject = { ...project, zones: newZones };
                           setProject(updatedProject);
                           setActiveModal('preferences');

@@ -128,6 +128,7 @@ export interface ProjectSettings {
     includeCooker: boolean;
     includeDrawers: boolean;
   };
+  completedSteps?: string[];
 }
 
 export interface Obstacle {
