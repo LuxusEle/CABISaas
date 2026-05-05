@@ -88,28 +88,9 @@ export const MaterialAllocationPanel: React.FC<MaterialAllocationPanelProps> = (
 
 
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-      {/* Header - Always visible */}
-      <div
-        className="flex justify-between items-center p-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
-        onClick={() => {
-          if (onToggle) {
-            onToggle();
-          } else {
-            setInternalExpanded(!internalExpanded);
-          }
-        }}
-      >
-        <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2 uppercase tracking-tight">
-          <Settings2 className="text-purple-500" /> Material Allocation by Part Type
-        </h3>
-        <button className={`p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
-          <ChevronDown size={20} />
-        </button>
-      </div>
-
-      {/* Content - Collapsible with animation */}
-      <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
+    <div className="w-full">
+      {/* Content - No longer collapsible when in wizard */}
+      <div className="overflow-hidden">
         <div className="p-4 pt-0">
           <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
             Assign materials to different cabinet components. Each material type will be optimized separately.
@@ -215,18 +196,33 @@ export const MaterialAllocationPanel: React.FC<MaterialAllocationPanelProps> = (
                   </td>
                   <td className="hidden md:table-cell px-3 py-4 text-slate-500 text-xs">Drawer bottoms and sides</td>
                   <td className="px-2 sm:px-3 py-4">
-                    <select
-                      value={allocation.drawerMaterial}
-                      onChange={(e) => handleChange('drawerMaterial', e.target.value)}
-                      className="w-full px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-[11px] sm:text-sm"
-                    >
-                      <option value="">Select material...</option>
-                      {sheetTypes.map((type) => (
-                        <option key={type.id} value={type.name}>
-                          {type.name} ({type.thickness}mm)
-                        </option>
-                      ))}
-                    </select>
+                    <div className="flex gap-1.5 sm:gap-2 items-center">
+                      <select
+                        value={allocation.drawerMaterial}
+                        onChange={(e) => handleChange('drawerMaterial', e.target.value)}
+                        className="flex-1 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-[11px] sm:text-sm"
+                      >
+                        <option value="">Select material...</option>
+                        {sheetTypes.map((type) => (
+                          <option key={type.id} value={type.name}>
+                            {type.name} ({type.thickness}mm)
+                          </option>
+                        ))}
+                      </select>
+                      <label className={`cursor-pointer p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors border border-slate-200 dark:border-slate-600 ${isUploading === 'drawer' ? 'opacity-50 pointer-events-none' : ''}`} title="Upload Texture">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          disabled={isUploading === 'drawer'}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleFileUpload(file, 'drawer');
+                          }}
+                        />
+                        {isUploading === 'drawer' ? <Loader2 className="w-4 h-4 animate-spin text-amber-500" /> : <Layers className="w-4 h-4 text-slate-400" />}
+                      </label>
+                    </div>
                   </td>
                 </tr>
 
@@ -240,18 +236,33 @@ export const MaterialAllocationPanel: React.FC<MaterialAllocationPanelProps> = (
                   </td>
                   <td className="hidden md:table-cell px-3 py-4 text-slate-500 text-xs">Cabinet back panels</td>
                   <td className="px-2 sm:px-3 py-4">
-                    <select
-                      value={allocation.backMaterial}
-                      onChange={(e) => handleChange('backMaterial', e.target.value)}
-                      className="w-full px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-[11px] sm:text-sm"
-                    >
-                      <option value="">Select material...</option>
-                      {sheetTypes.filter(t => t.thickness <= 6).map((type) => (
-                        <option key={type.id} value={type.name}>
-                          {type.name} ({type.thickness}mm)
-                        </option>
-                      ))}
-                    </select>
+                    <div className="flex gap-1.5 sm:gap-2 items-center">
+                      <select
+                        value={allocation.backMaterial}
+                        onChange={(e) => handleChange('backMaterial', e.target.value)}
+                        className="flex-1 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-[11px] sm:text-sm"
+                      >
+                        <option value="">Select material...</option>
+                        {sheetTypes.filter(t => t.thickness <= 6).map((type) => (
+                          <option key={type.id} value={type.name}>
+                            {type.name} ({type.thickness}mm)
+                          </option>
+                        ))}
+                      </select>
+                      <label className={`cursor-pointer p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors border border-slate-200 dark:border-slate-600 ${isUploading === 'back' ? 'opacity-50 pointer-events-none' : ''}`} title="Upload Texture">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          disabled={isUploading === 'back'}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleFileUpload(file, 'back');
+                          }}
+                        />
+                        {isUploading === 'back' ? <Loader2 className="w-4 h-4 animate-spin text-purple-500" /> : <Circle className="w-4 h-4 text-slate-400" />}
+                      </label>
+                    </div>
                   </td>
                 </tr>
 
@@ -272,7 +283,7 @@ export const MaterialAllocationPanel: React.FC<MaterialAllocationPanelProps> = (
                         className="flex-1 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-[11px] sm:text-sm"
                       >
                         <option value="">Select material...</option>
-                        <option value="">Same as Carcass ({allocation.carcassMaterial || 'Not set'})</option>
+                        <option value="carcass">Same as Carcass ({allocation.carcassMaterial || 'Not set'})</option>
                         {sheetTypes.map((type) => (
                           <option key={type.id} value={type.name}>
                             {type.name} ({type.thickness}mm)

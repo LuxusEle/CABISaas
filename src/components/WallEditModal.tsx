@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useImperativeHandle, forwardRef } from 'react';
 import { X, Save, Plus, Trash2, AlertTriangle, ArrowRight } from 'lucide-react';
 import { Project, Zone, Obstacle } from '../types';
 import { CabinetViewer } from './3d';
@@ -12,20 +12,28 @@ interface WallEditModalProps {
   isDark?: boolean;
   hideCabinets?: boolean;
   readOnly?: boolean;
+  isInline?: boolean;
 }
 
 const DEFAULT_WALL_NAMES = ['Wall A', 'Wall B', 'Wall C', 'Wall D'];
 
-export const WallEditModal: React.FC<WallEditModalProps> = ({
+export const WallEditModal = forwardRef<any, WallEditModalProps>(({
   isOpen,
   onClose,
   project,
   onSave,
   isDark = true,
   hideCabinets = false,
-  readOnly = false
-}) => {
+  readOnly = false,
+  isInline = false
+}, ref) => {
   const [localZones, setLocalZones] = useState<Zone[]>(project.zones);
+  
+  useImperativeHandle(ref, () => ({
+    triggerSave: () => {
+      handleSave();
+    }
+  }));
   const [activeTab, setActiveTab] = useState<string>('');
   
   // Create a temporary project object for the 3D viewer to render
@@ -162,9 +170,9 @@ export const WallEditModal: React.FC<WallEditModalProps> = ({
     onClose();
   };
 
-  return (
-    <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center sm:p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-white dark:bg-slate-800 rounded-t-[2rem] sm:rounded-2xl shadow-2xl w-full max-w-6xl h-[95vh] sm:h-[85vh] overflow-hidden flex flex-col animate-in slide-in-from-bottom duration-300 sm:zoom-in-95 sm:duration-200">
+  const content = (
+    <div className={`${isInline ? 'h-full rounded-2xl' : 'h-[95vh] sm:h-[85vh] rounded-t-[2rem] sm:rounded-2xl'} bg-white dark:bg-slate-800 shadow-2xl w-full ${isInline ? 'max-w-none' : 'max-w-6xl'} overflow-hidden flex flex-col animate-in slide-in-from-bottom duration-300 sm:zoom-in-95 sm:duration-200 border border-slate-200 dark:border-slate-700`}>
+      {!isInline && (
         <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700 shrink-0">
           <h3 className="text-xl font-black text-slate-900 dark:text-white">
             Wall Dimensions Setup
@@ -173,6 +181,7 @@ export const WallEditModal: React.FC<WallEditModalProps> = ({
             <X size={20} className="text-slate-500" />
           </button>
         </div>
+      )}
 
         <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
           {/* Left panel: Live 3D Preview */}
@@ -466,35 +475,44 @@ export const WallEditModal: React.FC<WallEditModalProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center justify-end p-4 border-t border-slate-200 dark:border-slate-700 shrink-0 bg-white dark:bg-slate-800">
-          <div className="flex gap-2 sm:gap-3">
-            {readOnly ? (
-              <button
-                onClick={onClose}
-                className="px-6 sm:px-8 py-2 sm:py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-lg font-bold shadow-md hover:scale-105 transition-all text-sm sm:text-base"
-              >
-                Close Viewer
-              </button>
-            ) : (
-              <>
+        {!isInline && (
+          <div className="flex items-center justify-end p-4 border-t border-slate-200 dark:border-slate-700 shrink-0 bg-white dark:bg-slate-800">
+            <div className="flex gap-2 sm:gap-3">
+              {readOnly ? (
                 <button
                   onClick={onClose}
-                  className="px-4 sm:px-6 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg font-medium hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-sm"
+                  className="px-6 sm:px-8 py-2 sm:py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-lg font-bold shadow-md hover:scale-105 transition-all text-sm sm:text-base"
                 >
-                  Cancel
+                  Close Viewer
                 </button>
-                <button
-                  onClick={handleSave}
-                  className="flex items-center gap-2 px-5 sm:px-8 py-2 sm:py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-full font-black uppercase tracking-widest shadow-lg shadow-amber-500/20 hover:scale-105 transition-all group text-xs sm:text-sm"
-                >
-                  Next Step
-                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                </button>
-              </>
-            )}
+              ) : (
+                <>
+                  <button
+                    onClick={onClose}
+                    className="px-4 sm:px-6 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg font-medium hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-sm"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    className="flex items-center gap-2 px-5 sm:px-8 py-2 sm:py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-full font-black uppercase tracking-widest shadow-lg shadow-amber-500/20 hover:scale-105 transition-all group text-xs sm:text-sm"
+                  >
+                    Next Step
+                    <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                  </button>
+                </>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
-    </div>
-  );
-};
+    );
+
+    if (isInline) return content;
+
+    return (
+      <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center sm:p-4 bg-black/50 backdrop-blur-sm">
+        {content}
+      </div>
+    );
+});
