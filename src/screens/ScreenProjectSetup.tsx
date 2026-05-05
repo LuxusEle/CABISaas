@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Save, FileText, Upload, DollarSign, Settings, Box, Lock, CheckCircle2, AlertCircle, Wand2, ArrowRight, X, MousePointer2 } from 'lucide-react';
+import { Save, FileText, Upload, DollarSign, Settings, Box, Lock, CheckCircle2, AlertCircle, Wand2, ArrowRight, X, MousePointer2, Plus, Check, Pencil } from 'lucide-react';
 import { Project } from '../types';
 import { Button } from '../components/Button';
 import { NumberInput } from '../components/NumberInput';
@@ -36,6 +36,7 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
   const [isPro, setIsPro] = useState(false);
   const [showCabinetModal, setShowCabinetModal] = useState(false);
   const [editingCabinetType, setEditingCabinetType] = useState<'base' | 'wall' | 'tall'>('base');
+  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
 
   // Logo upload state
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
@@ -153,6 +154,58 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
       setDirection('backward');
       setActiveModal(wizardSteps[currentIndex - 1] as any);
     }
+  };
+
+  const handleAddExpense = () => {
+    const currentCosts = project.settings.costs || { pricePerSheet: 0, pricePerHardwareUnit: 0, laborCost: 0, transportCost: 0, marginPercent: 50 };
+    const baseExpenses = !currentCosts.expenses ? [
+      { id: 'labor', name: 'Standard Labor', amount: currentCosts.laborCost || 0 },
+      { id: 'transport', name: 'Transport & Logistics', amount: currentCosts.transportCost || 0 }
+    ] : [];
+    
+    const newExpense = { id: Math.random().toString(36).substr(2, 9), name: 'New Expense', amount: 0 };
+    const updatedExpenses = [...(currentCosts.expenses || baseExpenses), newExpense];
+    
+    setEditingExpenseId(newExpense.id);
+    setProject({
+      ...project,
+      settings: {
+        ...project.settings,
+        costs: {
+          ...currentCosts,
+          expenses: updatedExpenses
+        }
+      }
+    });
+  };
+
+  const handleUpdateExpense = (id: string, field: 'name' | 'amount', value: any) => {
+    const currentExpenses = project.settings.costs?.expenses || [];
+    const updatedExpenses = currentExpenses.map(e => e.id === id ? { ...e, [field]: value } : e);
+    setProject({
+      ...project,
+      settings: {
+        ...project.settings,
+        costs: {
+          ...project.settings.costs,
+          expenses: updatedExpenses
+        }
+      }
+    });
+  };
+
+  const handleRemoveExpense = (id: string) => {
+    const currentExpenses = project.settings.costs?.expenses || [];
+    setProject({
+      ...project,
+      settings: {
+        ...project.settings,
+        costs: {
+          ...project.settings.costs,
+          expenses: currentExpenses.filter(e => e.id !== id)
+        }
+      }
+    });
   };
 
   const handleGenerateLayout = async () => {
@@ -456,9 +509,9 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
 
                     {activeModal === 'hardware' && (
                       <div className="space-y-8">
-                        <div className="bg-rose-50/50 dark:bg-rose-900/10 p-4 rounded-[2rem] border-2 border-rose-500/10 mb-8">
-                          <h4 className="text-base font-black text-rose-900 dark:text-rose-400 uppercase tracking-widest mb-1 italic">Hardware & Fittings</h4>
-                          <p className="text-sm text-rose-700/70 dark:text-rose-500/50 font-medium italic">Select hinges, handles, and runners for your project.</p>
+                        <div className="bg-amber-50/50 dark:bg-amber-900/10 p-4 rounded-[2rem] border-2 border-amber-500/10 mb-8">
+                          <h4 className="text-base font-black text-amber-900 dark:text-amber-400 uppercase tracking-widest mb-1 italic">Hardware & Fittings</h4>
+                          <p className="text-sm text-amber-700/70 dark:text-amber-500/50 font-medium italic">Select hinges, handles, and runners for your project.</p>
                         </div>
                         <SheetTypeManager 
                           currency={project.settings.currency || '$'}
@@ -469,11 +522,109 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
                     )}
 
                     {activeModal === 'costs' && (
-                      <div className="space-y-10">
-                        <div className="p-10 bg-slate-50 dark:bg-slate-800/30 rounded-[3rem] grid grid-cols-1 md:grid-cols-3 gap-8">
-                           <NumberInput label="Labor Cost (LKR)" value={project.settings.costs?.laborCost ?? 0} onChange={v => setProject({ ...project, settings: { ...project.settings, costs: { ...project.settings.costs, laborCost: v } } })} />
-                           <NumberInput label="Transport Cost (LKR)" value={project.settings.costs?.transportCost ?? 0} onChange={v => setProject({ ...project, settings: { ...project.settings, costs: { ...project.settings.costs, transportCost: v } } })} />
-                           <NumberInput label="Profit Margin (%)" value={project.settings.costs?.marginPercent ?? 50} onChange={v => setProject({ ...project, settings: { ...project.settings, costs: { ...project.settings.costs, marginPercent: v } } })} />
+                      <div className="space-y-8 max-w-4xl mx-auto w-full">
+                        <div className="bg-amber-50/50 dark:bg-amber-900/10 p-8 rounded-[2.5rem] border-2 border-amber-500/10 mb-8 flex justify-between items-center">
+                          <div>
+                            <h4 className="text-lg font-black text-amber-900 dark:text-amber-400 uppercase tracking-widest mb-1 italic">Project Financials</h4>
+                            <p className="text-sm text-amber-700/70 dark:text-amber-500/50 font-medium italic">Manage overheads, labor, and profit margins.</p>
+                          </div>
+                          <div className="text-right">
+                            <label className="text-[10px] font-black uppercase text-amber-500/50 tracking-widest mb-2 block">Profit Margin</label>
+                            <div className="flex items-center gap-3 bg-white dark:bg-slate-900 p-2 rounded-2xl border-2 border-amber-500/20 shadow-sm">
+                              <input 
+                                type="number" 
+                                value={project.settings.costs?.marginPercent ?? 50} 
+                                onChange={e => setProject({ ...project, settings: { ...project.settings, costs: { ...project.settings.costs, marginPercent: Number(e.target.value) } } })}
+                                className="w-16 bg-transparent text-right font-black text-xl text-amber-500 outline-none"
+                              />
+                              <span className="text-amber-500/50 font-bold">%</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-[1fr_180px_60px] gap-4 px-6 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">
+                            <div>Expense Description</div>
+                            <div className="text-right">Amount ({project.settings.currency || 'LKR'})</div>
+                            <div className="text-right">Action</div>
+                          </div>
+
+                          <div className="space-y-3">
+                            {(project.settings.costs?.expenses && project.settings.costs.expenses.length > 0 ? project.settings.costs.expenses : [
+                              { id: 'labor', name: 'Standard Labor', amount: project.settings.costs?.laborCost || 0 },
+                              { id: 'transport', name: 'Transport & Logistics', amount: project.settings.costs?.transportCost || 0 }
+                            ]).map((expense) => (
+                              <motion.div 
+                                layout
+                                key={expense.id}
+                                className={`grid grid-cols-[1fr_180px_60px] gap-4 items-center p-4 rounded-2xl border-2 transition-all shadow-sm group ${
+                                  editingExpenseId === expense.id 
+                                    ? 'bg-white dark:bg-slate-800 border-amber-500/50 ring-2 ring-amber-500/10' 
+                                    : 'bg-white/50 dark:bg-slate-800/30 border-slate-100 dark:border-slate-800 hover:border-amber-500/30'
+                                }`}
+                              >
+                                <input 
+                                  type="text" 
+                                  value={expense.name}
+                                  readOnly={editingExpenseId !== expense.id}
+                                  onChange={e => handleUpdateExpense(expense.id, 'name', e.target.value)}
+                                  className={`bg-transparent border-none outline-none font-bold placeholder-slate-300 transition-all ${
+                                    editingExpenseId === expense.id ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'
+                                  }`}
+                                  placeholder="Expense Name"
+                                />
+                                <div className="relative">
+                                  <input 
+                                    type="number" 
+                                    value={expense.amount}
+                                    readOnly={editingExpenseId !== expense.id}
+                                    onChange={e => handleUpdateExpense(expense.id, 'amount', Number(e.target.value))}
+                                    className={`w-full px-4 py-3 rounded-xl border-none outline-none text-right font-black transition-all ${
+                                      editingExpenseId === expense.id 
+                                        ? 'bg-slate-50 dark:bg-slate-900/50 text-amber-500 ring-2 ring-amber-500/20' 
+                                        : 'bg-transparent text-slate-400'
+                                    }`}
+                                  />
+                                </div>
+                                <div className="flex justify-end gap-2">
+                                  {editingExpenseId === expense.id ? (
+                                    <button 
+                                      onClick={async () => {
+                                        await onSaveProject?.(project);
+                                        setEditingExpenseId(null);
+                                      }}
+                                      className="p-2 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-all"
+                                      title="Save changes"
+                                    >
+                                      <Check size={18} />
+                                    </button>
+                                  ) : (
+                                    <button 
+                                      onClick={() => setEditingExpenseId(expense.id)}
+                                      className="p-2 text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                                      title="Edit expense"
+                                    >
+                                      <Pencil size={18} />
+                                    </button>
+                                  )}
+                                  <button 
+                                    onClick={() => handleRemoveExpense(expense.id)}
+                                    className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-all"
+                                    title="Remove expense"
+                                  >
+                                    <X size={18} />
+                                  </button>
+                                </div>
+                              </motion.div>
+                            ))}
+                          </div>
+
+                          <button 
+                            onClick={handleAddExpense}
+                            className="w-full py-6 rounded-[2rem] border-2 border-dashed border-slate-200 dark:border-slate-800 text-slate-400 hover:text-amber-500 hover:border-amber-500/50 hover:bg-amber-50/10 transition-all flex items-center justify-center gap-3 group font-black uppercase text-[11px] tracking-widest mt-6"
+                          >
+                            <Plus size={20} className="group-hover:scale-125 transition-transform" /> Add New Project Expense
+                          </button>
                         </div>
                       </div>
                     )}
@@ -567,8 +718,8 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
                         {showAdvancedConstruction && isPro && (
                           <div className="space-y-12 pt-8 animate-in zoom-in-98 duration-300">
                             <div className="space-y-6">
-                              <h4 className="text-[11px] font-black uppercase text-blue-500 tracking-widest flex items-center gap-3">
-                                <div className="w-4 h-1.5 bg-blue-500 rounded-full" /> Standard Depths (mm)
+                              <h4 className="text-[11px] font-black uppercase text-amber-500 tracking-widest flex items-center gap-3">
+                                <div className="w-4 h-1.5 bg-amber-500 rounded-full" /> Standard Depths (mm)
                               </h4>
                               <div className="grid grid-cols-3 gap-6">
                                 <NumberInput label="Base Depth" value={project.settings.depthBase} onChange={v => setProject({ ...project, settings: { ...project.settings, depthBase: v } })} />
@@ -578,8 +729,8 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
                             </div>
 
                             <div className="space-y-6">
-                              <h4 className="text-[11px] font-black uppercase text-emerald-500 tracking-widest flex items-center gap-3">
-                                <div className="w-4 h-1.5 bg-emerald-500 rounded-full" /> Standard Heights (mm)
+                              <h4 className="text-[11px] font-black uppercase text-amber-500 tracking-widest flex items-center gap-3">
+                                <div className="w-4 h-1.5 bg-amber-500 rounded-full" /> Standard Heights (mm)
                               </h4>
                               <div className="grid grid-cols-3 gap-6">
                                 <NumberInput label="Base Height" value={project.settings.baseHeight} onChange={v => setProject({ ...project, settings: { ...project.settings, baseHeight: v } })} />

@@ -822,6 +822,7 @@ export interface CostBreakdown {
   hardwareCost: number;
   laborCost: number;
   transportCost: number;
+  otherCost: number;
   subtotal: number;
   margin: number;
   totalPrice: number;
@@ -867,13 +868,28 @@ export const calculateProjectCost = (
     hardwareCost = totalHardwareItems * costs.pricePerHardwareUnit;
   }
 
-  // 3. Labor (flat cost from settings)
-  const laborCost = costs.laborCost || 0;
+  // 3. Additional Expenses (Labor, Transport + Custom)
+  let laborCost = 0;
+  let transportCost = 0;
+  let otherCost = 0;
 
-  // 4. Transport
-  const transportCost = costs.transportCost || 0;
+  if (costs.expenses && costs.expenses.length > 0) {
+    costs.expenses.forEach(exp => {
+      const name = exp.name.toLowerCase();
+      if (name.includes('labor') || name.includes('labour')) {
+        laborCost += exp.amount;
+      } else if (name.includes('transport') || name.includes('logistics')) {
+        transportCost += exp.amount;
+      } else {
+        otherCost += exp.amount;
+      }
+    });
+  } else {
+    laborCost = costs.laborCost || 0;
+    transportCost = costs.transportCost || 0;
+  }
 
-  const subtotal = materialCost + hardwareCost + laborCost + transportCost;
+  const subtotal = materialCost + hardwareCost + laborCost + transportCost + otherCost;
   const margin = subtotal * (costs.marginPercent / 100);
 
   return {
@@ -881,6 +897,7 @@ export const calculateProjectCost = (
     hardwareCost,
     laborCost,
     transportCost,
+    otherCost,
     subtotal,
     margin,
     totalPrice: subtotal + margin
@@ -1143,53 +1160,39 @@ export const exportToExcel = (groups: BOMGroup[], nestingData: OptimizationResul
     </Row>`;
   });
 
-  // 4. Prepare Extra Costs (Labour, Transport)
+  // 4. Prepare Extra Costs (Labour, Transport, Others)
   let extraCostsRows = '';
   let totalExtraCost = 0;
   let eRowIdx = 1;
 
-  const labor = project.settings.costs.laborCost || 0;
-  const transport = project.settings.costs.transportCost || 0;
+  const costSettings = project.settings.costs;
+  const expenses = (costSettings.expenses && costSettings.expenses.length > 0) ? costSettings.expenses : [
+    { id: 'labor', name: 'Labour', amount: costSettings.laborCost || 0 },
+    { id: 'transport', name: 'Transport', amount: costSettings.transportCost || 0 }
+  ];
 
-  if (labor > 0) {
-    totalExtraCost += labor;
+  expenses.forEach(exp => {
+    if (exp.amount <= 0) return;
+    
+    totalExtraCost += exp.amount;
     const isEven = eRowIdx % 2 === 0;
     const rowStyle = isEven ? ' ss:StyleID="EvenRow"' : '';
     const currStyle = isEven ? 'ss:StyleID="EvenCurrency"' : 'ss:StyleID="Currency"';
     const numStyle = isEven ? 'ss:StyleID="EvenLeftAlign"' : 'ss:StyleID="LeftAlign"';
+    
     extraCostsRows += `
     <Row>
       <Cell ${numStyle}><Data ss:Type="Number">${eRowIdx++}</Data></Cell>
-      <Cell ${rowStyle}><Data ss:Type="String">Labour</Data></Cell>
-      <Cell ${rowStyle}><Data ss:Type="String">Manufacturing &amp; Assembly</Data></Cell>
+      <Cell ${rowStyle}><Data ss:Type="String">${exp.name}</Data></Cell>
+      <Cell ${rowStyle}><Data ss:Type="String">Project Expense</Data></Cell>
       <Cell ${numStyle}><Data ss:Type="Number">1</Data></Cell>
       <Cell ${rowStyle}><Data ss:Type="String">Project</Data></Cell>
-      <Cell ${currStyle}><Data ss:Type="Number">${labor}</Data></Cell>
+      <Cell ${currStyle}><Data ss:Type="Number">${exp.amount}</Data></Cell>
       <Cell ${rowStyle}><Data ss:Type="Number">1</Data></Cell>
-      <Cell ${currStyle}><Data ss:Type="Number">${labor}</Data></Cell>
+      <Cell ${currStyle}><Data ss:Type="Number">${exp.amount}</Data></Cell>
       <Cell ${rowStyle}><Data ss:Type="String"></Data></Cell>
     </Row>`;
-  }
-
-  if (transport > 0) {
-    totalExtraCost += transport;
-    const isEven = eRowIdx % 2 === 0;
-    const rowStyle = isEven ? ' ss:StyleID="EvenRow"' : '';
-    const currStyle = isEven ? 'ss:StyleID="EvenCurrency"' : 'ss:StyleID="Currency"';
-    const numStyle = isEven ? 'ss:StyleID="EvenLeftAlign"' : 'ss:StyleID="LeftAlign"';
-    extraCostsRows += `
-    <Row>
-      <Cell ${numStyle}><Data ss:Type="Number">${eRowIdx++}</Data></Cell>
-      <Cell ${rowStyle}><Data ss:Type="String">Transport</Data></Cell>
-      <Cell ${rowStyle}><Data ss:Type="String">Delivery &amp; Logistics</Data></Cell>
-      <Cell ${numStyle}><Data ss:Type="Number">1</Data></Cell>
-      <Cell ${rowStyle}><Data ss:Type="String">Trip</Data></Cell>
-      <Cell ${currStyle}><Data ss:Type="Number">${transport}</Data></Cell>
-      <Cell ${rowStyle}><Data ss:Type="Number">1</Data></Cell>
-      <Cell ${currStyle}><Data ss:Type="Number">${transport}</Data></Cell>
-      <Cell ${rowStyle}><Data ss:Type="String"></Data></Cell>
-    </Row>`;
-  }
+  });
 
   // 5. GENERATE XML
   const xml = `<?xml version="1.0"?>

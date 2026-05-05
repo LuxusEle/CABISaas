@@ -319,11 +319,12 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
           {/* COSTING CARD */}
           <div className={`${activeView === 'list' ? 'block' : 'hidden print:block'} bg-white dark:bg-slate-900 text-slate-900 dark:text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl print:bg-white print:text-black print:border-2 print:border-black print:break-inside-avoid shadow-xl print:shadow-none`}>
             <h3 className="text-amber-600 dark:text-amber-500 font-bold mb-3 sm:mb-4 flex items-center gap-2 print:text-black text-base sm:text-lg"><DollarSign size={18} /> Cost Estimate</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-6">
               <div><div className="text-slate-500 dark:text-slate-400 text-xs uppercase print:text-black">Material</div><div className="text-lg sm:text-xl font-bold">{currency}{baseCosts.materialCost.toFixed(2)}</div></div>
               <div><div className="text-slate-500 dark:text-slate-400 text-xs uppercase print:text-black">Hardware</div><div className="text-lg sm:text-xl font-bold">{currency}{baseCosts.hardwareCost.toFixed(2)}</div></div>
               <div><div className="text-slate-500 dark:text-slate-400 text-xs uppercase print:text-black">Labor</div><div className="text-lg sm:text-xl font-bold">{currency}{baseCosts.laborCost.toFixed(2)}</div></div>
               <div><div className="text-slate-500 dark:text-slate-400 text-xs uppercase print:text-black">Transport</div><div className="text-lg sm:text-xl font-bold">{currency}{baseCosts.transportCost.toFixed(2)}</div></div>
+              <div><div className="text-slate-500 dark:text-slate-400 text-xs uppercase print:text-black">Other</div><div className="text-lg sm:text-xl font-bold">{currency}{baseCosts.otherCost.toFixed(2)}</div></div>
             </div>
             <div className="grid grid-cols-2 gap-3 sm:gap-6 mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 print:border-black">
               <div>
@@ -431,6 +432,19 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
                           </tr>
                         );
                       })}
+                    {/* Custom Project Expenses */}
+                    {project.settings.costs?.expenses?.filter(e => {
+                      const lower = e.name.toLowerCase();
+                      return !lower.includes('labor') && !lower.includes('labour') && !lower.includes('transport') && !lower.includes('logistics');
+                    }).map(exp => (
+                      <tr key={exp.id} className="hover:bg-slate-50/50 transition-colors bg-amber-50/10">
+                        <td className="p-3 font-bold text-amber-900 dark:text-amber-400 print:text-black flex items-center gap-2">
+                          <div className="w-1 h-4 bg-amber-500 rounded-full" /> {exp.name}
+                        </td>
+                        <td className="p-3 text-center font-black text-amber-600">1</td>
+                        <td className="p-3 text-right font-bold text-amber-600">{currency}{exp.amount.toFixed(2)}</td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>

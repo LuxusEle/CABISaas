@@ -41,12 +41,19 @@ export enum PresetType {
   OPEN_BOX = 'Open Box'
 }
 
+export interface AdditionalExpense {
+  id: string;
+  name: string;
+  amount: number;
+}
+
 export interface CostSettings {
   pricePerSheet: number;
   pricePerHardwareUnit: number;
   laborCost: number;
   marginPercent: number;
   transportCost: number;
+  expenses?: AdditionalExpense[];
 }
 
 // Global Project Settings
