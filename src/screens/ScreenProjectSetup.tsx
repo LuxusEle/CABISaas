@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Save, FileText, Upload, DollarSign, Settings, Box, Lock, CheckCircle2, AlertCircle, Wand2, ArrowRight, X, MousePointer2, Plus, Check, Pencil } from 'lucide-react';
+import { Save, FileText, Upload, DollarSign, Settings, Box, Lock, CheckCircle2, AlertCircle, Wand2, ArrowRight, X, MousePointer2, Plus, Check, Pencil, MapPin, Phone, Sparkles } from 'lucide-react';
 import { Project } from '../types';
 import { Button } from '../components/Button';
 import { NumberInput } from '../components/NumberInput';
@@ -104,22 +104,31 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
     }
   }, [location.search]);
 
-  // Load user's previous logo on mount
+  // Load user's previous profile (logo & company) on mount
   useEffect(() => {
-    const loadUserLogo = async () => {
+    const loadUserProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user && !project.settings.logoUrl) {
-        const savedLogo = await logoService.getUserLogo(user.id);
-        if (savedLogo) {
-          setLogoPreview(savedLogo);
+      if (user) {
+        const { profileService } = await import('../services/profileService');
+        const profile = await profileService.getProfile(user.id);
+        
+        if (profile) {
+          if (profile.logo_url) {
+            setLogoPreview(profile.logo_url);
+          }
+          
           setProject(prev => ({
             ...prev,
-            settings: { ...prev.settings, logoUrl: savedLogo }
+            company: profile.company_name || prev.company,
+            settings: { 
+              ...prev.settings, 
+              logoUrl: profile.logo_url || prev.settings.logoUrl 
+            }
           }));
         }
       }
     };
-    loadUserLogo();
+    loadUserProfile();
     
     // Check if user is Pro
     if (isUserPro !== undefined) {
@@ -468,58 +477,77 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
                     )}
 
                     {activeModal === 'project' && (
-                      <div className="space-y-10">
-                        <div className="grid md:grid-cols-2 gap-12">
-                          <div className="space-y-8">
-                            <h4 className="text-xs font-black uppercase text-amber-500 tracking-widest flex items-center gap-3 italic">
-                              <div className="w-6 h-1.5 bg-amber-500 rounded-full" /> Company Profile
-                            </h4>
-                            <div className="space-y-3">
-                              <label className="text-[11px] font-black uppercase text-slate-400 tracking-widest">Company Name</label>
-                              <input className="w-full p-6 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border-2 border-transparent focus:border-amber-500 outline-none dark:text-white font-bold text-xl shadow-inner transition-all" placeholder="Your Business" value={project.company} onChange={e => setProject({ ...project, company: e.target.value })} />
-                            </div>
-
-                            <div className="space-y-3">
-                              <label className="text-[11px] font-black uppercase text-slate-400 tracking-widest">Brand Identity (Logo)</label>
-                              <div className="p-12 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[2.5rem] flex flex-col items-center gap-6 bg-slate-50/30 dark:bg-slate-800/20 group hover:border-amber-500 transition-colors">
-                                {logoPreview ? (
-                                  <div className="relative group">
-                                    <img src={logoPreview} alt="Preview" className="h-32 w-auto object-contain drop-shadow-2xl" />
-                                    <button onClick={handleRemoveLogo} className="absolute -top-3 -right-3 bg-rose-500 text-white p-2 rounded-full shadow-lg hover:scale-110 transition-transform">
-                                      <X size={16} />
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <div className="text-slate-400 text-center">
-                                    <div className="w-20 h-20 bg-white dark:bg-slate-800 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-xl">
-                                      <Upload size={32} className="opacity-20" />
-                                    </div>
-                                    <p className="text-xs font-bold uppercase tracking-widest">Drop your logo here</p>
-                                  </div>
-                                )}
-                                <input ref={fileInputRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" id="logo-wizard" />
-                                <label htmlFor="logo-wizard" className="px-10 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[11px] font-black rounded-full cursor-pointer hover:scale-105 transition-transform shadow-xl uppercase tracking-[0.2em]">
-                                  {isUploadingLogo ? 'UPLOADING...' : 'SELECT IMAGE'}
-                                </label>
-                              </div>
-                            </div>
+                      <div className="h-full flex flex-col justify-center py-10 animate-in fade-in zoom-in duration-500">
+                        <div className="max-w-4xl mx-auto w-full px-6">
+                          {/* Header Section */}
+                          <div className="text-center mb-16 relative">
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-amber-500/10 rounded-full blur-[80px] pointer-events-none" />
+                            <h2 className="text-5xl font-black text-slate-900 dark:text-white italic tracking-tighter uppercase mb-4 leading-tight">
+                              Start New <span className="text-amber-500">Journey</span>
+                            </h2>
+                            <p className="text-slate-500 dark:text-slate-400 font-medium italic max-w-md mx-auto">
+                              Define your project specifications to begin the precision engineering process.
+                            </p>
                           </div>
 
-                          <div className="space-y-8">
-                            <h4 className="text-xs font-black uppercase text-blue-500 tracking-widest flex items-center gap-3 italic">
-                               <div className="w-6 h-1.5 bg-blue-500 rounded-full" /> Client Specifications
-                            </h4>
-                            <div className="space-y-3">
-                              <label className="text-[11px] font-black uppercase text-slate-400 tracking-widest">Project Name</label>
-                              <input className="w-full p-6 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border-2 border-transparent focus:border-amber-500 outline-none dark:text-white font-bold text-xl shadow-inner transition-all" placeholder="e.g., Lakeview Kitchen" value={project.name} onChange={e => setProject({ ...project, name: e.target.value })} />
+                          <div className="grid md:grid-cols-2 gap-8 relative">
+                            {/* Card Decoration */}
+                            <div className="absolute -top-4 -left-4 w-24 h-24 border-t-4 border-l-4 border-amber-500/20 rounded-tl-[3rem] pointer-events-none" />
+                            <div className="absolute -bottom-4 -right-4 w-24 h-24 border-b-4 border-r-4 border-amber-500/20 rounded-br-[3rem] pointer-events-none" />
+
+                            {/* Project Name & Site Address */}
+                            <div className="space-y-6">
+                              <div className="group relative">
+                                <label className="text-[10px] font-black uppercase text-amber-500 tracking-[0.2em] mb-3 block ml-2 italic">Project Name</label>
+                                <div className="relative">
+                                  <FileText className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-500 transition-colors" size={20} />
+                                  <input 
+                                    className="w-full p-6 pl-16 bg-white dark:bg-slate-800/40 rounded-3xl border-2 border-slate-100 dark:border-slate-800 focus:border-amber-500 outline-none dark:text-white font-bold text-lg shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none transition-all placeholder:text-slate-300 dark:placeholder:text-slate-600" 
+                                    placeholder="e.g., Lakeview Kitchen" 
+                                    value={project.name} 
+                                    onChange={e => setProject({ ...project, name: e.target.value })} 
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="group relative">
+                                <label className="text-[10px] font-black uppercase text-blue-500 tracking-[0.2em] mb-3 block ml-2 italic">Site Address</label>
+                                <div className="relative">
+                                  <MapPin className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
+                                  <textarea 
+                                    rows={3}
+                                    className="w-full p-6 pl-16 bg-white dark:bg-slate-800/40 rounded-3xl border-2 border-slate-100 dark:border-slate-800 focus:border-blue-500 outline-none dark:text-white font-bold text-lg shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none transition-all placeholder:text-slate-300 dark:placeholder:text-slate-600 resize-none" 
+                                    placeholder="Full delivery/installation address" 
+                                    value={project.customerAddress || ''} 
+                                    onChange={e => setProject({ ...project, customerAddress: e.target.value })} 
+                                  />
+                                </div>
+                              </div>
                             </div>
-                            <div className="space-y-3">
-                              <label className="text-[11px] font-black uppercase text-slate-400 tracking-widest">Site Address</label>
-                              <input className="w-full p-6 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border-2 border-transparent focus:border-amber-500 outline-none dark:text-white font-bold text-xl shadow-inner transition-all" placeholder="Street Address" value={project.customerAddress || ''} onChange={e => setProject({ ...project, customerAddress: e.target.value })} />
-                            </div>
-                            <div className="space-y-3">
-                              <label className="text-[11px] font-black uppercase text-slate-400 tracking-widest">Contact Number</label>
-                              <input className="w-full p-6 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border-2 border-transparent focus:border-amber-500 outline-none dark:text-white font-bold text-xl shadow-inner transition-all" placeholder="+94 ..." value={project.customerPhone || ''} onChange={e => setProject({ ...project, customerPhone: e.target.value })} />
+
+                            {/* Contact & Status Card */}
+                            <div className="space-y-6">
+                              <div className="group relative">
+                                <label className="text-[10px] font-black uppercase text-emerald-500 tracking-[0.2em] mb-3 block ml-2 italic">Contact Number</label>
+                                <div className="relative">
+                                  <Phone className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-500 transition-colors" size={20} />
+                                  <input 
+                                    type="tel"
+                                    className="w-full p-6 pl-16 bg-white dark:bg-slate-800/40 rounded-3xl border-2 border-slate-100 dark:border-slate-800 focus:border-emerald-500 outline-none dark:text-white font-bold text-lg shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none transition-all placeholder:text-slate-300 dark:placeholder:text-slate-600" 
+                                    placeholder="+1 234 567 890" 
+                                    value={project.customerPhone || ''} 
+                                    onChange={e => setProject({ ...project, customerPhone: e.target.value })} 
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="bg-slate-50 dark:bg-slate-800/20 rounded-[2.5rem] p-8 border-2 border-dashed border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center text-center group hover:border-amber-500/30 transition-all">
+                                <div className="w-16 h-16 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center text-amber-500 shadow-xl mb-4 rotate-3 group-hover:rotate-0 transition-transform">
+                                  <Sparkles size={32} />
+                                </div>
+                                <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest mb-1">Branded Experience</h4>
+                                <p className="text-[10px] text-slate-500 font-medium italic">All reports and 3D designs will use your profile's company identity.</p>
+                              </div>
                             </div>
                           </div>
                         </div>
