@@ -467,15 +467,7 @@ const ScreenWallEditor = ({
       <div className="flex-1 flex overflow-hidden">
         {/* DESKTOP LAYOUT - HIDDEN ON MOBILE */}
         <div className="hidden md:flex flex-1 flex-col min-w-0">
-          {/* DESKTOP HEADER */}
-          <div className="hidden md:flex items-center justify-between px-6 py-4 border-b dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0">
-            <div className="flex items-center gap-4">
-              <div className="flex flex-col">
-                <h1 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight italic">Wall Editor</h1>
-                <p className="text-[10px] font-bold text-amber-500 uppercase tracking-widest leading-none">Design & Layout</p>
-              </div>
-            </div>
-          </div>
+
 
           <div className="hidden md:flex flex-1 flex-col md:flex-row overflow-hidden relative">
             {/* Main Visualizer Area */}
@@ -1013,27 +1005,7 @@ const ScreenWallEditor = ({
 
         {/* Desktop Sidebar: Presets or Selected Cabinet Editor */}
         <div className={`hidden md:flex w-80 h-full bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 flex-col overflow-hidden shrink-0 ${visualMode === 'studio' ? '!hidden' : ''}`}>
-          {/* Global Swap Control */}
-          <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 shadow-sm z-10">
-            <Button 
-              size="sm" 
-              variant={swapMode ? "primary" : "secondary"} 
-              onClick={() => {
-                setSwapMode(!swapMode);
-                setSwapSelection([]);
-                setSelectedCabinet(null);
-              }}
-              className={`w-full gap-2 transition-all duration-300 ${swapMode ? 'ring-2 ring-amber-500 shadow-lg' : ''}`}
-            >
-              <RotateCcw size={16} className={swapMode ? 'animate-spin' : ''} />
-              {swapMode ? 'Exit Swap Mode' : 'Swap Cabinets'}
-            </Button>
-            {swapMode && (
-              <p className="text-[9px] font-black text-amber-500 uppercase mt-2 animate-pulse text-center tracking-widest">
-                {swapSelection.length === 0 ? 'Select first cabinet' : 'Select second cabinet'}
-              </p>
-            )}
-          </div>
+
 
           {selectedCabinet ? (
             <div className="flex-1 flex flex-col p-4 space-y-6 overflow-y-auto">
@@ -1505,8 +1477,27 @@ const ScreenWallEditor = ({
                 </div>
               )}
 
-              <div className="p-4 border-b border-slate-200 dark:border-slate-800">
-                <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">Presets</h3>
+              <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex flex-col gap-3">
+                <Button 
+                  size="sm" 
+                  variant={swapMode ? "primary" : "secondary"} 
+                  onClick={() => {
+                    setSwapMode(!swapMode);
+                    setSwapSelection([]);
+                    setSelectedCabinet(null);
+                  }}
+                  className={`w-full gap-2 transition-all duration-300 ${swapMode ? 'ring-2 ring-amber-500 shadow-lg' : ''}`}
+                >
+                  <RotateCcw size={16} className={swapMode ? 'animate-spin' : ''} />
+                  {swapMode ? 'Exit Swap Mode' : 'Swap Cabinets'}
+                </Button>
+                {swapMode && (
+                  <p className="text-[9px] font-black text-amber-500 uppercase animate-pulse text-center tracking-widest">
+                    {swapSelection.length === 0 ? 'Select first cabinet' : 'Select second cabinet'}
+                  </p>
+                )}
+                
+                <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tighter italic mt-2">Presets</h3>
               </div>
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {[

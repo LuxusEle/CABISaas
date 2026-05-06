@@ -376,27 +376,6 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
     <div className="flex flex-col h-full w-full overflow-hidden bg-slate-50 dark:bg-slate-950">
       <div className="flex-1 flex overflow-hidden relative">
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-white dark:bg-slate-900 shadow-2xl relative">
-          <div className="px-6 py-4 border-b dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md flex justify-between items-center shrink-0 z-20">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center text-white shadow-lg shadow-amber-500/30">
-                <Settings size={20} />
-              </div>
-              <div className="min-w-0">
-                <h2 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight italic">
-                  Setup <span className="text-amber-500">Wizard</span>
-                </h2>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">
-                  Step {wizardSteps.indexOf(activeModal as string) + 1} of {wizardSteps.length}: {activeModal?.toUpperCase()}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Button variant="secondary" size="sm" onClick={onSave} className="text-[10px] uppercase font-black px-4">
-                <Save size={14} className="mr-2" /> Save Draft
-              </Button>
-            </div>
-          </div>
 
           <div className="flex-1 relative bg-slate-100 dark:bg-slate-950 overflow-hidden p-4">
             <div className="h-full w-full max-w-none transition-all duration-500 relative">
