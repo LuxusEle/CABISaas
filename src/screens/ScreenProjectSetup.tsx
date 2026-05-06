@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Save, FileText, Upload, DollarSign, Settings, Box, Lock, CheckCircle2, AlertCircle, Wand2, ArrowRight, X, MousePointer2, Plus, Check, Pencil, MapPin, Phone, Sparkles } from 'lucide-react';
+import { Save, FileText, Upload, DollarSign, Settings, Box, Lock, CheckCircle2, AlertCircle, Wand2, ArrowRight, X, MousePointer2, Plus, Check, Pencil, MapPin, Phone, Sparkles, Layout, Layers, Cpu } from 'lucide-react';
 import { Project } from '../types';
 import { Button } from '../components/Button';
 import { NumberInput } from '../components/NumberInput';
 import { WallEditModal } from '../components/WallEditModal';
 import { WallLimitsModal } from '../components/WallLimitsModal';
-import { CabinetEditModal } from '../components/CabinetEditModal';
 import { SheetTypeManager } from '../components/SheetTypeManager';
 import { MaterialAllocationPanel } from '../components/MaterialAllocationPanel';
 import { generateRubyLayout } from '../services/layoutSolver';
@@ -29,7 +28,7 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
   const location = useLocation();
   
   // State for centered modal
-  const [activeModal, setActiveModal] = useState<'project' | 'walls' | 'limits' | 'sheets' | 'hardware' | 'construction' | 'costs' | 'allocation' | 'preferences' | null>('project');
+  const [activeModal, setActiveModal] = useState<'project' | 'walls' | 'limits' | 'sheets' | 'hardware' | 'construction' | 'costs' | 'allocation' | 'preferences' | 'generation' | null>('project');
 
   // Modal control states
   const isLayoutLocked = project.zones.some(z => z.cabinets && z.cabinets.length > 0);
@@ -92,7 +91,7 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
   const isCostsDone = visitedSteps.has('costs');
 
   const isReadyToGenerate = isIdentityDone && isWallsDone && isLimitsDone && isPreferencesDone;
-  const wizardSteps = ['project', 'walls', 'limits', 'preferences', 'sheets', 'hardware', 'construction', 'costs'];
+  const wizardSteps = ['project', 'walls', 'limits', 'preferences', 'sheets', 'hardware', 'construction', 'costs', 'generation'];
   const [direction, setDirection] = useState<'forward' | 'backward'>('forward');
 
   // Handle auto-open from URL
@@ -297,6 +296,7 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
         case 'hardware': return 'Hardware';
         case 'construction': return 'Construction';
         case 'costs': return 'Pricing';
+        case 'generation': return 'Launch';
         default: return step;
       }
     };
@@ -687,6 +687,7 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
                             <Plus size={20} className="group-hover:scale-125 transition-transform" /> Add New Project Expense
                           </button>
                         </div>
+                        
                       </div>
                     )}
 
@@ -801,7 +802,6 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
                             </div>
                           </div>
                         )}
-
                         <MaterialAllocationPanel
                           settings={project.settings}
                           onUpdate={s => setProject({ ...project, settings: { ...project.settings, ...s } })}
@@ -809,14 +809,124 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
                         />
                       </div>
                     )}
+
+                    {activeModal === 'generation' && (
+                      <div className="h-full flex flex-col justify-center py-4 animate-in fade-in slide-in-from-bottom-10 duration-700">
+                        <div className="max-w-5xl mx-auto w-full px-6">
+                          {/* Launchpad Header */}
+                          <div className="text-center mb-6 relative">
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-amber-500/10 rounded-full blur-[100px] pointer-events-none" />
+                            <h2 className="text-6xl font-black text-slate-900 dark:text-white italic tracking-tighter uppercase mb-4 leading-tight text-glow">
+                              Ready for <span className="text-amber-500">Generation</span>
+                            </h2>
+                            <p className="text-slate-500 dark:text-slate-400 font-medium italic max-w-lg mx-auto">
+                              Engineering specifications are locked. All systems ready for automated cabinetry layout generation.
+                            </p>
+                          </div>
+
+                          <div className="grid lg:grid-cols-3 gap-8 relative">
+                            {/* 1. Summary Column */}
+                            <div className="lg:col-span-2 space-y-6">
+                              <div className="bg-white dark:bg-slate-900/50 rounded-[3rem] p-8 border-2 border-slate-100 dark:border-slate-800 shadow-2xl relative overflow-hidden group">
+                                <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+                                  <Cpu size={120} className="text-amber-500" />
+                                </div>
+                                
+                                <h3 className="text-xs font-black uppercase text-amber-500 tracking-[0.3em] mb-4 italic flex items-center gap-4">
+                                  <div className="w-8 h-1 bg-amber-500 rounded-full" />
+                                  Engineering Brief
+                                </h3>
+
+                                <div className="grid sm:grid-cols-2 gap-x-12 gap-y-4">
+                                  <div className="space-y-2">
+                                    <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Core Structure</span>
+                                    <div className="flex items-center gap-3">
+                                      <Layout className="text-blue-500" size={18} />
+                                      <span className="text-lg font-black text-slate-900 dark:text-white italic">{project.zones.length} Walls Defined</span>
+                                    </div>
+                                  </div>
+                                  <div className="space-y-2">
+                                    <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Main Material</span>
+                                    <div className="flex items-center gap-3">
+                                      <Layers className="text-amber-500" size={18} />
+                                      <span className="text-lg font-black text-slate-900 dark:text-white italic">{project.settings.materialSettings?.doorMaterial || 'Premium White'}</span>
+                                    </div>
+                                  </div>
+                                  <div className="space-y-2">
+                                    <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Construction Method</span>
+                                    <div className="flex items-center gap-3">
+                                      <Box className="text-emerald-500" size={18} />
+                                      <span className="text-lg font-black text-slate-900 dark:text-white italic">{project.settings.constructionType || 'Frameless'}</span>
+                                    </div>
+                                  </div>
+                                  <div className="space-y-2">
+                                    <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Financial Status</span>
+                                    <div className="flex items-center gap-3">
+                                      <DollarSign className="text-purple-500" size={18} />
+                                      <span className="text-lg font-black text-slate-900 dark:text-white italic">Budget Locked</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="bg-slate-50 dark:bg-slate-800/20 rounded-[2.5rem] p-4 border border-slate-200 dark:border-slate-800 flex items-center justify-between px-10 group">
+                                <div className="flex items-center gap-6">
+                                  <div className="w-12 h-12 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center text-amber-500 shadow-lg group-hover:scale-110 transition-transform">
+                                    <CheckCircle2 size={24} />
+                                  </div>
+                                  <div>
+                                    <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest">Verification Complete</h4>
+                                    <p className="text-[10px] text-slate-500 font-medium italic">Layout Solver Engine: STATUS ACTIVE</p>
+                                  </div>
+                                </div>
+                                <div className="hidden sm:flex -space-x-4">
+                                  {[1, 2, 3].map(i => (
+                                    <div key={i} className="w-10 h-10 rounded-full border-4 border-white dark:border-slate-900 bg-slate-200 dark:bg-slate-800 overflow-hidden shadow-md">
+                                      <div className="w-full h-full bg-gradient-to-br from-amber-400 to-orange-500 opacity-40" />
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* 2. Action Column */}
+                            <div className="space-y-4">
+                              <button
+                                onClick={handleGenerateLayout}
+                                disabled={!isReadyToGenerate || (!isPro && isLayoutLocked)}
+                                className="w-full aspect-square bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-[3rem] flex flex-col items-center justify-center gap-6 group hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_30px_60px_rgba(245,158,11,0.2)] dark:shadow-[0_30px_60px_rgba(255,255,255,0.05)] relative overflow-hidden"
+                              >
+                                <div className="absolute inset-0 bg-gradient-to-br from-amber-500/20 to-orange-500/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                <div className="w-24 h-24 bg-amber-500 rounded-[2rem] flex items-center justify-center text-white shadow-2xl shadow-amber-500/40 relative z-10 group-hover:rotate-12 transition-transform">
+                                  <Wand2 size={48} />
+                                </div>
+                                <div className="text-center relative z-10">
+                                  <h3 className="text-2xl font-black italic tracking-tighter uppercase mb-1">Launch</h3>
+                                  <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-50">3D Generator</p>
+                                </div>
+                                <div className="absolute bottom-10 animate-bounce opacity-20">
+                                  <ArrowRight size={24} className="rotate-90" />
+                                </div>
+                              </button>
+
+                              <div className="bg-amber-500/5 rounded-3xl p-4 border-2 border-amber-500/10 text-center italic">
+                                <p className="text-xs text-amber-500/80 font-bold leading-relaxed">
+                                  "Precision is the soul of every design. Let the machine do the heavy lifting."
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </motion.div>
-                </AnimatePresence>
-              </div>
-            )}
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            </AnimatePresence>
           </div>
-        </div>
+        )}
+      </div>
+    </div>
 
           {/* Fixed Footer Navigation - ALWAYS VISIBLE */}
           {activeModal && (
@@ -832,17 +942,7 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
 
               <div className="flex gap-4">
                 {wizardSteps.indexOf(activeModal as string) === wizardSteps.length - 1 ? (
-                  <button
-                    onClick={handleGenerateLayout}
-                    disabled={!isReadyToGenerate || (!isPro && isLayoutLocked)}
-                    className={`flex items-center gap-3 px-8 py-3 rounded-2xl text-[11px] font-black uppercase tracking-[0.15em] transition-all shadow-xl ${
-                      isReadyToGenerate && (isPro || !isLayoutLocked)
-                        ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-amber-500/30 hover:scale-105 active:scale-95' 
-                        : 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
-                    }`}
-                  >
-                    <Wand2 size={18} /> Generate 3D Design
-                  </button>
+                  <div className="w-[180px]" /> // Placeholder for the launch screen which has its own button
                 ) : (
                   <Button 
                     onClick={() => {
@@ -880,6 +980,7 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
                   if (s === 'hardware') return isHardwareDone;
                   if (s === 'construction') return isConstructionDone;
                   if (s === 'costs') return isCostsDone;
+                  if (s === 'generation') return true;
                   return false;
                 }).length / wizardSteps.length) * 100)}%
               </span>
@@ -896,6 +997,7 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
                   if (s === 'hardware') return isHardwareDone;
                   if (s === 'construction') return isConstructionDone;
                   if (s === 'costs') return isCostsDone;
+                  if (s === 'generation') return true;
                   return false;
                 }).length / wizardSteps.length) * 100}%` }} 
                />
@@ -913,6 +1015,7 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
               if (step === 'hardware') isDone = isHardwareDone;
               if (step === 'construction') isDone = isConstructionDone;
               if (step === 'costs') isDone = isCostsDone;
+              if (step === 'generation') isDone = isReadyToGenerate;
 
               return (
                 <StepSidebarItem 

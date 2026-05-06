@@ -128,6 +128,7 @@ export interface ProjectSettings {
     includeCooker: boolean;
     includeDrawers: boolean;
   };
+  constructionType?: string;
   completedSteps?: string[];
 }
 
