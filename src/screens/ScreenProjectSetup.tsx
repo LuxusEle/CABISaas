@@ -91,7 +91,7 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
   const isHardwareDone = visitedSteps.has('hardware');
   const isCostsDone = visitedSteps.has('costs');
 
-  const isReadyToGenerate = isIdentityDone && isWallsDone && isLimitsDone && isConstructionDone && isPreferencesDone && isSheetsDone;
+  const isReadyToGenerate = isIdentityDone && isWallsDone && isLimitsDone && isPreferencesDone;
   const wizardSteps = ['project', 'walls', 'limits', 'preferences', 'sheets', 'hardware', 'construction', 'costs'];
   const [direction, setDirection] = useState<'forward' | 'backward'>('forward');
 
