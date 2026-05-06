@@ -7,6 +7,7 @@ export interface ExpenseTemplate {
   default_amount: number;
   width?: number;
   length?: number;
+  unit?: string;
   sort_order: number;
   created_at: string;
   updated_at: string;
@@ -39,7 +40,7 @@ export const expenseTemplateService = {
     return cachedTemplates;
   },
 
-  async saveTemplate(name: string, defaultAmount: number = 0, width?: number, length?: number): Promise<ExpenseTemplate | null> {
+  async saveTemplate(name: string, defaultAmount: number = 0, width?: number, length?: number, unit: string = 'mm2'): Promise<ExpenseTemplate | null> {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) return null;
 
@@ -58,6 +59,7 @@ export const expenseTemplateService = {
           default_amount: defaultAmount,
           width,
           length,
+          unit,
           sort_order: count || 0
         }
       ])
@@ -156,7 +158,8 @@ export const expenseTemplateService = {
       if (!existing.find(e => e.name === item.name)) {
         const width = item.name === 'Tile' ? 600 : undefined;
         const length = item.name === 'Tile' ? 600 : undefined;
-        await this.saveTemplate(item.name, item.amount, width, length);
+        const unit = item.name === 'Tile' ? 'mm2' : undefined;
+        await this.saveTemplate(item.name, item.amount, width, length, unit || 'mm2');
       }
     }
   }

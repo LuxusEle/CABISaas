@@ -641,7 +641,7 @@ export const generateProjectBOM = (project: Project): {
   totalLinearFeet: number, 
   cabinetCount: number,
   totalGraniteSqft: number,
-  totalTileSqft: number
+  totalTileAreaMm2: number
 } => {
   const groups: BOMGroup[] = [];
   const hardwareSummary: Record<string, number> = {};
@@ -649,7 +649,7 @@ export const generateProjectBOM = (project: Project): {
   let totalLinearFeet = 0;
   let cabinetCount = 0;
   let totalGraniteSqft = 0;
-  let totalTileSqft = 0;
+  let totalTileAreaMm2 = 0;
 
   project.zones.filter(z => z.active).forEach((zone, zIdx) => {
     let zoneLen = 0;
@@ -704,7 +704,7 @@ export const generateProjectBOM = (project: Project): {
 
     // Tile Backsplash
     const backsplashHeight = project.settings.wallCabinetElevation || 450;
-    totalTileSqft += (zone.totalLength * backsplashHeight) / 92903.04;
+    totalTileAreaMm2 += (zone.totalLength * backsplashHeight);
 
     totalLinearFeet += (zoneLen / 304.8);
   });
@@ -722,7 +722,7 @@ export const generateProjectBOM = (project: Project): {
     totalLinearFeet: parseFloat(totalLinearFeet.toFixed(1)),
     cabinetCount,
     totalGraniteSqft,
-    totalTileSqft
+    totalTileAreaMm2
   };
 };
 
@@ -822,6 +822,7 @@ export interface CostBreakdown {
   hardwareCost: number;
   laborCost: number;
   transportCost: number;
+  otherCost: number;
   subtotal: number;
   margin: number;
   totalPrice: number;
@@ -867,13 +868,28 @@ export const calculateProjectCost = (
     hardwareCost = totalHardwareItems * costs.pricePerHardwareUnit;
   }
 
-  // 3. Labor (flat cost from settings)
-  const laborCost = costs.laborCost || 0;
+  // 3. Additional Expenses (Labor, Transport + Custom)
+  let laborCost = 0;
+  let transportCost = 0;
+  let otherCost = 0;
 
-  // 4. Transport
-  const transportCost = costs.transportCost || 0;
+  if (costs.expenses && costs.expenses.length > 0) {
+    costs.expenses.forEach(exp => {
+      const name = exp.name.toLowerCase();
+      if (name.includes('labor') || name.includes('labour')) {
+        laborCost += exp.amount;
+      } else if (name.includes('transport') || name.includes('logistics')) {
+        transportCost += exp.amount;
+      } else {
+        otherCost += exp.amount;
+      }
+    });
+  } else {
+    laborCost = costs.laborCost || 0;
+    transportCost = costs.transportCost || 0;
+  }
 
-  const subtotal = materialCost + hardwareCost + laborCost + transportCost;
+  const subtotal = materialCost + hardwareCost + laborCost + transportCost + otherCost;
   const margin = subtotal * (costs.marginPercent / 100);
 
   return {
@@ -881,6 +897,7 @@ export const calculateProjectCost = (
     hardwareCost,
     laborCost,
     transportCost,
+    otherCost,
     subtotal,
     margin,
     totalPrice: subtotal + margin
@@ -986,7 +1003,7 @@ export const createNewProject = (logoUrl?: string): Project => ({
     }
   },
   zones: [
-    { id: 'Wall A', active: true, totalLength: 3000, wallHeight: 2400, obstacles: [], cabinets: [] }
+    { id: 'Wall A', active: true, totalLength: 0, wallHeight: 2400, obstacles: [], cabinets: [] }
   ]
 });
 
@@ -1084,15 +1101,32 @@ export const exportToExcel = (groups: BOMGroup[], nestingData: OptimizationResul
     return acc?.default_amount || def;
   };
 
-  const defaultPrice = project.settings.costs.pricePerHardwareUnit;
-  const itemsToReport = [
-    { name: 'Soft-Close Hinges', qty: hwSummary['Soft-Close Hinge'] || 0, price: findPrice('hinge', defaultPrice), unit: 'Unit' },
-    { name: 'Handle/Knob Set', qty: hwSummary['Handle/Knob'] || 0, price: findPrice('handle', defaultPrice), unit: 'Unit' },
-    { name: 'Drawer Slides (Pairs)', qty: hwSummary[HW.SLIDE] || 0, price: findPrice('slide', defaultPrice), unit: 'Pair' },
-    { name: 'Granite Countertop (Sqft)', qty: bomData?.totalGraniteSqft || 0, price: findPrice('granite', 3000), unit: 'Sqft' },
-    { name: 'Tile Backsplash (Sqft)', qty: bomData?.totalTileSqft || 0, price: findPrice('tile', 1500), unit: 'Sqft' },
-    { name: 'Adjustable Legs', qty: hwSummary[HW.LEG] || 0, price: findPrice('leg', 350), unit: 'Unit' }
-  ];
+    const tileAcc = accessories.find(a => a.name.toLowerCase().includes('tile'));
+    const tWidth = tileAcc?.width || 600;
+    const tLength = tileAcc?.length || 600;
+    const tUnit = tileAcc?.unit || 'mm2';
+    const totalTileAreaMm2 = bomData?.totalTileAreaMm2 || 0;
+    
+    let tQty = 0;
+    if (tUnit === 'sqft') {
+      const tileAreaSqft = tWidth * tLength; // Dimensions are in FEET
+      const totalAreaSqft = totalTileAreaMm2 / 92903.04;
+      tQty = tileAreaSqft > 0 ? Math.ceil(totalAreaSqft / tileAreaSqft) : 0;
+    } else {
+      const singleTileAreaMm2 = tWidth * tLength;
+      tQty = singleTileAreaMm2 > 0 ? Math.ceil(totalTileAreaMm2 / singleTileAreaMm2) : 0;
+    }
+    const tPrice = tileAcc?.default_amount || 0;
+    const defaultPrice = project.settings.costs.pricePerHardwareUnit;
+
+    const itemsToReport = [
+      { name: 'Soft-Close Hinges', qty: hwSummary['Soft-Close Hinge'] || 0, price: findPrice('hinge', defaultPrice), unit: 'Unit' },
+      { name: 'Handle/Knob Set', qty: hwSummary['Handle/Knob'] || 0, price: findPrice('handle', defaultPrice), unit: 'Unit' },
+      { name: 'Drawer Slides (Pairs)', qty: hwSummary[HW.SLIDE] || 0, price: findPrice('slide', defaultPrice), unit: 'Pair' },
+      { name: 'Granite Countertop (Sqft)', qty: bomData?.totalGraniteSqft || 0, price: findPrice('granite', 3000), unit: 'Sqft' },
+      { name: 'Tile Backsplash', qty: tQty, price: tPrice, unit: 'Pcs' },
+      { name: 'Adjustable Legs', qty: hwSummary[HW.LEG] || 0, price: findPrice('leg', 350), unit: 'Unit' }
+    ];
 
   // Add remaining hardware (Cam-Locks, etc.)
   Object.entries(hwSummary).forEach(([name, qty]) => {
@@ -1126,53 +1160,39 @@ export const exportToExcel = (groups: BOMGroup[], nestingData: OptimizationResul
     </Row>`;
   });
 
-  // 4. Prepare Extra Costs (Labour, Transport)
+  // 4. Prepare Extra Costs (Labour, Transport, Others)
   let extraCostsRows = '';
   let totalExtraCost = 0;
   let eRowIdx = 1;
 
-  const labor = project.settings.costs.laborCost || 0;
-  const transport = project.settings.costs.transportCost || 0;
+  const costSettings = project.settings.costs;
+  const expenses = (costSettings.expenses && costSettings.expenses.length > 0) ? costSettings.expenses : [
+    { id: 'labor', name: 'Labour', amount: costSettings.laborCost || 0 },
+    { id: 'transport', name: 'Transport', amount: costSettings.transportCost || 0 }
+  ];
 
-  if (labor > 0) {
-    totalExtraCost += labor;
+  expenses.forEach(exp => {
+    if (exp.amount <= 0) return;
+    
+    totalExtraCost += exp.amount;
     const isEven = eRowIdx % 2 === 0;
     const rowStyle = isEven ? ' ss:StyleID="EvenRow"' : '';
     const currStyle = isEven ? 'ss:StyleID="EvenCurrency"' : 'ss:StyleID="Currency"';
     const numStyle = isEven ? 'ss:StyleID="EvenLeftAlign"' : 'ss:StyleID="LeftAlign"';
+    
     extraCostsRows += `
     <Row>
       <Cell ${numStyle}><Data ss:Type="Number">${eRowIdx++}</Data></Cell>
-      <Cell ${rowStyle}><Data ss:Type="String">Labour</Data></Cell>
-      <Cell ${rowStyle}><Data ss:Type="String">Manufacturing &amp; Assembly</Data></Cell>
+      <Cell ${rowStyle}><Data ss:Type="String">${exp.name}</Data></Cell>
+      <Cell ${rowStyle}><Data ss:Type="String">Project Expense</Data></Cell>
       <Cell ${numStyle}><Data ss:Type="Number">1</Data></Cell>
       <Cell ${rowStyle}><Data ss:Type="String">Project</Data></Cell>
-      <Cell ${currStyle}><Data ss:Type="Number">${labor}</Data></Cell>
+      <Cell ${currStyle}><Data ss:Type="Number">${exp.amount}</Data></Cell>
       <Cell ${rowStyle}><Data ss:Type="Number">1</Data></Cell>
-      <Cell ${currStyle}><Data ss:Type="Number">${labor}</Data></Cell>
+      <Cell ${currStyle}><Data ss:Type="Number">${exp.amount}</Data></Cell>
       <Cell ${rowStyle}><Data ss:Type="String"></Data></Cell>
     </Row>`;
-  }
-
-  if (transport > 0) {
-    totalExtraCost += transport;
-    const isEven = eRowIdx % 2 === 0;
-    const rowStyle = isEven ? ' ss:StyleID="EvenRow"' : '';
-    const currStyle = isEven ? 'ss:StyleID="EvenCurrency"' : 'ss:StyleID="Currency"';
-    const numStyle = isEven ? 'ss:StyleID="EvenLeftAlign"' : 'ss:StyleID="LeftAlign"';
-    extraCostsRows += `
-    <Row>
-      <Cell ${numStyle}><Data ss:Type="Number">${eRowIdx++}</Data></Cell>
-      <Cell ${rowStyle}><Data ss:Type="String">Transport</Data></Cell>
-      <Cell ${rowStyle}><Data ss:Type="String">Delivery &amp; Logistics</Data></Cell>
-      <Cell ${numStyle}><Data ss:Type="Number">1</Data></Cell>
-      <Cell ${rowStyle}><Data ss:Type="String">Trip</Data></Cell>
-      <Cell ${currStyle}><Data ss:Type="Number">${transport}</Data></Cell>
-      <Cell ${rowStyle}><Data ss:Type="Number">1</Data></Cell>
-      <Cell ${currStyle}><Data ss:Type="Number">${transport}</Data></Cell>
-      <Cell ${rowStyle}><Data ss:Type="String"></Data></Cell>
-    </Row>`;
-  }
+  });
 
   // 5. GENERATE XML
   const xml = `<?xml version="1.0"?>

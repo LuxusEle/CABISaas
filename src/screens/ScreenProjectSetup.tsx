@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Save, FileText, Upload, DollarSign, Settings, Box, Lock, CheckCircle2, AlertCircle, Wand2, ArrowRight, X, MousePointer2 } from 'lucide-react';
+import { Save, FileText, Upload, DollarSign, Settings, Box, Lock, CheckCircle2, AlertCircle, Wand2, ArrowRight, X, MousePointer2, Plus, Check, Pencil } from 'lucide-react';
 import { Project } from '../types';
 import { Button } from '../components/Button';
 import { NumberInput } from '../components/NumberInput';
@@ -28,32 +29,68 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
   const location = useLocation();
   
   // State for centered modal
-  const [activeModal, setActiveModal] = useState<'project' | 'walls' | 'sheets' | 'hardware' | 'construction' | 'costs' | 'allocation' | 'preferences' | null>(null);
+  const [activeModal, setActiveModal] = useState<'project' | 'walls' | 'limits' | 'sheets' | 'hardware' | 'construction' | 'costs' | 'allocation' | 'preferences' | null>('project');
 
   // Modal control states
-  const [showWallModal, setShowWallModal] = useState(false);
-  const [showLimitsModal, setShowLimitsModal] = useState(false);
   const isLayoutLocked = project.zones.some(z => z.cabinets && z.cabinets.length > 0);
   const [isPro, setIsPro] = useState(false);
   const [showCabinetModal, setShowCabinetModal] = useState(false);
   const [editingCabinetType, setEditingCabinetType] = useState<'base' | 'wall' | 'tall'>('base');
+  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
+
+  // Persistence for wizard steps
+  const [visitedSteps, setVisitedSteps] = useState<Set<string>>(new Set(project.settings.completedSteps || ['project']));
+
+  useEffect(() => {
+    if (project.settings.completedSteps) {
+      setVisitedSteps(new Set(project.settings.completedSteps));
+    }
+  }, [project.settings.completedSteps]);
+
+  const updateProgress = (step: string) => {
+    if (!visitedSteps.has(step)) {
+      const newVisited = new Set([...visitedSteps, step]);
+      setVisitedSteps(newVisited);
+      
+      const updatedProject = {
+        ...project,
+        settings: {
+          ...project.settings,
+          completedSteps: Array.from(newVisited)
+        }
+      };
+      setProject(updatedProject);
+      onSaveProject?.(updatedProject);
+    }
+  };
 
   // Logo upload state
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string | null>(project.settings.logoUrl || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showAdvancedConstruction, setShowAdvancedConstruction] = useState(false);
+  const wallEditRef = useRef<any>(null);
+  const wallLimitsRef = useRef<any>(null);
 
   // Step Completion Logic
-  const isIdentityDone = project.name.trim().length > 0;
+  const isIdentityDone = project.name.trim().length > 0 && project.name !== 'New Kitchen';
   const isWallsDone = project.zones.length > 0 && project.zones.some(z => z.totalLength > 0);
   const isLimitsDone = isWallsDone && project.zones.every(z => (z.startLimit !== undefined && z.endLimit !== undefined) || (z.startLimit === 0 && z.endLimit === z.totalLength));
-  const isConstructionDone = project.settings.counterThickness > 0;
-  const isPreferencesDone = !!project.settings.layoutPreferences;
-  
-  const isReadyToGenerate = isIdentityDone && isWallsDone && isLimitsDone && isConstructionDone && isPreferencesDone;
+  const isConstructionDone = (() => {
+    const mat = project.settings.materialSettings;
+    if (!mat) return false;
+    const allMaterialsSelected = !!mat.carcassMaterial && !!mat.doorMaterial && !!mat.drawerMaterial && !!mat.backMaterial && !!mat.shelfMaterial;
+    const allTexturesUploaded = !!mat.textureUrls?.carcass && !!mat.textureUrls?.door && !!mat.textureUrls?.drawer && !!mat.textureUrls?.back && !!mat.textureUrls?.shelf;
+    return allMaterialsSelected && allTexturesUploaded;
+  })();
+  const isPreferencesDone = !!project.settings.layoutPreferences || visitedSteps.has('preferences');
+  const isSheetsDone = project.settings.materialSettings.carcassMaterial !== '' || visitedSteps.has('sheets');
+  const isHardwareDone = visitedSteps.has('hardware');
+  const isCostsDone = visitedSteps.has('costs');
 
-  const wizardSteps = ['project', 'walls', 'limits', 'preferences', 'construction', 'sheets', 'hardware', 'costs'];
+  const isReadyToGenerate = isIdentityDone && isWallsDone && isLimitsDone && isConstructionDone && isPreferencesDone && isSheetsDone;
+  const wizardSteps = ['project', 'walls', 'limits', 'preferences', 'sheets', 'hardware', 'construction', 'costs'];
+  const [direction, setDirection] = useState<'forward' | 'backward'>('forward');
 
   // Handle auto-open from URL
   useEffect(() => {
@@ -89,575 +126,762 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
     }
   }, [isUserPro]);
 
-  const handleNextStep = () => {
-    const currentIndex = wizardSteps.indexOf(activeModal as string);
-    if (currentIndex !== -1 && currentIndex < wizardSteps.length - 1) {
-      const nextStep = wizardSteps[currentIndex + 1];
-      if (nextStep === 'walls') {
-        setActiveModal(null);
-        setShowWallModal(true);
-      } else if (nextStep === 'limits') {
-        setActiveModal(null);
-        setShowLimitsModal(true);
-      } else if (nextStep === 'preferences') {
-        setActiveModal('preferences');
-      } else {
-        setActiveModal(nextStep as any);
-      }
-    } else {
-      setActiveModal(null);
-    }
-  };
-
-  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      alert('Please upload an image file (PNG, JPG, GIF)');
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      alert('File size must be less than 5MB');
-      return;
-    }
-
-    setIsUploadingLogo(true);
     try {
+      setIsUploadingLogo(true);
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        alert('Please log in to upload a logo');
-        return;
-      }
+      if (!user) throw new Error('User not authenticated');
 
       const result = await logoService.uploadLogo(file, user.id);
-      if (result) {
-        setLogoPreview(result.url);
-        setProject(prev => ({
-          ...prev,
-          settings: { ...prev.settings, logoUrl: result.url }
-        }));
-      }
-    } catch (error) {
-      console.error('Error uploading logo:', error);
+      if (!result) throw new Error('Upload failed');
+      
+      const url = result.url;
+      setLogoPreview(url);
+      setProject(prev => ({
+        ...prev,
+        settings: { ...prev.settings, logoUrl: url }
+      }));
+    } catch (err) {
+      console.error('Error uploading logo:', err);
+      alert('Failed to upload logo');
     } finally {
       setIsUploadingLogo(false);
     }
   };
 
-  const handleRemoveLogo = () => {
-    setLogoPreview(null);
-    setProject(prev => ({
-      ...prev,
-      settings: { ...prev.settings, logoUrl: undefined }
-    }));
+  const handleRemoveLogo = async () => {
+      setLogoPreview(null);
+      setProject(prev => ({
+        ...prev,
+        settings: { ...prev.settings, logoUrl: undefined }
+      }));
   };
 
-  const handleGenerateLayout = () => {
-    if (!isReadyToGenerate) return;
+  const handleNextStep = async () => {
+    if (!activeModal) return;
     
-    // Lock for free users if layout already exists
-    if (!isPro && isLayoutLocked) {
-      alert('Layout is locked for free users. Please upgrade to Pro to re-generate.');
-      return;
-    }
+    updateProgress(activeModal);
     
-    const result = generateRubyLayout(project);
-    setProject(result.project);
-    
-    if (onSaveProject) {
-      onSaveProject(result.project).then(() => navigate('/walls?view=iso'));
+    const currentIndex = wizardSteps.indexOf(activeModal as string);
+    if (currentIndex !== -1 && currentIndex < wizardSteps.length - 1) {
+      setDirection('forward');
+      const nextStep = wizardSteps[currentIndex + 1];
+      setActiveModal(nextStep as any);
     } else {
-      onSave(); // Ensure it's saved locally
-      navigate('/walls?view=iso');
+      handleGenerateLayout();
     }
   };
 
-  const SetupCard = ({ icon, title, subtitle, onClick, colorClass, isDone, isRequired }: any) => (
-    <button
-      onClick={onClick}
-      className={`bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-2xl border-2 shadow-sm hover:shadow-lg transition-all flex flex-col items-center text-center group relative overflow-hidden h-full ${
-        isDone 
-          ? 'border-green-500/20 bg-green-50/10' 
-          : isRequired 
-            ? 'border-amber-500/30' 
-            : 'border-slate-200 dark:border-slate-800'
-      }`}
-    >
-      <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl ${colorClass} flex items-center justify-center mb-2 group-hover:scale-110 transition-transform relative`}>
-        {React.cloneElement(icon as React.ReactElement<any>, { size: 20 })}
-        {isDone && (
-          <div className="absolute -top-1 -right-1 bg-green-500 text-white rounded-full p-0.5 shadow-lg border-2 border-white dark:border-slate-900">
-            <CheckCircle2 size={12} />
-          </div>
+  const handlePrevStep = () => {
+    if (!activeModal) return;
+    const currentIndex = wizardSteps.indexOf(activeModal as string);
+    if (currentIndex > 0) {
+      setDirection('backward');
+      setActiveModal(wizardSteps[currentIndex - 1] as any);
+    }
+  };
+
+  const handleAddExpense = () => {
+    const currentCosts = project.settings.costs || { pricePerSheet: 0, pricePerHardwareUnit: 0, laborCost: 0, transportCost: 0, marginPercent: 50 };
+    const baseExpenses = !currentCosts.expenses ? [
+      { id: 'labor', name: 'Standard Labor', amount: currentCosts.laborCost || 0 },
+      { id: 'transport', name: 'Transport & Logistics', amount: currentCosts.transportCost || 0 }
+    ] : [];
+    
+    const newExpense = { id: Math.random().toString(36).substr(2, 9), name: 'New Expense', amount: 0 };
+    const updatedExpenses = [...(currentCosts.expenses || baseExpenses), newExpense];
+    
+    setEditingExpenseId(newExpense.id);
+    setProject({
+      ...project,
+      settings: {
+        ...project.settings,
+        costs: {
+          ...currentCosts,
+          expenses: updatedExpenses
+        }
+      }
+    });
+  };
+
+  const handleUpdateExpense = (id: string, field: 'name' | 'amount', value: any) => {
+    const currentExpenses = project.settings.costs?.expenses || [];
+    const updatedExpenses = currentExpenses.map(e => e.id === id ? { ...e, [field]: value } : e);
+    setProject({
+      ...project,
+      settings: {
+        ...project.settings,
+        costs: {
+          ...project.settings.costs,
+          expenses: updatedExpenses
+        }
+      }
+    });
+  };
+
+  const handleRemoveExpense = (id: string) => {
+    const currentExpenses = project.settings.costs?.expenses || [];
+    setProject({
+      ...project,
+      settings: {
+        ...project.settings,
+        costs: {
+          ...project.settings.costs,
+          expenses: currentExpenses.filter(e => e.id !== id)
+        }
+      }
+    });
+  };
+
+  const handleGenerateLayout = async () => {
+    if (!onSaveProject) return;
+    
+    try {
+      await onSaveProject(project);
+      const result = generateRubyLayout(project);
+      const updatedProject = result.project;
+      await onSaveProject(updatedProject);
+      navigate('/studio');
+    } catch (err) {
+      console.error('Failed to generate design:', err);
+      alert('Error generating design. Please try again.');
+    }
+  };
+
+  const StepSidebarItem = ({ step, index, isActive, isDone, isRequired }: { step: string, index: number, isActive: boolean, isDone: boolean, isRequired: boolean }) => {
+    const getIcon = () => {
+      if (isDone) return <CheckCircle2 className="text-green-500" size={18} />;
+      if (isActive) return <ArrowRight className="text-amber-500 animate-pulse" size={18} />;
+      if (isRequired) return <AlertCircle className="text-amber-200" size={18} />;
+      return <div className="w-4.5 h-4.5 rounded-full border-2 border-slate-200 dark:border-slate-800" />;
+    };
+
+    const getLabel = () => {
+      switch (step) {
+        case 'project': return 'Identity';
+        case 'walls': return 'Room Layout';
+        case 'limits': return 'Wall Limits';
+        case 'preferences': return 'Special Units';
+        case 'sheets': return 'Materials';
+        case 'hardware': return 'Hardware';
+        case 'construction': return 'Construction';
+        case 'costs': return 'Pricing';
+        default: return step;
+      }
+    };
+
+    return (
+      <motion.button
+        layout
+        onClick={() => {
+          if (activeModal) updateProgress(activeModal);
+          const newIndex = wizardSteps.indexOf(step as any);
+          const currentIndex = wizardSteps.indexOf(activeModal as any);
+          setDirection(newIndex > currentIndex ? 'forward' : 'backward');
+          setActiveModal(step as any);
+        }}
+        initial={false}
+        animate={{ 
+          height: isActive ? 'auto' : '64px',
+          padding: isActive ? '24px 20px' : '14px 16px',
+          scale: isActive ? 1.02 : 1
+        }}
+        transition={{ 
+          duration: 0.4, 
+          ease: [0.4, 0, 0.2, 1]
+        }}
+        className={`w-full flex items-center gap-5 rounded-2xl transition-all border-2 text-left group overflow-hidden relative ${
+          isActive 
+            ? 'bg-amber-500/10 border-amber-500/40 text-amber-600 dark:text-amber-400 shadow-xl shadow-amber-500/10 z-10' 
+            : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700'
+        }`}
+      >
+        {isActive && (
+          <motion.div 
+            layoutId="active-bg"
+            className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent pointer-events-none"
+          />
         )}
-      </div>
-      <h3 className="text-[10px] sm:text-xs font-black text-slate-900 dark:text-white mb-0.5 uppercase tracking-tight">{title}</h3>
-      <p className="text-[9px] text-slate-500 dark:text-slate-400 font-medium line-clamp-1">{subtitle}</p>
-      
-      {/* Status Badge Placeholder (Ensures consistent card height) */}
-      <div className="mt-2 min-h-[18px]">
-        {isRequired && !isDone && (
-          <div className="flex items-center gap-1 px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-full text-[8px] font-black uppercase tracking-wider">
-            Required
+        <div className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
+          isActive ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
+        }`}>
+          {getIcon()}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex justify-between items-center mb-0.5">
+            <p className={`text-[10px] font-black uppercase tracking-[0.15em] truncate ${isActive ? 'text-amber-600' : 'text-slate-500 dark:text-slate-400'}`}>
+              Step {index + 1}
+            </p>
+            {isActive && (
+              <motion.span 
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="text-[8px] font-black bg-amber-500 text-white px-2 py-0.5 rounded-full tracking-widest"
+              >
+                ACTIVE
+              </motion.span>
+            )}
           </div>
-        )}
-        {isDone && (
-          <div className="px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full text-[8px] font-black uppercase tracking-wider">
-            Done
-          </div>
-        )}
-      </div>
-    </button>
-  );
+          <h4 className={`text-xs font-bold uppercase truncate tracking-wide ${isActive ? 'text-slate-900 dark:text-white' : 'text-slate-400'}`}>
+            {getLabel()}
+          </h4>
+          {isActive && (
+            <motion.p 
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-[9px] font-medium text-amber-700/60 dark:text-amber-500/50 mt-1 italic leading-tight"
+            >
+              Current phase of your design journey.
+            </motion.p>
+          )}
+        </div>
+      </motion.button>
+    );
+  };
 
   return (
     <div className="flex flex-col h-full w-full overflow-hidden bg-slate-50 dark:bg-slate-950">
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-10">
-        <div className="max-w-6xl mx-auto">
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 sm:mb-6">
-            <div className="space-y-0.5">
-              <div className="flex items-center gap-2">
-                <h2 className="text-xl sm:text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">Project <span className="text-amber-500">Setup</span></h2>
-                <div className="px-2 py-0.5 bg-amber-500 text-white text-[7px] sm:text-[8px] font-black rounded-full uppercase tracking-widest">Wizard</div>
-              </div>
-              <p className="text-[10px] sm:text-xs text-slate-500 font-medium italic">Complete the 4 required steps below</p>
-            </div>
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <Button variant="primary" size="sm" onClick={onSave} className="flex-1 sm:flex-none shadow-lg shadow-amber-500/20 px-4 py-2 h-auto text-[10px] uppercase font-black">
-                <Save size={12} className="mr-2" /> Save Draft
-              </Button>
-            </div>
-          </div>
-
-          {/* Setup Cards Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-2 sm:gap-6">
-            <SetupCard 
-              icon={<FileText size={24} className="text-teal-600 dark:text-teal-400" />}
-              title="Identity"
-              subtitle="Name & Company"
-              colorClass="bg-teal-50 dark:bg-teal-900/20"
-              onClick={() => setActiveModal('project')}
-              isDone={isIdentityDone}
-              isRequired={true}
-            />
-            <SetupCard 
-              icon={(isLayoutLocked && !isPro) ? <Lock size={24} className="text-slate-400" /> : <Upload size={24} className="text-blue-600 dark:text-blue-400" />}
-              title="Room Layout"
-              subtitle="Walls & Global"
-              colorClass={(isLayoutLocked && !isPro) ? "bg-slate-100 dark:bg-slate-200/50" : "bg-blue-50 dark:bg-blue-900/20"}
-              onClick={() => setShowWallModal(true)}
-              isDone={isWallsDone}
-              isRequired={true}
-            />
-            <SetupCard 
-              icon={<Wand2 size={24} className="text-amber-600 dark:text-amber-400" />}
-              title="Special Units"
-              subtitle="Tall, Sink, Cooker"
-              colorClass="bg-amber-50 dark:bg-amber-900/20"
-              onClick={() => setActiveModal('preferences')}
-              isDone={!!project.settings.layoutPreferences}
-              isRequired={true}
-            />
-            <SetupCard 
-              icon={<MousePointer2 size={24} className="text-orange-600 dark:text-orange-400" />}
-              title="Wall Limits"
-              subtitle="Boundaries"
-              colorClass="bg-orange-50 dark:bg-orange-900/20"
-              onClick={() => setShowLimitsModal(true)}
-              isDone={isLimitsDone}
-              isRequired={true}
-            />
-            <SetupCard 
-              icon={<Box size={24} className="text-purple-600 dark:text-purple-400" />}
-              title="Construction"
-              subtitle="Kerf & Standards"
-              colorClass="bg-purple-50 dark:bg-purple-900/20"
-              onClick={() => setActiveModal('construction')}
-              isDone={isConstructionDone}
-              isRequired={true}
-            />
-            <SetupCard 
-              icon={<Settings size={24} className="text-amber-600 dark:text-amber-400" />}
-              title="Materials"
-              subtitle="Sheet Library"
-              colorClass="bg-amber-50 dark:bg-amber-900/20"
-              onClick={() => setActiveModal('sheets')}
-              isDone={project.settings.thickness > 0}
-            />
-            <SetupCard 
-              icon={<Save size={24} className="text-rose-600 dark:text-rose-400" />}
-              title="Hardware"
-              subtitle="Templates"
-              colorClass="bg-rose-50 dark:bg-rose-900/20"
-              onClick={() => setActiveModal('hardware')}
-            />
-            <SetupCard 
-              icon={<DollarSign size={24} className="text-green-600 dark:text-green-400" />}
-              title="Pricing"
-              subtitle="Costs & Margins"
-              colorClass="bg-green-50 dark:bg-green-900/20"
-              onClick={() => setActiveModal('costs')}
-              isDone={project.settings.costs?.laborCost > 0}
-            />
-          </div>
-
-          {/* Action Area */}
-          <div className="mt-6 p-4 bg-white dark:bg-slate-900 rounded-[1.5rem] sm:rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-xl flex flex-col sm:flex-row items-center justify-between text-center sm:text-left gap-3 max-w-5xl mx-auto relative overflow-hidden">
+      <div className="flex-1 flex overflow-hidden relative">
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-white dark:bg-slate-900 shadow-2xl relative">
+          <div className="px-6 py-4 border-b dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md flex justify-between items-center shrink-0 z-20">
             <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isReadyToGenerate ? 'bg-amber-500 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-300'}`}>
-                <Wand2 size={20} />
+              <div className="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center text-white shadow-lg shadow-amber-500/30">
+                <Settings size={20} />
               </div>
-              <div>
-                <h3 className="text-sm sm:text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">Generate Full 3D Design</h3>
-                <p className="text-[9px] text-slate-500 dark:text-slate-400 font-medium">
-                  {isReadyToGenerate 
-                    ? "Ready to calculate layout."
-                    : "Complete required steps to unlock."}
+              <div className="min-w-0">
+                <h2 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight italic">
+                  Setup <span className="text-amber-500">Wizard</span>
+                </h2>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">
+                  Step {wizardSteps.indexOf(activeModal as string) + 1} of {wizardSteps.length}: {activeModal?.toUpperCase()}
                 </p>
               </div>
             </div>
 
-            <button
-              onClick={handleGenerateLayout}
-              disabled={!isReadyToGenerate || (!isPro && isLayoutLocked)}
-              className={`w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all shrink-0 ${
-                isReadyToGenerate && (isPro || !isLayoutLocked)
-                  ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/40' 
-                  : 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
-              }`}
-            >
-              {!isReadyToGenerate ? (
-                <><Lock size={14} /> Locked</>
-              ) : (!isPro && isLayoutLocked) ? (
-                <><Lock size={14} /> Design Locked</>
-              ) : (
-                <>{isLayoutLocked ? 'Re-Generate 3D Layout' : 'Start 3D Layout'} <ArrowRight size={14} /></>
-              )}
-            </button>
+            <div className="flex items-center gap-2">
+              <Button variant="secondary" size="sm" onClick={onSave} className="text-[10px] uppercase font-black px-4">
+                <Save size={14} className="mr-2" /> Save Draft
+              </Button>
+            </div>
           </div>
 
-          {/* Centered Modal Overlay */}
-          {activeModal && (
-            <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center sm:p-4 bg-slate-900/60 backdrop-blur-sm">
-              <div 
-                className="bg-white dark:bg-slate-900 w-full max-w-4xl h-[95vh] sm:h-auto sm:max-h-[85vh] rounded-t-[2rem] sm:rounded-[2.5rem] shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-300 sm:zoom-in-95 sm:duration-200"
-              >
-                {/* Modal Header */}
-                <div className="p-4 sm:p-8 border-b dark:border-slate-800 flex justify-between items-center shrink-0">
-                  <div className="flex items-center gap-3 sm:gap-4">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-amber-500">
-                      {activeModal === 'project' && <FileText size={20} />}
-                      {activeModal === 'construction' && <Box size={20} />}
-                      {activeModal === 'sheets' && <Settings size={20} />}
-                      {activeModal === 'hardware' && <Save size={20} />}
-                      {activeModal === 'costs' && <DollarSign size={20} />}
-                      {activeModal === 'preferences' && <Wand2 size={20} />}
-                    </div>
-                    <h3 className="text-lg sm:text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">
-                      {activeModal === 'project' && 'Identity'}
-                      {activeModal === 'walls' && 'Room Layout'}
-                      {activeModal === 'sheets' && 'Material Library'}
-                      {activeModal === 'costs' && 'Financial Settings'}
-                      {activeModal === 'construction' && 'Construction'}
-                      {activeModal === 'hardware' && 'Hardware'}
-                      {activeModal === 'preferences' && 'Special Units'}
-                    </h3>
+          <div className="flex-1 relative bg-slate-100 dark:bg-slate-950 overflow-hidden p-4">
+            <div className="h-full w-full max-w-none transition-all duration-500 relative">
+              {!activeModal ? (
+                <div className="space-y-8 animate-in fade-in zoom-in duration-500 text-center py-20">
+                  <div className="w-24 h-24 bg-amber-500/10 rounded-[2.5rem] flex items-center justify-center text-amber-500 mx-auto mb-6">
+                    <Settings size={48} className="animate-spin-slow" />
                   </div>
-                  <button 
-                    onClick={() => setActiveModal(null)}
-                    className="p-2 sm:p-3 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-400"
-                  >
-                    <X size={20} />
+                  <h1 className="text-5xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">Ready to <span className="text-amber-500">Begin?</span></h1>
+                  <p className="text-lg text-slate-500 font-medium italic max-w-lg mx-auto">Let's guide you through the setup process to generate your perfect 3D cabinetry design.</p>
+                  
+                  <button onClick={() => { setDirection('forward'); setActiveModal('project'); }} className="px-8 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-full font-black uppercase tracking-[0.2em] shadow-xl hover:scale-105 transition-all flex items-center gap-3 mx-auto group text-xs">
+                    Start Journey <ArrowRight size={18} className="group-hover:translate-x-2 transition-transform" />
                   </button>
                 </div>
+              ) : (
+                <div className="h-full w-full relative overflow-hidden">
+                  <AnimatePresence initial={false} custom={direction}>
+                    <motion.div 
+                      key={activeModal}
+                      custom={direction}
+                      variants={{
+                        enter: (dir: string) => ({
+                          x: dir === 'forward' ? '100%' : '-100%',
+                          opacity: 0
+                        }),
+                        center: {
+                          x: 0,
+                          opacity: 1
+                        },
+                        exit: (dir: string) => ({
+                          x: dir === 'forward' ? '-100%' : '100%',
+                          opacity: 0
+                        })
+                      }}
+                      initial="enter"
+                      animate="center"
+                      exit="exit"
+                      transition={{
+                        x: { type: "spring", stiffness: 300, damping: 35 },
+                        opacity: { duration: 0.2 }
+                      }}
+                      className="absolute inset-0 h-full w-full"
+                    >
+                      <div className={`h-full w-full flex flex-col overflow-hidden bg-white dark:bg-slate-900 rounded-[2rem] border-2 border-slate-200/60 dark:border-slate-800 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.15)] dark:shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)] ${['walls', 'limits'].includes(activeModal as string) ? '' : 'p-4 sm:p-10 overflow-y-auto'}`}>
+                        <div className={`${['walls', 'limits'].includes(activeModal as string) ? 'h-full w-full' : 'max-w-5xl mx-auto w-full'}`}>
+                    
+                    {activeModal === 'walls' && (
+                      <WallEditModal
+                        ref={wallEditRef}
+                        isOpen={true}
+                        onClose={() => {}}
+                        project={project}
+                        isDark={isDark}
+                        isInline={true}
+                        hideCabinets={true}
+                        readOnly={!isPro && isLayoutLocked}
+                        onSave={(newZones) => {
+                          updateProgress('walls');
+                          const updatedProject = { ...project, zones: newZones };
+                          setProject(updatedProject);
+                          setActiveModal('limits');
+                        }}
+                      />
+                    )}
 
-                {/* Modal Content */}
-                <div className="flex-1 overflow-y-auto p-4 sm:p-8">
-                  {activeModal === 'project' && (
-                    <div className="space-y-6 sm:space-y-8">
-                      <div className="grid md:grid-cols-2 gap-4 sm:gap-8">
+                    {activeModal === 'limits' && (
+                      <WallLimitsModal
+                        ref={wallLimitsRef}
+                        isOpen={true}
+                        onClose={() => {}}
+                        project={project}
+                        isDark={isDark}
+                        isInline={true}
+                        onSave={(newZones) => {
+                          updateProgress('limits');
+                          const updatedProject = { ...project, zones: newZones };
+                          setProject(updatedProject);
+                          setActiveModal('preferences');
+                        }}
+                      />
+                    )}
+
+                    {activeModal === 'project' && (
+                      <div className="space-y-10">
+                        <div className="grid md:grid-cols-2 gap-12">
+                          <div className="space-y-8">
+                            <h4 className="text-xs font-black uppercase text-amber-500 tracking-widest flex items-center gap-3 italic">
+                              <div className="w-6 h-1.5 bg-amber-500 rounded-full" /> Company Profile
+                            </h4>
+                            <div className="space-y-3">
+                              <label className="text-[11px] font-black uppercase text-slate-400 tracking-widest">Company Name</label>
+                              <input className="w-full p-6 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border-2 border-transparent focus:border-amber-500 outline-none dark:text-white font-bold text-xl shadow-inner transition-all" placeholder="Your Business" value={project.company} onChange={e => setProject({ ...project, company: e.target.value })} />
+                            </div>
+
+                            <div className="space-y-3">
+                              <label className="text-[11px] font-black uppercase text-slate-400 tracking-widest">Brand Identity (Logo)</label>
+                              <div className="p-12 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[2.5rem] flex flex-col items-center gap-6 bg-slate-50/30 dark:bg-slate-800/20 group hover:border-amber-500 transition-colors">
+                                {logoPreview ? (
+                                  <div className="relative group">
+                                    <img src={logoPreview} alt="Preview" className="h-32 w-auto object-contain drop-shadow-2xl" />
+                                    <button onClick={handleRemoveLogo} className="absolute -top-3 -right-3 bg-rose-500 text-white p-2 rounded-full shadow-lg hover:scale-110 transition-transform">
+                                      <X size={16} />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <div className="text-slate-400 text-center">
+                                    <div className="w-20 h-20 bg-white dark:bg-slate-800 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-xl">
+                                      <Upload size={32} className="opacity-20" />
+                                    </div>
+                                    <p className="text-xs font-bold uppercase tracking-widest">Drop your logo here</p>
+                                  </div>
+                                )}
+                                <input ref={fileInputRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" id="logo-wizard" />
+                                <label htmlFor="logo-wizard" className="px-10 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[11px] font-black rounded-full cursor-pointer hover:scale-105 transition-transform shadow-xl uppercase tracking-[0.2em]">
+                                  {isUploadingLogo ? 'UPLOADING...' : 'SELECT IMAGE'}
+                                </label>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="space-y-8">
+                            <h4 className="text-xs font-black uppercase text-blue-500 tracking-widest flex items-center gap-3 italic">
+                               <div className="w-6 h-1.5 bg-blue-500 rounded-full" /> Client Specifications
+                            </h4>
+                            <div className="space-y-3">
+                              <label className="text-[11px] font-black uppercase text-slate-400 tracking-widest">Project Name</label>
+                              <input className="w-full p-6 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border-2 border-transparent focus:border-amber-500 outline-none dark:text-white font-bold text-xl shadow-inner transition-all" placeholder="e.g., Lakeview Kitchen" value={project.name} onChange={e => setProject({ ...project, name: e.target.value })} />
+                            </div>
+                            <div className="space-y-3">
+                              <label className="text-[11px] font-black uppercase text-slate-400 tracking-widest">Site Address</label>
+                              <input className="w-full p-6 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border-2 border-transparent focus:border-amber-500 outline-none dark:text-white font-bold text-xl shadow-inner transition-all" placeholder="Street Address" value={project.customerAddress || ''} onChange={e => setProject({ ...project, customerAddress: e.target.value })} />
+                            </div>
+                            <div className="space-y-3">
+                              <label className="text-[11px] font-black uppercase text-slate-400 tracking-widest">Contact Number</label>
+                              <input className="w-full p-6 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border-2 border-transparent focus:border-amber-500 outline-none dark:text-white font-bold text-xl shadow-inner transition-all" placeholder="+94 ..." value={project.customerPhone || ''} onChange={e => setProject({ ...project, customerPhone: e.target.value })} />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {activeModal === 'sheets' && (
+                      <div className="space-y-8">
+                        <div className="bg-amber-50/50 dark:bg-amber-900/10 p-4 rounded-[2rem] border-2 border-amber-500/10 mb-8">
+                          <h4 className="text-base font-black text-amber-900 dark:text-amber-400 uppercase tracking-widest mb-1 italic">Inventory & Materials</h4>
+                          <p className="text-sm text-amber-700/70 dark:text-amber-500/50 font-medium italic">Configure the sheet dimensions and types for accurate cutting lists.</p>
+                        </div>
+                        <SheetTypeManager 
+                          currency={project.settings.currency || '$'}
+                          sheetTypesExpanded={true}
+                          showSheetsOnly={true}
+                        />
+                      </div>
+                    )}
+
+                    {activeModal === 'hardware' && (
+                      <div className="space-y-8">
+                        <div className="bg-amber-50/50 dark:bg-amber-900/10 p-4 rounded-[2rem] border-2 border-amber-500/10 mb-8">
+                          <h4 className="text-base font-black text-amber-900 dark:text-amber-400 uppercase tracking-widest mb-1 italic">Hardware & Fittings</h4>
+                          <p className="text-sm text-amber-700/70 dark:text-amber-500/50 font-medium italic">Select hinges, handles, and runners for your project.</p>
+                        </div>
+                        <SheetTypeManager 
+                          currency={project.settings.currency || '$'}
+                          accessoriesExpanded={true}
+                          showHardwareOnly={true}
+                        />
+                      </div>
+                    )}
+
+                    {activeModal === 'costs' && (
+                      <div className="space-y-8 max-w-4xl mx-auto w-full">
+                        <div className="bg-amber-50/50 dark:bg-amber-900/10 p-8 rounded-[2.5rem] border-2 border-amber-500/10 mb-8 flex justify-between items-center">
+                          <div>
+                            <h4 className="text-lg font-black text-amber-900 dark:text-amber-400 uppercase tracking-widest mb-1 italic">Project Financials</h4>
+                            <p className="text-sm text-amber-700/70 dark:text-amber-500/50 font-medium italic">Manage overheads, labor, and profit margins.</p>
+                          </div>
+                          <div className="text-right">
+                            <label className="text-[10px] font-black uppercase text-amber-500/50 tracking-widest mb-2 block">Profit Margin</label>
+                            <div className="flex items-center gap-3 bg-white dark:bg-slate-900 p-2 rounded-2xl border-2 border-amber-500/20 shadow-sm">
+                              <input 
+                                type="number" 
+                                value={project.settings.costs?.marginPercent ?? 50} 
+                                onChange={e => setProject({ ...project, settings: { ...project.settings, costs: { ...project.settings.costs, marginPercent: Number(e.target.value) } } })}
+                                className="w-16 bg-transparent text-right font-black text-xl text-amber-500 outline-none"
+                              />
+                              <span className="text-amber-500/50 font-bold">%</span>
+                            </div>
+                          </div>
+                        </div>
+
                         <div className="space-y-4">
-                          <h4 className="text-[11px] font-black uppercase text-amber-500 tracking-widest">Company Info</h4>
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Company Name</label>
-                            <input className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border-2 border-transparent focus:border-amber-500 outline-none dark:text-white font-bold text-sm" placeholder="Your Business" value={project.company} onChange={e => setProject({ ...project, company: e.target.value })} />
+                          <div className="grid grid-cols-[1fr_180px_60px] gap-4 px-6 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">
+                            <div>Expense Description</div>
+                            <div className="text-right">Amount ({project.settings.currency || 'LKR'})</div>
+                            <div className="text-right">Action</div>
                           </div>
 
                           <div className="space-y-3">
-                            <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Logo Branding</label>
-                            <div className="p-6 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[2rem] flex flex-col items-center gap-4 bg-slate-50/50 dark:bg-slate-800/30">
-                              {logoPreview ? (
-                                <div className="relative group">
-                                  <img src={logoPreview} alt="Preview" className="h-20 w-auto object-contain drop-shadow-xl" />
-                                  <button onClick={handleRemoveLogo} className="absolute -top-2 -right-2 bg-rose-500 text-white p-1 rounded-full shadow-lg">
-                                    <X size={12} />
+                            {(project.settings.costs?.expenses && project.settings.costs.expenses.length > 0 ? project.settings.costs.expenses : [
+                              { id: 'labor', name: 'Standard Labor', amount: project.settings.costs?.laborCost || 0 },
+                              { id: 'transport', name: 'Transport & Logistics', amount: project.settings.costs?.transportCost || 0 }
+                            ]).map((expense) => (
+                              <motion.div 
+                                layout
+                                key={expense.id}
+                                className={`grid grid-cols-[1fr_180px_60px] gap-4 items-center p-4 rounded-2xl border-2 transition-all shadow-sm group ${
+                                  editingExpenseId === expense.id 
+                                    ? 'bg-white dark:bg-slate-800 border-amber-500/50 ring-2 ring-amber-500/10' 
+                                    : 'bg-white/50 dark:bg-slate-800/30 border-slate-100 dark:border-slate-800 hover:border-amber-500/30'
+                                }`}
+                              >
+                                <input 
+                                  type="text" 
+                                  value={expense.name}
+                                  readOnly={editingExpenseId !== expense.id}
+                                  onChange={e => handleUpdateExpense(expense.id, 'name', e.target.value)}
+                                  className={`bg-transparent border-none outline-none font-bold placeholder-slate-300 transition-all ${
+                                    editingExpenseId === expense.id ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'
+                                  }`}
+                                  placeholder="Expense Name"
+                                />
+                                <div className="relative">
+                                  <input 
+                                    type="number" 
+                                    value={expense.amount}
+                                    readOnly={editingExpenseId !== expense.id}
+                                    onChange={e => handleUpdateExpense(expense.id, 'amount', Number(e.target.value))}
+                                    className={`w-full px-4 py-3 rounded-xl border-none outline-none text-right font-black transition-all ${
+                                      editingExpenseId === expense.id 
+                                        ? 'bg-slate-50 dark:bg-slate-900/50 text-amber-500 ring-2 ring-amber-500/20' 
+                                        : 'bg-transparent text-slate-400'
+                                    }`}
+                                  />
+                                </div>
+                                <div className="flex justify-end gap-2">
+                                  {editingExpenseId === expense.id ? (
+                                    <button 
+                                      onClick={async () => {
+                                        await onSaveProject?.(project);
+                                        setEditingExpenseId(null);
+                                      }}
+                                      className="p-2 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-all"
+                                      title="Save changes"
+                                    >
+                                      <Check size={18} />
+                                    </button>
+                                  ) : (
+                                    <button 
+                                      onClick={() => setEditingExpenseId(expense.id)}
+                                      className="p-2 text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                                      title="Edit expense"
+                                    >
+                                      <Pencil size={18} />
+                                    </button>
+                                  )}
+                                  <button 
+                                    onClick={() => handleRemoveExpense(expense.id)}
+                                    className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-all"
+                                    title="Remove expense"
+                                  >
+                                    <X size={18} />
                                   </button>
                                 </div>
-                              ) : (
-                                <div className="text-slate-400 text-center">
-                                  <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-1">
-                                    <Upload size={20} className="opacity-30" />
-                                  </div>
-                                  <p className="text-[9px] font-bold">Logo</p>
-                                </div>
-                              )}
-                              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" id="logo-modal" />
-                              <label htmlFor="logo-modal" className="px-5 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[9px] font-black rounded-full cursor-pointer hover:scale-105 transition-transform">
-                                {isUploadingLogo ? 'UPLOADING...' : 'UPLOAD'}
-                              </label>
-                            </div>
+                              </motion.div>
+                            ))}
                           </div>
-                        </div>
 
-                        <div className="space-y-4">
-                          <h4 className="text-[11px] font-black uppercase text-blue-500 tracking-widest">Customer Details</h4>
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Project / Customer Name</label>
-                            <input className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border-2 border-transparent focus:border-amber-500 outline-none dark:text-white font-bold text-sm" placeholder="e.g., Lakeview Kitchen" value={project.name} onChange={e => setProject({ ...project, name: e.target.value })} />
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Customer Address</label>
-                            <input className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border-2 border-transparent focus:border-amber-500 outline-none dark:text-white font-bold text-sm" placeholder="Installation Site Address" value={project.customerAddress || ''} onChange={e => setProject({ ...project, customerAddress: e.target.value })} />
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Customer Phone</label>
-                            <input className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border-2 border-transparent focus:border-amber-500 outline-none dark:text-white font-bold text-sm" placeholder="Customer Contact" value={project.customerPhone || ''} onChange={e => setProject({ ...project, customerPhone: e.target.value })} />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {activeModal === 'sheets' && (
-                    <div className="animate-in slide-in-from-bottom-4">
-                      <SheetTypeManager 
-                        currency={project.settings.currency || '$'}
-                        sheetTypesExpanded={true}
-                        showSheetsOnly={true}
-                      />
-                    </div>
-                  )}
-
-                  {activeModal === 'hardware' && (
-                    <div className="animate-in slide-in-from-bottom-4">
-                      <SheetTypeManager 
-                        currency={project.settings.currency || '$'}
-                        accessoriesExpanded={true}
-                        showHardwareOnly={true}
-                      />
-                    </div>
-                  )}
-
-                  {activeModal === 'costs' && (
-                    <div className="space-y-6 animate-in slide-in-from-bottom-4">
-                      <div className="grid grid-cols-1 gap-4">
-                        <NumberInput label="Labor Cost (LKR)" value={project.settings.costs?.laborCost ?? 0} onChange={v => setProject({ ...project, settings: { ...project.settings, costs: { ...project.settings.costs, laborCost: v } } })} />
-                        <NumberInput label="Transport Cost (LKR)" value={project.settings.costs?.transportCost ?? 0} onChange={v => setProject({ ...project, settings: { ...project.settings, costs: { ...project.settings.costs, transportCost: v } } })} />
-                        <NumberInput label="Profit Margin (%)" value={project.settings.costs?.marginPercent ?? 50} onChange={v => setProject({ ...project, settings: { ...project.settings, costs: { ...project.settings.costs, marginPercent: v } } })} />
-                      </div>
-                    </div>
-                  )}
-
-                  {activeModal === 'preferences' && (
-                    <div className="space-y-8 animate-in slide-in-from-bottom-4">
-                      <div className="bg-amber-50 dark:bg-amber-900/10 p-6 rounded-[2rem] border-2 border-amber-500/10">
-                        <h4 className="text-sm font-black text-amber-900 dark:text-amber-400 uppercase tracking-widest mb-2">Special Cabinet Selection</h4>
-                        <p className="text-xs text-amber-700 dark:text-amber-500/70 font-medium">Select which specialized units should be automatically included in your 3D layout. Unselected units will be ignored during generation.</p>
-                      </div>
-
-                      <div className="grid sm:grid-cols-2 gap-4">
-                        {[
-                          { id: 'includeTall', label: 'Tall Units', desc: 'Full-height utility or oven cabinets', icon: <Box size={16} /> },
-                          { id: 'includeSink', label: 'Sink Units', desc: 'Specialized plumbing cabinets under windows', icon: <Box size={16} /> },
-                          { id: 'includeCooker', label: 'Cooker & Hood', desc: 'Base cooker units with wall hoods', icon: <Box size={16} /> },
-                          { id: 'includeDrawers', label: 'Drawer Stacks', desc: 'Standard drawer units for base storage', icon: <Box size={16} /> },
-                        ].map((item) => (
-                          <label 
-                            key={item.id}
-                            className={`flex items-start gap-4 p-5 rounded-[1.5rem] border-2 transition-all cursor-pointer group ${
-                              (project.settings.layoutPreferences?.[item.id as keyof typeof project.settings.layoutPreferences] ?? true)
-                                ? 'border-amber-500 bg-amber-50/30 dark:bg-amber-900/20' 
-                                : 'border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-200 dark:hover:border-slate-700'
-                            }`}
+                          <button 
+                            onClick={handleAddExpense}
+                            className="w-full py-6 rounded-[2rem] border-2 border-dashed border-slate-200 dark:border-slate-800 text-slate-400 hover:text-amber-500 hover:border-amber-500/50 hover:bg-amber-50/10 transition-all flex items-center justify-center gap-3 group font-black uppercase text-[11px] tracking-widest mt-6"
                           >
-                            <div className="pt-0.5">
-                              <input 
-                                type="checkbox" 
-                                className="w-5 h-5 rounded-lg border-2 border-slate-300 dark:border-slate-700 text-amber-500 focus:ring-amber-500 accent-amber-500"
-                                checked={project.settings.layoutPreferences?.[item.id as keyof typeof project.settings.layoutPreferences] ?? true}
-                                onChange={(e) => {
-                                  const currentPrefs = project.settings.layoutPreferences || { includeTall: true, includeSink: true, includeCooker: true, includeDrawers: true };
-                                  setProject({
-                                    ...project,
-                                    settings: {
-                                      ...project.settings,
-                                      layoutPreferences: {
-                                        ...currentPrefs,
-                                        [item.id]: e.target.checked
+                            <Plus size={20} className="group-hover:scale-125 transition-transform" /> Add New Project Expense
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {activeModal === 'preferences' && (
+                      <div className="space-y-10">
+                        <div className="bg-amber-50/50 dark:bg-amber-900/10 p-10 rounded-[3rem] border-2 border-amber-500/10">
+                          <h4 className="text-xl font-black text-amber-900 dark:text-amber-400 uppercase tracking-widest mb-3 italic">Layout Smart Selection</h4>
+                          <p className="text-base text-amber-700/70 dark:text-amber-500/50 font-medium italic">Choose which functional units to include in the automated 3D generator.</p>
+                        </div>
+
+                        <div className="grid sm:grid-cols-2 gap-6">
+                          {[
+                            { id: 'includeTall', label: 'Tall Units', desc: 'Floor-to-ceiling storage and appliances', icon: <Box size={20} /> },
+                            { id: 'includeSink', label: 'Sink Base', desc: 'Plumbing-ready units for wet areas', icon: <Box size={20} /> },
+                            { id: 'includeCooker', label: 'Cooking Hub', desc: 'Specialized oven and hob cabinets', icon: <Box size={20} /> },
+                            { id: 'includeDrawers', label: 'Drawer Stacks', desc: 'Smooth-glide multi-tier storage', icon: <Box size={20} /> },
+                          ].map((item) => (
+                            <label 
+                              key={item.id}
+                              className={`flex items-start gap-6 p-8 rounded-[2.5rem] border-2 transition-all cursor-pointer group relative overflow-hidden ${
+                                (project.settings.layoutPreferences?.[item.id as keyof typeof project.settings.layoutPreferences] ?? true)
+                                  ? 'border-amber-500 bg-amber-500/5 shadow-xl shadow-amber-500/10' 
+                                  : 'border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-200 dark:hover:border-slate-700'
+                              }`}
+                            >
+                              <div className="pt-1 relative z-10">
+                                <input 
+                                  type="checkbox" 
+                                  className="w-7 h-7 rounded-xl border-2 border-slate-200 dark:border-slate-700 text-amber-500 focus:ring-amber-500 accent-amber-500 cursor-pointer"
+                                  checked={project.settings.layoutPreferences?.[item.id as keyof typeof project.settings.layoutPreferences] ?? true}
+                                  onChange={(e) => {
+                                    const currentPrefs = project.settings.layoutPreferences || { includeTall: true, includeSink: true, includeCooker: true, includeDrawers: true };
+                                    setProject({
+                                      ...project,
+                                      settings: {
+                                        ...project.settings,
+                                        layoutPreferences: {
+                                          ...currentPrefs,
+                                          [item.id]: e.target.checked
+                                        }
                                       }
-                                    }
-                                  });
-                                }}
-                              />
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className={`font-black uppercase tracking-tight text-xs ${
+                                    });
+                                  }}
+                                />
+                              </div>
+                              <div className="relative z-10">
+                                <h5 className={`font-black uppercase tracking-tight text-base mb-1 ${
                                   (project.settings.layoutPreferences?.[item.id as keyof typeof project.settings.layoutPreferences] ?? true)
                                     ? 'text-amber-900 dark:text-amber-400'
                                     : 'text-slate-900 dark:text-white'
-                                }`}>{item.label}</span>
+                                }`}>{item.label}</h5>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed italic">{item.desc}</p>
                               </div>
-                              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed">{item.desc}</p>
-                            </div>
-                          </label>
-                        ))}
+                            </label>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {activeModal === 'construction' && (
-                    <div className="space-y-8 animate-in slide-in-from-bottom-4">
-                      {/* Basic Standards */}
-                      <div className="space-y-4">
-                        <div className="flex justify-between items-center">
-                          <h4 className="text-[11px] font-black uppercase text-slate-900 dark:text-white tracking-[0.2em] flex items-center gap-2">
-                            <div className="w-4 h-1 bg-amber-500 rounded-full" /> Technical Standards
+                    {activeModal === 'construction' && (
+                      <div className="space-y-10">
+                        <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-800/50 p-6 rounded-[2rem] border-2 border-slate-100 dark:border-slate-800">
+                          <h4 className="text-sm font-black uppercase text-slate-900 dark:text-white tracking-[0.2em] flex items-center gap-3 italic">
+                            <div className="w-5 h-1.5 bg-amber-500 rounded-full" /> Build Standards
                           </h4>
                           
                           <button 
                             onClick={() => {
                               if (!isPro) {
-                                alert('Advanced Construction Editor is a Pro feature. Please upgrade to unlock.');
+                                alert('Advanced Construction Editor is a Pro feature.');
                                 return;
                               }
                               setShowAdvancedConstruction(!showAdvancedConstruction);
                             }}
-                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
+                            className={`flex items-center gap-2 px-6 py-3 rounded-full text-[11px] font-black uppercase tracking-[0.15em] transition-all ${
                               showAdvancedConstruction 
-                                ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' 
-                                : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 hover:bg-amber-500 hover:text-white'
+                                ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/30' 
+                                : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-2 border-slate-200 dark:border-slate-600 hover:border-amber-500'
                             }`}
                           >
-                            {isPro ? (showAdvancedConstruction ? 'Hide Advanced' : 'Advanced Editor') : <><Lock size={10} /> Advanced Editor</>}
+                            {isPro ? (showAdvancedConstruction ? 'Close Advanced' : 'Open Pro Editor') : <><Lock size={12} /> Pro Editor</>}
                           </button>
                         </div>
                         
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 gap-8">
                           <NumberInput label="Kerf (mm)" value={project.settings.kerf} onChange={v => setProject({ ...project, settings: { ...project.settings, kerf: v } })} />
-                          <NumberInput label="Counter Thickness (mm)" value={project.settings.counterThickness} onChange={v => setProject({ ...project, settings: { ...project.settings, counterThickness: v } })} />
+                          <NumberInput label="Countertop (mm)" value={project.settings.counterThickness} onChange={v => setProject({ ...project, settings: { ...project.settings, counterThickness: v } })} />
                         </div>
-                      </div>
 
-                      {showAdvancedConstruction && isPro && (
-                        <div className="space-y-8 animate-in zoom-in-95 duration-200">
-                          {/* Standard Depths */}
-                          <div className="space-y-4">
-                            <h4 className="text-[11px] font-black uppercase text-slate-900 dark:text-white tracking-[0.2em] flex items-center gap-2">
-                              <div className="w-4 h-1 bg-blue-500 rounded-full" /> Standard Depths (mm)
-                            </h4>
-                            <div className="grid grid-cols-3 gap-4">
-                              <NumberInput label="Base Depth" value={project.settings.depthBase} onChange={v => setProject({ ...project, settings: { ...project.settings, depthBase: v } })} />
-                              <NumberInput label="Wall Depth" value={project.settings.depthWall} onChange={v => setProject({ ...project, settings: { ...project.settings, depthWall: v } })} />
-                              <NumberInput label="Tall Depth" value={project.settings.depthTall} onChange={v => setProject({ ...project, settings: { ...project.settings, depthTall: v } })} />
+                        {showAdvancedConstruction && isPro && (
+                          <div className="space-y-12 pt-8 animate-in zoom-in-98 duration-300">
+                            <div className="space-y-6">
+                              <h4 className="text-[11px] font-black uppercase text-amber-500 tracking-widest flex items-center gap-3">
+                                <div className="w-4 h-1.5 bg-amber-500 rounded-full" /> Standard Depths (mm)
+                              </h4>
+                              <div className="grid grid-cols-3 gap-6">
+                                <NumberInput label="Base Depth" value={project.settings.depthBase} onChange={v => setProject({ ...project, settings: { ...project.settings, depthBase: v } })} />
+                                <NumberInput label="Wall Depth" value={project.settings.depthWall} onChange={v => setProject({ ...project, settings: { ...project.settings, depthWall: v } })} />
+                                <NumberInput label="Tall Depth" value={project.settings.depthTall} onChange={v => setProject({ ...project, settings: { ...project.settings, depthTall: v } })} />
+                              </div>
+                            </div>
+
+                            <div className="space-y-6">
+                              <h4 className="text-[11px] font-black uppercase text-amber-500 tracking-widest flex items-center gap-3">
+                                <div className="w-4 h-1.5 bg-amber-500 rounded-full" /> Standard Heights (mm)
+                              </h4>
+                              <div className="grid grid-cols-3 gap-6">
+                                <NumberInput label="Base Height" value={project.settings.baseHeight} onChange={v => setProject({ ...project, settings: { ...project.settings, baseHeight: v } })} />
+                                <NumberInput label="Wall Height" value={project.settings.wallHeight} onChange={v => setProject({ ...project, settings: { ...project.settings, wallHeight: v } })} />
+                                <NumberInput label="Tall Height" value={project.settings.tallHeight} onChange={v => setProject({ ...project, settings: { ...project.settings, tallHeight: v } })} />
+                              </div>
                             </div>
                           </div>
+                        )}
 
-                          {/* Standard Heights */}
-                          <div className="space-y-4">
-                            <h4 className="text-[11px] font-black uppercase text-slate-900 dark:text-white tracking-[0.2em] flex items-center gap-2">
-                              <div className="w-4 h-1 bg-blue-500 rounded-full" /> Standard Heights (mm)
-                            </h4>
-                            <div className="grid grid-cols-3 gap-4">
-                              <NumberInput label="Base Height" value={project.settings.baseHeight} onChange={v => setProject({ ...project, settings: { ...project.settings, baseHeight: v } })} />
-                              <NumberInput label="Wall Height" value={project.settings.wallHeight} onChange={v => setProject({ ...project, settings: { ...project.settings, wallHeight: v } })} />
-                              <NumberInput label="Tall Height" value={project.settings.tallHeight} onChange={v => setProject({ ...project, settings: { ...project.settings, tallHeight: v } })} />
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="pt-4 border-t dark:border-slate-800">
                         <MaterialAllocationPanel
                           settings={project.settings}
                           onUpdate={s => setProject({ ...project, settings: { ...project.settings, ...s } })}
                           isExpanded={true}
                         />
                       </div>
+                    )}
+                      </div>
                     </div>
-                  )}
-                </div>
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+            )}
+          </div>
+        </div>
 
-                {/* Modal Footer */}
-                <div className="p-4 sm:p-8 bg-slate-50 dark:bg-slate-800/50 flex justify-between items-center shrink-0 border-t dark:border-slate-800">
-                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
-                    {wizardSteps.indexOf(activeModal as string) + 1} / {wizardSteps.length}
-                  </p>
-                  <div className="flex gap-2 sm:gap-4">
-                    <Button variant="secondary" size="sm" onClick={() => setActiveModal(null)} className="text-[10px] font-black uppercase">Cancel</Button>
-                    <button 
-                      onClick={handleNextStep} 
-                      className="px-6 sm:px-10 py-2.5 sm:py-3 bg-amber-500 hover:bg-amber-600 text-white font-black uppercase tracking-widest rounded-full shadow-lg text-[10px] transition-all flex items-center gap-2 group"
-                    >
-                      {wizardSteps.indexOf(activeModal as string) < wizardSteps.length - 1 ? (
-                        <>
-                          Next Step <ArrowRight size={14} />
-                        </>
-                      ) : (
-                        'Done'
-                      )}
-                    </button>
-                  </div>
-                </div>
+          {/* Fixed Footer Navigation - ALWAYS VISIBLE */}
+          {activeModal && (
+            <div className="px-8 py-4 border-t dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl flex justify-between items-center shrink-0 z-30 shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
+              <Button 
+                variant="secondary" 
+                onClick={handlePrevStep}
+                disabled={wizardSteps.indexOf(activeModal as string) === 0}
+                className="text-[11px] font-black uppercase tracking-[0.2em] px-6 h-10 rounded-xl border-2"
+              >
+                Previous Step
+              </Button>
+
+              <div className="flex gap-4">
+                {wizardSteps.indexOf(activeModal as string) === wizardSteps.length - 1 ? (
+                  <button
+                    onClick={handleGenerateLayout}
+                    disabled={!isReadyToGenerate || (!isPro && isLayoutLocked)}
+                    className={`flex items-center gap-3 px-8 py-3 rounded-2xl text-[11px] font-black uppercase tracking-[0.15em] transition-all shadow-xl ${
+                      isReadyToGenerate && (isPro || !isLayoutLocked)
+                        ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-amber-500/30 hover:scale-105 active:scale-95' 
+                        : 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
+                    }`}
+                  >
+                    <Wand2 size={18} /> Generate 3D Design
+                  </button>
+                ) : (
+                  <Button 
+                    onClick={() => {
+                      if (activeModal === 'walls' && wallEditRef.current) {
+                        wallEditRef.current.triggerSave();
+                      } else if (activeModal === 'limits' && wallLimitsRef.current) {
+                        wallLimitsRef.current.triggerSave();
+                      } else {
+                        handleNextStep();
+                      }
+                    }} 
+                    className="px-10 py-3 bg-amber-500 hover:bg-amber-600 text-white font-black uppercase tracking-[0.15em] rounded-2xl shadow-xl shadow-amber-500/30 text-[11px] transition-all flex items-center gap-3 group hover:scale-105 active:scale-95 h-12"
+                  >
+                    Next Step <ArrowRight size={18} className="group-hover:translate-x-2 transition-transform" />
+                  </Button>
+                )}
               </div>
             </div>
           )}
-
-          {/* Legacy Modals */}
-          <WallEditModal
-            isOpen={showWallModal}
-            onClose={() => setShowWallModal(false)}
-            project={project}
-            isDark={isDark}
-            hideCabinets={true}
-            readOnly={!isPro && isLayoutLocked}
-            onSave={(newZones) => {
-              const updatedProject = { ...project, zones: newZones };
-              setProject(updatedProject);
-              setShowWallModal(false);
-              // After wall setup, move to Limits
-              setShowLimitsModal(true);
-            }}
-          />
-
-          <WallLimitsModal
-            isOpen={showLimitsModal}
-            onClose={() => setShowLimitsModal(false)}
-            project={project}
-            isDark={isDark}
-            onSave={(newZones) => {
-              const updatedProject = { ...project, zones: newZones };
-              setProject(updatedProject);
-              setShowLimitsModal(false);
-              // After limits, move to Special Units
-              setActiveModal('preferences');
-            }}
-          />
-
-          <CabinetEditModal
-            isOpen={showCabinetModal}
-            onClose={() => setShowCabinetModal(false)}
-            cabinetType={editingCabinetType}
-            settings={project.settings}
-            isDark={isDark}
-            onSave={(newSettings) => {
-              setProject({ ...project, settings: newSettings });
-            }}
-          />
         </div>
+
+        {/* Sidebar Journey Map */}
+        <aside className="hidden md:flex w-96 border-l dark:border-slate-800 bg-white dark:bg-slate-900 flex-col shrink-0 overflow-hidden relative z-10">
+          <div className="p-8 border-b dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20">
+            <h3 className="text-xs font-black uppercase tracking-[0.3em] text-slate-400 italic mb-2">Project Journey</h3>
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Completion Rate</span>
+              <span className="text-lg font-black text-amber-500 italic">
+                {Math.round((wizardSteps.filter((s) => {
+                  if (s === 'project') return isIdentityDone;
+                  if (s === 'walls') return isWallsDone;
+                  if (s === 'limits') return isLimitsDone;
+                  if (s === 'preferences') return isPreferencesDone;
+                  if (s === 'sheets') return isSheetsDone;
+                  if (s === 'hardware') return isHardwareDone;
+                  if (s === 'construction') return isConstructionDone;
+                  if (s === 'costs') return isCostsDone;
+                  return false;
+                }).length / wizardSteps.length) * 100)}%
+              </span>
+            </div>
+            <div className="w-full h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner">
+               <div 
+                className="h-full bg-amber-500 transition-all duration-1000 ease-out" 
+                style={{ width: `${(wizardSteps.filter((s) => {
+                  if (s === 'project') return isIdentityDone;
+                  if (s === 'walls') return isWallsDone;
+                  if (s === 'limits') return isLimitsDone;
+                  if (s === 'preferences') return isPreferencesDone;
+                  if (s === 'sheets') return isSheetsDone;
+                  if (s === 'hardware') return isHardwareDone;
+                  if (s === 'construction') return isConstructionDone;
+                  if (s === 'costs') return isCostsDone;
+                  return false;
+                }).length / wizardSteps.length) * 100}%` }} 
+               />
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-6 space-y-3 custom-scrollbar">
+            {wizardSteps.map((step, index) => {
+              let isDone = false;
+              if (step === 'project') isDone = isIdentityDone;
+              if (step === 'walls') isDone = isWallsDone;
+              if (step === 'limits') isDone = isLimitsDone;
+              if (step === 'preferences') isDone = isPreferencesDone;
+              if (step === 'sheets') isDone = isSheetsDone;
+              if (step === 'hardware') isDone = isHardwareDone;
+              if (step === 'construction') isDone = isConstructionDone;
+              if (step === 'costs') isDone = isCostsDone;
+
+              return (
+                <StepSidebarItem 
+                  key={step}
+                  step={step}
+                  index={index}
+                  isActive={activeModal === step}
+                  isDone={isDone}
+                  isRequired={['project', 'walls', 'limits', 'preferences', 'construction'].includes(step)}
+                />
+              );
+            })}
+          </div>
+        </aside>
       </div>
     </div>
   );

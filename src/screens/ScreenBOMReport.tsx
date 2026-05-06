@@ -58,7 +58,7 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
   const totalLegs = data.hardwareSummary['Adjustable Leg'] || 0;
   const totalHangers = data.hardwareSummary['Wall Hanger'] || 0;
   const totalGraniteSqft = data.totalGraniteSqft || 0;
-  const totalTileSqft = data.totalTileSqft || 0;
+  const totalTileAreaMm2 = data.totalTileAreaMm2 || 0;
 
   // Accessory Costs
   const hingeAccessory = accessories.find(acc =>
@@ -86,9 +86,22 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
   const graniteUnitCost = graniteAccessory?.default_amount || 0;
   const graniteTotalCost = totalGraniteSqft * graniteUnitCost;
 
-  const tileAccessory = accessories.find(acc => acc.name.toLowerCase() === 'tile');
+  const tileAccessory = accessories.find(acc => acc.name.toLowerCase().includes('tile'));
+  const tileWidth = tileAccessory?.width || 600;
+  const tileLength = tileAccessory?.length || 600;
+  const tileUnit = tileAccessory?.unit || 'mm2';
+  
+  let totalTileCount = 0;
+  if (tileUnit === 'sqft') {
+    const tileAreaSqft = tileWidth * tileLength; // Dimensions are in FEET
+    const totalAreaSqft = totalTileAreaMm2 / 92903.04;
+    totalTileCount = tileAreaSqft > 0 ? Math.ceil(totalAreaSqft / tileAreaSqft) : 0;
+  } else {
+    const singleTileAreaMm2 = tileWidth * tileLength;
+    totalTileCount = singleTileAreaMm2 > 0 ? Math.ceil(totalTileAreaMm2 / singleTileAreaMm2) : 0;
+  }
   const tileUnitCost = tileAccessory?.default_amount || 0;
-  const tileTotalCost = totalTileSqft * tileUnitCost;
+  const tileTotalCost = totalTileCount * tileUnitCost;
 
   // Calculate total hardware cost from all individual items (only those actually used in project)
   const otherAccessoriesCost = useMemo(() => {
@@ -208,7 +221,7 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
         !acc.name.toLowerCase().includes('tile')
       ).map(acc => ({ name: acc.name, qty: 1 })),
       { name: `Granite Countertop (Sqft)`, qty: Number(totalGraniteSqft.toFixed(2)) },
-      { name: `Tile Backsplash (Sqft)`, qty: Number(totalTileSqft.toFixed(2)) }
+      { name: `Tile Backsplash (Pcs)`, qty: totalTileCount }
     ];
 
     // Apply USER Exclusions
@@ -222,7 +235,7 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
     });
 
     return specs;
-  }, [project.settings.materialSettings, project.zones, materialSummary, hingeQuantity, handleQuantity, drawerSlideQuantity, accessories]);
+  }, [project.settings.materialSettings, project.zones, materialSummary, hingeQuantity, handleQuantity, drawerSlideQuantity, accessories, totalTileCount, totalGraniteSqft]);
 
   const handlePrint = () => {
     setTimeout(() => window.print(), 100);
@@ -306,11 +319,12 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
           {/* COSTING CARD */}
           <div className={`${activeView === 'list' ? 'block' : 'hidden print:block'} bg-white dark:bg-slate-900 text-slate-900 dark:text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl print:bg-white print:text-black print:border-2 print:border-black print:break-inside-avoid shadow-xl print:shadow-none`}>
             <h3 className="text-amber-600 dark:text-amber-500 font-bold mb-3 sm:mb-4 flex items-center gap-2 print:text-black text-base sm:text-lg"><DollarSign size={18} /> Cost Estimate</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-6">
               <div><div className="text-slate-500 dark:text-slate-400 text-xs uppercase print:text-black">Material</div><div className="text-lg sm:text-xl font-bold">{currency}{baseCosts.materialCost.toFixed(2)}</div></div>
               <div><div className="text-slate-500 dark:text-slate-400 text-xs uppercase print:text-black">Hardware</div><div className="text-lg sm:text-xl font-bold">{currency}{baseCosts.hardwareCost.toFixed(2)}</div></div>
               <div><div className="text-slate-500 dark:text-slate-400 text-xs uppercase print:text-black">Labor</div><div className="text-lg sm:text-xl font-bold">{currency}{baseCosts.laborCost.toFixed(2)}</div></div>
               <div><div className="text-slate-500 dark:text-slate-400 text-xs uppercase print:text-black">Transport</div><div className="text-lg sm:text-xl font-bold">{currency}{baseCosts.transportCost.toFixed(2)}</div></div>
+              <div><div className="text-slate-500 dark:text-slate-400 text-xs uppercase print:text-black">Other</div><div className="text-lg sm:text-xl font-bold">{currency}{baseCosts.otherCost.toFixed(2)}</div></div>
             </div>
             <div className="grid grid-cols-2 gap-3 sm:gap-6 mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 print:border-black">
               <div>
@@ -375,10 +389,10 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
                       </tr>
                     )}
                     {/* Tile */}
-                    {totalTileSqft > 0 && (
+                    {totalTileCount > 0 && (
                       <tr className="hover:bg-slate-50/50 transition-colors">
-                        <td className="p-3 font-bold text-slate-900 dark:text-white print:text-black">Tile Backsplash (Sqft)</td>
-                        <td className="p-3 text-center font-black text-amber-600">{totalTileSqft.toFixed(2)}</td>
+                        <td className="p-3 font-bold text-slate-900 dark:text-white print:text-black">Tile Backsplash (Pcs)</td>
+                        <td className="p-3 text-center font-black text-amber-600">{totalTileCount}</td>
                         <td className="p-3 text-right font-medium">{currency}{tileTotalCost.toFixed(2)}</td>
                       </tr>
                     )}
@@ -418,6 +432,19 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
                           </tr>
                         );
                       })}
+                    {/* Custom Project Expenses */}
+                    {project.settings.costs?.expenses?.filter(e => {
+                      const lower = e.name.toLowerCase();
+                      return !lower.includes('labor') && !lower.includes('labour') && !lower.includes('transport') && !lower.includes('logistics');
+                    }).map(exp => (
+                      <tr key={exp.id} className="hover:bg-slate-50/50 transition-colors bg-amber-50/10">
+                        <td className="p-3 font-bold text-amber-900 dark:text-amber-400 print:text-black flex items-center gap-2">
+                          <div className="w-1 h-4 bg-amber-500 rounded-full" /> {exp.name}
+                        </td>
+                        <td className="p-3 text-center font-black text-amber-600">1</td>
+                        <td className="p-3 text-right font-bold text-amber-600">{currency}{exp.amount.toFixed(2)}</td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>

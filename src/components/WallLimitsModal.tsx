@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
 import { X, Save, ArrowRight, MousePointer2 } from 'lucide-react';
 import { Project, Zone } from '../types';
 import { WallVisualizer } from './WallVisualizer';
@@ -9,16 +9,24 @@ interface WallLimitsModalProps {
   project: Project;
   onSave: (newZones: Zone[]) => void;
   isDark?: boolean;
+  isInline?: boolean;
 }
 
-export const WallLimitsModal: React.FC<WallLimitsModalProps> = ({
+export const WallLimitsModal = forwardRef<any, WallLimitsModalProps>(({
   isOpen,
   onClose,
   project,
   onSave,
-  isDark = true
-}) => {
+  isDark = true,
+  isInline = false
+}, ref) => {
   const [localZones, setLocalZones] = useState<Zone[]>(project.zones);
+
+  useImperativeHandle(ref, () => ({
+    triggerSave: () => {
+      handleSave();
+    }
+  }));
   const [activeTab, setActiveTab] = useState<string>('');
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -58,22 +66,11 @@ export const WallLimitsModal: React.FC<WallLimitsModalProps> = ({
     onClose();
   };
 
-  return (
-    <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center sm:p-4 bg-black/60 backdrop-blur-md">
-      <div className="bg-white dark:bg-slate-900 rounded-t-[2.5rem] sm:rounded-[2rem] shadow-2xl w-full max-w-6xl h-[95vh] sm:h-[85vh] overflow-hidden flex flex-col animate-in slide-in-from-bottom duration-300 sm:zoom-in-95 sm:duration-200">
-        
-        {/* Header with Tabs Integrated */}
-        <div className="px-6 py-4 border-b dark:border-slate-800 flex items-center justify-between shrink-0 bg-white dark:bg-slate-900 z-10">
+  const content = (
+    <div className={`${isInline ? 'h-full rounded-2xl' : 'h-[95vh] sm:h-[85vh] rounded-t-[2.5rem] sm:rounded-[2rem]'} bg-white dark:bg-slate-900 shadow-2xl w-full ${isInline ? 'max-w-none' : 'max-w-6xl'} overflow-hidden flex flex-col animate-in slide-in-from-bottom duration-300 sm:zoom-in-95 sm:duration-200 border border-slate-200 dark:border-slate-800`}>
+      {/* Header with Tabs Integrated */}
+      <div className="px-6 py-1 border-b dark:border-slate-800 flex items-center justify-between shrink-0 bg-white dark:bg-slate-900 z-10">
           <div className="flex items-center gap-6">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500">
-                <MousePointer2 size={20} />
-              </div>
-              <h3 className="text-lg font-black uppercase tracking-tight text-slate-900 dark:text-white shrink-0">
-                Wall <span className="text-amber-500">Limits</span>
-              </h3>
-            </div>
-            
             {/* Tabs integrated here */}
             <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
               {localZones.map((zone) => (
@@ -92,12 +89,14 @@ export const WallLimitsModal: React.FC<WallLimitsModalProps> = ({
             </div>
           </div>
 
-          <button 
-            onClick={onClose}
-            className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-400"
-          >
-            <X size={20} />
-          </button>
+          {!isInline && (
+            <button 
+              onClick={onClose}
+              className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-400"
+            >
+              <X size={20} />
+            </button>
+          )}
         </div>
 
         <div className="flex-1 flex flex-col overflow-hidden relative">
@@ -163,7 +162,7 @@ export const WallLimitsModal: React.FC<WallLimitsModalProps> = ({
                       type="range" min="0" max={currentZone.totalLength} step="10"
                       value={currentZone.totalLength - (currentZone.endLimit || currentZone.totalLength)}
                       onChange={(e) => handleUpdateLimit('end', currentZone.totalLength - parseInt(e.target.value))}
-                      className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-500"
+                      className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-500 scale-x-[-1]"
                     />
                   </div>
                 </div>
@@ -173,37 +172,46 @@ export const WallLimitsModal: React.FC<WallLimitsModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-t dark:border-slate-800 flex justify-between items-center">
-          <div className="flex items-center gap-6">
-            <div className="flex flex-col">
-              <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Wall Edges</span>
-              <span className="text-lg font-black text-slate-900 dark:text-white italic">Measured from Left/Right</span>
+        {!isInline && (
+          <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-t dark:border-slate-800 flex justify-between items-center">
+            <div className="flex items-center gap-6">
+              <div className="flex flex-col">
+                <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Wall Edges</span>
+                <span className="text-lg font-black text-slate-900 dark:text-white italic">Measured from Left/Right</span>
+              </div>
+              <div className="h-10 w-px bg-slate-200 dark:bg-slate-700" />
+              <div className="flex flex-col">
+                <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Usable Area</span>
+                <span className="text-lg font-black text-amber-500 font-mono">
+                  {currentZone ? (currentZone.endLimit || currentZone.totalLength) - (currentZone.startLimit || 0) : 0}mm
+                </span>
+              </div>
             </div>
-            <div className="h-10 w-px bg-slate-200 dark:bg-slate-700" />
-            <div className="flex flex-col">
-              <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Usable Area</span>
-              <span className="text-lg font-black text-amber-500 font-mono">
-                {currentZone ? (currentZone.endLimit || currentZone.totalLength) - (currentZone.startLimit || 0) : 0}mm
-              </span>
-            </div>
-          </div>
 
-          <div className="flex gap-4">
-            <button 
-              onClick={onClose}
-              className="px-8 py-3 rounded-full border-2 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-black uppercase tracking-widest text-xs hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
-            >
-              Cancel
-            </button>
-            <button 
-              onClick={handleSave}
-              className="px-12 py-4 bg-amber-500 hover:bg-amber-600 text-white font-black uppercase tracking-widest rounded-full shadow-2xl shadow-amber-500/40 text-xs transition-all flex items-center gap-2 group"
-            >
-              Confirm Limits <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-            </button>
+            <div className="flex gap-4">
+              <button 
+                onClick={onClose}
+                className="px-8 py-3 rounded-full border-2 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-black uppercase tracking-widest text-xs hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleSave}
+                className="px-12 py-4 bg-amber-500 hover:bg-amber-600 text-white font-black uppercase tracking-widest rounded-full shadow-2xl shadow-amber-500/40 text-xs transition-all flex items-center gap-2 group"
+              >
+                Confirm Limits <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
-    </div>
-  );
-};
+    );
+
+    if (isInline) return content;
+
+    return (
+      <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center sm:p-4 bg-black/60 backdrop-blur-md">
+        {content}
+      </div>
+    );
+});
