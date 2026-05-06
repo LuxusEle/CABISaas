@@ -47,21 +47,24 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
     }
   }, [project.settings.completedSteps]);
 
-  const updateProgress = (step: string) => {
+  const updateProgress = (step: string, currentProject?: Project) => {
+    const baseProject = currentProject || project;
     if (!visitedSteps.has(step)) {
       const newVisited = new Set([...visitedSteps, step]);
       setVisitedSteps(newVisited);
       
       const updatedProject = {
-        ...project,
+        ...baseProject,
         settings: {
-          ...project.settings,
+          ...baseProject.settings,
           completedSteps: Array.from(newVisited)
         }
       };
       setProject(updatedProject);
       onSaveProject?.(updatedProject);
+      return updatedProject;
     }
+    return baseProject;
   };
 
   // Logo upload state
@@ -163,6 +166,16 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
   const handleNextStep = async () => {
     if (!activeModal) return;
     
+    // Trigger internal save for modals with local state before proceeding
+    if (activeModal === 'walls' && wallEditRef.current) {
+      wallEditRef.current.triggerSave();
+      return; // onSave will handle the progress update and modal transition
+    }
+    if (activeModal === 'limits' && wallLimitsRef.current) {
+      wallLimitsRef.current.triggerSave();
+      return; // onSave will handle the progress update and modal transition
+    }
+
     updateProgress(activeModal);
     
     const currentIndex = wizardSteps.indexOf(activeModal as string);
@@ -208,14 +221,20 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
   };
 
   const handleUpdateExpense = (id: string, field: 'name' | 'amount', value: any) => {
-    const currentExpenses = project.settings.costs?.expenses || [];
+    const currentCosts = project.settings.costs || { pricePerSheet: 0, pricePerHardwareUnit: 0, laborCost: 0, transportCost: 0, marginPercent: 50 };
+    const currentExpenses = (currentCosts.expenses && currentCosts.expenses.length > 0) ? currentCosts.expenses : [
+      { id: 'labor', name: 'Standard Labor', amount: currentCosts.laborCost || 0 },
+      { id: 'transport', name: 'Transport & Logistics', amount: currentCosts.transportCost || 0 }
+    ];
+    
     const updatedExpenses = currentExpenses.map(e => e.id === id ? { ...e, [field]: value } : e);
+    
     setProject({
       ...project,
       settings: {
         ...project.settings,
         costs: {
-          ...project.settings.costs,
+          ...currentCosts,
           expenses: updatedExpenses
         }
       }
@@ -244,7 +263,7 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
       const result = generateRubyLayout(project);
       const updatedProject = result.project;
       await onSaveProject(updatedProject);
-      navigate('/studio');
+      navigate('/walls?view=iso');
     } catch (err) {
       console.error('Failed to generate design:', err);
       alert('Error generating design. Please try again.');
@@ -425,9 +444,8 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
                         hideCabinets={true}
                         readOnly={!isPro && isLayoutLocked}
                         onSave={(newZones) => {
-                          updateProgress('walls');
-                          const updatedProject = { ...project, zones: newZones };
-                          setProject(updatedProject);
+                          const projectWithZones = { ...project, zones: newZones };
+                          updateProgress('walls', projectWithZones);
                           setActiveModal('limits');
                         }}
                       />
@@ -442,9 +460,8 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
                         isDark={isDark}
                         isInline={true}
                         onSave={(newZones) => {
-                          updateProgress('limits');
-                          const updatedProject = { ...project, zones: newZones };
-                          setProject(updatedProject);
+                          const projectWithZones = { ...project, zones: newZones };
+                          updateProgress('limits', projectWithZones);
                           setActiveModal('preferences');
                         }}
                       />
