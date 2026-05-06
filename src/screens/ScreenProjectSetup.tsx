@@ -48,22 +48,24 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
 
   const updateProgress = (step: string, currentProject?: Project) => {
     const baseProject = currentProject || project;
-    if (!visitedSteps.has(step)) {
-      const newVisited = new Set([...visitedSteps, step]);
+    const newVisited = new Set(visitedSteps);
+    newVisited.add(step);
+    
+    if (newVisited.size !== visitedSteps.size) {
       setVisitedSteps(newVisited);
-      
-      const updatedProject = {
-        ...baseProject,
-        settings: {
-          ...baseProject.settings,
-          completedSteps: Array.from(newVisited)
-        }
-      };
-      setProject(updatedProject);
-      onSaveProject?.(updatedProject);
-      return updatedProject;
     }
-    return baseProject;
+    
+    const updatedProject = {
+      ...baseProject,
+      settings: {
+        ...baseProject.settings,
+        completedSteps: Array.from(newVisited)
+      }
+    };
+    
+    setProject(updatedProject);
+    onSaveProject?.(updatedProject);
+    return updatedProject;
   };
 
   // Logo upload state

@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
-import { Home, Box, Moon, Sun, Table2, Settings, LayoutDashboard, Wrench, CreditCard, Book, ChevronLeft } from 'lucide-react';
+import { Home, Box, Moon, Sun, Table2, Settings, LayoutDashboard, Wrench, CreditCard, Book, ChevronLeft, Save, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Screen, Project } from './types';
+import { GlobalProjectProgress } from './components/GlobalProjectProgress';
 import { createNewProject, ensureProjectSettings } from './services/bomService';
 import { authService } from './services/authService';
 import { subscriptionService } from './services/subscriptionService';
@@ -352,6 +353,67 @@ export default function App() {
 
         {/* MAIN */}
         <main className="flex-1 flex flex-col overflow-hidden relative" id="main-content">
+          {/* Project Command Center - Only visible in project screens */}
+          {['/setup', '/walls', '/bom'].includes(location.pathname) && project.id.length > 20 && (
+            <div className="h-20 shrink-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-8 z-40 print:hidden transition-all duration-500">
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                  <h1 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-[0.1em] leading-none">
+                    {project.name || 'Untitled Kitchen'}
+                  </h1>
+                </div>
+                <p className="text-[10px] font-bold text-slate-400 italic uppercase tracking-widest pl-4">
+                  {project.company || 'Standard Config'}
+                </p>
+              </div>
+              
+              <GlobalProjectProgress 
+                project={project}
+                onNavigate={(screen) => {
+                  const pathMap: Record<string, string> = {
+                    [Screen.PROJECT_SETUP]: '/setup',
+                    [Screen.WALL_EDITOR]: '/walls?view=iso',
+                    [Screen.BOM_REPORT]: '/bom'
+                  };
+                  navigate(pathMap[screen] || '/dashboard');
+                }}
+                isDark={isDark}
+              />
+
+              <div className="flex items-center gap-4">
+                <div className="h-8 w-[1px] bg-slate-200 dark:bg-slate-800 mx-2" />
+                <button 
+                  onClick={() => handleSaveProject(project)}
+                  disabled={!isDirty || isSaving}
+                  className={`
+                    px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2
+                    ${isDirty 
+                      ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20 hover:scale-105 active:scale-95' 
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-400 opacity-60 cursor-default'
+                    }
+                  `}
+                >
+                  {isSaving ? (
+                    <>
+                      <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Saving
+                    </>
+                  ) : isDirty ? (
+                    <>
+                      <Save size={14} />
+                      Sync Project
+                    </>
+                  ) : (
+                    <>
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                      All Synced
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
           <Routes>
             <Route path="/" element={
               <LandingPage

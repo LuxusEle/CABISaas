@@ -60,6 +60,22 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
   const totalGraniteSqft = data.totalGraniteSqft || 0;
   const totalTileAreaMm2 = data.totalTileAreaMm2 || 0;
 
+  // Track report viewing
+  useEffect(() => {
+    if (!project.settings.progress?.reportViewed) {
+      setProject(prev => ({
+        ...prev,
+        settings: {
+          ...prev.settings,
+          progress: {
+            ...(prev.settings.progress || {}),
+            reportViewed: true
+          }
+        }
+      }));
+    }
+  }, []);
+
   // Accessory Costs
   const hingeAccessory = accessories.find(acc =>
     acc.name.toLowerCase().includes('hinge') ||
@@ -248,6 +264,17 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
       bankName: 'Seylan Bank',
       accountNumber: '021 013 279 542 001'
     });
+
+    setProject(prev => ({
+      ...prev,
+      settings: {
+        ...prev.settings,
+        progress: {
+          ...(prev.settings.progress || {}),
+          quotationGenerated: true
+        }
+      }
+    }));
   };
 
   // Calculate quotation data
@@ -284,7 +311,23 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
           <Button 
             variant="secondary" 
             size="sm" 
-            onClick={() => isUserPro ? exportToExcel(data.groups, cutPlan, project, data, accessories, sheetTypes) : navigate('/pricing')} 
+            onClick={() => {
+              if (isUserPro) {
+                exportToExcel(data.groups, cutPlan, project, data, accessories, sheetTypes);
+                setProject(prev => ({
+                  ...prev,
+                  settings: {
+                    ...prev.settings,
+                    progress: {
+                      ...(prev.settings.progress || {}),
+                      excelDownloaded: true
+                    }
+                  }
+                }));
+              } else {
+                navigate('/pricing');
+              }
+            }} 
             className="h-9 text-[10px] sm:text-xs px-3 gap-1.5"
           >
             {isUserPro ? <FileSpreadsheet size={14} /> : <Lock size={12} className="text-amber-500" />}
@@ -300,6 +343,16 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
               }
               const allCabinets = project.zones.flatMap(z => z.cabinets);
               exportAllDrillingToZip(allCabinets, project.settings, project.name);
+              setProject(prev => ({
+                ...prev,
+                settings: {
+                  ...prev.settings,
+                  progress: {
+                    ...(prev.settings.progress || {}),
+                    dxfDownloaded: true
+                  }
+                }
+              }));
             }} 
             className="h-9 text-[10px] sm:text-xs px-3 gap-1.5"
           >
@@ -489,7 +542,23 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
               <Button
                 variant={isUserPro ? "secondary" : "outline"}
                 size="sm"
-                onClick={() => isUserPro ? exportAllSheetsToDXFZip(cutPlan.sheets, project.settings, project.name) : navigate('/pricing')}
+                onClick={() => {
+                  if (isUserPro) {
+                    exportAllSheetsToDXFZip(cutPlan.sheets, project.settings, project.name);
+                    setProject(prev => ({
+                      ...prev,
+                      settings: {
+                        ...prev.settings,
+                        progress: {
+                          ...(prev.settings.progress || {}),
+                          dxfDownloaded: true
+                        }
+                      }
+                    }));
+                  } else {
+                    navigate('/pricing');
+                  }
+                }}
                 className="min-h-[40px] gap-2"
               >
                 {isUserPro ? <FileCode size={16} /> : <Lock size={14} className="text-amber-500" />}
@@ -762,7 +831,22 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
             {/* Actions Box */}
             <div className="pt-12 flex flex-col items-center gap-4 print:hidden border-t border-slate-100">
               {project.settings.quotationStatus !== 'invoice' ? (
-                <Button variant="secondary" size="lg" onClick={async () => { const updated = { ...project, settings: { ...project.settings, quotationStatus: 'invoice' as const, quotationApprovedDate: new Date().toISOString() } }; setProject(updated); await projectService.updateProject(project.id, updated); }} className="gap-3 px-12 py-6 rounded-full shadow-lg hover:scale-105 transition-transform">
+                <Button variant="secondary" size="lg" onClick={async () => { 
+                  const updated = { 
+                    ...project, 
+                    settings: { 
+                      ...project.settings, 
+                      quotationStatus: 'invoice' as const, 
+                      quotationApprovedDate: new Date().toISOString(),
+                      progress: {
+                        ...(project.settings.progress || {}),
+                        quotationGenerated: true
+                      }
+                    } 
+                  }; 
+                  setProject(updated); 
+                  await projectService.updateProject(project.id, updated); 
+                }} className="gap-3 px-12 py-6 rounded-full shadow-lg hover:scale-105 transition-transform">
                   <Check size={24} /> Mark as Approved (Convert to Invoice)
                 </Button>
               ) : (

@@ -1000,6 +1000,12 @@ export const createNewProject = (logoUrl?: string): Project => ({
       includeSink: true,
       includeCooker: true,
       includeDrawers: true
+    },
+    progress: {
+      dxfDownloaded: false,
+      excelDownloaded: false,
+      reportViewed: false,
+      quotationGenerated: false
     }
   },
   zones: [
