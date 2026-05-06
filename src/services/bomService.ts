@@ -517,17 +517,17 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
 
   const materials = unit.materials || {};
   const projectMaterials = settings.materialSettings || {
-    carcassMaterial: `${globalThickness}mm White`,
-    doorMaterial: `${globalThickness}mm White`,
-    drawerMaterial: '16mm White',
-    backMaterial: '6mm MDF',
-    shelfMaterial: `${globalThickness}mm White`
+    carcassMaterial: 'Shutter',
+    doorMaterial: 'Face',
+    drawerMaterial: 'Shutter',
+    backMaterial: 'MDF 6mm',
+    shelfMaterial: 'Plywood'
   };
 
-  const carcassMaterial = materials.carcassMaterial || projectMaterials.carcassMaterial || `${globalThickness}mm White`;
-  const doorMaterial = materials.doorMaterial || projectMaterials.doorMaterial || `${globalThickness}mm White`;
-  const drawerMaterial = materials.drawerMaterial || projectMaterials.drawerMaterial || '16mm White';
-  const backMaterial = materials.backPanelMaterial || projectMaterials.backMaterial || '6mm MDF';
+  const carcassMaterial = materials.carcassMaterial || projectMaterials.carcassMaterial || 'Shutter';
+  const doorMaterial = materials.doorMaterial || projectMaterials.doorMaterial || 'Face';
+  const drawerMaterial = materials.drawerMaterial || projectMaterials.drawerMaterial || 'Shutter';
+  const backMaterial = materials.backPanelMaterial || projectMaterials.backMaterial || 'MDF 6mm';
   const shelfMaterial = materials.shelfMaterial || projectMaterials.shelfMaterial || carcassMaterial;
 
   const t = getCabinetTestingSettings(unit, settings);
@@ -939,7 +939,7 @@ export const ensureProjectSettings = (project: Project): Project => {
 
 export const createNewProject = (logoUrl?: string): Project => ({
   id: uuid(),
-  name: 'New Kitchen',
+  name: '',
   designer: 'Me',
   company: 'My Shop',
   settings: {
@@ -980,18 +980,18 @@ export const createNewProject = (logoUrl?: string): Project => ({
     golaCutoutDepth: 20,
     drawerBackClearance: 20,
     costs: {
-      pricePerSheet: 85.00,
-      pricePerHardwareUnit: 5.00,
+      pricePerSheet: 0.00,
+      pricePerHardwareUnit: 0.00,
       laborCost: 0,
       marginPercent: 50,
-      transportCost: 1000
+      transportCost: 0
     },
     materialSettings: {
-      carcassMaterial: '',
-      doorMaterial: '',
-      drawerMaterial: '',
-      backMaterial: '',
-      shelfMaterial: '',
+      carcassMaterial: 'Shutter',
+      doorMaterial: 'Face',
+      drawerMaterial: 'Shutter',
+      backMaterial: 'MDF 6mm',
+      shelfMaterial: 'Plywood',
       sheetSpecs: {}
     },
     quotationApprovedDate: undefined,

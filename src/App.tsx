@@ -229,16 +229,23 @@ export default function App() {
 
   const handleStartProject = () => {
     requireAuth(async () => {
-      // Fetch user's saved logo to use for the new project
-      let logoUrl: string | undefined;
+      // Fetch user's saved profile to use for the new project
+      let profileData: any = null;
       if (user) {
-        logoUrl = await logoService.getUserLogo(user.id) || undefined;
+        const { profileService } = await import('./services/profileService');
+        profileData = await profileService.getProfile(user.id);
       }
-      const newProj = createNewProject(logoUrl);
+      
+      const newProj = createNewProject(profileData?.logo_url || undefined);
+      if (profileData) {
+        newProj.company = profileData.company_name || newProj.company;
+      }
       
       // Just set state and navigate - do NOT save to database yet
+      // This ensures isDirty is false because project matches lastSavedProjectRef
       lastSavedProjectRef.current = JSON.stringify(newProj);
       setProject(newProj);
+      setIsDirty(false);
       navigate('/setup?step=project');
     });
   };
@@ -271,12 +278,12 @@ export default function App() {
           <aside className="hidden md:flex w-20 flex-col items-center py-6 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 shrink-0 z-50 print:hidden">
             <div className="mb-8 text-amber-500"><LayoutDashboard size={28} /></div>
             <nav className="flex flex-col gap-6 w-full px-2">
-              <NavButton active={location.pathname === '/dashboard'} path="/dashboard" icon={<Home size={24} />} label="Home" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
-              <NavButton active={location.pathname === '/setup'} path="/setup" icon={<Settings size={24} />} label="Setup" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
-              <NavButton active={location.pathname === '/walls'} path="/walls?view=iso" icon={<Box size={24} />} label="Walls" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
-              <NavButton active={location.pathname === '/bom'} path="/bom" icon={<Table2 size={24} />} label="BOM" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
-              <NavButton active={location.pathname === '/pricing'} path="/pricing" icon={<CreditCard size={24} />} label="Pricing" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
-              <NavButton active={location.pathname === '/docs'} path="/docs" icon={<Book size={24} />} label="Docs" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
+              <NavButton active={location.pathname === '/dashboard'} path="/dashboard" icon={<Home size={24} />} label="Home" isDirty={isDirty} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
+              <NavButton active={location.pathname === '/setup'} path="/setup" icon={<Settings size={24} />} label="Setup" isDirty={isDirty} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
+              <NavButton active={location.pathname === '/walls'} path="/walls?view=iso" icon={<Box size={24} />} label="Walls" isDirty={isDirty} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
+              <NavButton active={location.pathname === '/bom'} path="/bom" icon={<Table2 size={24} />} label="BOM" isDirty={isDirty} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
+              <NavButton active={location.pathname === '/pricing'} path="/pricing" icon={<CreditCard size={24} />} label="Pricing" isDirty={isDirty} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
+              <NavButton active={location.pathname === '/docs'} path="/docs" icon={<Book size={24} />} label="Docs" isDirty={isDirty} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
             </nav>
             <div className="mt-auto flex flex-col gap-2">
               {user ? (
@@ -393,11 +400,11 @@ export default function App() {
       {/* MOBILE NAV - NOW A FLEX SIBLING FOR DYNAMIC HEIGHT */}
       {location.pathname !== '/' && location.pathname !== '/terms' && location.pathname !== '/testing' && (
         <div className="md:hidden min-h-[4rem] h-auto mobile-nav bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex items-stretch justify-around z-[100] shrink-0 print:hidden safe-area-bottom">
-          <MobileNavButton active={location.pathname === '/dashboard'} path="/dashboard" icon={<Home size={20} />} label="Home" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
-          <MobileNavButton active={location.pathname === '/setup'} path="/setup" icon={<Settings size={20} />} label="Setup" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
-          <MobileNavButton active={location.pathname === '/walls'} path="/walls?view=iso" icon={<Box size={20} />} label="Editor" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
-          <MobileNavButton active={location.pathname === '/bom'} path="/bom" icon={<Table2 size={20} />} label="BOM" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
-          <MobileNavButton active={location.pathname === '/docs'} path="/docs" icon={<Book size={20} />} label="Docs" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
+          <MobileNavButton active={location.pathname === '/dashboard'} path="/dashboard" icon={<Home size={20} />} label="Home" isDirty={isDirty} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
+          <MobileNavButton active={location.pathname === '/setup'} path="/setup" icon={<Settings size={20} />} label="Setup" isDirty={isDirty} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
+          <MobileNavButton active={location.pathname === '/walls'} path="/walls?view=iso" icon={<Box size={20} />} label="Editor" isDirty={isDirty} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
+          <MobileNavButton active={location.pathname === '/bom'} path="/bom" icon={<Table2 size={20} />} label="BOM" isDirty={isDirty} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
+          <MobileNavButton active={location.pathname === '/docs'} path="/docs" icon={<Book size={20} />} label="Docs" isDirty={isDirty} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
         </div>
       )}
 
@@ -467,10 +474,10 @@ export default function App() {
   );
 }
 
-const NavButton = ({ active, onClick, icon, label, path, isDirty, onSave }: any) => {
+const NavButton = ({ active, onClick, icon, label, path, isDirty, canDiscard, onSave }: any) => {
   const navigate = useNavigate();
   const handleClick = () => {
-    if (isDirty) {
+    if (isDirty && !canDiscard) {
       const shouldSave = window.confirm('You have unsaved changes. Would you like to save before leaving?');
       if (shouldSave) {
         onSave().then(() => {
@@ -497,10 +504,10 @@ const NavButton = ({ active, onClick, icon, label, path, isDirty, onSave }: any)
   );
 };
 
-const MobileNavButton = ({ active, onClick, icon, label, path, isDirty, onSave }: any) => {
+const MobileNavButton = ({ active, onClick, icon, label, path, isDirty, canDiscard, onSave }: any) => {
   const navigate = useNavigate();
   const handleClick = () => {
-    if (isDirty) {
+    if (isDirty && !canDiscard) {
       const shouldSave = window.confirm('You have unsaved changes. Would you like to save before leaving?');
       if (shouldSave) {
         onSave().then(() => {

@@ -57,43 +57,22 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
       setIsLoading(true);
     }
 
-    // Refresh from database in background
-    const typesPromise = sheetTypeService.getSheetTypes();
-    
-    // Handle sheet types
-    let types = await typesPromise;
-    if (types.length === 0) {
-      await createDefaultSheetTypes();
-      types = await sheetTypeService.getSheetTypes();
-    }
+    // Refresh from database
+    await Promise.all([
+      sheetTypeService.ensureDefaultSheetsExist(),
+      expenseTemplateService.ensureHardwareItemsExist()
+    ]);
+
+    const [types, accs] = await Promise.all([
+      sheetTypeService.getSheetTypes(),
+      expenseTemplateService.getTemplates()
+    ]);
+
     setSheetTypes(types);
-
-    // Handle accessories
-    await expenseTemplateService.ensureHardwareItemsExist();
-    const accs = await expenseTemplateService.getTemplates();
     setAccessories(accs);
-
     setIsLoading(false);
   };
 
-  const createDefaultSheetTypes = async () => {
-    const defaults = [
-      { name: 'White Melamine 16mm', thickness: 16, price_per_sheet: 85.00 },
-      { name: 'White Melamine 18mm', thickness: 18, price_per_sheet: 95.00 },
-      { name: 'Plywood 18mm', thickness: 18, price_per_sheet: 120.00 },
-      { name: 'MDF 6mm', thickness: 6, price_per_sheet: 45.00 }
-    ];
-
-    for (const sheetType of defaults) {
-      await sheetTypeService.saveSheetType(
-        sheetType.name,
-        sheetType.thickness,
-        1220,
-        2440,
-        sheetType.price_per_sheet
-      );
-    }
-  };
 
   const handleAddSheet = async () => {
     if (!newSheetType.name.trim()) return;

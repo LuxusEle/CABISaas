@@ -75,7 +75,7 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
   const wallLimitsRef = useRef<any>(null);
 
   // Step Completion Logic
-  const isIdentityDone = project.name.trim().length > 0 && project.name !== 'New Kitchen';
+  const isIdentityDone = project.name.trim().length > 0;
   const isWallsDone = project.zones.length > 0 && project.zones.some(z => z.totalLength > 0);
   const isLimitsDone = isWallsDone && project.zones.every(z => (z.startLimit !== undefined && z.endLimit !== undefined) || (z.startLimit === 0 && z.endLimit === z.totalLength));
   const isConstructionDone = (() => {
@@ -503,7 +503,7 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
                                   <FileText className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-500 transition-colors" size={20} />
                                   <input 
                                     className="w-full p-6 pl-16 bg-white dark:bg-slate-800/40 rounded-3xl border-2 border-slate-100 dark:border-slate-800 focus:border-amber-500 outline-none dark:text-white font-bold text-lg shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none transition-all placeholder:text-slate-300 dark:placeholder:text-slate-600" 
-                                    placeholder="e.g., Lakeview Kitchen" 
+                                    placeholder="New Kitchen" 
                                     value={project.name} 
                                     onChange={e => setProject({ ...project, name: e.target.value })} 
                                   />

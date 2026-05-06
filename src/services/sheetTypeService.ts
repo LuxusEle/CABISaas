@@ -2,6 +2,7 @@ import { supabase } from './supabaseClient';
 import { SheetType } from '../types';
 
 let cachedSheetTypes: SheetType[] | null = null;
+let isInitializingSheets = false;
 
 export const sheetTypeService = {
   getCachedSheetTypes(): SheetType[] | null {
@@ -103,5 +104,52 @@ export const sheetTypeService = {
     }
     cachedSheetTypes = null; // Clear cache
     return true;
+  },
+
+  async ensureDefaultSheetsExist(): Promise<void> {
+    if (isInitializingSheets) return;
+    isInitializingSheets = true;
+
+    try {
+      const existing = await this.getSheetTypes();
+      
+      // Cleanup duplicates (same name and thickness)
+      const seen = new Set<string>();
+      const duplicates: string[] = [];
+      for (const item of existing) {
+        const key = `${item.name}-${item.thickness}`;
+        if (seen.has(key)) {
+          duplicates.push(item.id);
+        } else {
+          seen.add(key);
+        }
+      }
+
+      if (duplicates.length > 0) {
+        await Promise.all(duplicates.map(id => this.deleteSheetType(id)));
+      }
+
+      const refreshed = duplicates.length > 0 ? await this.getSheetTypes() : existing;
+      if (refreshed.length > 0) return;
+
+      const defaults = [
+        { name: 'Shutter', thickness: 16, price_per_sheet: 0.00 },
+        { name: 'Face', thickness: 18, price_per_sheet: 0.00 },
+        { name: 'Plywood', thickness: 18, price_per_sheet: 0.00 },
+        { name: 'MDF 6mm', thickness: 6, price_per_sheet: 0.00 }
+      ];
+
+      for (const sheetType of defaults) {
+        await this.saveSheetType(
+          sheetType.name,
+          sheetType.thickness,
+          1220,
+          2440,
+          sheetType.price_per_sheet
+        );
+      }
+    } finally {
+      isInitializingSheets = false;
+    }
   }
 };
