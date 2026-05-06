@@ -104,22 +104,31 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
     }
   }, [location.search]);
 
-  // Load user's previous logo on mount
+  // Load user's previous profile (logo & company) on mount
   useEffect(() => {
-    const loadUserLogo = async () => {
+    const loadUserProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user && !project.settings.logoUrl) {
-        const savedLogo = await logoService.getUserLogo(user.id);
-        if (savedLogo) {
-          setLogoPreview(savedLogo);
+      if (user) {
+        const { profileService } = await import('../services/profileService');
+        const profile = await profileService.getProfile(user.id);
+        
+        if (profile) {
+          if (profile.logo_url) {
+            setLogoPreview(profile.logo_url);
+          }
+          
           setProject(prev => ({
             ...prev,
-            settings: { ...prev.settings, logoUrl: savedLogo }
+            company: profile.company_name || prev.company,
+            settings: { 
+              ...prev.settings, 
+              logoUrl: profile.logo_url || prev.settings.logoUrl 
+            }
           }));
         }
       }
     };
-    loadUserLogo();
+    loadUserProfile();
     
     // Check if user is Pro
     if (isUserPro !== undefined) {
@@ -476,7 +485,10 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
                             </h4>
                             <div className="space-y-3">
                               <label className="text-[11px] font-black uppercase text-slate-400 tracking-widest">Company Name</label>
-                              <input className="w-full p-6 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border-2 border-transparent focus:border-amber-500 outline-none dark:text-white font-bold text-xl shadow-inner transition-all" placeholder="Your Business" value={project.company} onChange={e => setProject({ ...project, company: e.target.value })} />
+                              <div className="w-full p-6 bg-slate-50/50 dark:bg-slate-800/30 rounded-2xl border-2 border-slate-100 dark:border-slate-800 dark:text-white font-bold text-xl shadow-inner transition-all flex items-center justify-between group">
+                                <span>{project.company || 'Not Set'}</span>
+                                <span className="text-[10px] text-amber-500 font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Linked to Profile</span>
+                              </div>
                             </div>
 
                             <div className="space-y-3">
@@ -494,12 +506,12 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
                                     <div className="w-20 h-20 bg-white dark:bg-slate-800 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-xl">
                                       <Upload size={32} className="opacity-20" />
                                     </div>
-                                    <p className="text-xs font-bold uppercase tracking-widest">Drop your logo here</p>
+                                    <p className="text-xs font-bold uppercase tracking-widest">Profile Logo</p>
                                   </div>
                                 )}
                                 <input ref={fileInputRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" id="logo-wizard" />
                                 <label htmlFor="logo-wizard" className="px-10 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[11px] font-black rounded-full cursor-pointer hover:scale-105 transition-transform shadow-xl uppercase tracking-[0.2em]">
-                                  {isUploadingLogo ? 'UPLOADING...' : 'SELECT IMAGE'}
+                                  {isUploadingLogo ? 'UPLOADING...' : 'CHANGE PROFILE LOGO'}
                                 </label>
                               </div>
                             </div>
