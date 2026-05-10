@@ -203,7 +203,7 @@ export const projectService = {
   async getAllProjectsAdmin(): Promise<{ data: any[] | null; error: any }> {
     const { data, error } = await supabase
       .from('projects')
-      .select('id, name, designer, company, updated_at, user_id')
+      .select('id, name, designer, company, updated_at, user_id, settings, zones')
       .order('updated_at', { ascending: false });
 
     if (error) return { data: null, error };
