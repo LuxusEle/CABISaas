@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
-import { Home, Box, Moon, Sun, Table2, Settings, LayoutDashboard, Wrench, CreditCard, Book, ChevronLeft, Save, ArrowRight } from 'lucide-react';
+import { Home, Box, Moon, Sun, Table2, Settings, LayoutDashboard, Wrench, CreditCard, Book, ChevronLeft, Save, ArrowRight, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Screen, Project } from './types';
 import { GlobalProjectProgress } from './components/GlobalProjectProgress';
@@ -25,6 +25,8 @@ import ScreenBOMReport from './screens/ScreenBOMReport';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import { track } from '@vercel/analytics';
+import ScreenAdminDashboard from './screens/ScreenAdminDashboard';
+import { UserProfile, profileService } from './services/profileService';
 
 
 // --- PROTECTED ROUTE COMPONENT ---
@@ -67,6 +69,7 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>(Screen.LANDING);
   const [project, setProject] = useState<Project>(createNewProject());
   const [user, setUser] = useState<User | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isUserPro, setIsUserPro] = useState(false);
 
   // Check subscription status
@@ -105,8 +108,13 @@ export default function App() {
       const { user } = await authService.getCurrentUser();
       setUser(user);
 
-      // If user is logged in, load their saved logo
+      // If user is logged in, load their saved logo and profile
       if (user) {
+        // Load Profile
+        profileService.getProfile(user.id).then(profile => {
+          if (profile) setUserProfile(profile);
+        });
+
         const savedLogo = await logoService.getUserLogo(user.id);
         if (savedLogo) {
           setProject(prev => {
@@ -126,9 +134,17 @@ export default function App() {
     checkAuth();
 
     // Listen to auth changes
-    const subscription = authService.onAuthStateChange((user) => {
-      setUser(user);
-      // If user logged out and on a protected page, redirect to landing
+      const subscription = authService.onAuthStateChange((user) => {
+        setUser(user);
+        if (user) {
+          profileService.getProfile(user.id).then(profile => {
+            if (profile) setUserProfile(profile);
+          });
+        } else {
+          setUserProfile(null);
+        }
+
+        // If user logged out and on a protected page, redirect to landing
       const protectedPaths = ['/dashboard', '/setup', '/walls', '/bom'];
       if (!user && protectedPaths.includes(location.pathname)) {
         navigate('/');
@@ -315,6 +331,9 @@ export default function App() {
               <NavButton active={location.pathname === '/bom'} path="/bom" icon={<Table2 size={22} />} label="Reports & BOM" isDirty={isDirty} isExpanded={isSidebarExpanded} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
               <NavButton active={location.pathname === '/pricing'} path="/pricing" icon={<CreditCard size={22} />} label="Subscription" isDirty={isDirty} isExpanded={isSidebarExpanded} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
               <NavButton active={location.pathname === '/docs'} path="/docs" icon={<Book size={22} />} label="Documentation" isDirty={isDirty} isExpanded={isSidebarExpanded} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
+              {userProfile?.role === 'admin' && (
+                <NavButton active={location.pathname === '/admin'} path="/admin" icon={<ShieldCheck size={22} />} label="Admin Console" isDirty={isDirty} isExpanded={isSidebarExpanded} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
+              )}
             </nav>
             <div className="mt-auto flex flex-col gap-2 w-full px-3">
               {user ? (
@@ -482,6 +501,22 @@ export default function App() {
             <Route path="/bom" element={
               <ProtectedRoute user={user} loading={authLoading}>
                 <ScreenBOMReport project={project} setProject={setProject} isUserPro={isUserPro} />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin" element={
+              <ProtectedRoute user={user} loading={authLoading}>
+                {userProfile?.role === 'admin' ? (
+                  <ScreenAdminDashboard 
+                    onLoadProject={(p) => {
+                      const fixed = ensureProjectSettings(p);
+                      lastSavedProjectRef.current = JSON.stringify(fixed);
+                      setProject(fixed);
+                      navigate('/walls?view=iso');
+                    }} 
+                  />
+                ) : (
+                  <Navigate to="/dashboard" replace />
+                )}
               </ProtectedRoute>
             } />
             <Route path="/pricing" element={
