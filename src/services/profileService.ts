@@ -54,5 +54,24 @@ export const profileService = {
       console.error('Error in updateProfile:', error);
       return false;
     }
+  },
+
+  async getAllProfilesAdmin(): Promise<UserProfile[] | null> {
+    try {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .order('updated_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching all profiles:', error);
+        return null;
+      }
+
+      return data as UserProfile[];
+    } catch (error) {
+      console.error('Error in getAllProfilesAdmin:', error);
+      return null;
+    }
   }
 };
