@@ -66,4 +66,32 @@ export const authService = {
 
     return subscription;
   },
+
+  /**
+   * Verify OTP code for signup or login
+   */
+  async verifyOtp(email: string, token: string, type: 'signup' | 'invite' | 'magiclink' | 'recovery' | 'email_change' | 'email' = 'signup'): Promise<AuthResponse> {
+    const { data, error } = await supabase.auth.verifyOtp({
+      email,
+      token,
+      type,
+    });
+
+    return {
+      user: data.user,
+      session: data.session,
+      error,
+    };
+  },
+
+  /**
+   * Resend OTP code
+   */
+  async resendOtp(email: string, type: 'signup' | 'email_change' = 'signup'): Promise<{ error: AuthError | null }> {
+    const { error } = await supabase.auth.resend({
+      email,
+      type,
+    });
+    return { error };
+  },
 };
