@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Mail, Lock, Loader, LogOut, User as UserIcon, Sparkles, Building2, Phone, ArrowRight, CheckCircle2, Upload } from 'lucide-react';
 import { authService } from '../services/authService';
 import type { User } from '@supabase/supabase-js';
+import { track } from '@vercel/analytics';
 
 interface AuthModalProps {
   onClose: () => void;
@@ -80,6 +81,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
         if (mode === 'signup' && !result.session) {
           setShowOtp(true);
         } else {
+          if (mode === 'signup') {
+            track('registration_completed', { method: 'password' });
+          }
           onSuccess();
         }
       }
@@ -100,6 +104,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
       if (result.error) {
         setError(result.error.message);
       } else {
+        track('registration_confirmed', { method: 'otp' });
         onSuccess();
       }
     } catch (err: any) {
