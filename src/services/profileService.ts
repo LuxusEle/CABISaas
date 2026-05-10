@@ -5,6 +5,7 @@ export interface UserProfile {
   company_name: string;
   phone: string;
   logo_url?: string;
+  role: 'user' | 'admin';
   updated_at: string;
 }
 
