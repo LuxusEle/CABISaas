@@ -129,5 +129,32 @@ export const feedbackService = {
     }
 
     return data || [];
+  },
+
+  async getAllFeedbackAdmin(): Promise<Feedback[]> {
+    const { data, error } = await supabase
+      .from('feedback')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching admin feedback:', error);
+      return [];
+    }
+
+    return data || [];
+  },
+
+  async updateFeedbackStatus(id: string, status: Feedback['status']): Promise<boolean> {
+    const { error } = await supabase
+      .from('feedback')
+      .update({ status })
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error updating feedback status:', error);
+      return false;
+    }
+    return true;
   }
 };
