@@ -572,8 +572,8 @@ export default function App() {
         </div>
       )}
 
-      {/* Help Button - Available on all screens except Editor */}
-      {location.pathname !== '/walls' && <HelpButton />}
+      {/* Help Button - Available on all screens */}
+      <HelpButton />
     </div>
   );
 }

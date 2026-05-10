@@ -3,14 +3,7 @@ import { HelpCircle, X, Send, MessageSquare, Bug, Lightbulb, AlertCircle, HelpCi
 import { feedbackService } from '../services/feedbackService';
 import html2canvas from 'html2canvas';
 
-const ROTATING_PHRASES = [
-  "Need a new feature?",
-  "Give us your suggestions",
-  "Have an idea?",
-  "Report an issue",
-  "We're listening",
-  "Help us improve"
-];
+const ROTATING_PHRASES: string[] = [];
 
 const FEEDBACK_TYPES = [
   { id: 'suggestion', label: 'Suggestion', icon: Lightbulb, color: 'text-amber-500' },
@@ -57,31 +50,7 @@ export const HelpButton: React.FC = () => {
     return () => window.removeEventListener('setHelpButtonVisibility', handleVisibility);
   }, []);
 
-  // Rotate phrases every 6 seconds
-  useEffect(() => {
-    const showTimer = setInterval(() => {
-      setShowPhrase(true);
-      // Hide after 5 seconds
-      setTimeout(() => {
-        setShowPhrase(false);
-        // Move to next phrase after hiding (1 second transition)
-        setTimeout(() => {
-          setCurrentPhraseIndex((prev) => (prev + 1) % ROTATING_PHRASES.length);
-        }, 1000);
-      }, 3000);
-    }, 4000);
-
-    // Show first phrase after 3 seconds
-    const initialTimer = setTimeout(() => {
-      setShowPhrase(true);
-      setTimeout(() => setShowPhrase(false), 5000);
-    }, 3000);
-
-    return () => {
-      clearInterval(showTimer);
-      clearTimeout(initialTimer);
-    };
-  }, []);
+  // Rotate phrases removed as per user request
 
   // Screenshot state
   const [screenshot, setScreenshot] = useState<string | null>(null);
@@ -387,54 +356,36 @@ export const HelpButton: React.FC = () => {
 
   return (
     <>
-      {/* Camera Button */}
-      <div className="help-button-container">
+      <div className="help-button-container fixed bottom-6 right-6 z-50 flex items-center gap-3 print:hidden">
+        {/* Camera Button */}
         <button
           onClick={captureScreenshot}
           disabled={isCapturing}
-          className="fixed bottom-36 md:bottom-24 right-6 z-50 w-10 h-10 md:w-12 md:h-12 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-500 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center group print:hidden"
+          className="w-12 h-12 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-500 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center group"
           aria-label="Take Screenshot"
           title="Report an issue with screenshot"
         >
           {isCapturing ? (
-            <div className="w-4 h-4 md:w-5 md:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
           ) : (
-            <Camera className="w-4 h-4 md:w-5 md:h-5 group-hover:scale-110 transition-transform" />
+            <Camera className="w-5 h-5 group-hover:scale-110 transition-transform" />
           )}
         </button>
-      </div>
 
-      {/* Help Button with Rotating Phrase */}
-      <div className="help-button-container">
-        <div className="fixed bottom-20 md:bottom-6 right-6 z-50 flex items-center gap-2 md:gap-3 print:hidden">
-          {/* Rotating Phrase - Expands from right to left */}
-          <div
-            className={`overflow-hidden transition-all duration-1000 ease-out ${
-              showPhrase ? 'max-w-[200px] md:max-w-[320px] opacity-100 translate-x-0' : 'max-w-0 opacity-0 translate-x-4'
-            }`}
-          >
-            <div className="bg-white dark:bg-slate-800 pl-3 pr-4 py-1.5 md:py-2.5 rounded-full shadow-xl border-l-4 border-amber-500 whitespace-nowrap flex items-center gap-2">
-              <span className="w-1.5 h-1.5 md:w-2 md:h-2 bg-amber-500 rounded-full animate-pulse flex-shrink-0"></span>
-              <span className="text-[10px] md:text-sm font-bold text-slate-800 dark:text-slate-200">
-                {ROTATING_PHRASES[currentPhraseIndex]}
-              </span>
-              <span className="text-[8px] md:text-xs text-amber-600 dark:text-amber-400 font-medium ml-1">→</span>
-            </div>
-          </div>
-          <button
-            onClick={() => {
-              setIsAnnotating(false);
-              setScreenshot(null);
-              setFinalScreenshot(null);
-              setAnnotations([]);
-              setIsOpen(true);
-            }}
-            className="w-12 h-12 md:w-14 md:h-14 bg-amber-500 hover:bg-amber-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center group"
-            aria-label="Help & Feedback"
-          >
-            <HelpCircle className="w-6 h-6 md:w-7 md:h-7 group-hover:scale-110 transition-transform" />
-          </button>
-        </div>
+        {/* Support Button */}
+        <button
+          onClick={() => {
+            setIsAnnotating(false);
+            setScreenshot(null);
+            setFinalScreenshot(null);
+            setAnnotations([]);
+            setIsOpen(true);
+          }}
+          className="w-12 h-12 md:w-14 md:h-14 bg-amber-500 hover:bg-amber-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center group"
+          aria-label="Help & Feedback"
+        >
+          <HelpCircle className="w-6 h-6 md:w-7 md:h-7 group-hover:scale-110 transition-transform" />
+        </button>
       </div>
 
       {/* Feedback Modal */}
