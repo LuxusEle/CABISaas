@@ -14,6 +14,7 @@ export interface ExpenseTemplate {
 }
 
 let cachedTemplates: ExpenseTemplate[] | null = null;
+let isInitializingHardware = false;
 
 export const expenseTemplateService = {
   getCachedTemplates(): ExpenseTemplate[] | null {
@@ -139,28 +140,51 @@ export const expenseTemplateService = {
   },
 
   async ensureHardwareItemsExist(): Promise<void> {
-    // Default hardware items - only created if they don't already exist in database
-    // Users can edit or delete these after they're created
-    const hardwareItems = [
-      { name: 'Soft-Close Hinge', amount: 5.00 },
-      { name: 'Drawer Slide (Pair)', amount: 15.00 },
-      { name: 'Adjustable Leg', amount: 2.00 },
-      { name: 'Handle/Knob', amount: 4.00 },
-      { name: 'Wall Hanger (Pair)', amount: 6.00 },
-      { name: 'Installation Nail', amount: 0.10 },
-      { name: 'Granite', amount: 0.00 },
-      { name: 'Tile', amount: 0.00 }
-    ];
+    if (isInitializingHardware) return;
+    isInitializingHardware = true;
 
-    const existing = cachedTemplates || await this.getTemplates();
+    try {
+      // Default hardware items - only created if they don't already exist in database
+      const hardwareItems = [
+        { name: 'Soft-Close Hinge', amount: 0.00 },
+        { name: 'Drawer Slide (Pair)', amount: 0.00 },
+        { name: 'Adjustable Leg', amount: 0.00 },
+        { name: 'Handle/Knob', amount: 0.00 },
+        { name: 'Wall Hanger (Pair)', amount: 0.00 },
+        { name: 'Installation Nail', amount: 0.00 },
+        { name: 'Granite', amount: 0.00 },
+        { name: 'Tile', amount: 0.00 }
+      ];
 
-    for (const item of hardwareItems) {
-      if (!existing.find(e => e.name === item.name)) {
-        const width = item.name === 'Tile' ? 600 : undefined;
-        const length = item.name === 'Tile' ? 600 : undefined;
-        const unit = item.name === 'Tile' ? 'mm2' : undefined;
-        await this.saveTemplate(item.name, item.amount, width, length, unit || 'mm2');
+      const existing = await this.getTemplates();
+
+      // Cleanup duplicates by name for this user
+      const seen = new Set<string>();
+      const duplicates: string[] = [];
+      for (const item of existing) {
+        if (seen.has(item.name)) {
+          duplicates.push(item.id);
+        } else {
+          seen.add(item.name);
+        }
       }
+
+      if (duplicates.length > 0) {
+        await Promise.all(duplicates.map(id => this.deleteTemplate(id)));
+      }
+
+      const refreshed = duplicates.length > 0 ? await this.getTemplates() : existing;
+
+      for (const item of hardwareItems) {
+        if (!refreshed.find(e => e.name === item.name)) {
+          const width = item.name === 'Tile' ? 600 : undefined;
+          const length = item.name === 'Tile' ? 600 : undefined;
+          const unit = item.name === 'Tile' ? 'mm2' : undefined;
+          await this.saveTemplate(item.name, item.amount, width, length, unit || 'mm2');
+        }
+      }
+    } finally {
+      isInitializingHardware = false;
     }
   }
 };

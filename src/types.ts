@@ -56,6 +56,13 @@ export interface CostSettings {
   expenses?: AdditionalExpense[];
 }
 
+export interface ProjectProgress {
+  dxfDownloaded?: boolean;
+  excelDownloaded?: boolean;
+  reportViewed?: boolean;
+  quotationGenerated?: boolean;
+}
+
 // Global Project Settings
 export interface ProjectSettings {
   // Appearance
@@ -128,7 +135,9 @@ export interface ProjectSettings {
     includeCooker: boolean;
     includeDrawers: boolean;
   };
+  constructionType?: string;
   completedSteps?: string[];
+  progress?: ProjectProgress;
 }
 
 export interface Obstacle {

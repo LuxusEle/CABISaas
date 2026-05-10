@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
-import { Home, Box, Moon, Sun, Table2, Settings, LayoutDashboard, Wrench, CreditCard, Book } from 'lucide-react';
+import { Home, Box, Moon, Sun, Table2, Settings, LayoutDashboard, Wrench, CreditCard, Book, ChevronLeft, Save, ArrowRight } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Screen, Project } from './types';
+import { GlobalProjectProgress } from './components/GlobalProjectProgress';
 import { createNewProject, ensureProjectSettings } from './services/bomService';
 import { authService } from './services/authService';
 import { subscriptionService } from './services/subscriptionService';
@@ -57,6 +59,7 @@ export default function App() {
     if (isDark) document.documentElement.classList.add('dark');
     else document.documentElement.classList.remove('dark');
   }, [isDark]);
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
 
   const [screen, setScreen] = useState<Screen>(Screen.LANDING);
   const [project, setProject] = useState<Project>(createNewProject());
@@ -229,16 +232,23 @@ export default function App() {
 
   const handleStartProject = () => {
     requireAuth(async () => {
-      // Fetch user's saved logo to use for the new project
-      let logoUrl: string | undefined;
+      // Fetch user's saved profile to use for the new project
+      let profileData: any = null;
       if (user) {
-        logoUrl = await logoService.getUserLogo(user.id) || undefined;
+        const { profileService } = await import('./services/profileService');
+        profileData = await profileService.getProfile(user.id);
       }
-      const newProj = createNewProject(logoUrl);
+      
+      const newProj = createNewProject(profileData?.logo_url || undefined);
+      if (profileData) {
+        newProj.company = profileData.company_name || newProj.company;
+      }
       
       // Just set state and navigate - do NOT save to database yet
+      // This ensures isDirty is false because project matches lastSavedProjectRef
       lastSavedProjectRef.current = JSON.stringify(newProj);
       setProject(newProj);
+      setIsDirty(false);
       navigate('/setup?step=project');
     });
   };
@@ -268,41 +278,142 @@ export default function App() {
       <div className="flex-1 flex overflow-hidden">
         {/* DESKTOP SIDEBAR - Hidden on landing page */}
         {(location.pathname !== '/' && location.pathname !== '/terms' && location.pathname !== '/testing' && (location.pathname !== '/docs' || user)) && (
-          <aside className="hidden md:flex w-20 flex-col items-center py-6 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 shrink-0 z-50 print:hidden">
-            <div className="mb-8 text-amber-500"><LayoutDashboard size={28} /></div>
-            <nav className="flex flex-col gap-6 w-full px-2">
-              <NavButton active={location.pathname === '/dashboard'} path="/dashboard" icon={<Home size={24} />} label="Home" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
-              <NavButton active={location.pathname === '/setup'} path="/setup" icon={<Settings size={24} />} label="Setup" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
-              <NavButton active={location.pathname === '/walls'} path="/walls?view=iso" icon={<Box size={24} />} label="Walls" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
-              <NavButton active={location.pathname === '/bom'} path="/bom" icon={<Table2 size={24} />} label="BOM" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
-              <NavButton active={location.pathname === '/pricing'} path="/pricing" icon={<CreditCard size={24} />} label="Pricing" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
-              <NavButton active={location.pathname === '/docs'} path="/docs" icon={<Book size={24} />} label="Docs" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
+          <motion.aside 
+            initial={false}
+            animate={{ width: isSidebarExpanded ? 240 : 80 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            className="hidden md:flex flex-col items-center py-6 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 shrink-0 z-50 print:hidden overflow-hidden"
+          >
+            <div className={`w-full px-4 mb-8 flex items-center ${isSidebarExpanded ? 'justify-between' : 'justify-center'}`}>
+              {isSidebarExpanded && (
+                <motion.div 
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="font-black text-lg tracking-tighter italic"
+                >
+                  CAB<span className="text-amber-500">ENGINE</span>
+                </motion.div>
+              )}
+              <button 
+                onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
+                className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-amber-500 transition-all shadow-sm"
+              >
+                {isSidebarExpanded ? <ChevronLeft size={20} /> : <LayoutDashboard size={24} className="text-amber-500" />}
+              </button>
+            </div>
+
+            <nav className="flex flex-col gap-3 w-full px-3">
+              <NavButton active={location.pathname === '/dashboard'} path="/dashboard" icon={<Home size={22} />} label="Dashboard" isDirty={isDirty} isExpanded={isSidebarExpanded} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
+              <NavButton active={location.pathname === '/setup'} path="/setup" icon={<Settings size={22} />} label="Project Setup" isDirty={isDirty} isExpanded={isSidebarExpanded} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
+              <NavButton active={location.pathname === '/walls'} path="/walls?view=iso" icon={<Box size={22} />} label="3D Design Studio" isDirty={isDirty} isExpanded={isSidebarExpanded} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
+              <NavButton active={location.pathname === '/bom'} path="/bom" icon={<Table2 size={22} />} label="Reports & BOM" isDirty={isDirty} isExpanded={isSidebarExpanded} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
+              <NavButton active={location.pathname === '/pricing'} path="/pricing" icon={<CreditCard size={22} />} label="Subscription" isDirty={isDirty} isExpanded={isSidebarExpanded} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
+              <NavButton active={location.pathname === '/docs'} path="/docs" icon={<Book size={22} />} label="Documentation" isDirty={isDirty} isExpanded={isSidebarExpanded} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
             </nav>
-            <div className="mt-auto flex flex-col gap-2">
+            <div className="mt-auto flex flex-col gap-2 w-full px-3">
               {user ? (
                 <button
                   onClick={() => setShowAuthModal(true)}
-                  className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-amber-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-                  title={user.email}
+                  className={`flex items-center gap-4 p-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-amber-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all w-full ${!isSidebarExpanded ? 'justify-center' : ''}`}
+                  title={user.email || ''}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+                  <div className="shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+                  </div>
+                  {isSidebarExpanded && (
+                    <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xs font-bold truncate">
+                      {user.email?.split('@')[0]}
+                    </motion.span>
+                  )}
                 </button>
               ) : (
                 <button
                   onClick={() => setShowAuthModal(true)}
-                  className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                  className={`flex items-center gap-4 p-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all w-full ${!isSidebarExpanded ? 'justify-center' : ''}`}
                   title="Login"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+                  <div className="shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+                  </div>
+                  {isSidebarExpanded && <span className="text-xs font-bold">Login</span>}
                 </button>
               )}
-              <button onClick={toggleTheme} className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-amber-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">{isDark ? <Sun size={20} /> : <Moon size={20} />}</button>
+              <button 
+                onClick={toggleTheme} 
+                className={`flex items-center gap-4 p-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-amber-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all w-full ${!isSidebarExpanded ? 'justify-center' : ''}`}
+              >
+                <div className="shrink-0">
+                  {isDark ? <Sun size={20} /> : <Moon size={20} />}
+                </div>
+                {isSidebarExpanded && <span className="text-xs font-bold">{isDark ? 'Light Mode' : 'Dark Mode'}</span>}
+              </button>
             </div>
-          </aside>
+          </motion.aside>
         )}
 
         {/* MAIN */}
         <main className="flex-1 flex flex-col overflow-hidden relative" id="main-content">
+          {/* Project Command Center - Only visible in project screens */}
+          {['/setup', '/walls', '/bom'].includes(location.pathname) && project.id.length > 20 && (
+            <div className="h-20 shrink-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-8 z-40 print:hidden transition-all duration-500">
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                  <h1 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-[0.1em] leading-none">
+                    {project.name || 'Untitled Kitchen'}
+                  </h1>
+                </div>
+                <p className="text-[10px] font-bold text-slate-400 italic uppercase tracking-widest pl-4">
+                  {project.company || 'Standard Config'}
+                </p>
+              </div>
+              
+              <GlobalProjectProgress 
+                project={project}
+                onNavigate={(screen) => {
+                  const pathMap: Record<string, string> = {
+                    [Screen.PROJECT_SETUP]: '/setup',
+                    [Screen.WALL_EDITOR]: '/walls?view=iso',
+                    [Screen.BOM_REPORT]: '/bom'
+                  };
+                  navigate(pathMap[screen] || '/dashboard');
+                }}
+                isDark={isDark}
+              />
+
+              <div className="flex items-center gap-4">
+                <div className="h-8 w-[1px] bg-slate-200 dark:bg-slate-800 mx-2" />
+                <button 
+                  onClick={() => handleSaveProject(project)}
+                  disabled={!isDirty || isSaving}
+                  className={`
+                    px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2
+                    ${isDirty 
+                      ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20 hover:scale-105 active:scale-95' 
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-400 opacity-60 cursor-default'
+                    }
+                  `}
+                >
+                  {isSaving ? (
+                    <>
+                      <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Saving
+                    </>
+                  ) : isDirty ? (
+                    <>
+                      <Save size={14} />
+                      Sync Project
+                    </>
+                  ) : (
+                    <>
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                      All Synced
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
           <Routes>
             <Route path="/" element={
               <LandingPage
@@ -393,11 +504,11 @@ export default function App() {
       {/* MOBILE NAV - NOW A FLEX SIBLING FOR DYNAMIC HEIGHT */}
       {location.pathname !== '/' && location.pathname !== '/terms' && location.pathname !== '/testing' && (
         <div className="md:hidden min-h-[4rem] h-auto mobile-nav bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex items-stretch justify-around z-[100] shrink-0 print:hidden safe-area-bottom">
-          <MobileNavButton active={location.pathname === '/dashboard'} path="/dashboard" icon={<Home size={20} />} label="Home" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
-          <MobileNavButton active={location.pathname === '/setup'} path="/setup" icon={<Settings size={20} />} label="Setup" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
-          <MobileNavButton active={location.pathname === '/walls'} path="/walls?view=iso" icon={<Box size={20} />} label="Editor" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
-          <MobileNavButton active={location.pathname === '/bom'} path="/bom" icon={<Table2 size={20} />} label="BOM" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
-          <MobileNavButton active={location.pathname === '/docs'} path="/docs" icon={<Book size={20} />} label="Docs" isDirty={isDirty} onSave={() => handleSaveProject(project)} />
+          <MobileNavButton active={location.pathname === '/dashboard'} path="/dashboard" icon={<Home size={20} />} label="Home" isDirty={isDirty} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
+          <MobileNavButton active={location.pathname === '/setup'} path="/setup" icon={<Settings size={20} />} label="Setup" isDirty={isDirty} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
+          <MobileNavButton active={location.pathname === '/walls'} path="/walls?view=iso" icon={<Box size={20} />} label="Editor" isDirty={isDirty} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
+          <MobileNavButton active={location.pathname === '/bom'} path="/bom" icon={<Table2 size={20} />} label="BOM" isDirty={isDirty} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
+          <MobileNavButton active={location.pathname === '/docs'} path="/docs" icon={<Book size={20} />} label="Docs" isDirty={isDirty} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
         </div>
       )}
 
@@ -461,16 +572,16 @@ export default function App() {
         </div>
       )}
 
-      {/* Help Button - Available on all screens except Editor */}
-      {location.pathname !== '/walls' && <HelpButton />}
+      {/* Help Button - Available on all screens */}
+      <HelpButton />
     </div>
   );
 }
 
-const NavButton = ({ active, onClick, icon, label, path, isDirty, onSave }: any) => {
+const NavButton = ({ active, onClick, icon, label, path, isDirty, canDiscard, isExpanded, onSave }: any) => {
   const navigate = useNavigate();
   const handleClick = () => {
-    if (isDirty) {
+    if (isDirty && !canDiscard) {
       const shouldSave = window.confirm('You have unsaved changes. Would you like to save before leaving?');
       if (shouldSave) {
         onSave().then(() => {
@@ -489,18 +600,45 @@ const NavButton = ({ active, onClick, icon, label, path, isDirty, onSave }: any)
   return (
     <button
       onClick={handleClick}
-      className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all w-full ${active ? 'bg-amber-600 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
-      title={label}
+      className={`flex items-center gap-4 p-3 rounded-xl transition-all w-full relative group ${
+        active 
+          ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' 
+          : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+      } ${!isExpanded ? 'justify-center' : ''}`}
+      title={!isExpanded ? label : ''}
     >
-      {icon}
+      <div className={`shrink-0 transition-transform duration-300 ${!isExpanded ? 'group-hover:scale-110' : ''}`}>
+        {icon}
+      </div>
+      
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.span
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -10 }}
+            transition={{ duration: 0.2 }}
+            className="text-sm font-bold truncate whitespace-nowrap"
+          >
+            {label}
+          </motion.span>
+        )}
+      </AnimatePresence>
+
+      {active && !isExpanded && (
+        <motion.div 
+          layoutId="active-indicator"
+          className="absolute left-0 w-1 h-6 bg-white rounded-r-full" 
+        />
+      )}
     </button>
   );
 };
 
-const MobileNavButton = ({ active, onClick, icon, label, path, isDirty, onSave }: any) => {
+const MobileNavButton = ({ active, onClick, icon, label, path, isDirty, canDiscard, onSave }: any) => {
   const navigate = useNavigate();
   const handleClick = () => {
-    if (isDirty) {
+    if (isDirty && !canDiscard) {
       const shouldSave = window.confirm('You have unsaved changes. Would you like to save before leaving?');
       if (shouldSave) {
         onSave().then(() => {
