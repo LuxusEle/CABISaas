@@ -29,6 +29,8 @@ export const HelpButton: React.FC = () => {
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [hasUnreadReply, setHasUnreadReply] = useState(false);
+  const [feedbackHistory, setFeedbackHistory] = useState<any[]>([]);
 
   // File attachment state
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
@@ -47,7 +49,25 @@ export const HelpButton: React.FC = () => {
       setIsHidden(!!e.detail);
     };
     window.addEventListener('setHelpButtonVisibility', handleVisibility);
-    return () => window.removeEventListener('setHelpButtonVisibility', handleVisibility);
+
+    // Fetch user feedback to check for replies
+    const checkReplies = async () => {
+      try {
+        const history = await feedbackService.getUserFeedback();
+        setFeedbackHistory(history);
+        setHasUnreadReply(history.some((f: any) => f.status === 'replied'));
+      } catch (err) {
+        console.error('Error checking replies:', err);
+      }
+    };
+
+    checkReplies();
+    const interval = setInterval(checkReplies, 30000); // Check every 30s
+
+    return () => {
+      window.removeEventListener('setHelpButtonVisibility', handleVisibility);
+      clearInterval(interval);
+    };
   }, []);
 
   // Rotate phrases removed as per user request
@@ -385,6 +405,12 @@ export const HelpButton: React.FC = () => {
           aria-label="Help & Feedback"
         >
           <HelpCircle className="w-6 h-6 md:w-7 md:h-7 group-hover:scale-110 transition-transform" />
+          
+          {hasUnreadReply && (
+            <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-white dark:border-slate-900 animate-bounce shadow-lg">
+              1
+            </span>
+          )}
         </button>
       </div>
 
@@ -416,6 +442,28 @@ export const HelpButton: React.FC = () => {
                 <X className="w-5 h-5 text-slate-500" />
               </button>
             </div>
+
+            {/* Notification Banner for Replies */}
+            {hasUnreadReply && (
+              <div className="mx-6 mt-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center gap-4 animate-pulse">
+                <div className="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center text-white shadow-lg shadow-amber-500/20 shrink-0">
+                  <AlertCircle size={20} />
+                </div>
+                <div className="flex-1">
+                  <p className="text-[10px] font-black text-amber-500 uppercase tracking-[0.2em]">Our Team Responded!</p>
+                  <p className="text-xs font-bold text-slate-900 dark:text-white mt-0.5">We've sent a detailed reply to your email address.</p>
+                </div>
+                <button 
+                  onClick={() => {
+                    // Mark local status as read for this session
+                    setHasUnreadReply(false);
+                  }}
+                  className="px-4 py-2 bg-amber-500 text-white text-[10px] font-black uppercase tracking-widest rounded-lg shadow-sm hover:shadow-md transition-all"
+                >
+                  Got it
+                </button>
+              </div>
+            )}
 
             {/* Success Message */}
             {isSuccess ? (

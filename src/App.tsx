@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
-import { Home, Box, Moon, Sun, Table2, Settings, LayoutDashboard, Wrench, CreditCard, Book, ChevronLeft, Save, ArrowRight } from 'lucide-react';
+import { Home, Box, Moon, Sun, Table2, Settings, LayoutDashboard, Wrench, CreditCard, Book, ChevronLeft, Save, ArrowRight, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Screen, Project } from './types';
 import { GlobalProjectProgress } from './components/GlobalProjectProgress';
@@ -22,6 +22,11 @@ import ScreenWallEditor from './screens/ScreenWallEditor';
 import ScreenHome from './screens/ScreenHome';
 import ScreenProjectSetup from './screens/ScreenProjectSetup';
 import ScreenBOMReport from './screens/ScreenBOMReport';
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
+import { track } from '@vercel/analytics';
+import ScreenAdminDashboard from './screens/ScreenAdminDashboard';
+import { UserProfile, profileService } from './services/profileService';
 
 
 // --- PROTECTED ROUTE COMPONENT ---
@@ -64,6 +69,7 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>(Screen.LANDING);
   const [project, setProject] = useState<Project>(createNewProject());
   const [user, setUser] = useState<User | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isUserPro, setIsUserPro] = useState(false);
 
   // Check subscription status
@@ -102,8 +108,13 @@ export default function App() {
       const { user } = await authService.getCurrentUser();
       setUser(user);
 
-      // If user is logged in, load their saved logo
+      // If user is logged in, load their saved logo and profile
       if (user) {
+        // Load Profile
+        profileService.getProfile(user.id).then(profile => {
+          if (profile) setUserProfile(profile);
+        });
+
         const savedLogo = await logoService.getUserLogo(user.id);
         if (savedLogo) {
           setProject(prev => {
@@ -123,9 +134,17 @@ export default function App() {
     checkAuth();
 
     // Listen to auth changes
-    const subscription = authService.onAuthStateChange((user) => {
-      setUser(user);
-      // If user logged out and on a protected page, redirect to landing
+      const subscription = authService.onAuthStateChange((user) => {
+        setUser(user);
+        if (user) {
+          profileService.getProfile(user.id).then(profile => {
+            if (profile) setUserProfile(profile);
+          });
+        } else {
+          setUserProfile(null);
+        }
+
+        // If user logged out and on a protected page, redirect to landing
       const protectedPaths = ['/dashboard', '/setup', '/walls', '/bom'];
       if (!user && protectedPaths.includes(location.pathname)) {
         navigate('/');
@@ -202,7 +221,7 @@ export default function App() {
     if (isSaving) return null;
     setIsSaving(true);
     console.log('Saving project...', projectToSave.name, projectToSave.id);
-    
+
     const isNew = projectToSave.id.length < 20; // Simple check for uuid() vs DB UUID
     try {
       const { data, error } = isNew
@@ -215,6 +234,9 @@ export default function App() {
         return null;
       } else if (data) {
         console.log('Project saved successfully!', data.id);
+        if (isNew) {
+          track('project_created', { name: projectToSave.name });
+        }
         const fixedData = ensureProjectSettings(data);
         lastSavedProjectRef.current = JSON.stringify(fixedData);
         setIsDirty(false);
@@ -238,12 +260,12 @@ export default function App() {
         const { profileService } = await import('./services/profileService');
         profileData = await profileService.getProfile(user.id);
       }
-      
+
       const newProj = createNewProject(profileData?.logo_url || undefined);
       if (profileData) {
         newProj.company = profileData.company_name || newProj.company;
       }
-      
+
       // Just set state and navigate - do NOT save to database yet
       // This ensures isDirty is false because project matches lastSavedProjectRef
       lastSavedProjectRef.current = JSON.stringify(newProj);
@@ -278,7 +300,7 @@ export default function App() {
       <div className="flex-1 flex overflow-hidden">
         {/* DESKTOP SIDEBAR - Hidden on landing page */}
         {(location.pathname !== '/' && location.pathname !== '/terms' && location.pathname !== '/testing' && (location.pathname !== '/docs' || user)) && (
-          <motion.aside 
+          <motion.aside
             initial={false}
             animate={{ width: isSidebarExpanded ? 240 : 80 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
@@ -286,7 +308,7 @@ export default function App() {
           >
             <div className={`w-full px-4 mb-8 flex items-center ${isSidebarExpanded ? 'justify-between' : 'justify-center'}`}>
               {isSidebarExpanded && (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   className="font-black text-lg tracking-tighter italic"
@@ -294,7 +316,7 @@ export default function App() {
                   CAB<span className="text-amber-500">ENGINE</span>
                 </motion.div>
               )}
-              <button 
+              <button
                 onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
                 className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-amber-500 transition-all shadow-sm"
               >
@@ -309,6 +331,9 @@ export default function App() {
               <NavButton active={location.pathname === '/bom'} path="/bom" icon={<Table2 size={22} />} label="Reports & BOM" isDirty={isDirty} isExpanded={isSidebarExpanded} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
               <NavButton active={location.pathname === '/pricing'} path="/pricing" icon={<CreditCard size={22} />} label="Subscription" isDirty={isDirty} isExpanded={isSidebarExpanded} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
               <NavButton active={location.pathname === '/docs'} path="/docs" icon={<Book size={22} />} label="Documentation" isDirty={isDirty} isExpanded={isSidebarExpanded} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
+              {userProfile?.role === 'admin' && (
+                <NavButton active={location.pathname === '/admin'} path="/admin" icon={<ShieldCheck size={22} />} label="Admin Console" isDirty={isDirty} isExpanded={isSidebarExpanded} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
+              )}
             </nav>
             <div className="mt-auto flex flex-col gap-2 w-full px-3">
               {user ? (
@@ -338,8 +363,8 @@ export default function App() {
                   {isSidebarExpanded && <span className="text-xs font-bold">Login</span>}
                 </button>
               )}
-              <button 
-                onClick={toggleTheme} 
+              <button
+                onClick={toggleTheme}
                 className={`flex items-center gap-4 p-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-amber-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all w-full ${!isSidebarExpanded ? 'justify-center' : ''}`}
               >
                 <div className="shrink-0">
@@ -367,8 +392,8 @@ export default function App() {
                   {project.company || 'Standard Config'}
                 </p>
               </div>
-              
-              <GlobalProjectProgress 
+
+              <GlobalProjectProgress
                 project={project}
                 onNavigate={(screen) => {
                   const pathMap: Record<string, string> = {
@@ -383,13 +408,13 @@ export default function App() {
 
               <div className="flex items-center gap-4">
                 <div className="h-8 w-[1px] bg-slate-200 dark:bg-slate-800 mx-2" />
-                <button 
+                <button
                   onClick={() => handleSaveProject(project)}
                   disabled={!isDirty || isSaving}
                   className={`
                     px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2
-                    ${isDirty 
-                      ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20 hover:scale-105 active:scale-95' 
+                    ${isDirty
+                      ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20 hover:scale-105 active:scale-95'
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-400 opacity-60 cursor-default'
                     }
                   `}
@@ -461,14 +486,14 @@ export default function App() {
             } />
             <Route path="/walls" element={
               <ProtectedRoute user={user} loading={authLoading}>
-                <ScreenWallEditor 
-                  project={project} 
-                  setProject={setProject} 
-                  setScreen={setScreen} 
-                  isDark={isDark} 
+                <ScreenWallEditor
+                  project={project}
+                  setProject={setProject}
+                  setScreen={setScreen}
+                  isDark={isDark}
                   isDirty={isDirty}
                   isSaving={isSaving}
-                  onSave={() => handleSaveProject(project)} 
+                  onSave={() => handleSaveProject(project)}
                   isUserPro={isUserPro}
                 />
               </ProtectedRoute>
@@ -476,6 +501,22 @@ export default function App() {
             <Route path="/bom" element={
               <ProtectedRoute user={user} loading={authLoading}>
                 <ScreenBOMReport project={project} setProject={setProject} isUserPro={isUserPro} />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin" element={
+              <ProtectedRoute user={user} loading={authLoading}>
+                {userProfile?.role === 'admin' ? (
+                  <ScreenAdminDashboard 
+                    onLoadProject={(p) => {
+                      const fixed = ensureProjectSettings(p);
+                      lastSavedProjectRef.current = JSON.stringify(fixed);
+                      setProject(fixed);
+                      navigate('/walls?view=iso');
+                    }} 
+                  />
+                ) : (
+                  <Navigate to="/dashboard" replace />
+                )}
               </ProtectedRoute>
             } />
             <Route path="/pricing" element={
@@ -574,6 +615,10 @@ export default function App() {
 
       {/* Help Button - Available on all screens */}
       <HelpButton />
+
+      {/* Vercel Analytics & Speed Insights */}
+      <Analytics />
+      <SpeedInsights />
     </div>
   );
 }
@@ -600,17 +645,16 @@ const NavButton = ({ active, onClick, icon, label, path, isDirty, canDiscard, is
   return (
     <button
       onClick={handleClick}
-      className={`flex items-center gap-4 p-3 rounded-xl transition-all w-full relative group ${
-        active 
-          ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' 
+      className={`flex items-center gap-4 p-3 rounded-xl transition-all w-full relative group ${active
+          ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20'
           : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-      } ${!isExpanded ? 'justify-center' : ''}`}
+        } ${!isExpanded ? 'justify-center' : ''}`}
       title={!isExpanded ? label : ''}
     >
       <div className={`shrink-0 transition-transform duration-300 ${!isExpanded ? 'group-hover:scale-110' : ''}`}>
         {icon}
       </div>
-      
+
       <AnimatePresence>
         {isExpanded && (
           <motion.span
@@ -626,9 +670,9 @@ const NavButton = ({ active, onClick, icon, label, path, isDirty, canDiscard, is
       </AnimatePresence>
 
       {active && !isExpanded && (
-        <motion.div 
+        <motion.div
           layoutId="active-indicator"
-          className="absolute left-0 w-1 h-6 bg-white rounded-r-full" 
+          className="absolute left-0 w-1 h-6 bg-white rounded-r-full"
         />
       )}
     </button>

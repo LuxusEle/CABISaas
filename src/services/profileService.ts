@@ -2,15 +2,18 @@ import { supabase } from './supabaseClient';
 
 export interface UserProfile {
   id: string;
+  email?: string;
   company_name: string;
   phone: string;
   logo_url?: string;
+  role: 'user' | 'admin';
   updated_at: string;
 }
 
 export const profileService = {
   async getProfile(userId: string): Promise<UserProfile | null> {
     try {
+      // ENSURING we use 'user_profiles' and NOT 'users'
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
@@ -19,7 +22,7 @@ export const profileService = {
 
       if (error) {
         if (error.code !== 'PGRST116') { // Not found error code
-          console.error('Error fetching profile:', error);
+          console.error('Error fetching profile from user_profiles:', error);
         }
         return null;
       }
@@ -44,7 +47,7 @@ export const profileService = {
         });
 
       if (error) {
-        console.error('Error updating profile:', error);
+        console.error('Error updating profile in user_profiles:', error);
         return false;
       }
 
@@ -52,6 +55,25 @@ export const profileService = {
     } catch (error) {
       console.error('Error in updateProfile:', error);
       return false;
+    }
+  },
+
+  async getAllProfilesAdmin(): Promise<UserProfile[] | null> {
+    try {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .order('updated_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching all profiles:', error);
+        return null;
+      }
+
+      return data as UserProfile[];
+    } catch (error) {
+      console.error('Error in getAllProfilesAdmin:', error);
+      return null;
     }
   }
 };

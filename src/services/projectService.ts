@@ -196,4 +196,24 @@ export const projectService = {
 
     return { error };
   },
+
+  /**
+   * Admin only: Get ALL projects from ALL users
+   */
+  async getAllProjectsAdmin(): Promise<{ data: any[] | null; error: any }> {
+    const { data, error } = await supabase
+      .from('projects')
+      .select('id, name, designer, company, updated_at, user_id, settings, zones')
+      .order('updated_at', { ascending: false });
+
+    if (error) return { data: null, error };
+
+    return {
+      data: data.map(row => ({
+        ...row,
+        owner_company: row.company || 'Unknown' // Fallback to project's own company field
+      })),
+      error: null
+    };
+  },
 };
