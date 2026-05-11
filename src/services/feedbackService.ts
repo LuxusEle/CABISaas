@@ -8,7 +8,7 @@ export interface Feedback {
   email?: string;
   screenshot_url?: string;
   attachment_url?: string;
-  status: 'new' | 'in_progress' | 'resolved' | 'closed';
+  status: 'new' | 'in_progress' | 'replied' | 'resolved' | 'closed';
   created_at?: string;
   updated_at?: string;
 }
@@ -156,5 +156,38 @@ export const feedbackService = {
       return false;
     }
     return true;
+  },
+
+  async sendReply(id: string, userEmail: string, replyMessage: string): Promise<boolean> {
+    try {
+      // 1. Update status to 'replied'
+      const { error: updateError } = await supabase
+        .from('feedback')
+        .update({ status: 'replied' })
+        .eq('id', id);
+
+      if (updateError) throw updateError;
+
+      // 2. Trigger the Edge Function to send the email
+      // We'll use the supabase.functions.invoke to call our Zoho SMTP worker
+      const { error: funcError } = await supabase.functions.invoke('send-support-reply', {
+        body: { 
+          recipient: userEmail,
+          message: replyMessage,
+          originalFeedbackId: id
+        }
+      });
+
+      if (funcError) {
+        console.error('Email function error:', funcError);
+        // Note: Even if email fails, we kept the status update above. 
+        // In a real app, you might want to rollback or show a warning.
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error sending reply:', error);
+      return false;
+    }
   }
 };

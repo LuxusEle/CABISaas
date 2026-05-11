@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, Box, ShieldCheck, Search, Filter, ArrowLeft, RefreshCw, TrendingUp, AlertCircle, CheckCircle2, Phone, Calendar, ArrowRight, LayoutGrid, Activity, ExternalLink, Download } from 'lucide-react';
+import { Users, Box, ShieldCheck, Search, Filter, ArrowLeft, RefreshCw, TrendingUp, AlertCircle, CheckCircle2, Phone, Calendar, ArrowRight, LayoutGrid, Activity, ExternalLink, Download, MessageSquare } from 'lucide-react';
 import { projectService } from '../services/projectService';
 import { profileService, UserProfile } from '../services/profileService';
 import { Button } from '../components/Button';
@@ -25,6 +25,9 @@ const ScreenAdminDashboard = ({ onLoadProject }: ScreenAdminDashboardProps) => {
   const [selectedUserId, setSelectedUserId] = useState<string>('all');
   const [feedback, setFeedback] = useState<Feedback[]>([]);
   const [selectedUserFeedback, setSelectedUserFeedback] = useState<Feedback[]>([]);
+  const [replyText, setReplyText] = useState('');
+  const [replyingToId, setReplyingToId] = useState<string | null>(null);
+  const [isSendingReply, setIsSendingReply] = useState(false);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState<any>(null);
 
@@ -43,6 +46,34 @@ const ScreenAdminDashboard = ({ onLoadProject }: ScreenAdminDashboardProps) => {
     } finally {
       setLoadingProjectId(null);
     }
+  };
+
+  const handleSendReply = async (feedbackId: string) => {
+    if (!selectedProfile || !replyText.trim()) return;
+    
+    setIsSendingReply(true);
+    
+    if (!feedbackId || !selectedProfile.email) {
+      alert("No valid recipient or feedback ID found.");
+      setIsSendingReply(false);
+      return;
+    }
+
+    const success = await feedbackService.sendReply(feedbackId, selectedProfile.email, replyText);
+    
+    if (success) {
+      setReplyText('');
+      setReplyingToId(null);
+      // Refresh local data
+      const feedData = await feedbackService.getAllFeedbackAdmin();
+      setFeedback(feedData);
+      setSelectedUserFeedback(prev => 
+        prev.map(f => f.id === feedbackId ? { ...f, status: 'replied' } : f)
+      );
+    } else {
+      alert("Failed to send reply. Please check your SMTP settings.");
+    }
+    setIsSendingReply(false);
   };
 
   const handleUpdateFeedbackStatus = async (id: string, newStatus: any) => {
@@ -639,6 +670,71 @@ const ScreenAdminDashboard = ({ onLoadProject }: ScreenAdminDashboardProps) => {
                             )}
                           </div>
                         )}
+
+                      {/* Individual Message Reply Section */}
+                      <div className="mt-8 pt-8 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-2 h-2 rounded-full ${item.status === 'replied' ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`} />
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">
+                            {item.status === 'replied' ? 'Conversation Responded' : 'Awaiting Administrative Action'}
+                          </span>
+                        </div>
+                        
+                        {!replyingToId || replyingToId !== item.id ? (
+                          <Button 
+                            onClick={() => {
+                              setReplyingToId(item.id!);
+                              setReplyText('');
+                            }}
+                            variant="secondary"
+                            size="sm"
+                            className="rounded-xl px-6 font-black uppercase tracking-widest italic flex items-center gap-2"
+                          >
+                            <MessageSquare size={14} /> Quick Reply
+                          </Button>
+                        ) : (
+                          <button 
+                            onClick={() => setReplyingToId(null)}
+                            className="text-[10px] font-black text-slate-400 hover:text-red-500 uppercase tracking-widest"
+                          >
+                            Cancel Reply
+                          </button>
+                        )}
+                      </div>
+
+                      <AnimatePresence>
+                        {replyingToId === item.id && (
+                          <motion.div 
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="mt-6 overflow-hidden"
+                          >
+                            <div className="relative">
+                              <textarea
+                                value={replyText}
+                                onChange={(e) => setReplyText(e.target.value)}
+                                placeholder={`Write your response for this specific #${item.type.replace('_', ' ')}...`}
+                                className="w-full h-32 p-6 bg-white dark:bg-slate-900 rounded-[2rem] border-2 border-amber-500/20 focus:border-amber-500 outline-none text-sm font-medium transition-all shadow-inner resize-none custom-scrollbar"
+                                autoFocus
+                              />
+                              <div className="absolute bottom-4 right-4 flex items-center gap-2">
+                                <Button 
+                                  onClick={() => handleSendReply(item.id!)}
+                                  isLoading={isSendingReply}
+                                  disabled={!replyText.trim() || isSendingReply}
+                                  className="rounded-2xl px-8 font-black uppercase tracking-widest italic flex items-center gap-2"
+                                >
+                                  {isSendingReply ? 'Sending...' : 'Send Message'} <ArrowRight size={16} />
+                                </Button>
+                              </div>
+                            </div>
+                            <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-3 ml-4">
+                              Sending to: <span className="text-amber-500">{selectedProfile.email}</span>
+                            </p>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                       </div>
                     </div>
                   ))
