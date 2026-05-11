@@ -261,6 +261,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
         }
         .animate-glow { animation: glow 2s ease-in-out infinite; }
         .animate-slide-up { animation: slideUp 0.8s ease-out forwards; }
+        @keyframes blink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.3; }
+        }
+        .animate-slide-up-blink { 
+          animation: slideUp 0.8s ease-out forwards, blink 2s infinite ease-in-out 0.8s; 
+        }
         @keyframes fadeInUp {
           from { opacity: 0; transform: translateY(20px); }
           to { opacity: 1; transform: translateY(0); }
@@ -298,6 +305,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
               {/* Subheading with typewriter effect */}
               <div className="text-xl sm:text-2xl md:text-3xl text-slate-800 dark:text-slate-200 md:text-slate-600 md:dark:text-slate-400 mb-4 sm:mb-6 font-medium">
                 <TypewriterText text="Design. Visualize. Build." delay={800} />
+              </div>
+              
+              <div className="flex flex-col items-center md:items-end gap-2 mb-8 animate-slide-up-blink opacity-0" style={{ animationDelay: '1.2s', animationFillMode: 'forwards' }}>
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded bg-blue-500 text-[10px] uppercase font-black text-white shadow-lg shadow-blue-500/20">
+                    New
+                  </span>
+                  <span className="text-lg sm:text-xl md:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-500 dark:from-blue-400 dark:to-indigo-300">
+                    SketchUp & 3D Export
+                  </span>
+                </div>
+                <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 font-medium italic">
+                  Take your designs to your favourite 3D software
+                </p>
               </div>
 
               <p className="text-lg sm:text-xl md:text-2xl text-slate-800 dark:text-slate-300 md:text-slate-600 md:dark:text-slate-500 leading-relaxed" style={{ animationDelay: '1s' }}>
