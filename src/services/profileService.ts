@@ -2,6 +2,7 @@ import { supabase } from './supabaseClient';
 
 export interface UserProfile {
   id: string;
+  email?: string;
   company_name: string;
   phone: string;
   logo_url?: string;
@@ -12,6 +13,7 @@ export interface UserProfile {
 export const profileService = {
   async getProfile(userId: string): Promise<UserProfile | null> {
     try {
+      // ENSURING we use 'user_profiles' and NOT 'users'
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
@@ -20,7 +22,7 @@ export const profileService = {
 
       if (error) {
         if (error.code !== 'PGRST116') { // Not found error code
-          console.error('Error fetching profile:', error);
+          console.error('Error fetching profile from user_profiles:', error);
         }
         return null;
       }
@@ -45,7 +47,7 @@ export const profileService = {
         });
 
       if (error) {
-        console.error('Error updating profile:', error);
+        console.error('Error updating profile in user_profiles:', error);
         return false;
       }
 

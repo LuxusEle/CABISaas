@@ -59,24 +59,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
       if (result.error) {
         setError(result.error.message);
       } else {
-        if (mode === 'signup' && result.user) {
-          let uploadedLogoUrl = '';
-          if (logoFile) {
-            const { logoService } = await import('../services/logoService');
-            const uploadResult = await logoService.uploadLogo(logoFile, result.user.id);
-            if (uploadResult) {
-              uploadedLogoUrl = uploadResult.url;
-            }
-          }
-
-          const { profileService } = await import('../services/profileService');
-          await profileService.updateProfile(result.user.id, {
-            company_name: companyName,
-            phone: phone,
-            logo_url: uploadedLogoUrl || undefined
-          });
-        }
-
         // If signup but no session, it means OTP is required
         if (mode === 'signup' && !result.session) {
           setShowOtp(true);
@@ -103,7 +85,30 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
       const result = await authService.verifyOtp(email, otpToken, 'signup');
       if (result.error) {
         setError(result.error.message);
-      } else {
+      } else if (result.user) {
+        // NOW we are authenticated, let's save the profile details
+        try {
+          let uploadedLogoUrl = '';
+          if (logoFile) {
+            const { logoService } = await import('../services/logoService');
+            const uploadResult = await logoService.uploadLogo(logoFile, result.user.id);
+            if (uploadResult) {
+              uploadedLogoUrl = uploadResult.url;
+            }
+          }
+
+          const { profileService } = await import('../services/profileService');
+          await profileService.updateProfile(result.user.id, {
+            company_name: companyName,
+            phone: phone,
+            logo_url: uploadedLogoUrl || undefined
+          });
+        } catch (profileErr) {
+          console.error("Delayed profile update failed:", profileErr);
+          // We don't block the login if profile update fails, 
+          // but at least the user is in now.
+        }
+
         track('registration_confirmed', { method: 'otp' });
         onSuccess();
       }
