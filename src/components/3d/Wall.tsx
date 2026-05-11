@@ -21,6 +21,7 @@ interface Props {
   opacity?: number;
   isStudio?: boolean;
   name?: string;
+  skeletonView?: boolean;
 }
 
 export const Wall: React.FC<Props> = ({ 
@@ -28,7 +29,8 @@ export const Wall: React.FC<Props> = ({
   obstacles = [], wallIndex = 0, isActive = false, 
   onClick, lightTheme = false, showGrid = false,
   onPointerMove, onPointerOut, onPointerUp,
-  opacity = 1, isStudio = false, name
+  opacity = 1, isStudio = false, name,
+  skeletonView = false
 }) => {
   const wallThickness = 50;
   const wallDepth = wallThickness;
@@ -47,18 +49,27 @@ export const Wall: React.FC<Props> = ({
     
     if (sortedOpenings.length === 0) {
       segments.push(
-        <mesh 
-          key="full-wall" 
-          position={[width / 2, height / 2, -wallDepth / 2]} 
-          receiveShadow
-          onClick={onClick}
-          onPointerMove={onPointerMove}
-          onPointerOut={onPointerOut}
-          onPointerUp={onPointerUp}
-        >
-          <boxGeometry args={[width, height, wallDepth]} />
-          <meshStandardMaterial color={isStudio ? '#333333' : activeColor} roughness={isStudio ? 0.8 : 0.9} transparent opacity={activeOpacity} depthWrite={opacity < 1 ? false : true} />
-        </mesh>
+        <>
+          <mesh 
+            key="full-wall" 
+            position={[width / 2, height / 2, -wallDepth / 2]} 
+            receiveShadow
+            onClick={onClick}
+            onPointerMove={onPointerMove}
+            onPointerOut={onPointerOut}
+            onPointerUp={onPointerUp}
+            visible={!skeletonView}
+          >
+            <boxGeometry args={[width, height, wallDepth]} />
+            <meshStandardMaterial color={isStudio ? '#333333' : activeColor} roughness={isStudio ? 0.8 : 0.9} transparent opacity={activeOpacity} depthWrite={opacity < 1 ? false : true} />
+          </mesh>
+          {skeletonView && (
+            <lineSegments position={[width / 2, height / 2, -wallDepth / 2]}>
+              <edgesGeometry args={[new THREE.BoxGeometry(width, height, wallDepth)]} />
+              <lineBasicMaterial color={activeColor} linewidth={1} />
+            </lineSegments>
+          )}
+        </>
       );
       return segments;
     }
@@ -136,18 +147,27 @@ export const Wall: React.FC<Props> = ({
     if (currentX < width) {
       const segWidth = width - currentX;
       segments.push(
-        <mesh 
-          key="seg-after" 
-          position={[currentX + segWidth / 2, height / 2, -wallDepth / 2]} 
-          receiveShadow
-          onClick={onClick}
-          onPointerMove={onPointerMove}
-          onPointerOut={onPointerOut}
-          onPointerUp={onPointerUp}
-        >
-          <boxGeometry args={[segWidth, height, wallDepth]} />
-          <meshStandardMaterial color={isStudio ? '#666666' : activeColor} roughness={isStudio ? 0.8 : 0.9} transparent opacity={activeOpacity} depthWrite={opacity < 1 ? false : true} />
-        </mesh>
+        <>
+          <mesh 
+            key="seg-after" 
+            position={[currentX + segWidth / 2, height / 2, -wallDepth / 2]} 
+            receiveShadow
+            onClick={onClick}
+            onPointerMove={onPointerMove}
+            onPointerOut={onPointerOut}
+            onPointerUp={onPointerUp}
+            visible={!skeletonView}
+          >
+            <boxGeometry args={[segWidth, height, wallDepth]} />
+            <meshStandardMaterial color={isStudio ? '#666666' : activeColor} roughness={isStudio ? 0.8 : 0.9} transparent opacity={activeOpacity} depthWrite={opacity < 1 ? false : true} />
+          </mesh>
+          {skeletonView && (
+            <lineSegments position={[currentX + segWidth / 2, height / 2, -wallDepth / 2]}>
+              <edgesGeometry args={[new THREE.BoxGeometry(segWidth, height, wallDepth)]} />
+              <lineBasicMaterial color={activeColor} linewidth={1} />
+            </lineSegments>
+          )}
+        </>
       );
     }
 
@@ -156,6 +176,14 @@ export const Wall: React.FC<Props> = ({
 
   return (
     <group position={position} rotation={[0, rotation, 0]} name={name}>
+      {/* Wall limits outline in skeleton view */}
+      {skeletonView && (
+        <lineSegments position={[width / 2, height / 2, -wallDepth / 2]}>
+          <edgesGeometry args={[new THREE.BoxGeometry(width, height, wallDepth)]} />
+          <lineBasicMaterial color={activeColor} linewidth={2} />
+        </lineSegments>
+      )}
+
       {renderWallSegments()}
       
       {sortedOpenings.map((opening, index) => {
@@ -175,27 +203,27 @@ export const Wall: React.FC<Props> = ({
           return (
             <group key={`opening-${index}`}>
               {/* Left frame */}
-              <mesh position={[opening.fromLeft + 4, openingY, -wallDepth / 2]}>
+              <mesh position={[opening.fromLeft + 4, openingY, -wallDepth / 2]} visible={!skeletonView}>
                 <boxGeometry args={[8, openingHeight + 8, wallDepth + 4]} />
                 <meshStandardMaterial color={isStudio ? '#ffffff' : (lightTheme ? '#64748b' : '#020617')} roughness={isStudio ? 0.4 : 0.8} transparent={opacity < 1} opacity={opacity} depthWrite={opacity < 1 ? false : true} />
               </mesh>
               {/* Right frame */}
-              <mesh position={[opening.fromLeft + openingWidth - 4, openingY, -wallDepth / 2]}>
+              <mesh position={[opening.fromLeft + openingWidth - 4, openingY, -wallDepth / 2]} visible={!skeletonView}>
                 <boxGeometry args={[8, openingHeight + 8, wallDepth + 4]} />
                 <meshStandardMaterial color={isStudio ? '#ffffff' : (lightTheme ? '#64748b' : '#020617')} roughness={isStudio ? 0.4 : 0.8} transparent={opacity < 1} opacity={opacity} depthWrite={opacity < 1 ? false : true} />
               </mesh>
               {/* Top frame */}
-              <mesh position={[opening.fromLeft + openingWidth / 2, openingY + openingHeight / 2, -wallDepth / 2]}>
+              <mesh position={[opening.fromLeft + openingWidth / 2, openingY + openingHeight / 2, -wallDepth / 2]} visible={!skeletonView}>
                 <boxGeometry args={[openingWidth - 8, 8, wallDepth + 4]} />
                 <meshStandardMaterial color={isStudio ? '#ffffff' : (lightTheme ? '#64748b' : '#020617')} roughness={isStudio ? 0.4 : 0.8} transparent={opacity < 1} opacity={opacity} depthWrite={opacity < 1 ? false : true} />
               </mesh>
               {/* Bottom frame */}
-              <mesh position={[opening.fromLeft + openingWidth / 2, openingY - openingHeight / 2, -wallDepth / 2]}>
+              <mesh position={[opening.fromLeft + openingWidth / 2, openingY - openingHeight / 2, -wallDepth / 2]} visible={!skeletonView}>
                 <boxGeometry args={[openingWidth - 8, 8, wallDepth + 4]} />
                 <meshStandardMaterial color={isStudio ? '#ffffff' : (lightTheme ? '#64748b' : '#020617')} roughness={isStudio ? 0.4 : 0.8} transparent={opacity < 1} opacity={opacity} depthWrite={opacity < 1 ? false : true} />
               </mesh>
 
-              <mesh position={[opening.fromLeft + openingWidth / 2, openingY, -wallDepth / 2]}>
+              <mesh position={[opening.fromLeft + openingWidth / 2, openingY, -wallDepth / 2]} visible={!skeletonView}>
                 <boxGeometry args={[openingWidth - 4, openingHeight - 4, wallDepth - 4]} />
                 {isStudio ? (
                   <meshPhysicalMaterial 
@@ -220,6 +248,15 @@ export const Wall: React.FC<Props> = ({
                   />
                 )}
               </mesh>
+              
+              {skeletonView && (
+                <>
+                  <lineSegments position={[opening.fromLeft + openingWidth / 2, openingY, -wallDepth / 2]}>
+                    <edgesGeometry args={[new THREE.BoxGeometry(openingWidth, openingHeight, wallDepth)]} />
+                    <lineBasicMaterial color={lightTheme ? "#64748b" : "#94a3b8"} linewidth={2} />
+                  </lineSegments>
+                </>
+              )}
             </group>
           );
         }
@@ -244,7 +281,7 @@ export const Wall: React.FC<Props> = ({
               </mesh>
 
               {/* Door Panel */}
-              <mesh position={[opening.fromLeft + openingWidth / 2, openingY, -wallDepth / 2]}>
+              <mesh position={[opening.fromLeft + openingWidth / 2, openingY, -wallDepth / 2]} visible={!skeletonView}>
                 <boxGeometry args={[openingWidth - 4, openingHeight - 4, wallDepth - 4]} />
                 <meshStandardMaterial 
                   color={isStudio ? '#f3f4f6' : (lightTheme ? '#cbd5e1' : '#0f172a')} 
@@ -255,6 +292,13 @@ export const Wall: React.FC<Props> = ({
                   depthWrite={opacity < 1 ? false : true}
                 />
               </mesh>
+
+              {skeletonView && (
+                <lineSegments position={[opening.fromLeft + openingWidth / 2, openingY, -wallDepth / 2]}>
+                  <edgesGeometry args={[new THREE.BoxGeometry(openingWidth, openingHeight, wallDepth)]} />
+                  <lineBasicMaterial color={lightTheme ? "#64748b" : "#94a3b8"} linewidth={2} />
+                </lineSegments>
+              )}
 
               {/* Door Handle */}
               {isStudio && (
@@ -345,21 +389,30 @@ export const Wall: React.FC<Props> = ({
         const obsY = elevation + obsHeight / 2;
         
         return (
-          <mesh 
-            key={`protruding-${index}`} 
-            position={[obstacle.fromLeft + obsWidth / 2, obsY, obsDepth / 2]}
-          >
-            <boxGeometry args={[obsWidth, obsHeight, obsDepth]} />
-            <meshStandardMaterial 
-              color={isStudio ? '#666666' : obstacle.type === 'column' 
-                ? (lightTheme ? '#94a3b8' : '#0f172a') 
-                : (lightTheme ? '#a8a29e' : '#1c1917')} 
-              roughness={isStudio ? 0.8 : 0.7} 
-              transparent={opacity < 1}
-              opacity={opacity}
-              depthWrite={opacity < 1 ? false : true}
-            />
-          </mesh>
+          <>
+            <mesh 
+              key={`protruding-${index}`} 
+              position={[obstacle.fromLeft + obsWidth / 2, obsY, obsDepth / 2]}
+              visible={!skeletonView}
+            >
+              <boxGeometry args={[obsWidth, obsHeight, obsDepth]} />
+              <meshStandardMaterial 
+                color={isStudio ? '#666666' : obstacle.type === 'column' 
+                  ? (lightTheme ? '#94a3b8' : '#0f172a') 
+                  : (lightTheme ? '#a8a29e' : '#1c1917')} 
+                roughness={isStudio ? 0.8 : 0.7} 
+                transparent={opacity < 1}
+                opacity={opacity}
+                depthWrite={opacity < 1 ? false : true}
+              />
+            </mesh>
+            {skeletonView && (
+              <lineSegments position={[obstacle.fromLeft + obsWidth / 2, obsY, obsDepth / 2]}>
+                <edgesGeometry args={[new THREE.BoxGeometry(obsWidth, obsHeight, obsDepth)]} />
+                <lineBasicMaterial color={lightTheme ? "#64748b" : "#94a3b8"} linewidth={2} />
+              </lineSegments>
+            )}
+          </>
         );
       })}
     </group>

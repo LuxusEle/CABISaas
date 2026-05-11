@@ -1,7 +1,7 @@
 import { GLTFExporter } from 'three-stdlib';
 import * as THREE from 'three';
 
-export const exportSceneToGLB = (scene: THREE.Scene, projectName: string) => {
+export const exportSceneToGLB = (scene: THREE.Scene, projectName: string, exportOptions: { skeletonView?: boolean } = {}) => {
   const exporter = new GLTFExporter();
 
   // Create a container for objects we want to export
@@ -35,17 +35,27 @@ export const exportSceneToGLB = (scene: THREE.Scene, projectName: string) => {
       clone.matrix.copy(object.matrixWorld);
       clone.matrix.decompose(clone.position, clone.quaternion, clone.scale);
       
-      // Remove any dimension HTML or UI Lines from the clone
+      // Filter components based on view mode
       const toRemove: THREE.Object3D[] = [];
       clone.traverse((child) => {
-        // Types like 'Line' or 'Points' or specific names
-        if (
-          child.type === 'Line' || 
-          child.type === 'LineSegments' || 
-          child.name === 'Dimension' ||
-          child.type === 'Html' // Though clone() usually doesn't copy HTML components correctly anyway
-        ) {
+        // Always remove UI artifacts
+        if (child.name === 'Dimension' || (child as any).isHtml || child.type === 'Html') {
           toRemove.push(child);
+          return;
+        }
+
+        if (exportOptions.skeletonView) {
+          // In skeleton mode, we want ONLY the lines. 
+          // We remove meshes so that they don't appear in the export.
+          if (child instanceof THREE.Mesh) {
+            toRemove.push(child);
+          }
+        } else {
+          // In normal mode, we want ONLY the solid geometry.
+          // We remove helper lines and wireframes.
+          if (child instanceof THREE.Line || child instanceof THREE.LineSegments) {
+            toRemove.push(child);
+          }
         }
       });
       toRemove.forEach(r => r.parent?.remove(r));

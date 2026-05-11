@@ -41,7 +41,7 @@ interface Props {
   swapSelection?: { zoneId: string, index: number }[];
 }
 
-const ZoneBacksplash: React.FC<{ zone: Zone; project: Project; position: [number, number, number]; rotation: number }> = ({ zone, project, position, rotation }) => {
+const ZoneBacksplash: React.FC<{ zone: Zone; project: Project; position: [number, number, number]; rotation: number; skeletonView?: boolean }> = ({ zone, project, position, rotation, skeletonView = false }) => {
   const baseCabinets = zone.cabinets.filter(c => c.type === CabinetType.BASE);
   if (baseCabinets.length === 0) return null;
 
@@ -163,10 +163,18 @@ const ZoneBacksplash: React.FC<{ zone: Zone; project: Project; position: [number
   return (
     <group name={`backsplash-${zone.id}`} position={position} rotation={[0, rotation, 0]}>
       {pieces.map((p, i) => (
-        <mesh key={i} position={[p.x, p.y, 0.5]}>
-          <boxGeometry args={[p.w, p.h, 1]} />
-          <meshStandardMaterial color="#f8fafc" roughness={0.3} metalness={0.1} />
-        </mesh>
+        <React.Fragment key={i}>
+          <mesh position={[p.x, p.y, 0.5]} visible={!skeletonView}>
+            <boxGeometry args={[p.w, p.h, 1]} />
+            <meshStandardMaterial color="#f8fafc" roughness={0.3} metalness={0.1} />
+          </mesh>
+          {skeletonView && (
+            <lineSegments position={[p.x, p.y, 0.5]}>
+              <edgesGeometry args={[new THREE.BoxGeometry(p.w, p.h, 1)]} />
+              <lineBasicMaterial color="#f8fafc" linewidth={1} />
+            </lineSegments>
+          )}
+        </React.Fragment>
       ))}
     </group>
   );
@@ -961,6 +969,7 @@ const Scene = ({
               showGrid={!!draggedCabinet}
               opacity={opacity}
               isStudio={isStudio}
+              skeletonView={skeletonView}
             />
             {!previewPos && !draggedCabinet && (
               <ZoneBacksplash 
@@ -968,6 +977,7 @@ const Scene = ({
                 project={project} 
                 position={position} 
                 rotation={rotation} 
+                skeletonView={skeletonView}
               />
             )}
           </React.Fragment>
@@ -1217,7 +1227,7 @@ export const CabinetViewer: React.FC<Props> = ({
   
   const handleExport = (scene: THREE.Scene) => {
     if (triggerExport) {
-      exportSceneToGLB(scene, project.name || 'Project');
+      exportSceneToGLB(scene, project.name || 'Project', { skeletonView });
       setTriggerExport(false);
     }
   };
