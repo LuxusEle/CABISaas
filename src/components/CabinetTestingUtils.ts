@@ -157,7 +157,7 @@ export const DEFAULT_SETTINGS: TestingSettings = {
   numShelves: 2,
   showShelves: true,
   cabinetType: 'base',
-  hingeDiameter: 16,
+  hingeDiameter: 36,
   hingeDepth: 7,
   hingeHorizontalOffset: 40,
   hingeVerticalOffset: 60,

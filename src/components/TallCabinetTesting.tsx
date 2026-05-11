@@ -514,10 +514,18 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
         const rangeCenterY = (frag.start + frag.end) / 2;
         const localY = rangeCenterY - (toeKickHeight + innerHeight / 2);
         return (
-          <mesh key={`exp-left-${idx}`} position={[-width / 2 + doorMaterialThickness / 2, localY, frag.zOffset + doorMaterialThickness / 2]} rotation={[0, -Math.PI / 2, 0]} castShadow receiveShadow>
-            <primitive object={createPanelWithHolesGeo(doorMaterialThickness, rangeHeight, frag.depth, 0, 0, 0, 'none', [], 0)} attach="geometry" />
-            <meshStandardMaterial color={settings.isStudio && settings.doorTexture ? '#ffffff' : doorColor} map={settings.isStudio ? settings.doorTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} side={THREE.DoubleSide} />
-          </mesh>
+          <React.Fragment key={`exp-left-${idx}`}>
+            <mesh position={[-width / 2 + doorMaterialThickness / 2, localY, frag.zOffset + doorMaterialThickness / 2]} rotation={[0, -Math.PI / 2, 0]} castShadow receiveShadow visible={!skeletonView}>
+              <primitive object={createPanelWithHolesGeo(doorMaterialThickness, rangeHeight, frag.depth, 0, 0, 0, 'none', [], 0)} attach="geometry" />
+              <meshStandardMaterial color={settings.isStudio && settings.doorTexture ? '#ffffff' : doorColor} map={settings.isStudio ? settings.doorTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} side={THREE.DoubleSide} />
+            </mesh>
+            {skeletonView && (
+              <lineSegments position={[-width / 2 + doorMaterialThickness / 2, localY, frag.zOffset + doorMaterialThickness / 2]} rotation={[0, -Math.PI / 2, 0]}>
+                <edgesGeometry args={[createPanelWithHolesGeo(doorMaterialThickness, rangeHeight, frag.depth, 0, 0, 0, 'none', [], 0)]} />
+                <lineBasicMaterial color={doorColor} linewidth={2} />
+              </lineSegments>
+            )}
+          </React.Fragment>
         );
       })}
       {settings.exposedRight && getExposedFragments(height, depth + doorMaterialThickness, settings.rightCoverage).map((frag, idx) => {
@@ -525,10 +533,18 @@ export const TallCabinetTesting: React.FC<Props> = ({ settings }) => {
         const rangeCenterY = (frag.start + frag.end) / 2;
         const localY = rangeCenterY - (toeKickHeight + innerHeight / 2);
         return (
-          <mesh key={`exp-right-${idx}`} position={[width / 2 - doorMaterialThickness / 2, localY, frag.zOffset + doorMaterialThickness / 2]} rotation={[0, -Math.PI / 2, 0]} castShadow receiveShadow>
-            <primitive object={createPanelWithHolesGeo(doorMaterialThickness, rangeHeight, frag.depth, 0, 0, 0, 'none', [], 0)} attach="geometry" />
-            <meshStandardMaterial color={settings.isStudio && settings.doorTexture ? '#ffffff' : doorColor} map={settings.isStudio ? settings.doorTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} side={THREE.DoubleSide} />
-          </mesh>
+          <React.Fragment key={`exp-right-${idx}`}>
+            <mesh position={[width / 2 - doorMaterialThickness / 2, localY, frag.zOffset + doorMaterialThickness / 2]} rotation={[0, -Math.PI / 2, 0]} castShadow receiveShadow visible={!skeletonView}>
+              <primitive object={createPanelWithHolesGeo(doorMaterialThickness, rangeHeight, frag.depth, 0, 0, 0, 'none', [], 0)} attach="geometry" />
+              <meshStandardMaterial color={settings.isStudio && settings.doorTexture ? '#ffffff' : doorColor} map={settings.isStudio ? settings.doorTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} side={THREE.DoubleSide} />
+            </mesh>
+            {skeletonView && (
+              <lineSegments position={[width / 2 - doorMaterialThickness / 2, localY, frag.zOffset + doorMaterialThickness / 2]} rotation={[0, -Math.PI / 2, 0]}>
+                <edgesGeometry args={[createPanelWithHolesGeo(doorMaterialThickness, rangeHeight, frag.depth, 0, 0, 0, 'none', [], 0)]} />
+                <lineBasicMaterial color={doorColor} linewidth={2} />
+              </lineSegments>
+            )}
+          </React.Fragment>
         );
       })}
 

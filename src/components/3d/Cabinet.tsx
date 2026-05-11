@@ -218,6 +218,7 @@ export const Cabinet: React.FC<Props> = ({
 
   return (
     <group 
+      name={`cabinet-group-${unit.id}`}
       position={position} 
       rotation={[0, rotation, 0]}
       onClick={!isStudio ? (e) => {

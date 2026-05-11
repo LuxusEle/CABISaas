@@ -164,9 +164,9 @@ const ScreenAdminDashboard = ({ onLoadProject }: ScreenAdminDashboardProps) => {
   );
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 w-full overflow-hidden">
-      {/* Admin Header - Column Aligned */}
-      <div className="shrink-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex z-20">
+    <div className="h-screen bg-slate-50 dark:bg-slate-950 flex flex-col font-sans overflow-visible">
+      {/* Top Header */}
+      <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex shrink-0 z-[60] relative overflow-visible">
         {/* Left Side: Matches Sidebar Width */}
         <div className="w-80 lg:w-96 shrink-0 p-6 lg:p-8 flex items-center gap-4 border-r border-slate-200 dark:border-slate-800">
           <button 
@@ -184,7 +184,7 @@ const ScreenAdminDashboard = ({ onLoadProject }: ScreenAdminDashboardProps) => {
         </div>
 
         {/* Right Side: Aligned with Table Area */}
-        <div className="flex-1 p-6 lg:p-8 flex items-center justify-between gap-6 overflow-hidden">
+        <div className="flex-1 p-6 lg:p-8 flex items-center justify-between gap-6 overflow-visible relative z-50">
           <div className="flex items-center gap-6">
             <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shrink-0 shadow-inner">
               <button
@@ -611,20 +611,10 @@ const ScreenAdminDashboard = ({ onLoadProject }: ScreenAdminDashboardProps) => {
                             </span>
                           </div>
 
-                          <select 
-                            value={item.status}
-                            onChange={(e) => handleUpdateFeedbackStatus(item.id!, e.target.value)}
-                            className={`text-xs font-black uppercase tracking-widest bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2 outline-none focus:ring-2 ring-amber-500 cursor-pointer shadow-sm ${
-                              item.status === 'new' ? 'text-red-500' :
-                              item.status === 'in_progress' ? 'text-amber-500' :
-                              'text-emerald-500'
-                            }`}
-                          >
-                            <option value="new">New Entry</option>
-                            <option value="in_progress">Investigation</option>
-                            <option value="resolved">Resolved</option>
-                            <option value="closed">Closed / Archive</option>
-                          </select>
+                          <StatusDropdown 
+                            value={item.status} 
+                            onChange={(val) => handleUpdateFeedbackStatus(item.id!, val)} 
+                          />
                         </div>
 
                         <p className="text-xl text-slate-700 dark:text-slate-300 font-medium leading-relaxed mb-10 italic">
@@ -861,9 +851,9 @@ const UserDropdown = ({ profiles, selectedUserId, onSelect }: { profiles: UserPr
             initial={{ opacity: 0, y: 10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
-            className="absolute top-full mt-2 left-0 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl shadow-black/50 overflow-hidden z-50 p-2"
+            className="absolute top-full mt-2 left-0 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl shadow-black/90 overflow-hidden z-[100] p-2"
           >
-            <div className="max-h-64 overflow-y-auto custom-scrollbar">
+            <div className="max-h-64 overflow-y-auto custom-scrollbar p-1">
               <button
                 onClick={() => { onSelect('all'); setIsOpen(false); }}
                 className={`w-full text-left px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all mb-1 flex items-center justify-between ${selectedUserId === 'all' ? 'bg-amber-500 text-white' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'}`}
@@ -888,13 +878,73 @@ const UserDropdown = ({ profiles, selectedUserId, onSelect }: { profiles: UserPr
           </motion.div>
         )}
       </AnimatePresence>
-      
-      <style>{`
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #f59e0b; }
-      `}</style>
+    </div>
+  );
+};
+
+const StatusDropdown = ({ value, onChange }: { value: string, onChange: (status: any) => void }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const options = [
+    { value: 'new', label: 'New Entry', color: 'text-red-500', bg: 'bg-red-500' },
+    { value: 'in_progress', label: 'Investigation', color: 'text-amber-500', bg: 'bg-amber-500' },
+    { value: 'replied', label: 'Replied', color: 'text-emerald-500', bg: 'bg-emerald-500' },
+    { value: 'resolved', label: 'Resolved', color: 'text-emerald-500', bg: 'bg-emerald-500' },
+    { value: 'closed', label: 'Closed / Archive', color: 'text-slate-500', bg: 'bg-slate-500' },
+  ];
+
+  const selectedOption = options.find(o => o.value === value) || options[0];
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-3 pl-5 pr-6 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:border-amber-500/50 transition-all min-w-[180px] justify-between group shadow-sm"
+      >
+        <div className="flex items-center gap-2">
+          <div className={`w-2 h-2 rounded-full ${selectedOption.bg} ${value === 'new' ? 'animate-pulse' : ''}`} />
+          <span className={selectedOption.color}>{selectedOption.label}</span>
+        </div>
+        <ArrowRight size={14} className={`text-slate-400 transition-transform ${isOpen ? 'rotate-90 text-amber-500' : ''}`} />
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            className="absolute top-full mt-2 right-0 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl shadow-black/90 overflow-hidden z-[100] p-2"
+          >
+            <div className="space-y-1 p-1">
+              {options.map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => { onChange(opt.value); setIsOpen(false); }}
+                  className={`w-full text-left px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-between ${value === opt.value ? 'bg-slate-100 dark:bg-slate-800 text-amber-500' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-1.5 h-1.5 rounded-full ${opt.bg}`} />
+                    {opt.label}
+                  </div>
+                  {value === opt.value && <CheckCircle2 size={12} className="text-amber-500" />}
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

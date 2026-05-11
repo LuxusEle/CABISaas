@@ -3,7 +3,8 @@ import React, { Suspense, useRef, useState, useMemo, useEffect, useCallback } fr
 import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls, Grid, Html, useProgress, PerspectiveCamera, Environment, ContactShadows, Line, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
-import { Video } from 'lucide-react';
+import { Video, Box, Download } from 'lucide-react';
+import { exportSceneToGLB } from '../../services/export3dService';
 import { Project, CabinetType, CabinetUnit, Zone, Obstacle, ProjectSettings, PresetType } from '../../types';
 import { Cabinet } from './Cabinet';
 import { Wall } from './Wall';
@@ -40,7 +41,7 @@ interface Props {
   swapSelection?: { zoneId: string, index: number }[];
 }
 
-const ZoneBacksplash: React.FC<{ zone: Zone; project: Project; position: [number, number, number]; rotation: number }> = ({ zone, project, position, rotation }) => {
+const ZoneBacksplash: React.FC<{ zone: Zone; project: Project; position: [number, number, number]; rotation: number; skeletonView?: boolean }> = ({ zone, project, position, rotation, skeletonView = false }) => {
   const baseCabinets = zone.cabinets.filter(c => c.type === CabinetType.BASE);
   if (baseCabinets.length === 0) return null;
 
@@ -160,12 +161,20 @@ const ZoneBacksplash: React.FC<{ zone: Zone; project: Project; position: [number
   }
 
   return (
-    <group position={position} rotation={[0, rotation, 0]}>
+    <group name={`backsplash-${zone.id}`} position={position} rotation={[0, rotation, 0]}>
       {pieces.map((p, i) => (
-        <mesh key={i} position={[p.x, p.y, 0.5]}>
-          <boxGeometry args={[p.w, p.h, 1]} />
-          <meshStandardMaterial color="#f8fafc" roughness={0.3} metalness={0.1} />
-        </mesh>
+        <React.Fragment key={i}>
+          <mesh position={[p.x, p.y, 0.5]} visible={!skeletonView}>
+            <boxGeometry args={[p.w, p.h, 1]} />
+            <meshStandardMaterial color="#f8fafc" roughness={0.3} metalness={0.1} />
+          </mesh>
+          {skeletonView && (
+            <lineSegments position={[p.x, p.y, 0.5]}>
+              <edgesGeometry args={[new THREE.BoxGeometry(p.w, p.h, 1)]} />
+              <lineBasicMaterial color="#f8fafc" linewidth={1} />
+            </lineSegments>
+          )}
+        </React.Fragment>
       ))}
     </group>
   );
@@ -381,7 +390,8 @@ const Scene = ({
   onRecordingComplete,
   onViewModeChange,
   isStudio,
-  isMobile
+  isMobile,
+  onExport3D
 }: { 
   project: Project; 
   showHardware?: boolean; 
@@ -406,9 +416,16 @@ const Scene = ({
   onViewModeChange: (mode: string) => void;
   isStudio?: boolean;
   isMobile?: boolean;
+  onExport3D?: (scene: THREE.Scene) => void;
 }) => {
   const [previewPos, setPreviewPos] = useState<{ wallIndex: number; fromLeft: number; width: number } | null>(null);
   const { raycaster, camera, scene, gl } = useThree();
+
+  useEffect(() => {
+    if (onExport3D) {
+      onExport3D(scene);
+    }
+  }, [onExport3D, scene]);
 
   const activeZones = (showEmptyWalls || !!draggedCabinet)
     ? project.zones.filter(z => z.active)
@@ -952,6 +969,7 @@ const Scene = ({
               showGrid={!!draggedCabinet}
               opacity={opacity}
               isStudio={isStudio}
+              skeletonView={skeletonView}
             />
             {!previewPos && !draggedCabinet && (
               <ZoneBacksplash 
@@ -959,6 +977,7 @@ const Scene = ({
                 project={project} 
                 position={position} 
                 rotation={rotation} 
+                skeletonView={skeletonView}
               />
             )}
           </React.Fragment>
@@ -996,7 +1015,7 @@ const Scene = ({
         const isSwapSelected = !isStudio && swapSelection?.some(s => s.zoneId === zone.id && s.index === cabinetIndex);
         
         return (
-          <group key={unit.id} position={position} rotation={[0, rotation, 0]}>
+          <group key={unit.id} name={`cabinet-group-${unit.id}`} position={position} rotation={[0, rotation, 0]}>
             <Cabinet
               unit={unit}
               position={[0, 0, 0]}
@@ -1204,6 +1223,14 @@ export const CabinetViewer: React.FC<Props> = ({
   };
 
   const [isRecording, setIsRecording] = useState(false);
+  const [triggerExport, setTriggerExport] = useState(false);
+  
+  const handleExport = (scene: THREE.Scene) => {
+    if (triggerExport) {
+      exportSceneToGLB(scene, project.name || 'Project', { skeletonView });
+      setTriggerExport(false);
+    }
+  };
   
   const handleRecordingComplete = React.useCallback(() => {
     setIsRecording(false);
@@ -1291,6 +1318,19 @@ export const CabinetViewer: React.FC<Props> = ({
               )}
             </button>
           )}
+
+          <button
+            onClick={() => setTriggerExport(true)}
+            className={`absolute ${isStudio ? 'top-16' : 'top-4'} right-4 z-10 flex items-center gap-2 px-4 py-2 rounded-md font-medium text-sm transition-all shadow-lg backdrop-blur-md border ${
+              lightTheme 
+                ? 'bg-white/80 text-slate-800 border-slate-200/50 hover:bg-white' 
+                : 'bg-slate-800/80 text-white border-slate-700/50 hover:bg-slate-700'
+            }`}
+          >
+            <Box className="w-4 h-4 text-amber-500" />
+            Export to SketchUp
+          </button>
+
           {isRecording && (
             <div 
               className="fixed inset-0 z-[9999] cursor-wait touch-none" 
@@ -1347,6 +1387,7 @@ export const CabinetViewer: React.FC<Props> = ({
             onRecordingComplete={handleRecordingComplete}
             isStudio={isStudio}
             isMobile={isMobile}
+            onExport3D={triggerExport ? handleExport : undefined}
           />
         </Suspense>
       </Canvas>
