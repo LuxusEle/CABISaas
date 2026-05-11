@@ -1309,19 +1309,18 @@ export const CabinetViewer: React.FC<Props> = ({
             </button>
           )}
 
-          {isStudio && (
-            <button
-              onClick={() => setTriggerExport(true)}
-              className={`absolute top-16 right-4 z-10 flex items-center gap-2 px-4 py-2 rounded-md font-medium text-sm transition-all shadow-lg backdrop-blur-md border ${
-                lightTheme 
-                  ? 'bg-white/80 text-slate-800 border-slate-200/50 hover:bg-white' 
-                  : 'bg-slate-800/80 text-white border-slate-700/50 hover:bg-slate-700'
-              }`}
-            >
-              <Box className="w-4 h-4 text-amber-500" />
-              Export to SketchUp
-            </button>
-          )}
+          <button
+            onClick={() => setTriggerExport(true)}
+            className={`absolute ${isStudio ? 'top-16' : 'top-4'} right-4 z-10 flex items-center gap-2 px-4 py-2 rounded-md font-medium text-sm transition-all shadow-lg backdrop-blur-md border ${
+              lightTheme 
+                ? 'bg-white/80 text-slate-800 border-slate-200/50 hover:bg-white' 
+                : 'bg-slate-800/80 text-white border-slate-700/50 hover:bg-slate-700'
+            }`}
+          >
+            <Box className="w-4 h-4 text-amber-500" />
+            Export to SketchUp
+          </button>
+
           {isRecording && (
             <div 
               className="fixed inset-0 z-[9999] cursor-wait touch-none" 
