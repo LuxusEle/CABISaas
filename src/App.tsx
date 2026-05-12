@@ -130,6 +130,15 @@ export default function App() {
       }
 
       setAuthLoading(false);
+
+      // Check for login redirect from password reset
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('mode') === 'login') {
+        setAuthModalMode('login');
+        setShowAuthModal(true);
+        // Clean up the URL
+        window.history.replaceState({}, '', '/');
+      }
     };
     checkAuth();
 
@@ -530,6 +539,15 @@ export default function App() {
             <Route path="/testing" element={
               <CabinetTestingPage isDark={isDark} />
             } />
+            <Route path="/reset-password" element={
+              <ResetPasswordPage 
+                onOpenModal={openAuthModal}
+                isDark={isDark}
+                setIsDark={setIsDark}
+                onGetStarted={() => openAuthModal('signup')}
+                onSignIn={() => openAuthModal('login')}
+              />
+            } />
             <Route path="*" element={
               <LandingPage
                 onGetStarted={() => openAuthModal('signup')}
@@ -706,5 +724,26 @@ const MobileNavButton = ({ active, onClick, icon, label, path, isDirty, canDisca
       {icon}
       <span className="text-[10px] font-bold">{label}</span>
     </button>
+  );
+};
+
+const ResetPasswordPage = ({ onOpenModal, isDark, setIsDark, onGetStarted, onSignIn }: any) => {
+  useEffect(() => {
+    // Small delay to ensure Supabase handles the recovery session
+    const timer = setTimeout(() => {
+      onOpenModal('update-password');
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [onOpenModal]);
+
+  return (
+    <div className="flex-1">
+      <LandingPage
+        onGetStarted={onGetStarted}
+        onSignIn={onSignIn}
+        isDark={isDark}
+        setIsDark={setIsDark}
+      />
+    </div>
   );
 };

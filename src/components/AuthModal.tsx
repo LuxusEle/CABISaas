@@ -14,12 +14,13 @@ interface AuthModalProps {
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogout, user, initialMode = 'login', onNavigateToPolicy }) => {
-  const [mode, setMode] = useState<'login' | 'signup'>(initialMode);
+  const [mode, setMode] = useState<'login' | 'signup' | 'forgot-password' | 'update-password'>(initialMode as any);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [companyName, setCompanyName] = useState('');
   const [phone, setPhone] = useState('');
@@ -34,12 +35,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
     e.preventDefault();
     setError('');
 
-    if (mode === 'signup' && password !== confirmPassword) {
+    if ((mode === 'signup' || mode === 'update-password') && password !== confirmPassword) {
       setError('Passwords do not match');
       return;
     }
 
-    if (password.length < 6) {
+    if (mode !== 'forgot-password' && password.length < 6) {
       setError('Password must be at least 6 characters');
       return;
     }
@@ -52,21 +53,51 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
     setLoading(true);
 
     try {
-      const result = mode === 'login'
-        ? await authService.signIn(email, password)
-        : await authService.signUp(email, password);
-
-      if (result.error) {
-        setError(result.error.message);
-      } else {
-        // If signup but no session, it means OTP is required
-        if (mode === 'signup' && !result.session) {
-          setShowOtp(true);
+      if (mode === 'forgot-password') {
+        const { error } = await authService.resetPassword(email);
+        if (error) {
+          setError(error.message);
         } else {
-          if (mode === 'signup') {
-            track('registration_completed', { method: 'password' });
+          setMessage('Password reset link has been sent to your email.');
+        }
+      } else if (mode === 'update-password') {
+        // Double check session before update
+        const { user: currentUser } = await authService.getCurrentUser();
+        if (!currentUser) {
+          setError('Auth session missing or expired. Please try requesting a new reset link.');
+          setLoading(false);
+          return;
+        }
+
+        const { error } = await authService.updatePassword(password);
+        if (error) {
+          setError(error.message);
+        } else {
+          setMessage('Password updated successfully! Redirecting to login...');
+          // Sign out and redirect to home with a login flag to clear the recovery hash
+          authService.signOut().then(() => {
+            setTimeout(() => {
+              window.location.href = '/?mode=login';
+            }, 2000);
+          });
+        }
+      } else {
+        const result = mode === 'login'
+          ? await authService.signIn(email, password)
+          : await authService.signUp(email, password);
+
+        if (result.error) {
+          setError(result.error.message);
+        } else {
+          // If signup but no session, it means OTP is required
+          if (mode === 'signup' && !result.session) {
+            setShowOtp(true);
+          } else {
+            if (mode === 'signup') {
+              track('registration_completed', { method: 'password' });
+            }
+            onSuccess();
           }
-          onSuccess();
         }
       }
     } catch (err: any) {
@@ -140,8 +171,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
     }
   };
 
-  // If user is logged in, show profile view
-  if (user) {
+  // If user is logged in, show profile view (unless we are in the middle of a password update)
+  if (user && mode !== 'update-password') {
     return (
       <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade-in">
         <div className="bg-slate-900 border border-slate-800 rounded-[2.5rem] shadow-2xl max-w-md w-full p-10 relative animate-modal-pop overflow-hidden">
@@ -311,7 +342,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-4">
-                    {mode === 'signup' ? (
+                    {mode === 'signup' && (
                       <>
                         {/* 1. Company Name */}
                         <div className="relative group">
@@ -411,7 +442,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
                           </div>
                         </div>
                       </>
-                    ) : (
+                    )}
+
+                    {mode === 'login' && (
                       <>
                         {/* Login Mode */}
                         <div className="relative group">
@@ -433,6 +466,62 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
                             onChange={(e) => setPassword(e.target.value)}
                             required
                             placeholder="Password"
+                            className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-14 pr-6 text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all placeholder:text-slate-600"
+                          />
+                        </div>
+                        <div className="text-right">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setMode('forgot-password');
+                              setError('');
+                              setMessage('');
+                            }}
+                            className="text-[10px] font-black text-slate-500 hover:text-amber-500 uppercase tracking-widest transition-all"
+                          >
+                            Forgot Password?
+                          </button>
+                        </div>
+                      </>
+                    )}
+
+                    {mode === 'forgot-password' && (
+                      <div className="relative group">
+                        <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-amber-500 transition-colors" size={20} />
+                        <input
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          required
+                          placeholder="Email Address"
+                          className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-14 pr-6 text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all placeholder:text-slate-600"
+                        />
+                      </div>
+                    )}
+
+                    {mode === 'update-password' && (
+                      <>
+                        <div className="relative group">
+                          <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-amber-500 transition-colors" size={20} />
+                          <input
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                            minLength={6}
+                            placeholder="New Password"
+                            className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-14 pr-6 text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all placeholder:text-slate-600"
+                          />
+                        </div>
+                        <div className="relative group">
+                          <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-amber-500 transition-colors" size={20} />
+                          <input
+                            type="password"
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            required
+                            minLength={6}
+                            placeholder="Confirm New Password"
                             className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-14 pr-6 text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all placeholder:text-slate-600"
                           />
                         </div>
@@ -463,14 +552,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
                     </div>
                   )}
 
+                  {message && (
+                    <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-emerald-500 text-xs font-bold flex items-center gap-3">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      {message}
+                    </div>
+                  )}
+
                   <button
                     type="submit"
-                    disabled={loading || (mode === 'signup' && !agreedToTerms)}
+                    disabled={loading || (mode === 'signup' && !agreedToTerms) || (mode === 'forgot-password' && !email)}
                     className="w-full bg-slate-200 hover:bg-white text-slate-900 font-black py-5 rounded-2xl transition-all disabled:opacity-30 flex items-center justify-center gap-3 uppercase tracking-widest text-xs shadow-xl active:scale-[0.98]"
                   >
                     {loading ? <Loader className="animate-spin" size={20} /> : (
                       <>
-                        {mode === 'login' ? 'Sign In' : 'Create Account'}
+                        {mode === 'login' ? 'Sign In' : mode === 'signup' ? 'Create Account' : mode === 'forgot-password' ? 'Send Reset Link' : 'Update Password'}
                         <ArrowRight size={18} />
                       </>
                     )}
@@ -480,12 +576,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
                     <button
                       type="button"
                       onClick={() => {
-                        setMode(mode === 'login' ? 'signup' : 'login');
+                        if (mode === 'forgot-password' || mode === 'update-password') setMode('login');
+                        else setMode(mode === 'login' ? 'signup' : 'login');
                         setError('');
+                        setMessage('');
                       }}
                       className="text-[11px] font-black text-slate-500 hover:text-amber-500 uppercase tracking-[0.2em] transition-colors"
                     >
-                      {mode === 'login' ? 'Need an account? Sign Up' : 'Back to Sign In'}
+                      {mode === 'login' ? 'Need an account? Sign Up' : mode === 'signup' ? 'Back to Sign In' : 'Back to Login'}
                     </button>
                   </div>
                 </form>
