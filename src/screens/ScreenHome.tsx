@@ -10,12 +10,13 @@ import { subscriptionService } from '../services/subscriptionService';
 
 interface ScreenHomeProps {
   onNewProject: () => void;
+  onQuickStart: () => void;
   onLoadProject: (p: Project) => void;
   logoUrl?: string;
   isUserPro: boolean;
 }
 
-const ScreenHome = ({ onNewProject, onLoadProject, logoUrl, isUserPro }: ScreenHomeProps) => {
+const ScreenHome = ({ onNewProject, onQuickStart, onLoadProject, logoUrl, isUserPro }: ScreenHomeProps) => {
   const navigate = useNavigate();
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -98,6 +99,16 @@ const ScreenHome = ({ onNewProject, onLoadProject, logoUrl, isUserPro }: ScreenH
           >
             <span className="font-black uppercase tracking-tight">{canCreate ? 'Start New Project' : 'Limit Reached'}</span>
             {!canCreate && <span className="hidden md:block text-[10px] font-bold text-amber-500 uppercase tracking-widest mt-1">Upgrade to PRO</span>}
+          </Button>
+
+          <Button 
+            variant="secondary" 
+            size="lg" 
+            onClick={onQuickStart} 
+            leftIcon={<Zap size={20} className="text-amber-500" />} 
+            className="w-full py-4 text-sm font-black uppercase tracking-widest bg-amber-500/5 hover:bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400 rounded-2xl transition-all shadow-sm active:scale-95"
+          >
+            Quick Start Demo
           </Button>
           
           <div className="grid grid-cols-2 gap-2 sm:gap-4">

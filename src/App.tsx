@@ -28,6 +28,7 @@ import { SpeedInsights } from '@vercel/speed-insights/react';
 import { track } from '@vercel/analytics';
 import ScreenAdminDashboard from './screens/ScreenAdminDashboard';
 import { UserProfile, profileService } from './services/profileService';
+import { createDemoProject } from './utils/demoProject';
 
 
 // --- PROTECTED ROUTE COMPONENT ---
@@ -285,6 +286,28 @@ export default function App() {
     });
   };
 
+  const handleQuickStart = () => {
+    requireAuth(async () => {
+      // Fetch user's saved profile to use for the new project
+      let profileData: any = null;
+      if (user) {
+        profileData = await profileService.getProfile(user.id);
+      }
+
+      const demoProj = createDemoProject(profileData?.company_name);
+      if (userProfile?.logo_url) {
+        demoProj.settings.logoUrl = userProfile.logo_url;
+      }
+
+      // Just set state and navigate straight to the editor
+      lastSavedProjectRef.current = JSON.stringify(demoProj);
+      setProject(demoProj);
+      setIsDirty(false);
+      navigate('/walls?view=iso');
+      track('demo_project_created');
+    });
+  };
+
   const openAuthModal = (mode: 'login' | 'signup') => {
     setAuthModalMode(mode);
     setShowAuthModal(true);
@@ -485,6 +508,7 @@ export default function App() {
                     setProject(fixed);
                     navigate('/walls?view=iso');
                   }}
+                  onQuickStart={handleQuickStart}
                   logoUrl={project.settings.logoUrl}
                   isUserPro={isUserPro}
                 />
