@@ -1,8 +1,42 @@
 import React, { useState } from 'react';
 import { X, Mail, Lock, Loader, LogOut, User as UserIcon, Sparkles, Building2, Phone, ArrowRight, CheckCircle2, Upload, Eye, EyeOff } from 'lucide-react';
+import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
+import 'react-phone-number-input/style.css';
 import { authService } from '../services/authService';
 import type { User } from '@supabase/supabase-js';
 import { track } from '@vercel/analytics';
+
+const CustomPhoneInput = React.forwardRef((props: any, ref) => (
+  <input
+    {...props}
+    ref={ref}
+    className="w-full bg-transparent border-none text-white font-medium outline-none placeholder:text-slate-600 py-4 px-2"
+  />
+));
+
+// Helper to detect visitor's country based on browser language or timezone
+const getVisitorCountry = () => {
+  try {
+    // 1. Try to get country from browser language (e.g. "en-AU" -> "AU")
+    const lang = navigator.language;
+    if (lang && lang.includes('-')) {
+      const parts = lang.split('-');
+      const country = parts[parts.length - 1].toUpperCase();
+      if (country.length === 2) return country;
+    }
+
+    // 2. Fallback to timezone detection for common locations
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (timezone.includes('Colombo')) return 'LK';
+    if (timezone.includes('Sydney') || timezone.includes('Melbourne') || timezone.includes('Perth') || timezone.includes('Australia')) return 'AU';
+    if (timezone.includes('London')) return 'GB';
+    if (timezone.includes('New_York') || timezone.includes('Los_Angeles')) return 'US';
+    
+    return undefined;
+  } catch (e) {
+    return undefined;
+  }
+};
 
 interface AuthModalProps {
   onClose: () => void;
@@ -43,6 +77,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
 
     if (mode !== 'forgot-password' && password.length < 6) {
       setError('Password must be at least 6 characters');
+      return;
+    }
+
+    if (mode === 'signup' && phone && !isValidPhoneNumber(phone)) {
+      setError('Please enter a valid international phone number');
       return;
     }
 
@@ -206,7 +245,43 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
   }
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade-in">
+    <>
+      {/* Custom Styles for Phone Input to force Dark Theme */}
+      <style>{`
+        .phone-input-container .PhoneInput {
+          --PhoneInputCountryFlag-borderColor: transparent;
+          --PhoneInputCountrySelectArrow-color: #64748b;
+          --PhoneInputCountrySelectArrow-opacity: 0.7;
+        }
+        
+        .phone-input-container input.PhoneInputInput {
+          background: transparent !important;
+          border: none !important;
+          box-shadow: none !important;
+          color: white !important;
+          outline: none !important;
+        }
+
+        .phone-input-container .PhoneInputCountry {
+          background: transparent !important;
+          margin-right: 8px;
+        }
+
+        /* Target the native select dropdown */
+        .phone-input-container select.PhoneInputCountrySelect {
+          background-color: #0f172a !important;
+          color: white !important;
+          cursor: pointer;
+        }
+
+        /* Ensure the native options are styled (limited browser support but helps) */
+        .phone-input-container select.PhoneInputCountrySelect option {
+          background-color: #0f172a !important;
+          color: white !important;
+        }
+      `}</style>
+      
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade-in">
       <style>{`
         @keyframes modalPop {
           0% { opacity: 0; transform: scale(0.95) translateY(30px); }
@@ -372,15 +447,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
                         </div>
 
                         {/* 3. Phone */}
-                        <div className="relative group">
-                          <Phone className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-amber-500 transition-colors" size={20} />
-                          <input
-                            type="tel"
+                        <div className="relative group phone-input-container flex items-center bg-slate-900/50 border border-slate-800 rounded-2xl focus-within:ring-2 focus-within:ring-amber-500/20 focus-within:border-amber-500 transition-all px-4">
+                          <PhoneInput
+                            international
+                            defaultCountry={getVisitorCountry() as any}
                             value={phone}
-                            onChange={(e) => setPhone(e.target.value)}
-                            required
+                            onChange={(value) => setPhone(value || '')}
                             placeholder="Phone Number"
-                            className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-14 pr-6 text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all placeholder:text-slate-600"
+                            inputComponent={CustomPhoneInput}
+                            className="flex-1 flex items-center"
                           />
                         </div>
 
@@ -626,8 +701,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
               </>
             )}
           </div>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };

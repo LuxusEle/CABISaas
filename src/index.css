@@ -96,3 +96,62 @@ input[type=number] {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* react-phone-number-input custom dark theme overrides */
+.phone-input-container .PhoneInput {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Force the input to be transparent and inherit text color */
+.phone-input-container input.PhoneInputInput {
+  background: transparent !important;
+  border: none !important;
+  color: white !important;
+  font-size: 16px;
+  font-weight: 500;
+  outline: none;
+  width: 100%;
+  padding: 0;
+}
+
+.phone-input-container .PhoneInputInput::placeholder {
+  color: #475569 !important; /* slate-600 */
+}
+
+/* Style the country selector section */
+.phone-input-container .PhoneInputCountry {
+  display: flex;
+  align-items: center;
+  background: transparent !important;
+  padding: 0;
+  border: none !important;
+  margin-right: 4px;
+}
+
+/* Target the native select element hidden inside */
+.phone-input-container .PhoneInputCountrySelect {
+  background: transparent !important;
+  color: white !important;
+}
+
+.phone-input-container .PhoneInputCountryIcon {
+  width: 24px;
+  height: 18px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+  border-radius: 2px;
+}
+
+.phone-input-container .PhoneInputCountrySelectArrow {
+  color: #64748b; /* slate-500 */
+  margin-left: 6px;
+  opacity: 0.7;
+}
+
+/* Ensure the flag list or dropdown doesn't have a white background if it appears */
+.phone-input-container select {
+  background-color: #0f172a !important; /* slate-900 */
+  color: white !important;
+}
+
