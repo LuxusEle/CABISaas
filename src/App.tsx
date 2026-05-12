@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
-import { Home, Box, Moon, Sun, Table2, Settings, LayoutDashboard, Wrench, CreditCard, Book, ChevronLeft, Save, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Home, Box, Moon, Sun, Table2, Settings, LayoutDashboard, Wrench, CreditCard, Book, ChevronLeft, Save, ArrowRight, ShieldCheck, Building2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Screen, Project } from './types';
 import { GlobalProjectProgress } from './components/GlobalProjectProgress';
@@ -22,6 +22,7 @@ import ScreenWallEditor from './screens/ScreenWallEditor';
 import ScreenHome from './screens/ScreenHome';
 import ScreenProjectSetup from './screens/ScreenProjectSetup';
 import ScreenBOMReport from './screens/ScreenBOMReport';
+import { ProfilePage } from './components/ProfilePage';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import { track } from '@vercel/analytics';
@@ -338,6 +339,7 @@ export default function App() {
               <NavButton active={location.pathname === '/setup'} path="/setup" icon={<Settings size={22} />} label="Project Setup" isDirty={isDirty} isExpanded={isSidebarExpanded} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
               <NavButton active={location.pathname === '/walls'} path="/walls?view=iso" icon={<Box size={22} />} label="3D Design Studio" isDirty={isDirty} isExpanded={isSidebarExpanded} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
               <NavButton active={location.pathname === '/bom'} path="/bom" icon={<Table2 size={22} />} label="Reports & BOM" isDirty={isDirty} isExpanded={isSidebarExpanded} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
+              <NavButton active={location.pathname === '/profile'} path="/profile" icon={<Building2 size={22} />} label="Business Profile" isDirty={isDirty} isExpanded={isSidebarExpanded} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
               <NavButton active={location.pathname === '/pricing'} path="/pricing" icon={<CreditCard size={22} />} label="Subscription" isDirty={isDirty} isExpanded={isSidebarExpanded} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
               <NavButton active={location.pathname === '/docs'} path="/docs" icon={<Book size={22} />} label="Documentation" isDirty={isDirty} isExpanded={isSidebarExpanded} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
               {userProfile?.role === 'admin' && (
@@ -510,6 +512,15 @@ export default function App() {
             <Route path="/bom" element={
               <ProtectedRoute user={user} loading={authLoading}>
                 <ScreenBOMReport project={project} setProject={setProject} isUserPro={isUserPro} />
+              </ProtectedRoute>
+            } />
+            <Route path="/profile" element={
+              <ProtectedRoute user={user} loading={authLoading}>
+                <ProfilePage 
+                  user={user} 
+                  onBack={() => navigate('/dashboard')}
+                  onProfileUpdate={(updated) => setUserProfile(updated)}
+                />
               </ProtectedRoute>
             } />
             <Route path="/admin" element={

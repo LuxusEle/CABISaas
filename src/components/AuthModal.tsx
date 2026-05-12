@@ -5,6 +5,7 @@ import 'react-phone-number-input/style.css';
 import { authService } from '../services/authService';
 import type { User } from '@supabase/supabase-js';
 import { track } from '@vercel/analytics';
+import { getVisitorCountry } from '../utils/geoUtils';
 
 const CustomPhoneInput = React.forwardRef((props: any, ref) => (
   <input
@@ -14,29 +15,7 @@ const CustomPhoneInput = React.forwardRef((props: any, ref) => (
   />
 ));
 
-// Helper to detect visitor's country based on browser language or timezone
-const getVisitorCountry = () => {
-  try {
-    // 1. Try to get country from browser language (e.g. "en-AU" -> "AU")
-    const lang = navigator.language;
-    if (lang && lang.includes('-')) {
-      const parts = lang.split('-');
-      const country = parts[parts.length - 1].toUpperCase();
-      if (country.length === 2) return country;
-    }
-
-    // 2. Fallback to timezone detection for common locations
-    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    if (timezone.includes('Colombo')) return 'LK';
-    if (timezone.includes('Sydney') || timezone.includes('Melbourne') || timezone.includes('Perth') || timezone.includes('Australia')) return 'AU';
-    if (timezone.includes('London')) return 'GB';
-    if (timezone.includes('New_York') || timezone.includes('Los_Angeles')) return 'US';
-    
-    return undefined;
-  } catch (e) {
-    return undefined;
-  }
-};
+// Helper is now imported from ../utils/geoUtils
 
 interface AuthModalProps {
   onClose: () => void;
@@ -58,13 +37,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [companyName, setCompanyName] = useState('');
   const [phone, setPhone] = useState('');
-  const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [showOtp, setShowOtp] = useState(false);
   const [otpToken, setOtpToken] = useState('');
   const [resending, setResending] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -151,21 +127,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
 
   const saveProfile = async (user: User) => {
     try {
-      let uploadedLogoUrl = '';
-      if (logoFile) {
-        const { logoService } = await import('../services/logoService');
-        const uploadResult = await logoService.uploadLogo(logoFile, user.id);
-        if (uploadResult) {
-          uploadedLogoUrl = uploadResult.url;
-        }
-      }
-
       const { profileService } = await import('../services/profileService');
       await profileService.updateProfile(user.id, {
         email: email,
-        company_name: companyName,
-        phone: phone,
-        logo_url: uploadedLogoUrl || undefined
+        company_name: companyName || email.split('@')[0],
+        phone: phone || undefined
       });
     } catch (profileErr) {
       console.error("Profile update failed:", profileErr);
@@ -424,20 +390,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
                   <div className="space-y-4">
                     {mode === 'signup' && (
                       <>
-                        {/* 1. Company Name */}
-                        <div className="relative group">
-                          <Building2 className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-amber-500 transition-colors" size={20} />
-                          <input
-                            type="text"
-                            value={companyName}
-                            onChange={(e) => setCompanyName(e.target.value)}
-                            required
-                            placeholder="Company Name"
-                            className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-14 pr-6 text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all placeholder:text-slate-600"
-                          />
-                        </div>
-
-                        {/* 2. Email Address */}
+                        {/* 1. Email Address */}
                         <div className="relative group">
                           <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-amber-500 transition-colors" size={20} />
                           <input
@@ -449,50 +402,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
                             className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-14 pr-6 text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all placeholder:text-slate-600"
                           />
                         </div>
-
-                        {/* 3. Phone */}
+ 
+                        {/* 2. Phone (Optional) */}
                         <div className="relative group phone-input-container flex items-center bg-slate-900/50 border border-slate-800 rounded-2xl focus-within:ring-2 focus-within:ring-amber-500/20 focus-within:border-amber-500 transition-all px-4">
                           <PhoneInput
                             international
                             defaultCountry={getVisitorCountry() as any}
                             value={phone}
                             onChange={(value) => setPhone(value || '')}
-                            placeholder="Phone Number"
+                            placeholder="Phone Number (Optional)"
                             inputComponent={CustomPhoneInput}
                             className="flex-1 flex items-center"
                           />
-                        </div>
-
-                        {/* 4. Logo Upload */}
-                        <div className="relative group">
-                          <input 
-                            type="file" 
-                            ref={fileInputRef}
-                            className="hidden" 
-                            accept="image/*"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                setLogoFile(file);
-                                setLogoPreview(URL.createObjectURL(file));
-                              }
-                            }}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => fileInputRef.current?.click()}
-                            className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 px-6 flex items-center justify-between text-slate-400 font-medium hover:border-amber-500 transition-all group"
-                          >
-                            <div className="flex items-center gap-4">
-                              <Upload size={20} className="text-slate-600 group-hover:text-amber-500 transition-colors" />
-                              <span>{logoFile ? logoFile.name : 'Company Logo'}</span>
-                            </div>
-                            {logoPreview && (
-                              <div className="w-10 h-10 rounded-lg overflow-hidden border border-slate-700">
-                                <img src={logoPreview} alt="Logo" className="w-full h-full object-cover" />
-                              </div>
-                            )}
-                          </button>
                         </div>
 
                         {/* 5. Password & Confirm */}
