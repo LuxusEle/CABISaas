@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Mail, Lock, Loader, LogOut, User as UserIcon, Sparkles, Building2, Phone, ArrowRight, CheckCircle2, Upload } from 'lucide-react';
+import { X, Mail, Lock, Loader, LogOut, User as UserIcon, Sparkles, Building2, Phone, ArrowRight, CheckCircle2, Upload, Eye, EyeOff } from 'lucide-react';
 import { authService } from '../services/authService';
 import type { User } from '@supabase/supabase-js';
 import { track } from '@vercel/analytics';
@@ -29,6 +29,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
   const [showOtp, setShowOtp] = useState(false);
   const [otpToken, setOtpToken] = useState('');
   const [resending, setResending] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -420,25 +421,39 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
                           <div className="relative group">
                             <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-amber-500 transition-colors" size={20} />
                             <input
-                              type="password"
+                              type={showPassword ? "text" : "password"}
                               value={password}
                               onChange={(e) => setPassword(e.target.value)}
                               required
                               minLength={6}
                               placeholder="Password"
-                              className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-14 pr-6 text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all placeholder:text-slate-600"
+                              className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-14 pr-12 text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all placeholder:text-slate-600"
                             />
+                            <button
+                              type="button"
+                              onClick={() => setShowPassword(!showPassword)}
+                              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 hover:text-amber-500 transition-colors"
+                            >
+                              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                            </button>
                           </div>
                           <div className="relative group">
                             <input
-                              type="password"
+                              type={showPassword ? "text" : "password"}
                               value={confirmPassword}
                               onChange={(e) => setConfirmPassword(e.target.value)}
                               required
                               minLength={6}
                               placeholder="Confirm"
-                              className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 px-6 text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all placeholder:text-slate-600"
+                              className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 px-12 text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all placeholder:text-slate-600"
                             />
+                            <button
+                              type="button"
+                              onClick={() => setShowPassword(!showPassword)}
+                              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 hover:text-amber-500 transition-colors"
+                            >
+                              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                            </button>
                           </div>
                         </div>
                       </>
@@ -461,13 +476,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
                         <div className="relative group">
                           <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-amber-500 transition-colors" size={20} />
                           <input
-                            type="password"
+                            type={showPassword ? "text" : "password"}
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
                             placeholder="Password"
-                            className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-14 pr-6 text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all placeholder:text-slate-600"
+                            className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-14 pr-12 text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all placeholder:text-slate-600"
                           />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 hover:text-amber-500 transition-colors"
+                          >
+                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
                         </div>
                         <div className="text-right">
                           <button
@@ -504,26 +526,40 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
                         <div className="relative group">
                           <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-amber-500 transition-colors" size={20} />
                           <input
-                            type="password"
+                            type={showPassword ? "text" : "password"}
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
                             minLength={6}
                             placeholder="New Password"
-                            className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-14 pr-6 text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all placeholder:text-slate-600"
+                            className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-14 pr-12 text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all placeholder:text-slate-600"
                           />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 hover:text-amber-500 transition-colors"
+                          >
+                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
                         </div>
                         <div className="relative group">
                           <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-amber-500 transition-colors" size={20} />
                           <input
-                            type="password"
+                            type={showPassword ? "text" : "password"}
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
                             required
                             minLength={6}
                             placeholder="Confirm New Password"
-                            className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-14 pr-6 text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all placeholder:text-slate-600"
+                            className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-14 pr-12 text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all placeholder:text-slate-600"
                           />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 hover:text-amber-500 transition-colors"
+                          >
+                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
                         </div>
                       </>
                     )}
