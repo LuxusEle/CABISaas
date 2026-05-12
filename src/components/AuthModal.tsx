@@ -133,8 +133,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
           if (mode === 'signup' && !result.session) {
             setShowOtp(true);
           } else {
-            if (mode === 'signup') {
+            if (mode === 'signup' && result.user) {
               track('registration_completed', { method: 'password' });
+              // If OTP is disabled in Supabase, we save the profile immediately
+              await saveProfile(result.user);
             }
             onSuccess();
           }
@@ -144,6 +146,29 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
       setError(err.message || 'An error occurred');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const saveProfile = async (user: User) => {
+    try {
+      let uploadedLogoUrl = '';
+      if (logoFile) {
+        const { logoService } = await import('../services/logoService');
+        const uploadResult = await logoService.uploadLogo(logoFile, user.id);
+        if (uploadResult) {
+          uploadedLogoUrl = uploadResult.url;
+        }
+      }
+
+      const { profileService } = await import('../services/profileService');
+      await profileService.updateProfile(user.id, {
+        email: email,
+        company_name: companyName,
+        phone: phone,
+        logo_url: uploadedLogoUrl || undefined
+      });
+    } catch (profileErr) {
+      console.error("Profile update failed:", profileErr);
     }
   };
 
@@ -157,30 +182,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
       if (result.error) {
         setError(result.error.message);
       } else if (result.user) {
-        // NOW we are authenticated, let's save the profile details
-        try {
-          let uploadedLogoUrl = '';
-          if (logoFile) {
-            const { logoService } = await import('../services/logoService');
-            const uploadResult = await logoService.uploadLogo(logoFile, result.user.id);
-            if (uploadResult) {
-              uploadedLogoUrl = uploadResult.url;
-            }
-          }
-
-          const { profileService } = await import('../services/profileService');
-          await profileService.updateProfile(result.user.id, {
-            email: email,
-            company_name: companyName,
-            phone: phone,
-            logo_url: uploadedLogoUrl || undefined
-          });
-        } catch (profileErr) {
-          console.error("Delayed profile update failed:", profileErr);
-          // We don't block the login if profile update fails, 
-          // but at least the user is in now.
-        }
-
+        // Save the profile details after verification
+        await saveProfile(result.user);
         track('registration_confirmed', { method: 'otp' });
         onSuccess();
       }
