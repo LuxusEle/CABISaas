@@ -353,9 +353,10 @@ export const WallCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
   const blindWidthFront = blindPanelWidth - doorOuterGap * 2;
   const doorWidth = width - blindPanelWidth - doorOuterGap * 2;
   
-  const blindPanelHeight = innerHeight;
+  const blindPanelHeight = innerHeight + (isGolaActive ? settings.doorOverride : 0);
   let doorHeight = innerHeight + (isGolaActive ? settings.doorOverride : 0);
   let doorYOffset = isGolaActive ? -settings.doorOverride / 2 : 0;
+  const blindPanelFrontY = doorYOffset;
 
   const blindPanelHoles = useMemo(() => {
     if (!showNailHoles) return [];
@@ -364,13 +365,14 @@ export const WallCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
     const holes: { y: number, z: number, r: number, through?: boolean }[] = [];
     
     // Top Panel hit points
-    const yTopPanel = innerHeight / 2 - panelThickness / 2;
+    const yOffsetAdjustment = isGolaActive ? settings.doorOverride / 2 : 0;
+    const yTopPanel = innerHeight / 2 - panelThickness / 2 + yOffsetAdjustment;
     holes.push({ y: yTopPanel, z: -blindWidthFront / 2 + 50, r: technicalR, through: true });
     holes.push({ y: yTopPanel, z: 0, r: technicalR, through: true });
     holes.push({ y: yTopPanel, z: blindWidthFront / 2 - 50, r: technicalR, through: true });
 
-    // Bottom panel hit points
-    const yBottomPanel = -innerHeight / 2 + panelThickness / 2 + wallBottomRecess;
+    // Bottom panel
+    const yBottomPanel = -innerHeight / 2 + panelThickness / 2 + wallBottomRecess + yOffsetAdjustment;
     holes.push({ y: yBottomPanel, z: -blindWidthFront / 2 + 50, r: technicalR, through: true });
     holes.push({ y: yBottomPanel, z: 0, r: technicalR, through: true });
     holes.push({ y: yBottomPanel, z: blindWidthFront / 2 - 50, r: technicalR, through: true });
@@ -380,8 +382,8 @@ export const WallCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
       ? panelThickness / 2 - blindPanelWidth / 2 
       : blindPanelWidth / 2 - panelThickness / 2;
       
-    calculateNailHolePositions(blindPanelHeight).forEach(offset => {
-      holes.push({ y: offset, z: sidePanelLocalX, r: technicalR, through: true });
+    calculateNailHolePositions(innerHeight).forEach(offset => {
+      holes.push({ y: offset + yOffsetAdjustment, z: sidePanelLocalX, r: technicalR, through: true });
     });
 
     return holes;
@@ -487,7 +489,7 @@ export const WallCornerCabinetTesting: React.FC<Props> = ({ settings }) => {
     ? -width / 2 + blindPanelWidth / 2 
     : width / 2 - blindPanelWidth / 2;
 
-  const blindPanelFrontY = 0; 
+  // const blindPanelFrontY is now defined above with doorYOffset
 
   const doorX = blindCornerSide === 'left'
     ? width / 2 - doorWidth / 2 - doorOuterGap
@@ -1188,29 +1190,30 @@ export const exportWallCornerCabinetDXF = async (settings: TestingSettings, zip:
 
   // Front Blind Panel
   const fbpW = blindPanelWidth - doorOuterGap * 2;
-  const fbpH = innerHeight;
+  const fbpH = innerHeight + (isGolaActive ? settings.doorOverride : 0);
   const fbpHoles: any[] = [];
   const technicalR = nailHoleDiameter / 2;
 
   // Top Panel
-  const yTopPanel = fbpH / 2 - panelThickness / 2;
-  fbpHoles.push({ y: yTopPanel, z: -fbpW / 2 + 50, r: technicalR });
-  fbpHoles.push({ y: yTopPanel, z: 0, r: technicalR });
-  fbpHoles.push({ y: yTopPanel, z: fbpW / 2 - 50, r: technicalR });
+  const fbpHoleYOffset = isGolaActive ? settings.doorOverride / 2 : 0;
+  const yTop = innerHeight / 2 - panelThickness / 2 + fbpHoleYOffset;
+  fbpHoles.push({ y: yTop, z: -fbpW / 2 + 50, r: technicalR });
+  fbpHoles.push({ y: yTop, z: 0, r: technicalR });
+  fbpHoles.push({ y: yTop, z: fbpW / 2 - 50, r: technicalR });
 
   // Bottom Panel
-  const yBottomPanel = -fbpH / 2 + panelThickness / 2 + wallBottomRecess;
-  fbpHoles.push({ y: yBottomPanel, z: -fbpW / 2 + 50, r: technicalR });
-  fbpHoles.push({ y: yBottomPanel, z: 0, r: technicalR });
-  fbpHoles.push({ y: yBottomPanel, z: fbpW / 2 - 50, r: technicalR });
+  const yBottom = -innerHeight / 2 + panelThickness / 2 + wallBottomRecess + fbpHoleYOffset;
+  fbpHoles.push({ y: yBottom, z: -fbpW / 2 + 50, r: technicalR });
+  fbpHoles.push({ y: yBottom, z: 0, r: technicalR });
+  fbpHoles.push({ y: yBottom, z: fbpW / 2 - 50, r: technicalR });
 
   // Side Panel
-  const sidePanelLocalX = blindCornerSide === 'left' 
+  const sidePanelLocalX_DXF = blindCornerSide === 'left' 
     ? panelThickness / 2 - blindPanelWidth / 2 
     : blindPanelWidth / 2 - panelThickness / 2;
     
-  calculateNailHolePositions(fbpH).forEach(offset => {
-    fbpHoles.push({ y: offset, z: sidePanelLocalX, r: technicalR });
+  calculateNailHolePositions(innerHeight).forEach(offset => {
+    fbpHoles.push({ y: offset + fbpHoleYOffset, z: sidePanelLocalX_DXF, r: technicalR });
   });
 
   addPanelToZip('Front_Blind_Panel', fbpW, fbpH, fbpHoles);
