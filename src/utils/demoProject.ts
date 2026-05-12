@@ -40,7 +40,13 @@ export const createDemoProject = (companyName: string = 'Demo Kitchens'): Projec
       width: 600,
       qty: 1,
       fromLeft: 0,
-      label: 'T01'
+      label: 'T01',
+      exposedLeft: true,
+      exposedRight: true,
+      rightCoverage: [
+        { start: 0, end: 910, depth: 560 },
+        { start: 1360, end: 2080, depth: 300 }
+      ]
     },
     // Prep area
     {
@@ -80,7 +86,8 @@ export const createDemoProject = (companyName: string = 'Demo Kitchens'): Projec
       width: 600,
       qty: 1,
       fromLeft: 3000,
-      label: 'B04'
+      label: 'B04',
+      exposedRight: true
     },
     // Wall Cabinets (Storage)
     {
@@ -90,7 +97,8 @@ export const createDemoProject = (companyName: string = 'Demo Kitchens'): Projec
       width: 750,
       qty: 1,
       fromLeft: 600,
-      label: 'W01'
+      label: 'W01',
+      exposedRight: true
     },
     {
       id: 'demo-wall-2',
@@ -99,7 +107,8 @@ export const createDemoProject = (companyName: string = 'Demo Kitchens'): Projec
       width: 750,
       qty: 1,
       fromLeft: 2250,
-      label: 'W02'
+      label: 'W02',
+      exposedLeft: true
     },
     // Cooking Hood (exactly above hob)
     {
@@ -109,7 +118,8 @@ export const createDemoProject = (companyName: string = 'Demo Kitchens'): Projec
       width: 600,
       qty: 1,
       fromLeft: 3000,
-      label: 'W03'
+      label: 'W03',
+      exposedRight: true
     }
   ];
 
