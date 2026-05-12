@@ -170,6 +170,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
 
           const { profileService } = await import('../services/profileService');
           await profileService.updateProfile(result.user.id, {
+            email: email,
             company_name: companyName,
             phone: phone,
             logo_url: uploadedLogoUrl || undefined
