@@ -1021,7 +1021,7 @@ const Scene = ({
               isStudio={isStudio}
               skeletonView={skeletonView}
             />
-            {!previewPos && !draggedCabinet && (
+            {!previewPos && !draggedCabinet && project.settings.workflowMode !== 'advanced' && (
               <ZoneBacksplash 
                 zone={zone} 
                 project={project} 

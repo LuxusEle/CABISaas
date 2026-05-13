@@ -136,6 +136,7 @@ export interface ProjectSettings {
     includeDrawers: boolean;
   };
   constructionType?: string;
+  workflowMode?: 'traditional' | 'advanced';
   completedSteps?: string[];
   progress?: ProjectProgress;
 }

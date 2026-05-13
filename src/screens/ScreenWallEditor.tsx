@@ -9,6 +9,7 @@ import { CabinetViewer } from '../components/3d/CabinetViewer';
 import { CabinetSpanSlider } from '../components/CabinetSpanSlider';
 import { SingleCabinetEditorModal } from '../components/SingleCabinetEditorModal';
 import { TestingSettings } from '../components/CabinetTestingUtils';
+import { recalculateCabinetPositions } from '../services/advancedWorkflowService';
 
 interface ScreenWallEditorProps {
   project: Project;
@@ -164,7 +165,26 @@ const ScreenWallEditor = ({
         setActiveTab(project.zones[0].id);
       }
     }
-  }, [project.zones, activeTab]);
+    
+    // In Advanced Mode, ensure positions are correct on mount
+    if (project.settings.workflowMode === 'advanced') {
+      const needsSync = project.zones.some(z => {
+        const copy = JSON.parse(JSON.stringify(z.cabinets));
+        const synced = recalculateCabinetPositions(z.cabinets);
+        return JSON.stringify(copy) !== JSON.stringify(synced);
+      });
+      
+      if (needsSync) {
+        setProject(prev => ({
+          ...prev,
+          zones: prev.zones.map(z => ({
+            ...z,
+            cabinets: recalculateCabinetPositions(z.cabinets)
+          }))
+        }));
+      }
+    }
+  }, [project.zones, activeTab, project.settings.workflowMode]);
 
   const currentZoneIndex = project.zones.findIndex(z => z.id === activeTab);
   const currentZone = project.zones[currentZoneIndex] || project.zones[0];

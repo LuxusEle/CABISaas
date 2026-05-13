@@ -124,8 +124,8 @@ export const Cabinet: React.FC<Props> = ({
 
   // Use effective dimensions (layout sizes)
   const width = unit.width;
-  const depth = unit.advancedSettings?.depth || (isWall ? settings?.depthWall || 300 : isTall ? (settings?.depthTall || 560) : (settings?.depthBase || 560));
-  const height = unit.advancedSettings?.height || (isTall ? ((settings?.tallHeight === 2100 || !settings?.tallHeight) ? ((settings?.baseHeight || 870) + (settings?.counterThickness || 40) + (settings?.wallCabinetElevation || 450) + (settings?.wallHeight || 720)) : settings.tallHeight) : isWall ? (settings?.wallHeight || 720) : (settings?.baseHeight || 870));
+  const depth = unit.depth || unit.advancedSettings?.depth || (isWall ? settings?.depthWall || 300 : isTall ? (settings?.depthTall || 560) : (settings?.depthBase || 560));
+  const height = unit.height || unit.advancedSettings?.height || (isTall ? ((settings?.tallHeight === 2100 || !settings?.tallHeight) ? ((settings?.baseHeight || 870) + (settings?.counterThickness || 40) + (settings?.wallCabinetElevation || 450) + (settings?.wallHeight || 720)) : settings.tallHeight) : isWall ? (settings?.wallHeight || 720) : (settings?.baseHeight || 870));
   
   const baseHeight = settings?.baseHeight || 870;
   const counterThickness = settings?.counterThickness || 40;
@@ -285,8 +285,8 @@ export const Cabinet: React.FC<Props> = ({
         )
       )}
 
-      {/* Granite Countertop - Rendered on top of ALL base cabinets */}
-      {isBase && !previewMode && (
+      {/* Granite Countertop - Rendered on top of ALL base cabinets - Hidden in Advanced Mode */}
+      {isBase && !previewMode && settings?.workflowMode !== 'advanced' && (
         <mesh position={[width / 2, height + counterThickness / 2, depth / 2 + 25]}>
           <boxGeometry args={[width, counterThickness, depth + 50]} />
           <meshStandardMaterial color="#0a0a0a" roughness={0.05} metalness={0.4} />
@@ -333,8 +333,8 @@ export const Cabinet: React.FC<Props> = ({
         </group>
       )}
 
-      {/* Countertop rendering (Legacy logic kept for global layout) */}
-      {showCountertop && isBase && (
+      {/* Countertop rendering (Legacy logic kept for global layout) - Hidden in Advanced Mode */}
+      {showCountertop && isBase && settings?.workflowMode !== 'advanced' && (
         <group position={[width / 2, zBase + height, depth / 2]}>
           <mesh position={[0, counterThickness / 2, 0]} castShadow receiveShadow>
             <boxGeometry args={[width + 20, counterThickness, depth + 20]} />

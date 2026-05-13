@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Save, FileText, Upload, DollarSign, Settings, Box, Lock, CheckCircle2, AlertCircle, Wand2, ArrowRight, X, MousePointer2, Plus, Check, Pencil, MapPin, Phone, Sparkles, Layout, Layers, Cpu } from 'lucide-react';
-import { Project } from '../types';
+import { Save, FileText, Upload, DollarSign, Settings, Box, Lock, CheckCircle2, AlertCircle, Wand2, ArrowRight, X, MousePointer2, Plus, Check, Pencil, MapPin, Phone, Sparkles, Layout, Layers, Cpu, ChevronDown } from 'lucide-react';
+import { Project, CabinetType, PresetType } from '../types';
 import { Button } from '../components/Button';
 import { NumberInput } from '../components/NumberInput';
 import { WallEditModal } from '../components/WallEditModal';
@@ -13,6 +13,7 @@ import { generateRubyLayout } from '../services/layoutSolver';
 import { logoService } from '../services/logoService';
 import { subscriptionService } from '../services/subscriptionService';
 import { supabase } from '../services/supabaseClient';
+import { recalculateCabinetPositions, calculateTotalZoneLength, createAdvancedCabinet } from '../services/advancedWorkflowService';
 
 interface ScreenProjectSetupProps {
   project: Project;
@@ -28,7 +29,7 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
   const location = useLocation();
   
   // State for centered modal
-  const [activeModal, setActiveModal] = useState<'project' | 'walls' | 'limits' | 'sheets' | 'hardware' | 'construction' | 'costs' | 'allocation' | 'preferences' | 'generation' | null>('project');
+  const [activeModal, setActiveModal] = useState<'project' | 'walls' | 'limits' | 'sheets' | 'hardware' | 'construction' | 'costs' | 'allocation' | 'preferences' | 'generation' | 'advanced_entry' | null>('project');
 
   // Modal control states
   const isLayoutLocked = project.zones.some(z => z.cabinets && z.cabinets.length > 0);
@@ -39,6 +40,8 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
 
   // Persistence for wizard steps
   const [visitedSteps, setVisitedSteps] = useState<Set<string>>(new Set(project.settings.completedSteps || ['project']));
+  const [highlightedCabId, setHighlightedCabId] = useState<string | null>(null);
+  const [activeDropdownId, setActiveDropdownId] = useState<string | null>(null);
 
   useEffect(() => {
     if (project.settings.completedSteps) {
@@ -92,8 +95,12 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
   const isHardwareDone = visitedSteps.has('hardware');
   const isCostsDone = visitedSteps.has('costs');
 
-  const isReadyToGenerate = isIdentityDone && isWallsDone && isLimitsDone && isPreferencesDone;
-  const wizardSteps = ['project', 'walls', 'limits', 'preferences', 'sheets', 'hardware', 'construction', 'costs', 'generation'];
+  const isReadyToGenerate = isIdentityDone && (project.settings.workflowMode === 'advanced' ? true : (isWallsDone && isLimitsDone && isPreferencesDone));
+  
+  const traditionalSteps = ['project', 'walls', 'limits', 'preferences', 'sheets', 'hardware', 'construction', 'costs', 'generation'];
+  const advancedSteps = ['project', 'advanced_entry', 'sheets', 'hardware', 'construction', 'costs', 'generation'];
+  const wizardSteps = project.settings.workflowMode === 'advanced' ? advancedSteps : traditionalSteps;
+  
   const [direction, setDirection] = useState<'forward' | 'backward'>('forward');
 
   // Handle auto-open from URL
@@ -270,10 +277,21 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
     
     try {
       await onSaveProject(project);
-      const result = generateRubyLayout(project);
-      const updatedProject = result.project;
-      await onSaveProject(updatedProject);
-      navigate('/walls?view=iso');
+      
+      if (project.settings.workflowMode === 'advanced') {
+        // Final layout verification for Advanced Mode
+        const updatedZones = [...project.zones];
+        updatedZones[0].cabinets = recalculateCabinetPositions(updatedZones[0].cabinets);
+        updatedZones[0].totalLength = calculateTotalZoneLength(updatedZones[0].cabinets);
+        const finalProject = { ...project, zones: updatedZones };
+        await onSaveProject(finalProject);
+        navigate('/walls?view=iso');
+      } else {
+        const result = generateRubyLayout(project);
+        const updatedProject = result.project;
+        await onSaveProject(updatedProject);
+        navigate('/walls?view=iso');
+      }
     } catch (err) {
       console.error('Failed to generate design:', err);
       alert('Error generating design. Please try again.');
@@ -298,6 +316,7 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
         case 'hardware': return 'Hardware';
         case 'construction': return 'Construction';
         case 'costs': return 'Pricing';
+        case 'advanced_entry': return 'Unit List';
         case 'generation': return 'Launch';
         default: return step;
       }
@@ -421,7 +440,7 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
                       className="absolute inset-0 h-full w-full"
                     >
                       <div className={`h-full w-full flex flex-col overflow-hidden bg-white dark:bg-slate-900 rounded-[2rem] border-2 border-slate-200/60 dark:border-slate-800 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.15)] dark:shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)] ${['walls', 'limits'].includes(activeModal as string) ? '' : 'p-4 sm:p-10 overflow-y-auto'}`}>
-                        <div className={`${['walls', 'limits'].includes(activeModal as string) ? 'h-full w-full' : 'max-w-5xl mx-auto w-full'}`}>
+                        <div className={`${['walls', 'limits', 'advanced_entry'].includes(activeModal as string) ? 'h-full w-full px-4' : 'max-w-5xl mx-auto w-full'}`}>
                     
                     {activeModal === 'walls' && (
                       <WallEditModal
@@ -527,11 +546,434 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
                                   <Sparkles size={32} />
                                 </div>
                                 <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest mb-1">Branded Experience</h4>
-                                <p className="text-[10px] text-slate-500 font-medium italic">All reports and 3D designs will use your profile's company identity.</p>
+                                <p className="text-[10px] text-slate-500 font-medium italic mb-6">All reports and 3D designs will use your profile's company identity.</p>
+
+                                <div className="flex flex-col gap-2 w-full">
+                                  <button
+                                    onClick={() => {
+                                      setProject(prev => ({
+                                        ...prev,
+                                        settings: {
+                                          ...prev.settings,
+                                          workflowMode: prev.settings.workflowMode === 'advanced' ? 'traditional' : 'advanced'
+                                        }
+                                      }));
+                                    }}
+                                    className={`w-full py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all border-2 flex items-center justify-center gap-2 ${
+                                      project.settings.workflowMode === 'advanced'
+                                        ? 'bg-amber-500 text-white border-amber-500 shadow-lg shadow-amber-500/20'
+                                        : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-amber-500'
+                                    }`}
+                                  >
+                                    <Cpu size={16} />
+                                    {project.settings.workflowMode === 'advanced' ? 'Advanced Mode Enabled' : 'Enable Advanced Mode'}
+                                  </button>
+                                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">
+                                    {project.settings.workflowMode === 'advanced' 
+                                      ? 'Skips layout solver • Direct unit entry' 
+                                      : 'Traditional layout • Smart automation'}
+                                  </p>
+                                </div>
                               </div>
                             </div>
                           </div>
                         </div>
+                      </div>
+                    )}
+                    {activeModal === 'advanced_entry' && (
+                      <div className="space-y-8 animate-in fade-in slide-in-from-right-10 duration-500">
+                        <div className="bg-amber-50/50 dark:bg-amber-900/10 p-6 rounded-[2rem] border-2 border-amber-500/10 flex justify-between items-center shadow-sm">
+                          <div>
+                            <h4 className="text-lg font-black text-amber-900 dark:text-amber-400 uppercase tracking-widest mb-1 italic flex items-center gap-3">
+                              <Cpu size={22} className="text-amber-500" /> Direct Unit Entry
+                            </h4>
+                            <p className="text-sm text-amber-700/70 dark:text-amber-500/50 font-medium italic">Define your cabinetry boxes manually. Skip the solver, keep the technical accuracy.</p>
+                          </div>
+                          
+                          <div className="flex items-center gap-12">
+                            <div className="flex items-center gap-6">
+                              <div className="flex flex-col text-right">
+                                <span className="text-[9px] font-black uppercase text-amber-500/50 tracking-widest">Total Wall length</span>
+                                <span className="text-lg font-black text-amber-900 dark:text-amber-400 italic">
+                                  {calculateTotalZoneLength(project.zones[0].cabinets)}
+                                  <span className="text-xs font-bold text-amber-500/50 not-italic ml-1">mm</span>
+                                </span>
+                              </div>
+                              <div className="w-[1px] h-8 bg-amber-500/10" />
+                              <div className="flex flex-col text-right">
+                                <span className="text-[9px] font-black uppercase text-amber-500/50 tracking-widest">Unit Count</span>
+                                <span className="text-lg font-black text-amber-900 dark:text-amber-400 italic">
+                                  {project.zones[0].cabinets.length}
+                                  <span className="text-xs font-bold text-amber-500/50 not-italic ml-1">boxes</span>
+                                </span>
+                              </div>
+                            </div>
+
+                            <button 
+                              onClick={() => {
+                                const zone = project.zones[0];
+                                const newCab = createAdvancedCabinet(CabinetType.BASE, zone.cabinets);
+                                // Add to TOP
+                                const updatedCabinets = [newCab, ...zone.cabinets];
+                                
+                                const updatedZones = [...project.zones];
+                                updatedZones[0] = { 
+                                  ...zone, 
+                                  cabinets: recalculateCabinetPositions(updatedCabinets),
+                                  totalLength: calculateTotalZoneLength(recalculateCabinetPositions(updatedCabinets))
+                                };
+                                setProject({ ...project, zones: updatedZones });
+                                setHighlightedCabId(newCab.id);
+                                setTimeout(() => setHighlightedCabId(null), 2000);
+                              }}
+                              className="bg-amber-500 hover:bg-amber-600 text-white px-8 py-4 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center gap-3 transition-all shadow-xl shadow-amber-500/20 active:scale-95"
+                            >
+                              <Plus size={20} /> Add Unit
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="overflow-x-auto bg-white dark:bg-slate-900/50 rounded-[2.5rem] border-2 border-slate-100 dark:border-slate-800 shadow-xl">
+                          <table className="w-full border-collapse">
+                            <thead>
+                              <tr className="bg-slate-50 dark:bg-slate-800/50">
+                                <th className="p-6 text-left text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] pl-10">Unit Type</th>
+                                <th className="p-6 text-right text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Width (mm)</th>
+                                <th className="p-6 text-right text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Height (mm)</th>
+                                <th className="p-6 text-right text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Depth (mm)</th>
+                                <th className="p-6 text-center text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Blind Side</th>
+                                <th className="p-6 text-right text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Blind Width</th>
+                                <th className="p-6 text-center text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Door</th>
+                                <th className="p-6 text-center text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Shelves</th>
+                                <th className="p-6 text-center text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Drawers</th>
+                                <th className="p-6 text-center text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] pr-10">Action</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                              {project.zones[0].cabinets.map((cab, idx) => (
+                                  <tr 
+                                    key={cab.id} 
+                                    className={`group transition-all duration-700 ${
+                                      highlightedCabId === cab.id 
+                                        ? 'bg-amber-500/10 dark:bg-amber-500/5 ring-1 ring-amber-500/30' 
+                                        : 'hover:bg-slate-50/50 dark:hover:bg-slate-800/30'
+                                    }`}
+                                  >
+                                  <td className="p-6 pl-10 relative">
+                                    <div className="relative">
+                                      <button 
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setActiveDropdownId(activeDropdownId === cab.id ? null : cab.id);
+                                        }}
+                                        className="flex items-center gap-2 font-black text-slate-900 dark:text-white uppercase text-xs tracking-widest hover:text-amber-500 transition-colors group"
+                                      >
+                                        {cab.preset === PresetType.BASE_CORNER ? 'Base Corner' : 
+                                         cab.preset === PresetType.WALL_CORNER ? 'Wall Corner' : 
+                                         cab.type === 'Base' ? 'Base Standard' : 
+                                         cab.type === 'Wall' ? 'Wall Standard' : 'Tall Utility'}
+                                        <ChevronDown size={14} className={`text-slate-400 group-hover:text-amber-500 transition-transform duration-300 ${activeDropdownId === cab.id ? 'rotate-180' : ''}`} />
+                                      </button>
+
+                                      <AnimatePresence>
+                                        {activeDropdownId === cab.id && (
+                                          <motion.div 
+                                            initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                            exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                                            className="absolute top-full left-0 mt-3 w-56 bg-white dark:bg-slate-900 rounded-[1.5rem] border-2 border-slate-100 dark:border-slate-800 shadow-[0_15px_40px_rgba(0,0,0,0.15)] dark:shadow-[0_15px_40px_rgba(0,0,0,0.4)] z-[100] overflow-hidden p-1.5"
+                                          >
+                                            {[
+                                              { label: 'Base Standard', value: 'Base', preset: PresetType.BASE_DOOR, icon: <Box size={14} /> },
+                                              { label: 'Base Corner', value: 'BaseCorner', preset: PresetType.BASE_CORNER, icon: <Layout size={14} /> },
+                                              { label: 'Wall Standard', value: 'Wall', preset: PresetType.WALL_STD, icon: <Layers size={14} /> },
+                                              { label: 'Wall Corner', value: 'WallCorner', preset: PresetType.WALL_CORNER, icon: <Layout size={14} className="rotate-90" /> },
+                                              { label: 'Tall Utility', value: 'Tall', preset: PresetType.TALL_UTILITY, icon: <Cpu size={14} /> }
+                                            ].map((opt) => {
+                                              const isSelected = (opt.value === 'BaseCorner' && cab.preset === PresetType.BASE_CORNER) ||
+                                                               (opt.value === 'WallCorner' && cab.preset === PresetType.WALL_CORNER) ||
+                                                               (opt.value === 'Base' && cab.type === CabinetType.BASE && cab.preset !== PresetType.BASE_CORNER) ||
+                                                               (opt.value === 'Wall' && cab.type === CabinetType.WALL && cab.preset !== PresetType.WALL_CORNER) ||
+                                                               (opt.value === 'Tall' && cab.type === CabinetType.TALL);
+
+                                              return (
+                                                <button
+                                                  key={opt.value}
+                                                  onClick={() => {
+                                                    const updatedZones = [...project.zones];
+                                                    const val = opt.value;
+                                                    let type: CabinetType;
+                                                    let preset: PresetType;
+                                                    
+                                                    if (val === 'BaseCorner') {
+                                                      type = CabinetType.BASE;
+                                                      preset = PresetType.BASE_CORNER;
+                                                    } else if (val === 'WallCorner') {
+                                                      type = CabinetType.WALL;
+                                                      preset = PresetType.WALL_CORNER;
+                                                    } else {
+                                                      type = val as any;
+                                                      preset = type === 'Base' ? PresetType.BASE_DOOR : type === 'Wall' ? PresetType.WALL_STD : PresetType.TALL_UTILITY;
+                                                    }
+
+                                                    updatedZones[0].cabinets[idx] = { 
+                                                      ...cab, 
+                                                      type,
+                                                      preset,
+                                                      advancedSettings: {
+                                                        ...(cab.advancedSettings || {}),
+                                                        showDoors: true,
+                                                        showShelves: true,
+                                                        showDrawers: false,
+                                                        blindCornerSide: 'left',
+                                                        blindPanelWidth: 600
+                                                      }
+                                                    };
+                                                    updatedZones[0].cabinets = recalculateCabinetPositions(updatedZones[0].cabinets);
+                                                    updatedZones[0].totalLength = calculateTotalZoneLength(updatedZones[0].cabinets);
+                                                    setProject({ ...project, zones: updatedZones });
+                                                    setActiveDropdownId(null);
+                                                  }}
+                                                  className={`w-full flex items-center gap-3 p-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
+                                                    isSelected
+                                                      ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20'
+                                                      : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                                                  }`}
+                                                >
+                                                  <span className={isSelected ? 'text-white' : 'text-amber-500'}>{opt.icon}</span>
+                                                  {opt.label}
+                                                </button>
+                                              );
+                                            })}
+                                          </motion.div>
+                                        )}
+                                      </AnimatePresence>
+                                    </div>
+                                  </td>
+                                  <td className="p-6 text-right">
+                                    <input 
+                                      type="number" 
+                                      value={cab.width}
+                                      onChange={(e) => {
+                                        const updatedZones = [...project.zones];
+                                        const val = Number(e.target.value);
+                                        updatedZones[0].cabinets[idx] = { ...cab, width: val };
+                                        updatedZones[0].cabinets = recalculateCabinetPositions(updatedZones[0].cabinets);
+                                        updatedZones[0].totalLength = calculateTotalZoneLength(updatedZones[0].cabinets);
+                                        setProject({ ...project, zones: updatedZones });
+                                      }}
+                                      className={`w-20 bg-transparent text-right outline-none transition-colors duration-300 ${
+                                        cab.width !== 600 ? 'font-black text-amber-500' : 'font-bold text-slate-400 dark:text-slate-500'
+                                      }`}
+                                    />
+                                  </td>
+                                  <td className="p-6 text-right">
+                                    <input 
+                                      type="number" 
+                                      placeholder={cab.type === 'Base' ? project.settings.baseHeight.toString() : cab.type === 'Wall' ? project.settings.wallHeight.toString() : project.settings.tallHeight.toString()}
+                                      value={cab.height || ''}
+                                      onChange={(e) => {
+                                        const updatedZones = [...project.zones];
+                                        updatedZones[0].cabinets[idx] = { ...cab, height: Number(e.target.value) || undefined };
+                                        setProject({ ...project, zones: updatedZones });
+                                      }}
+                                      className={`w-20 bg-transparent text-right outline-none placeholder:opacity-50 transition-colors duration-300 ${
+                                        (cab.height && cab.height !== (cab.type === 'Base' ? project.settings.baseHeight : cab.type === 'Wall' ? project.settings.wallHeight : project.settings.tallHeight))
+                                          ? 'font-black text-amber-500' 
+                                          : 'font-bold text-slate-400 dark:text-slate-500'
+                                      }`}
+                                    />
+                                  </td>
+                                  <td className="p-6 text-right">
+                                    <input 
+                                      type="number" 
+                                      placeholder={cab.type === 'Base' ? project.settings.depthBase.toString() : cab.type === 'Wall' ? project.settings.depthWall.toString() : project.settings.depthTall.toString()}
+                                      value={cab.depth || ''}
+                                      onChange={(e) => {
+                                        const updatedZones = [...project.zones];
+                                        updatedZones[0].cabinets[idx] = { ...cab, depth: Number(e.target.value) || undefined };
+                                        setProject({ ...project, zones: updatedZones });
+                                      }}
+                                      className={`w-20 bg-transparent text-right outline-none placeholder:opacity-50 transition-colors duration-300 ${
+                                        (cab.depth && cab.depth !== (cab.type === 'Base' ? project.settings.depthBase : cab.type === 'Wall' ? project.settings.depthWall : project.settings.depthTall))
+                                          ? 'font-black text-amber-500' 
+                                          : 'font-bold text-slate-400 dark:text-slate-500'
+                                      }`}
+                                    />
+                                  </td>
+                                  <td className="p-6 text-center">
+                                    {(cab.preset === PresetType.BASE_CORNER || cab.preset === PresetType.WALL_CORNER) ? (
+                                      <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 border-2 dark:border-slate-700 min-w-[110px] mx-auto shadow-inner">
+                                        <button 
+                                          onClick={() => {
+                                            const updatedZones = [...project.zones];
+                                            updatedZones[0].cabinets[idx] = { 
+                                              ...cab, 
+                                              advancedSettings: { ...(cab.advancedSettings || {}), blindCornerSide: 'left' } 
+                                            };
+                                            setProject({ ...project, zones: updatedZones });
+                                          }}
+                                          className={`flex-1 py-1 rounded-md text-[9px] font-black uppercase tracking-widest transition-all duration-300 ${cab.advancedSettings?.blindCornerSide !== 'right' ? 'bg-white dark:bg-slate-600 text-amber-500 shadow-md' : 'text-slate-400 hover:text-slate-500'}`}
+                                        >
+                                          Left
+                                        </button>
+                                        <button 
+                                          onClick={() => {
+                                            const updatedZones = [...project.zones];
+                                            updatedZones[0].cabinets[idx] = { 
+                                              ...cab, 
+                                              advancedSettings: { ...(cab.advancedSettings || {}), blindCornerSide: 'right' } 
+                                            };
+                                            setProject({ ...project, zones: updatedZones });
+                                          }}
+                                          className={`flex-1 py-1 rounded-md text-[9px] font-black uppercase tracking-widest transition-all duration-300 ${cab.advancedSettings?.blindCornerSide === 'right' ? 'bg-white dark:bg-slate-600 text-amber-500 shadow-md' : 'text-slate-400 hover:text-slate-500'}`}
+                                        >
+                                          Right
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <div className="text-[10px] font-black text-slate-300 uppercase italic">N/A</div>
+                                    )}
+                                  </td>
+                                  <td className="p-6 text-right">
+                                    {(cab.preset === PresetType.BASE_CORNER || cab.preset === PresetType.WALL_CORNER) ? (
+                                      <input 
+                                        type="number" 
+                                        value={cab.advancedSettings?.blindPanelWidth || 600}
+                                        onChange={(e) => {
+                                          const updatedZones = [...project.zones];
+                                          updatedZones[0].cabinets[idx] = { 
+                                            ...cab, 
+                                            advancedSettings: { 
+                                              ...(cab.advancedSettings || {}), 
+                                              blindPanelWidth: Number(e.target.value) 
+                                            } 
+                                          };
+                                          setProject({ ...project, zones: updatedZones });
+                                        }}
+                                        className={`w-20 bg-transparent text-right outline-none transition-colors duration-300 ${
+                                          (cab.advancedSettings?.blindPanelWidth && cab.advancedSettings.blindPanelWidth !== 600)
+                                            ? 'font-black text-amber-500'
+                                            : 'font-bold text-slate-400 dark:text-slate-500'
+                                        }`}
+                                      />
+                                    ) : (
+                                      <div className="text-[10px] font-black text-slate-300 uppercase italic">N/A</div>
+                                    )}
+                                  </td>
+                                  <td className="p-6 text-center">
+                                    <input 
+                                      type="checkbox"
+                                      className="w-5 h-5 rounded border-slate-300 dark:border-slate-700 text-amber-500 focus:ring-amber-500 accent-amber-500 cursor-pointer"
+                                      checked={cab.advancedSettings?.showDoors ?? (cab.preset !== 'Open Box')}
+                                      disabled={cab.advancedSettings?.showDrawers}
+                                      onChange={(e) => {
+                                        const updatedZones = [...project.zones];
+                                        updatedZones[0].cabinets[idx] = { 
+                                          ...cab, 
+                                          advancedSettings: { 
+                                            ...(cab.advancedSettings || {}), 
+                                            showDoors: e.target.checked 
+                                          } 
+                                        };
+                                        setProject({ ...project, zones: updatedZones });
+                                      }}
+                                    />
+                                  </td>
+                                  <td className="p-6 text-center">
+                                    <input 
+                                      type="checkbox"
+                                      className="w-5 h-5 rounded border-slate-300 dark:border-slate-700 text-amber-500 focus:ring-amber-500 accent-amber-500 cursor-pointer"
+                                      checked={cab.advancedSettings?.showShelves ?? true}
+                                      disabled={cab.advancedSettings?.showDrawers}
+                                      onChange={(e) => {
+                                        const updatedZones = [...project.zones];
+                                        updatedZones[0].cabinets[idx] = { 
+                                          ...cab, 
+                                          advancedSettings: { 
+                                            ...(cab.advancedSettings || {}), 
+                                            showShelves: e.target.checked,
+                                            numShelves: e.target.checked ? 2 : 0
+                                          } 
+                                        };
+                                        setProject({ ...project, zones: updatedZones });
+                                      }}
+                                    />
+                                  </td>
+                                  <td className="p-6 text-center">
+                                    {(cab.preset !== PresetType.BASE_CORNER && cab.preset !== PresetType.WALL_CORNER) ? (
+                                      <input 
+                                        type="checkbox"
+                                        className="w-5 h-5 rounded border-slate-300 dark:border-slate-700 text-amber-500 focus:ring-amber-500 accent-amber-500 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                                        checked={cab.advancedSettings?.showDrawers ?? (cab.preset === PresetType.BASE_DRAWER_3)}
+                                        disabled={(cab.advancedSettings?.showDoors ?? (cab.preset !== PresetType.BASE_DOOR)) || (cab.advancedSettings?.showShelves ?? true)}
+                                        onChange={(e) => {
+                                          const updatedZones = [...project.zones];
+                                          const isChecked = e.target.checked;
+                                          updatedZones[0].cabinets[idx] = { 
+                                            ...cab, 
+                                            preset: isChecked ? PresetType.BASE_DRAWER_3 : cab.preset,
+                                            advancedSettings: { 
+                                              ...(cab.advancedSettings || {}), 
+                                              showDrawers: isChecked,
+                                              showDoors: isChecked ? false : (cab.advancedSettings?.showDoors ?? true),
+                                              showShelves: isChecked ? false : (cab.advancedSettings?.showShelves ?? true),
+                                              numDrawers: isChecked ? 3 : 0
+                                            } 
+                                          };
+                                          setProject({ ...project, zones: updatedZones });
+                                        }}
+                                      />
+                                    ) : (
+                                      <div className="text-[10px] font-black text-slate-300 uppercase italic">N/A</div>
+                                    )}
+                                  </td>
+                                  <td className="p-6 text-center pr-10">
+                                    <button 
+                                      onClick={() => {
+                                        const updatedZones = [...project.zones];
+                                        updatedZones[0].cabinets = updatedZones[0].cabinets.filter((_, i) => i !== idx);
+                                        updatedZones[0].cabinets = recalculateCabinetPositions(updatedZones[0].cabinets);
+                                        updatedZones[0].totalLength = calculateTotalZoneLength(updatedZones[0].cabinets);
+                                        setProject({ ...project, zones: updatedZones });
+                                      }}
+                                      className="p-3 text-slate-300 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-2xl transition-all opacity-0 group-hover:opacity-100"
+                                    >
+                                      <X size={20} />
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                              {project.zones[0].cabinets.length === 0 && (
+                                <tr>
+                                  <td colSpan={6} className="p-20 text-center">
+                                    <div className="flex flex-col items-center gap-4 text-slate-400">
+                                      <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-3xl flex items-center justify-center">
+                                        <Box size={32} className="opacity-20" />
+                                      </div>
+                                      <p className="font-bold italic uppercase tracking-widest text-xs">No boxes added yet.</p>
+                                      <button 
+                                        onClick={() => {
+                                          const zone = project.zones[0];
+                                          const newCab = createAdvancedCabinet(CabinetType.BASE, []);
+                                          const updatedZones = [...project.zones];
+                                          updatedZones[0] = { ...zone, active: true, totalLength: 600, cabinets: [newCab] };
+                                          updatedZones[0].cabinets = recalculateCabinetPositions(updatedZones[0].cabinets);
+                                          updatedZones[0].totalLength = calculateTotalZoneLength(updatedZones[0].cabinets);
+                                          setProject({ ...project, zones: updatedZones });
+                                        }}
+                                        className="text-amber-500 font-black text-[10px] uppercase tracking-widest hover:underline"
+                                      >
+                                        Add your first unit
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+
                       </div>
                     )}
 
@@ -798,10 +1240,12 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
                           <div className="text-center mb-6 relative">
                             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-amber-500/10 rounded-full blur-[100px] pointer-events-none" />
                             <h2 className="text-6xl font-black text-slate-900 dark:text-white italic tracking-tighter uppercase mb-4 leading-tight text-glow">
-                              Ready for <span className="text-amber-500">Generation</span>
+                              Ready for <span className="text-amber-500">{project.settings.workflowMode === 'advanced' ? 'Output' : 'Generation'}</span>
                             </h2>
                             <p className="text-slate-500 dark:text-slate-400 font-medium italic max-w-lg mx-auto">
-                              Engineering specifications are locked. All systems ready for automated cabinetry layout generation.
+                              {project.settings.workflowMode === 'advanced' 
+                                ? 'Your manual unit list is locked. All systems ready for technical analysis and manufacturing output.'
+                                : 'Engineering specifications are locked. All systems ready for automated cabinetry layout generation.'}
                             </p>
                           </div>
 
@@ -823,7 +1267,11 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
                                     <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Core Structure</span>
                                     <div className="flex items-center gap-3">
                                       <Layout className="text-blue-500" size={18} />
-                                      <span className="text-lg font-black text-slate-900 dark:text-white italic">{project.zones.length} Walls Defined</span>
+                                      <span className="text-lg font-black text-slate-900 dark:text-white italic">
+                                        {project.settings.workflowMode === 'advanced' 
+                                          ? `${project.zones[0].cabinets.length} Units Defined`
+                                          : `${project.zones.length} Walls Defined`}
+                                      </span>
                                     </div>
                                   </div>
                                   <div className="space-y-2">
@@ -857,7 +1305,9 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
                                   </div>
                                   <div>
                                     <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest">Verification Complete</h4>
-                                    <p className="text-[10px] text-slate-500 font-medium italic">Layout Solver Engine: STATUS ACTIVE</p>
+                                    <p className="text-[10px] text-slate-500 font-medium italic">
+                                      {project.settings.workflowMode === 'advanced' ? 'Direct Entry Engine: STATUS ACTIVE' : 'Layout Solver Engine: STATUS ACTIVE'}
+                                    </p>
                                   </div>
                                 </div>
                                 <div className="hidden sm:flex -space-x-4">
