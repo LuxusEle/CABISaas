@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Layers, Calculator, Zap, List, Box, Lock 
+  Layers, Zap, List, Box, Lock, Clock, ArrowUpRight, Plus, Settings2, ShieldCheck 
 } from 'lucide-react';
 import { Project } from '../types';
-import { Button } from '../components/Button';
 import { projectService } from '../services/projectService';
 import { subscriptionService } from '../services/subscriptionService';
 
@@ -14,9 +13,10 @@ interface ScreenHomeProps {
   onLoadProject: (p: Project) => void;
   logoUrl?: string;
   isUserPro: boolean;
+  isDark: boolean;
 }
 
-const ScreenHome = ({ onNewProject, onQuickStart, onLoadProject, logoUrl, isUserPro }: ScreenHomeProps) => {
+const ScreenHome = ({ onNewProject, onQuickStart, onLoadProject, logoUrl, isUserPro, isDark }: ScreenHomeProps) => {
   const navigate = useNavigate();
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,14 +24,12 @@ const ScreenHome = ({ onNewProject, onQuickStart, onLoadProject, logoUrl, isUser
   const [canCreate, setCanCreate] = useState(true);
 
   useEffect(() => {
-    // Check for cached data first for instant display
     const cached = projectService.getCachedProjectsList();
     if (cached) {
       setProjects(cached);
       setLoading(false);
     }
 
-    // Load fresh projects in background
     projectService.getProjectsList().then(({ data }) => {
       if (data) {
         setProjects(data);
@@ -39,7 +37,6 @@ const ScreenHome = ({ onNewProject, onQuickStart, onLoadProject, logoUrl, isUser
       }
     });
 
-    // Load subscription status in the background
     subscriptionService.canCreateProject().then(canDo => {
       setCanCreate(canDo);
     });
@@ -47,12 +44,10 @@ const ScreenHome = ({ onNewProject, onQuickStart, onLoadProject, logoUrl, isUser
 
   const handleProjectClick = async (pMetadata: any) => {
     if (loadingProjectId) return;
-    
     setLoadingProjectId(pMetadata.id);
     try {
       const { data, error } = await projectService.getProject(pMetadata.id);
       if (error) {
-        alert("Failed to load project details.");
         console.error(error);
       } else if (data) {
         onLoadProject(data);
@@ -71,110 +66,166 @@ const ScreenHome = ({ onNewProject, onQuickStart, onLoadProject, logoUrl, isUser
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 items-center justify-start max-w-6xl mx-auto w-full overflow-y-auto p-3 sm:p-6 pb-20">
-      {/* Body Header - Hidden on mobile to avoid double logo */}
-      <div className="hidden md:flex w-full justify-between items-start mb-6 sm:mb-8">
-        <div className="text-center space-y-2 flex-1 flex flex-col items-center">
-          <img src="/landing.png" alt="CabEngine Logo" className="h-10 sm:h-16 md:h-20 w-auto object-contain mb-2 dark:invert-0 invert" />
-          <p className="text-slate-500 dark:text-slate-400 font-medium italic text-sm sm:text-base">Professional Cabinet Engineering Suite</p>
-        </div>
-        {logoUrl && (
-          <img
-            src={logoUrl}
-            alt="Company Logo"
-            className="h-10 sm:h-12 w-auto object-contain ml-4"
-          />
-        )}
+    <div className="flex flex-col h-full bg-slate-50 dark:bg-[#050a14] text-slate-900 dark:text-white p-6 sm:p-12 overflow-y-auto transition-colors duration-500">
+      {/* Dynamic Background Elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-amber-500/[0.03] dark:bg-amber-500/5 blur-[120px] rounded-full" />
+        <div className="absolute top-[20%] -right-[10%] w-[30%] h-[30%] bg-blue-500/[0.03] dark:bg-blue-500/5 blur-[120px] rounded-full" />
       </div>
 
-      <div className="grid md:grid-cols-3 gap-3 sm:gap-8 w-full items-start">
-        {/* Main Action Side */}
-        <div className="md:col-span-1 space-y-3">
-          <Button 
-            variant={canCreate ? "primary" : "secondary"} 
-            size="lg" 
-            onClick={handleStartNew} 
-            leftIcon={canCreate ? <Layers size={20} /> : <Lock size={20} className="text-amber-500" />} 
-            className={`w-full py-4 md:py-10 text-base md:text-xl shadow-lg flex-row md:flex-col gap-3 min-h-[60px] md:min-h-[120px] rounded-2xl ${!canCreate ? 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 opacity-90' : 'shadow-amber-500/20'}`}
-          >
-            <span className="font-black uppercase tracking-tight">{canCreate ? 'Start New Project' : 'Limit Reached'}</span>
-            {!canCreate && <span className="hidden md:block text-[10px] font-bold text-amber-500 uppercase tracking-widest mt-1">Upgrade to PRO</span>}
-          </Button>
-
-          <Button 
-            variant="secondary" 
-            size="lg" 
-            onClick={onQuickStart} 
-            leftIcon={<Zap size={20} className="text-amber-500" />} 
-            className="w-full py-4 text-sm font-black uppercase tracking-widest bg-amber-500/5 hover:bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400 rounded-2xl transition-all shadow-sm active:scale-95"
-          >
-            Quick Start Demo
-          </Button>
+      <div className="max-w-7xl mx-auto w-full relative z-10">
+        {/* Top Navigation / Branding */}
+        <div className="flex flex-col md:flex-row justify-between items-center mb-16 gap-8">
+          <div className="flex flex-col items-center md:items-start gap-2">
+            <img src="/landing.png" alt="CabEngine Logo" className={`h-12 w-auto object-contain transition-all ${isDark ? 'brightness-0 invert' : 'brightness-100'}`} />
+            <div className="flex items-center gap-3 mt-2">
+              <span className="px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full text-[10px] font-black uppercase tracking-[0.2em] text-amber-600 dark:text-amber-500">
+                Engineering Suite
+              </span>
+              <span className="text-slate-500 dark:text-slate-400 text-xs font-medium italic">v2.4.0 • Enterprise Edition</span>
+            </div>
+          </div>
           
-          <div className="grid grid-cols-2 gap-2 sm:gap-4">
-            <Button variant="secondary" size="sm" className="h-16 md:h-28 flex-row md:flex-col gap-2 min-h-[50px] rounded-xl">
-              <Calculator size={18} className="text-amber-600" />
-              <span className="text-xs md:text-sm font-bold">Quick Parts</span>
-            </Button>
-            <Button variant="secondary" size="sm" className="h-16 md:h-28 flex-row md:flex-col gap-2 min-h-[50px] rounded-xl">
-              <Zap size={18} className="text-amber-600" />
-              <span className="text-xs md:text-sm font-bold">Area Calc</span>
-            </Button>
+          <div className="flex items-center gap-6">
+            {logoUrl && (
+              <div className="h-12 w-12 bg-white dark:bg-slate-800 rounded-2xl p-2 flex items-center justify-center shadow-2xl dark:shadow-none border border-slate-100 dark:border-slate-700">
+                <img src={logoUrl} alt="Company" className="h-full w-full object-contain" />
+              </div>
+            )}
+            <div className="text-right hidden sm:block">
+              <p className="text-sm font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Welcome Back</p>
+              <p className="text-xs text-amber-600 dark:text-amber-500 font-bold italic">Active Session</p>
+            </div>
           </div>
         </div>
 
-        {/* Project List Side */}
-        <div className="md:col-span-2 bg-white dark:bg-slate-900 rounded-2xl p-3 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-sm min-h-[200px]">
-          <h2 className="text-sm sm:text-xl font-black uppercase tracking-tight mb-3 sm:mb-6 flex items-center gap-2 text-slate-400">
-            <List className="text-amber-500 w-4 h-4" /> Recent Projects
-          </h2>
-
-          {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
-              {[1, 2, 3, 4].map(i => (
-                <div key={i} className="flex flex-col p-3 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 animate-pulse min-h-[60px]">
-                  <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-3/4 mb-2" />
-                  <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded w-1/4" />
+        <div className="grid lg:grid-cols-12 gap-8 items-start">
+          {/* Action Hub */}
+          <div className="lg:col-span-4 space-y-6">
+            {/* Onboarding / Quick Start Card */}
+            <div className="relative group cursor-pointer" onClick={onQuickStart}>
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-amber-500 to-amber-600 rounded-[2.5rem] blur opacity-10 dark:opacity-20 group-hover:opacity-30 dark:group-hover:opacity-40 transition duration-1000 group-hover:duration-200 animate-pulse"></div>
+              <div className="relative bg-white dark:bg-slate-900 border border-amber-500/20 dark:border-amber-500/30 rounded-[2.5rem] p-8 overflow-hidden shadow-xl shadow-amber-500/5 dark:shadow-none">
+                <div className="absolute -top-4 -right-4 w-24 h-24 bg-amber-500/5 dark:bg-amber-500/10 rounded-full blur-2xl group-hover:bg-amber-500/10 dark:group-hover:bg-amber-500/20 transition-all" />
+                
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="px-2 py-0.5 bg-amber-500 text-white dark:text-[#050a14] text-[8px] font-black uppercase tracking-widest rounded-md shadow-lg shadow-amber-500/20">New Here?</span>
+                  <div className="flex-1 h-[1px] bg-amber-500/10 dark:bg-amber-500/20" />
                 </div>
-              ))}
-            </div>
-          ) : projects.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
-              {projects.map(p => (
-                <button
-                  key={p.id}
-                  onClick={() => handleProjectClick(p)}
-                  disabled={!!loadingProjectId}
-                  className={`flex items-center justify-between p-3 rounded-xl border border-slate-100 dark:border-slate-800 hover:border-amber-300 dark:hover:border-amber-900 hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-all group min-h-[60px] ${loadingProjectId === p.id ? 'animate-pulse bg-amber-50' : ''}`}
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="font-bold text-slate-800 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 truncate text-sm">
-                      {p.name}
-                    </div>
-                    <div className="text-[9px] text-slate-400 uppercase font-black tracking-widest mt-0.5">
-                      {new Date(p.updated_at).toLocaleDateString()}
-                    </div>
+
+                <h3 className="text-xl font-black uppercase tracking-tighter mb-2 italic text-slate-900 dark:text-white">Quick <span className="text-amber-600 dark:text-amber-500">Demo</span></h3>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium italic mb-6 leading-relaxed">Instantly load a professional kitchen layout and explore all engineering features.</p>
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-600 dark:text-amber-500 group-hover:translate-x-2 transition-transform flex items-center gap-2">
+                    Launch Studio <ArrowUpRight size={14} />
+                  </span>
+                  <div className="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center text-white shadow-lg shadow-amber-500/40 group-hover:scale-110 transition-all">
+                    <Zap size={18} fill="currentColor" />
                   </div>
-                  
-                  <div className="ml-4 text-amber-600 dark:text-amber-500 shrink-0">
-                    {loadingProjectId === p.id ? (
-                      <div className="w-3 h-3 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <Box size={14} className="opacity-40 group-hover:opacity-100 transition-opacity" />
-                    )}
-                  </div>
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center h-48 text-center px-4">
-              <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4 text-slate-400">
-                <Layers size={20} />
+                </div>
               </div>
-              <h3 className="font-bold text-slate-700 dark:text-slate-300 mb-1 text-sm">No Projects Yet</h3>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400">Start your first cabinet design.</p>
             </div>
-          )}
+
+            <div className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-[2.5rem] p-8 relative overflow-hidden group shadow-lg shadow-slate-200/50 dark:shadow-none">
+              <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity text-slate-900 dark:text-white">
+                <Layers size={120} />
+              </div>
+              
+              <h3 className="text-xl font-black uppercase tracking-tighter mb-2 italic text-slate-400 dark:text-slate-300">Design <span className="text-slate-300 dark:text-slate-500">Center</span></h3>
+              <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium italic mb-8 leading-relaxed">Initiate complex cabinetry layouts or continue your engineering workflow from scratch.</p>
+              
+              <button 
+                onClick={handleStartNew}
+                className={`w-full py-5 rounded-2xl font-black uppercase text-xs tracking-[0.2em] flex items-center justify-center gap-3 transition-all active:scale-95 ${
+                  canCreate 
+                    ? 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 hover:border-amber-500/50 dark:hover:border-amber-500/50' 
+                    : 'bg-slate-100/50 dark:bg-slate-800/50 text-slate-400 dark:text-slate-600 cursor-not-allowed'
+                }`}
+              >
+                {canCreate ? <Plus size={20} className="text-amber-600 dark:text-amber-500" /> : <Lock size={18} />}
+                {canCreate ? 'Start New Project' : 'Limit Reached'}
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-3xl p-5 flex flex-col items-center text-center shadow-lg shadow-slate-200/50 dark:shadow-none">
+                <ShieldCheck size={24} className="text-emerald-500 mb-3" />
+                <span className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest mb-1">PRO Status</span>
+                <span className="text-xs font-bold text-slate-900 dark:text-white italic">{isUserPro ? 'Verified' : 'Free Tier'}</span>
+              </div>
+              <div className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-3xl p-5 flex flex-col items-center text-center shadow-lg shadow-slate-200/50 dark:shadow-none">
+                <Settings2 size={24} className="text-blue-500 mb-3" />
+                <span className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest mb-1">Last Sync</span>
+                <span className="text-xs font-bold text-slate-900 dark:text-white italic">Real-time</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Project Repository */}
+          <div className="lg:col-span-8 bg-white/60 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-[2.5rem] p-8 sm:p-10 min-h-[500px] relative overflow-hidden group/repo shadow-xl shadow-slate-200/50 dark:shadow-none">
+            <div className="absolute -bottom-20 -right-20 p-8 opacity-[0.03] dark:opacity-[0.03] group-hover/repo:opacity-[0.08] dark:group-hover/repo:opacity-[0.06] transition-opacity pointer-events-none rotate-12 text-slate-900 dark:text-white">
+              <Box size={400} />
+            </div>
+            <div className="flex items-center justify-between mb-10">
+              <h2 className="text-2xl font-black uppercase tracking-tight flex items-center gap-4 italic text-slate-900 dark:text-white">
+                <div className="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center text-amber-600 dark:text-amber-500 border border-amber-500/20">
+                  <Clock size={20} />
+                </div>
+                Project Repository
+              </h2>
+              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 flex items-center gap-2">
+                Total Files: <span className="text-amber-600 dark:text-amber-500">{projects.length}</span>
+              </div>
+            </div>
+
+            {loading ? (
+              <div className="grid sm:grid-cols-2 gap-6">
+                {[1, 2, 3, 4, 5, 6].map(i => (
+                  <div key={i} className="h-24 bg-slate-100 dark:bg-slate-800/50 rounded-3xl border border-slate-100 dark:border-slate-800 animate-pulse" />
+                ))}
+              </div>
+            ) : projects.length > 0 ? (
+              <div className="grid sm:grid-cols-2 gap-6">
+                {projects.map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => handleProjectClick(p)}
+                    disabled={!!loadingProjectId}
+                    className="group relative flex flex-col p-6 rounded-3xl border border-slate-100 dark:border-slate-800 hover:border-amber-500/50 hover:bg-amber-500/[0.03] dark:hover:bg-amber-500/5 transition-all text-left overflow-hidden active:scale-95 bg-white/40 dark:bg-transparent"
+                  >
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="w-8 h-8 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center group-hover:bg-amber-500 group-hover:text-white transition-colors text-slate-400 dark:text-slate-500">
+                        <Box size={16} />
+                      </div>
+                      <ArrowUpRight size={16} className="text-slate-300 dark:text-slate-600 group-hover:text-amber-600 dark:group-hover:text-amber-500 transition-colors" />
+                    </div>
+                    
+                    <h4 className="font-black text-slate-800 dark:text-white uppercase text-sm tracking-widest mb-1 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors truncate">
+                      {p.name}
+                    </h4>
+                    <div className="flex items-center gap-2">
+                      <Clock size={10} className="text-slate-400 dark:text-slate-500" />
+                      <span className="text-[9px] text-slate-400 dark:text-slate-500 uppercase font-black tracking-widest">
+                        Updated {new Date(p.updated_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-80 text-center">
+                <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800/50 rounded-[2rem] flex items-center justify-center mb-6 text-slate-300 dark:text-slate-600">
+                  <List size={32} />
+                </div>
+                <h3 className="text-lg font-black uppercase text-slate-900 dark:text-white mb-2">No Projects Detected</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-500 font-medium italic mb-8">Your engineering repository is currently empty.</p>
+                <button onClick={handleStartNew} className="text-amber-600 dark:text-amber-500 font-black uppercase text-[10px] tracking-[0.2em] flex items-center gap-2 hover:gap-4 transition-all">
+                  Create First Project <ArrowUpRight size={14} />
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

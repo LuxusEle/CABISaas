@@ -511,6 +511,7 @@ export default function App() {
                   onQuickStart={handleQuickStart}
                   logoUrl={project.settings.logoUrl}
                   isUserPro={isUserPro}
+                  isDark={isDark}
                 />
               </ProtectedRoute>
             } />
@@ -544,6 +545,7 @@ export default function App() {
                   user={user} 
                   onBack={() => navigate('/dashboard')}
                   onProfileUpdate={(updated) => setUserProfile(updated)}
+                  isDark={isDark}
                 />
               </ProtectedRoute>
             } />

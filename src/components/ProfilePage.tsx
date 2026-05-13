@@ -10,9 +10,10 @@ interface ProfilePageProps {
   user: any;
   onBack: () => void;
   onProfileUpdate: (profile: UserProfile) => void;
+  isDark: boolean;
 }
 
-export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onBack, onProfileUpdate }) => {
+export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onBack, onProfileUpdate, isDark }) => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -103,29 +104,29 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onBack, onProfil
 
   if (loading) {
     return (
-      <div className="flex-1 bg-[#020617] flex items-center justify-center">
+      <div className="flex-1 bg-slate-50 dark:bg-[#020617] flex items-center justify-center transition-colors duration-500">
         <Loader2 className="text-amber-500 animate-spin" size={40} />
       </div>
     );
   }
 
   return (
-    <div className="flex-1 bg-[#020617] overflow-y-auto custom-scrollbar p-6 lg:p-12">
+    <div className="flex-1 bg-slate-50 dark:bg-[#020617] overflow-y-auto custom-scrollbar p-6 lg:p-12 transition-colors duration-500">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-12">
           <div>
             <button 
               onClick={onBack}
-              className="flex items-center gap-2 text-slate-500 hover:text-white transition-colors mb-4 group"
+              className="flex items-center gap-2 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors mb-4 group"
             >
               <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
               Back to Projects
             </button>
-            <h1 className="text-4xl font-black text-white italic tracking-tighter uppercase">
+            <h1 className="text-4xl font-black text-slate-900 dark:text-white italic tracking-tighter uppercase">
               Business <span className="text-amber-500">Profile</span>
             </h1>
-            <p className="text-slate-500 font-medium">Manage your branding and contact information.</p>
+            <p className="text-slate-500 dark:text-slate-400 font-medium">Manage your branding and contact information.</p>
           </div>
           
           <button
@@ -141,11 +142,11 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onBack, onProfil
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column: Branding */}
           <div className="lg:col-span-1">
-            <div className="bg-slate-900/50 border border-slate-800 rounded-[2rem] p-8 text-center relative overflow-hidden group">
+            <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-[2rem] p-8 text-center relative overflow-hidden group shadow-xl shadow-slate-200/50 dark:shadow-none">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-500 to-orange-500" />
               
               <div className="relative inline-block mb-6">
-                <div className="w-32 h-32 rounded-3xl bg-slate-800 border-2 border-slate-700 overflow-hidden flex items-center justify-center relative group/logo shadow-2xl">
+                <div className="w-32 h-32 rounded-3xl bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 overflow-hidden flex items-center justify-center relative group/logo shadow-2xl">
                   {logoPreview || logoUrl ? (
                     <img 
                       src={logoPreview || logoUrl} 
@@ -153,7 +154,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onBack, onProfil
                       className="w-full h-full object-contain p-4"
                     />
                   ) : (
-                    <Building2 size={48} className="text-slate-600" />
+                    <Building2 size={48} className="text-slate-300 dark:text-slate-600" />
                   )}
                   
                   <button 
@@ -172,10 +173,10 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onBack, onProfil
                 />
               </div>
 
-              <h3 className="text-white font-bold text-lg mb-1">{companyName || 'Your Business'}</h3>
-              <p className="text-slate-500 text-sm font-medium mb-6 uppercase tracking-widest">Business Branding</p>
+              <h3 className="text-slate-900 dark:text-white font-bold text-lg mb-1">{companyName || 'Your Business'}</h3>
+              <p className="text-slate-400 dark:text-slate-500 text-sm font-medium mb-6 uppercase tracking-widest">Business Branding</p>
               
-              <p className="text-xs text-slate-400 leading-relaxed italic">
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed italic">
                 Your logo and business name will appear on all BOM reports, wall plans, and invoices generated by CabEngine.
               </p>
             </div>
@@ -183,49 +184,49 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onBack, onProfil
 
           {/* Right Column: Details */}
           <div className="lg:col-span-2 space-y-6">
-            <div className="bg-slate-900/50 border border-slate-800 rounded-[2rem] p-8 lg:p-10 space-y-8 relative overflow-hidden">
+            <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-[2rem] p-8 lg:p-10 space-y-8 relative overflow-hidden shadow-xl shadow-slate-200/50 dark:shadow-none">
               {/* Profile Details Section */}
               <div className="space-y-6">
-                <div className="flex items-center gap-3 pb-4 border-b border-slate-800/50">
-                  <div className="w-8 h-8 bg-amber-500/10 rounded-lg flex items-center justify-center text-amber-500">
+                <div className="flex items-center gap-3 pb-4 border-b border-slate-100 dark:border-slate-800/50">
+                  <div className="w-8 h-8 bg-amber-500/10 rounded-lg flex items-center justify-center text-amber-600 dark:text-amber-500">
                     <Check size={18} />
                   </div>
-                  <h4 className="text-white font-bold uppercase tracking-widest text-sm italic">General Information</h4>
+                  <h4 className="text-slate-900 dark:text-white font-bold uppercase tracking-widest text-sm italic">General Information</h4>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Email (Read Only) */}
                   <div className="space-y-2">
-                    <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Email Address</label>
+                    <label className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Email Address</label>
                     <div className="relative group">
-                      <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-700" size={18} />
+                      <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-700" size={18} />
                       <input
                         type="text"
                         value={user.email}
                         disabled
-                        className="w-full bg-slate-950/50 border border-slate-800/50 rounded-2xl py-4 pl-14 pr-6 text-slate-500 font-medium cursor-not-allowed"
+                        className="w-full bg-slate-50 dark:bg-slate-950/50 border border-slate-100 dark:border-slate-800/50 rounded-2xl py-4 pl-14 pr-6 text-slate-400 dark:text-slate-500 font-medium cursor-not-allowed"
                       />
                     </div>
                   </div>
 
                   {/* Company Name */}
                   <div className="space-y-2">
-                    <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Company Name</label>
+                    <label className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Company Name</label>
                     <div className="relative group">
-                      <Building2 className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-amber-500 transition-colors" size={18} />
+                      <Building2 className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600 group-focus-within:text-amber-500 transition-colors" size={18} />
                       <input
                         type="text"
                         value={companyName}
                         onChange={(e) => setCompanyName(e.target.value)}
                         placeholder="e.g. Modern Kitchens Ltd"
-                        className="w-full bg-slate-950/50 border border-slate-800 rounded-2xl py-4 pl-14 pr-6 text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all"
+                        className="w-full bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-2xl py-4 pl-14 pr-6 text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all"
                       />
                     </div>
                   </div>
 
                   {/* Phone */}
                   <div className="space-y-2 md:col-span-2">
-                    <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Phone Number (Optional)</label>
+                    <label className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Phone Number (Optional)</label>
                     <div className="phone-input-container">
                       <PhoneInput
                         international
@@ -233,7 +234,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onBack, onProfil
                         value={phone}
                         onChange={(val) => setPhone(val || '')}
                         placeholder="Enter phone number"
-                        className="w-full bg-slate-950/50 border border-slate-800 rounded-2xl py-4 px-6 text-white font-medium focus-within:ring-2 focus-within:ring-amber-500/20 focus-within:border-amber-500 transition-all"
+                        className="w-full bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-2xl py-4 px-6 text-slate-900 dark:text-white font-medium focus-within:ring-2 focus-within:ring-amber-500/20 focus-within:border-amber-500 transition-all"
                       />
                     </div>
                   </div>
@@ -277,7 +278,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onBack, onProfil
         .phone-input-container input.PhoneInputInput {
           background: transparent !important;
           border: none !important;
-          color: white !important;
+          color: ${isDark ? 'white' : '#0f172a'} !important;
           font-size: 16px;
           outline: none;
           width: 100%;
@@ -286,8 +287,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onBack, onProfil
           background: transparent !important;
         }
         .phone-input-container select.PhoneInputCountrySelect {
-          background-color: #0f172a !important;
-          color: white !important;
+          background-color: ${isDark ? '#0f172a' : 'white'} !important;
+          color: ${isDark ? 'white' : '#0f172a'} !important;
         }
       `}</style>
     </div>
