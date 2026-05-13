@@ -31,7 +31,8 @@ export const MaterialAllocationPanel: React.FC<MaterialAllocationPanelProps> = (
     doorMaterial: settings.materialSettings?.doorMaterial || '',
     drawerMaterial: settings.materialSettings?.drawerMaterial || '',
     backMaterial: settings.materialSettings?.backMaterial || '',
-    shelfMaterial: settings.materialSettings?.shelfMaterial || ''
+    shelfMaterial: settings.materialSettings?.shelfMaterial || '',
+    backsplashMaterial: settings.materialSettings?.backsplashMaterial || ''
   });
 
   useEffect(() => {
@@ -302,6 +303,37 @@ export const MaterialAllocationPanel: React.FC<MaterialAllocationPanelProps> = (
                           }}
                         />
                         {isUploading === 'shelf' ? <Loader2 className="w-4 h-4 animate-spin text-indigo-500" /> : <Layers className="w-4 h-4 text-slate-400" />}
+                      </label>
+                    </div>
+                  </td>
+                </tr>
+
+                {/* Backsplash / Tiles */}
+                <tr className="group hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                  <td className="px-2 sm:px-3 py-4">
+                    <div className="flex items-center gap-2">
+                      <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-500 shrink-0" />
+                      <span className="text-slate-900 dark:text-white font-bold text-xs sm:text-sm">Backsplash / Tiles</span>
+                    </div>
+                  </td>
+                  <td className="hidden md:table-cell px-3 py-4 text-slate-500 text-xs">Wall tiles between base & wall units</td>
+                  <td className="px-2 sm:px-3 py-4">
+                    <div className="flex gap-1.5 sm:gap-2 items-center">
+                      <div className="flex-1 text-[11px] sm:text-xs text-slate-500 italic bg-slate-50 dark:bg-slate-800/50 px-3 py-2 rounded-lg border border-dashed border-slate-200 dark:border-slate-700">
+                        Dimensions & pricing managed in Materials step
+                      </div>
+                      <label className={`cursor-pointer p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors border border-slate-200 dark:border-slate-600 ${isUploading === 'backsplash' ? 'opacity-50 pointer-events-none' : ''}`} title="Upload Tile Texture">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          disabled={isUploading === 'backsplash'}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleFileUpload(file, 'backsplash');
+                          }}
+                        />
+                        {isUploading === 'backsplash' ? <Loader2 className="w-4 h-4 animate-spin text-indigo-500" /> : <Layers className="w-4 h-4 text-slate-400" />}
                       </label>
                     </div>
                   </td>

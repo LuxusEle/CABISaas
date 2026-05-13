@@ -303,7 +303,7 @@ export default function App() {
       lastSavedProjectRef.current = JSON.stringify(demoProj);
       setProject(demoProj);
       setIsDirty(false);
-      navigate('/walls?view=iso');
+      navigate('/walls?view=studio');
       track('demo_project_created');
     });
   };

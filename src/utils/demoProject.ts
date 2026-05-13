@@ -1,133 +1,101 @@
-import { Project, CabinetType, PresetType } from '../types';
+import { Project } from '../types';
 import { createNewProject } from '../services/bomService';
+import { generateRubyLayout } from '../services/layoutSolver';
 
 /**
- * Creates a pre-configured demo project to showcase the 3D Design Studio
- * without requiring the user to go through the setup wizard.
+ * Creates a "Master Showcase" demo project using the Layout Solver.
+ * This ensures all cabinets are logically placed and professionally finished
+ * using the system's own design intelligence.
  */
 export const createDemoProject = (companyName: string = 'Demo Kitchens'): Project => {
-  // Start with a standard blank project
-  const project = createNewProject();
-  
-  // Basic info
-  project.name = 'Quick Start Demo Kitchen';
+  // 1. Initialize Project Shell
+  let project = createNewProject();
+  project.name = 'AI-Powered Master Kitchen';
   project.company = companyName;
-  
-  // Set up Wall A (3.6 meters)
-  const wallA = project.zones[0];
-  wallA.active = true;
-  wallA.totalLength = 3600;
-  
-  // Add a Window Obstacle (traditionally placed above the sink)
-  wallA.obstacles = [
+
+  // 2. Setup Walls & Obstacles
+  // Ensure we have exactly 2 active zones for an L-shape
+  project.zones = [
+    { id: 'Wall A', active: true, totalLength: 3000, wallHeight: 2400, obstacles: [], cabinets: [] },
+    { id: 'Wall B', active: true, totalLength: 2600, wallHeight: 2400, obstacles: [], cabinets: [] }
+  ];
+
+  // Add Window on Wall A
+  project.zones[0].obstacles = [
     {
       id: 'demo-window',
       type: 'window',
-      fromLeft: 1350,
-      width: 900,
-      height: 1000,
-      sillHeight: 1150
-    }
-  ];
-  
-  // Pre-place a professional kitchen layout
-  wallA.cabinets = [
-    // Left: Tall Storage
-    {
-      id: 'demo-tall-1',
-      preset: PresetType.TALL_UTILITY,
-      type: CabinetType.TALL,
-      width: 600,
-      qty: 1,
-      fromLeft: 0,
-      label: 'T01',
-      exposedLeft: true,
-      exposedRight: true,
-      rightCoverage: [
-        { start: 0, end: 910, depth: 560 },
-        { start: 1360, end: 2080, depth: 300 }
-      ]
-    },
-    // Prep area
-    {
-      id: 'demo-base-drawer',
-      preset: PresetType.BASE_DRAWER_3,
-      type: CabinetType.BASE,
-      width: 750,
-      qty: 1,
-      fromLeft: 600,
-      label: 'B01'
-    },
-    // Washing area (under window)
-    {
-      id: 'demo-sink',
-      preset: PresetType.SINK_UNIT,
-      type: CabinetType.BASE,
-      width: 900,
-      qty: 1,
-      fromLeft: 1350,
-      label: 'B02'
-    },
-    // Main prep area
-    {
-      id: 'demo-base-door',
-      preset: PresetType.BASE_DOOR,
-      type: CabinetType.BASE,
-      width: 750,
-      qty: 1,
-      fromLeft: 2250,
-      label: 'B03'
-    },
-    // Cooking area
-    {
-      id: 'demo-cooker',
-      preset: PresetType.COOKER_HOB,
-      type: CabinetType.BASE,
-      width: 600,
-      qty: 1,
-      fromLeft: 3000,
-      label: 'B04',
-      exposedRight: true
-    },
-    // Wall Cabinets (Storage)
-    {
-      id: 'demo-wall-1',
-      preset: PresetType.WALL_STD,
-      type: CabinetType.WALL,
-      width: 750,
-      qty: 1,
-      fromLeft: 600,
-      label: 'W01',
-      exposedRight: true
-    },
-    {
-      id: 'demo-wall-2',
-      preset: PresetType.WALL_STD,
-      type: CabinetType.WALL,
-      width: 750,
-      qty: 1,
-      fromLeft: 2250,
-      label: 'W02',
-      exposedLeft: true
-    },
-    // Cooking Hood (exactly above hob)
-    {
-      id: 'demo-hood',
-      preset: PresetType.HOOD_UNIT,
-      type: CabinetType.WALL,
-      width: 600,
-      qty: 1,
-      fromLeft: 3000,
-      label: 'W03',
-      exposedRight: true
+      fromLeft: 900,
+      width: 1000,
+      height: 900,
+      sillHeight: 1050
     }
   ];
 
-  // Mark wizard as completed to bypass the "Next" buttons and show the full toolbar
+  // Add Column on Wall B (showing corner collision handling)
+  project.zones[1].obstacles = [
+    {
+      id: 'demo-column',
+      type: 'column',
+      fromLeft: 0,
+      width: 100,
+      height: 2400,
+      depth: 100
+    },
+    {
+      id: 'demo-door',
+      type: 'door',
+      fromLeft: 1800,
+      width: 800,
+      height: 2100
+    }
+  ];
+
+  // 3. Set Layout Preferences (The "Instructions" for the AI)
+  project.settings.layoutPreferences = {
+    includeTall: true,
+    includeSink: true,
+    includeCooker: true,
+    includeDrawers: true
+  };
+
+  // 4. Global Styling & Advanced Features
+  project.settings.advancedTestingSettings = {
+    enableGola: true,
+    showDifferentPanelColors: false,
+  };
+
+  project.settings.materialSettings = {
+    ...project.settings.materialSettings,
+    carcassMaterial: 'Anthracite Grey',
+    doorMaterial: 'Natural Oak',
+    backsplashMaterial: 'White subway tile',
+    textureUrls: {
+      'Natural Oak': 'https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&q=80&w=2000',
+      'Countertop': 'https://images.unsplash.com/photo-1590274853856-f22d5ee3d228?auto=format&fit=crop&q=80&w=2000', // Marble
+      'backsplash': '/tile.jpg'
+    }
+  };
+
+  // 5. RUN THE LAYOUT SOLVER
+  // This automatically places corners, anchors, and fills the rest professionally.
+  const result = generateRubyLayout(project);
+  project = result.project;
+
+  // 6. Final State: Mark as completed to bypass the wizard
   project.settings.completedSteps = [
     'project', 'room', 'obstacles', 'limits', 'preferences', 
     'materials', 'hardware', 'construction', 'pricing'
   ];
+
+  // 7. Add sample costs for the "Financial WOW"
+  project.settings.costs = {
+    pricePerSheet: 125,
+    pricePerHardwareUnit: 15,
+    laborCost: 1500,
+    marginPercent: 45,
+    transportCost: 350
+  };
 
   return project;
 };

@@ -191,8 +191,16 @@ const ScreenWallEditor = ({
   const [isoViewMode, setIsoViewMode] = useState<string>('isometric');
   const [isoDoorOpenAngle, setIsoDoorOpenAngle] = useState(0);
   const [searchParams] = useSearchParams();
-  const initialMode = searchParams.get('view') === 'iso' ? 'iso' : 'elevation';
+  const rawView = searchParams.get('view');
+  const initialMode = rawView === 'studio' ? 'studio' : (rawView === 'iso' ? 'iso' : 'elevation');
   const [visualMode, setVisualMode] = useState<'elevation' | 'iso' | 'studio'>(initialMode as any);
+  const setSearchParams = useSearchParams()[1];
+
+  // Sync state to URL
+  useEffect(() => {
+    setSearchParams({ view: visualMode });
+  }, [visualMode, setSearchParams]);
+
   const [isTableVisible, setIsTableVisible] = useState(false);
   const [draggingCabinet, setDraggingCabinet] = useState<CabinetUnit | null>(null);
   const [draggingPosition, setDraggingPosition] = useState<{ x: number, y: number } | null>(null);

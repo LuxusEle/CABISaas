@@ -1,6 +1,6 @@
 /// <reference types="@react-three/fiber" />
 import React, { Suspense, useRef, useState, useMemo, useEffect, useCallback } from 'react';
-import { Canvas, useThree } from '@react-three/fiber';
+import { Canvas, useThree, useLoader } from '@react-three/fiber';
 import { OrbitControls, Grid, Html, useProgress, PerspectiveCamera, Environment, ContactShadows, Line, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import { Video, Box, Download } from 'lucide-react';
@@ -41,7 +41,25 @@ interface Props {
   swapSelection?: { zoneId: string, index: number }[];
 }
 
-const ZoneBacksplash: React.FC<{ zone: Zone; project: Project; position: [number, number, number]; rotation: number; skeletonView?: boolean }> = ({ zone, project, position, rotation, skeletonView = false }) => {
+import { ExpenseTemplate, expenseTemplateService } from '../../services/expenseTemplateService';
+
+const ZoneBacksplash: React.FC<{ zone: Zone; project: Project; position: [number, number, number]; rotation: number; skeletonView?: boolean; isStudio?: boolean }> = ({ zone, project, position, rotation, skeletonView = false, isStudio = false }) => {
+  const [tileDims, setTileDims] = useState({ width: 600, height: 600 });
+
+  useEffect(() => {
+    const loadTileDims = async () => {
+      const accessories = await expenseTemplateService.getTemplates();
+      const tile = accessories.find(a => a.name.toLowerCase().includes('tile'));
+      if (tile) {
+        setTileDims({ 
+          width: tile.width || 600, 
+          height: tile.length || 600 // We use 'length' as height for tiles in our DB
+        });
+      }
+    };
+    loadTileDims();
+  }, []);
+
   const baseCabinets = zone.cabinets.filter(c => c.type === CabinetType.BASE);
   if (baseCabinets.length === 0) return null;
 
@@ -160,22 +178,54 @@ const ZoneBacksplash: React.FC<{ zone: Zone; project: Project; position: [number
     }
   }
 
+  // Load texture if available
+  const backsplashTextureUrl = project.settings.materialSettings?.textureUrls?.backsplash;
+  const backsplashTexture = backsplashTextureUrl ? useLoader(THREE.TextureLoader, backsplashTextureUrl) : null;
+
+  if (backsplashTexture) {
+    backsplashTexture.wrapS = THREE.RepeatWrapping;
+    backsplashTexture.wrapT = THREE.RepeatWrapping;
+  }
+
+  const { width: tileWidth, height: tileHeight } = tileDims;
+
   return (
     <group name={`backsplash-${zone.id}`} position={position} rotation={[0, rotation, 0]}>
-      {pieces.map((p, i) => (
-        <React.Fragment key={i}>
-          <mesh position={[p.x, p.y, 0.5]} visible={!skeletonView}>
-            <boxGeometry args={[p.w, p.h, 1]} />
-            <meshStandardMaterial color="#f8fafc" roughness={0.3} metalness={0.1} />
-          </mesh>
-          {skeletonView && (
-            <lineSegments position={[p.x, p.y, 0.5]}>
-              <edgesGeometry args={[new THREE.BoxGeometry(p.w, p.h, 1)]} />
-              <lineBasicMaterial color="#f8fafc" linewidth={1} />
-            </lineSegments>
-          )}
-        </React.Fragment>
-      ))}
+      {pieces.map((p, i) => {
+        let material;
+        if (backsplashTexture && isStudio) {
+          const tex = backsplashTexture.clone();
+          tex.repeat.set(p.w / tileWidth, p.h / tileHeight);
+          tex.needsUpdate = true;
+          
+          material = (
+            <meshStandardMaterial 
+              map={tex} 
+              roughness={0.15} 
+              metalness={0.4} 
+              emissive="#111111" // Subtle boost for dark textures
+              emissiveIntensity={0.5}
+            />
+          );
+        } else {
+          material = <meshStandardMaterial color="#f8fafc" roughness={0.3} metalness={0.1} />;
+        }
+
+        return (
+          <React.Fragment key={i}>
+            <mesh position={[p.x, p.y, 0.5]} visible={!skeletonView}>
+              <boxGeometry args={[p.w, p.h, 1]} />
+              {material}
+            </mesh>
+            {skeletonView && (
+              <lineSegments position={[p.x, p.y, 0.5]}>
+                <edgesGeometry args={[new THREE.BoxGeometry(p.w, p.h, 1)]} />
+                <lineBasicMaterial color="#f8fafc" linewidth={1} />
+              </lineSegments>
+            )}
+          </React.Fragment>
+        );
+      })}
     </group>
   );
 };
@@ -978,6 +1028,7 @@ const Scene = ({
                 position={position} 
                 rotation={rotation} 
                 skeletonView={skeletonView}
+                isStudio={isStudio}
               />
             )}
           </React.Fragment>

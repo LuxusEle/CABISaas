@@ -180,6 +180,7 @@ export interface ProjectMaterialSettings {
   drawerMaterial: string;
   backMaterial: string;
   shelfMaterial: string;
+  backsplashMaterial: string;
 
   // Sheet specifications per material
   sheetSpecs: Record<string, {
