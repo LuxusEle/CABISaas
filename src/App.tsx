@@ -66,7 +66,7 @@ export default function App() {
     if (isDark) document.documentElement.classList.add('dark');
     else document.documentElement.classList.remove('dark');
   }, [isDark]);
-  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
 
   const [screen, setScreen] = useState<Screen>(Screen.LANDING);
   const [project, setProject] = useState<Project>(createNewProject());
