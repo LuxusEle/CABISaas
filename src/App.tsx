@@ -113,8 +113,21 @@ export default function App() {
       // If user is logged in, load their saved logo and profile
       if (user) {
         // Load Profile
-        profileService.getProfile(user.id).then(profile => {
-          if (profile) setUserProfile(profile);
+        profileService.getProfile(user.id).then(async (profile) => {
+          if (profile) {
+            setUserProfile(profile);
+          } else {
+            // Create default profile for OAuth/New users
+            const defaultProfile = {
+              email: user.email,
+              company_name: user.email?.split('@')[0] || 'My Company',
+              phone: '',
+              role: 'user' as const
+            };
+            await profileService.updateProfile(user.id, defaultProfile);
+            const newProfile = await profileService.getProfile(user.id);
+            if (newProfile) setUserProfile(newProfile);
+          }
         });
 
         const savedLogo = await logoService.getUserLogo(user.id);
@@ -148,8 +161,21 @@ export default function App() {
       const subscription = authService.onAuthStateChange((user) => {
         setUser(user);
         if (user) {
-          profileService.getProfile(user.id).then(profile => {
-            if (profile) setUserProfile(profile);
+          profileService.getProfile(user.id).then(async (profile) => {
+            if (profile) {
+              setUserProfile(profile);
+            } else {
+              // Create default profile for OAuth/New users
+              const defaultProfile = {
+                email: user.email,
+                company_name: user.email?.split('@')[0] || 'My Company',
+                phone: '',
+                role: 'user' as const
+              };
+              await profileService.updateProfile(user.id, defaultProfile);
+              const newProfile = await profileService.getProfile(user.id);
+              if (newProfile) setUserProfile(newProfile);
+            }
           });
         } else {
           setUserProfile(null);

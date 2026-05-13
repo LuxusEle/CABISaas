@@ -111,5 +111,18 @@ export const authService = {
   async updatePassword(password: string): Promise<{ error: AuthError | null }> {
     const { error } = await supabase.auth.updateUser({ password });
     return { error };
+  },
+
+  /**
+   * Sign in with Google OAuth
+   */
+  async signInWithGoogle(): Promise<{ error: AuthError | null }> {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/dashboard`
+      }
+    });
+    return { error };
   }
 };
