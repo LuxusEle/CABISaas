@@ -498,11 +498,11 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
                             {/* Project Name & Site Address */}
                             <div className="space-y-6">
                               <div className="group relative">
-                                <label className="text-[10px] font-black uppercase text-amber-500 tracking-[0.2em] mb-3 block ml-2 italic">Project Name</label>
+                                <label className="text-[10px] font-black uppercase text-amber-500 tracking-[0.2em] mb-1.5 block ml-2 italic">Project Name</label>
                                 <div className="relative">
-                                  <FileText className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-500 transition-colors" size={20} />
+                                  <FileText className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-500 transition-colors" size={18} />
                                   <input 
-                                    className="w-full p-6 pl-16 bg-white dark:bg-slate-800/40 rounded-3xl border-2 border-slate-100 dark:border-slate-800 focus:border-amber-500 outline-none dark:text-white font-bold text-lg shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none transition-all placeholder:text-slate-300 dark:placeholder:text-slate-600" 
+                                    className="w-full p-4 pl-14 bg-white dark:bg-slate-800/40 rounded-[1.25rem] border-2 border-slate-100 dark:border-slate-800 focus:border-amber-500 outline-none dark:text-white font-bold text-base shadow-[0_4px_20px_rgb(0,0,0,0.03)] dark:shadow-none transition-all placeholder:text-slate-300 dark:placeholder:text-slate-600" 
                                     placeholder="New Kitchen" 
                                     value={project.name} 
                                     onChange={e => setProject({ ...project, name: e.target.value })} 
@@ -511,12 +511,12 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
                               </div>
 
                               <div className="group relative">
-                                <label className="text-[10px] font-black uppercase text-blue-500 tracking-[0.2em] mb-3 block ml-2 italic">Site Address</label>
+                                <label className="text-[10px] font-black uppercase text-blue-500 tracking-[0.2em] mb-1.5 block ml-2 italic">Site Address</label>
                                 <div className="relative">
-                                  <MapPin className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
+                                  <MapPin className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={18} />
                                   <textarea 
-                                    rows={3}
-                                    className="w-full p-6 pl-16 bg-white dark:bg-slate-800/40 rounded-3xl border-2 border-slate-100 dark:border-slate-800 focus:border-blue-500 outline-none dark:text-white font-bold text-lg shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none transition-all placeholder:text-slate-300 dark:placeholder:text-slate-600 resize-none" 
+                                    rows={2}
+                                    className="w-full p-4 pl-14 bg-white dark:bg-slate-800/40 rounded-[1.25rem] border-2 border-slate-100 dark:border-slate-800 focus:border-blue-500 outline-none dark:text-white font-bold text-base shadow-[0_4px_20px_rgb(0,0,0,0.03)] dark:shadow-none transition-all placeholder:text-slate-300 dark:placeholder:text-slate-600 resize-none" 
                                     placeholder="Full delivery/installation address" 
                                     value={project.customerAddress || ''} 
                                     onChange={e => setProject({ ...project, customerAddress: e.target.value })} 
@@ -526,14 +526,14 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
                             </div>
 
                             {/* Contact & Status Card */}
-                            <div className="space-y-6">
+                            <div className="space-y-4">
                               <div className="group relative">
-                                <label className="text-[10px] font-black uppercase text-emerald-500 tracking-[0.2em] mb-3 block ml-2 italic">Contact Number</label>
+                                <label className="text-[10px] font-black uppercase text-emerald-500 tracking-[0.2em] mb-1.5 block ml-2 italic">Contact Number</label>
                                 <div className="relative">
-                                  <Phone className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-500 transition-colors" size={20} />
+                                  <Phone className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-500 transition-colors" size={18} />
                                   <input 
                                     type="tel"
-                                    className="w-full p-6 pl-16 bg-white dark:bg-slate-800/40 rounded-3xl border-2 border-slate-100 dark:border-slate-800 focus:border-emerald-500 outline-none dark:text-white font-bold text-lg shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none transition-all placeholder:text-slate-300 dark:placeholder:text-slate-600" 
+                                    className="w-full p-4 pl-14 bg-white dark:bg-slate-800/40 rounded-[1.25rem] border-2 border-slate-100 dark:border-slate-800 focus:border-emerald-500 outline-none dark:text-white font-bold text-base shadow-[0_4px_20px_rgb(0,0,0,0.03)] dark:shadow-none transition-all placeholder:text-slate-300 dark:placeholder:text-slate-600" 
                                     placeholder="+1 234 567 890" 
                                     value={project.customerPhone || ''} 
                                     onChange={e => setProject({ ...project, customerPhone: e.target.value })} 
@@ -541,12 +541,12 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
                                 </div>
                               </div>
 
-                              <div className="bg-slate-50 dark:bg-slate-800/20 rounded-[2.5rem] p-8 border-2 border-dashed border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center text-center group hover:border-amber-500/30 transition-all">
-                                <div className="w-16 h-16 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center text-amber-500 shadow-xl mb-4 rotate-3 group-hover:rotate-0 transition-transform">
-                                  <Sparkles size={32} />
+                              <div className="bg-slate-50 dark:bg-slate-800/20 rounded-[2rem] p-6 border-2 border-dashed border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center text-center group hover:border-amber-500/30 transition-all">
+                                <div className="w-12 h-12 bg-white dark:bg-slate-800 rounded-xl flex items-center justify-center text-amber-500 shadow-lg mb-3 rotate-3 group-hover:rotate-0 transition-transform">
+                                  <Sparkles size={24} />
                                 </div>
-                                <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest mb-1">Branded Experience</h4>
-                                <p className="text-[10px] text-slate-500 font-medium italic mb-6">All reports and 3D designs will use your profile's company identity.</p>
+                                <h4 className="text-[11px] font-black text-slate-900 dark:text-white uppercase tracking-widest mb-1">Branded Experience</h4>
+                                <p className="text-[9px] text-slate-500 font-medium italic mb-4">Reports and designs use your profile identity.</p>
 
                                 <div className="flex flex-col gap-2 w-full">
                                   <button
@@ -559,19 +559,19 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
                                         }
                                       }));
                                     }}
-                                    className={`w-full py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all border-2 flex items-center justify-center gap-2 ${
+                                    className={`w-full py-3.5 rounded-xl font-black uppercase text-[9px] tracking-widest transition-all border-2 flex items-center justify-center gap-2 ${
                                       project.settings.workflowMode === 'advanced'
-                                        ? 'bg-amber-500 text-white border-amber-500 shadow-lg shadow-amber-500/20'
+                                        ? 'bg-amber-500 text-white border-amber-500 shadow-md shadow-amber-500/20'
                                         : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-amber-500'
                                     }`}
                                   >
-                                    <Cpu size={16} />
+                                    <Cpu size={14} />
                                     {project.settings.workflowMode === 'advanced' ? 'Advanced Mode Enabled' : 'Enable Advanced Mode'}
                                   </button>
-                                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">
+                                  <p className="text-[8px] text-slate-400 font-bold uppercase tracking-[0.15em]">
                                     {project.settings.workflowMode === 'advanced' 
-                                      ? 'Skips layout solver • Direct unit entry' 
-                                      : 'Traditional layout • Smart automation'}
+                                      ? 'Manual Unit Entry' 
+                                      : 'Smart Automation'}
                                   </p>
                                 </div>
                               </div>
