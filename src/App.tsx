@@ -502,11 +502,11 @@ export default function App() {
               <ProtectedRoute user={user} loading={authLoading}>
                 <ScreenHome
                   onNewProject={handleStartProject}
-                  onLoadProject={(p) => {
+                  onLoadProject={(p, targetPath) => {
                     const fixed = ensureProjectSettings(p);
                     lastSavedProjectRef.current = JSON.stringify(fixed);
                     setProject(fixed);
-                    navigate('/walls?view=iso');
+                    navigate(targetPath || '/walls?view=iso');
                   }}
                   onQuickStart={handleQuickStart}
                   logoUrl={project.settings.logoUrl}

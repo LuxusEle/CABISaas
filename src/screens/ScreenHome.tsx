@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Layers, Zap, List, Box, Lock, Clock, ArrowUpRight, Plus, Settings2, ShieldCheck 
+  Layers, Zap, List, Box, Lock, Clock, ArrowUpRight, Plus, Settings2, ShieldCheck, 
+  Settings, Table2, ChevronRight, MousePointer2
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Project } from '../types';
 import { projectService } from '../services/projectService';
 import { subscriptionService } from '../services/subscriptionService';
@@ -10,7 +12,7 @@ import { subscriptionService } from '../services/subscriptionService';
 interface ScreenHomeProps {
   onNewProject: () => void;
   onQuickStart: () => void;
-  onLoadProject: (p: Project) => void;
+  onLoadProject: (p: Project, targetPath?: string) => void;
   logoUrl?: string;
   isUserPro: boolean;
   isDark: boolean;
@@ -22,6 +24,8 @@ const ScreenHome = ({ onNewProject, onQuickStart, onLoadProject, logoUrl, isUser
   const [loading, setLoading] = useState(true);
   const [loadingProjectId, setLoadingProjectId] = useState<string | null>(null);
   const [canCreate, setCanCreate] = useState(true);
+  const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const cached = projectService.getCachedProjectsList();
@@ -42,15 +46,27 @@ const ScreenHome = ({ onNewProject, onQuickStart, onLoadProject, logoUrl, isUser
     });
   }, []);
 
-  const handleProjectClick = async (pMetadata: any) => {
+  // Handle click outside to close menu
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setActiveMenuId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleActionClick = async (pMetadata: any, targetPath: string) => {
     if (loadingProjectId) return;
     setLoadingProjectId(pMetadata.id);
+    setActiveMenuId(null);
     try {
       const { data, error } = await projectService.getProject(pMetadata.id);
       if (error) {
         console.error(error);
       } else if (data) {
-        onLoadProject(data);
+        onLoadProject(data, targetPath);
       }
     } finally {
       setLoadingProjectId(null);
@@ -163,9 +179,12 @@ const ScreenHome = ({ onNewProject, onQuickStart, onLoadProject, logoUrl, isUser
           </div>
 
           {/* Project Repository */}
-          <div className="lg:col-span-8 bg-white/60 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-[2.5rem] p-8 sm:p-10 min-h-[500px] relative overflow-hidden group/repo shadow-xl shadow-slate-200/50 dark:shadow-none">
-            <div className="absolute -bottom-20 -right-20 p-8 opacity-[0.03] dark:opacity-[0.03] group-hover/repo:opacity-[0.08] dark:group-hover/repo:opacity-[0.06] transition-opacity pointer-events-none rotate-12 text-slate-900 dark:text-white">
-              <Box size={400} />
+          <div className="lg:col-span-8 bg-white/60 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-[2.5rem] p-8 sm:p-10 min-h-[500px] relative overflow-visible group/repo shadow-xl shadow-slate-200/50 dark:shadow-none">
+            {/* Clipped Background Elements */}
+            <div className="absolute inset-0 overflow-hidden rounded-[2.5rem] pointer-events-none">
+              <div className="absolute -bottom-20 -right-20 p-8 opacity-[0.03] dark:opacity-[0.03] group-hover/repo:opacity-[0.08] dark:group-hover/repo:opacity-[0.06] transition-opacity rotate-12 text-slate-900 dark:text-white">
+                <Box size={400} />
+              </div>
             </div>
             <div className="flex items-center justify-between mb-10">
               <h2 className="text-2xl font-black uppercase tracking-tight flex items-center gap-4 italic text-slate-900 dark:text-white">
@@ -188,29 +207,106 @@ const ScreenHome = ({ onNewProject, onQuickStart, onLoadProject, logoUrl, isUser
             ) : projects.length > 0 ? (
               <div className="grid sm:grid-cols-2 gap-6">
                 {projects.map(p => (
-                  <button
-                    key={p.id}
-                    onClick={() => handleProjectClick(p)}
-                    disabled={!!loadingProjectId}
-                    className="group relative flex flex-col p-6 rounded-3xl border border-slate-100 dark:border-slate-800 hover:border-amber-500/50 hover:bg-amber-500/[0.03] dark:hover:bg-amber-500/5 transition-all text-left overflow-hidden active:scale-95 bg-white/40 dark:bg-transparent"
-                  >
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="w-8 h-8 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center group-hover:bg-amber-500 group-hover:text-white transition-colors text-slate-400 dark:text-slate-500">
-                        <Box size={16} />
+                  <div key={p.id} className="relative">
+                    <button
+                      onClick={() => setActiveMenuId(activeMenuId === p.id ? null : p.id)}
+                      disabled={!!loadingProjectId}
+                      className={`
+                        group relative flex flex-col w-full p-6 rounded-3xl border transition-all text-left overflow-hidden active:scale-[0.98]
+                        ${activeMenuId === p.id 
+                          ? 'border-amber-500 bg-amber-500/[0.05] shadow-lg shadow-amber-500/10' 
+                          : 'border-slate-100 dark:border-slate-800 bg-white/40 dark:bg-transparent hover:border-amber-500/50 hover:bg-amber-500/[0.03] dark:hover:bg-amber-500/5'
+                        }
+                      `}
+                    >
+                      <div className="flex justify-between items-start mb-4">
+                        <div className={`
+                          w-8 h-8 rounded-lg flex items-center justify-center transition-colors
+                          ${activeMenuId === p.id 
+                            ? 'bg-amber-500 text-white' 
+                            : 'bg-slate-100 dark:bg-slate-800 group-hover:bg-amber-500 group-hover:text-white text-slate-400 dark:text-slate-500'
+                          }
+                        `}>
+                          <Box size={16} />
+                        </div>
+                        <MousePointer2 size={16} className={`transition-colors ${activeMenuId === p.id ? 'text-amber-500' : 'text-slate-300 dark:text-slate-600 group-hover:text-amber-600 dark:group-hover:text-amber-500'}`} />
                       </div>
-                      <ArrowUpRight size={16} className="text-slate-300 dark:text-slate-600 group-hover:text-amber-600 dark:group-hover:text-amber-500 transition-colors" />
-                    </div>
-                    
-                    <h4 className="font-black text-slate-800 dark:text-white uppercase text-sm tracking-widest mb-1 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors truncate">
-                      {p.name}
-                    </h4>
-                    <div className="flex items-center gap-2">
-                      <Clock size={10} className="text-slate-400 dark:text-slate-500" />
-                      <span className="text-[9px] text-slate-400 dark:text-slate-500 uppercase font-black tracking-widest">
-                        Updated {new Date(p.updated_at).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </button>
+                      
+                      <h4 className={`font-black uppercase text-sm tracking-widest mb-1 transition-colors truncate ${activeMenuId === p.id ? 'text-amber-600 dark:text-amber-400' : 'text-slate-800 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400'}`}>
+                        {p.name}
+                      </h4>
+                      <div className="flex items-center gap-2">
+                        <Clock size={10} className="text-slate-400 dark:text-slate-500" />
+                        <span className="text-[9px] text-slate-400 dark:text-slate-500 uppercase font-black tracking-widest">
+                          Updated {new Date(p.updated_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </button>
+
+                    {/* Quick Action Dropdown */}
+                    <AnimatePresence>
+                      {activeMenuId === p.id && (
+                        <div ref={menuRef} className="absolute z-50 top-[50%] left-2 right-2">
+                          <motion.div 
+                            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                            className="bg-white dark:bg-slate-900 border border-amber-500/30 rounded-2xl shadow-2xl overflow-hidden backdrop-blur-xl"
+                          >
+                            <div className="p-2 space-y-1">
+                              <button 
+                                onClick={() => handleActionClick(p, '/setup')}
+                                className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group/item"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center text-blue-500">
+                                    <Settings size={16} />
+                                  </div>
+                                  <div className="text-left">
+                                    <p className="text-[10px] font-black uppercase text-slate-900 dark:text-white tracking-widest">Open Setup</p>
+                                    <p className="text-[8px] text-slate-400 font-bold uppercase italic">General project settings</p>
+                                  </div>
+                                </div>
+                                <ChevronRight size={14} className="text-slate-300 group-hover/item:translate-x-1 transition-transform" />
+                              </button>
+
+                              <button 
+                                onClick={() => handleActionClick(p, '/walls?view=iso')}
+                                className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group/item"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 bg-amber-500/10 rounded-lg flex items-center justify-center text-amber-500">
+                                    <Box size={16} />
+                                  </div>
+                                  <div className="text-left">
+                                    <p className="text-[10px] font-black uppercase text-slate-900 dark:text-white tracking-widest">3D Design Studio</p>
+                                    <p className="text-[8px] text-slate-400 font-bold uppercase italic">Visual layout editor</p>
+                                  </div>
+                                </div>
+                                <ChevronRight size={14} className="text-slate-300 group-hover/item:translate-x-1 transition-transform" />
+                              </button>
+
+                              <button 
+                                onClick={() => handleActionClick(p, '/bom')}
+                                className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group/item"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 bg-emerald-500/10 rounded-lg flex items-center justify-center text-emerald-500">
+                                    <Table2 size={16} />
+                                  </div>
+                                  <div className="text-left">
+                                    <p className="text-[10px] font-black uppercase text-slate-900 dark:text-white tracking-widest">Reports & BOM</p>
+                                    <p className="text-[8px] text-slate-400 font-bold uppercase italic">Production data & costs</p>
+                                  </div>
+                                </div>
+                                <ChevronRight size={14} className="text-slate-300 group-hover/item:translate-x-1 transition-transform" />
+                              </button>
+                            </div>
+                          </motion.div>
+                        </div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 ))}
               </div>
             ) : (
