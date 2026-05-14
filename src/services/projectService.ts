@@ -54,7 +54,7 @@ export const projectService = {
 
     const { data, error } = await supabase
       .from('projects')
-      .select('id, name, designer, company, updated_at')
+      .select('id, name, designer, company, updated_at, settings, zones')
       .eq('user_id', user.id)
       .order('updated_at', { ascending: false });
 
@@ -65,7 +65,9 @@ export const projectService = {
       name: row.name,
       designer: row.designer || '',
       company: row.company || '',
-      updated_at: row.updated_at
+      updated_at: row.updated_at,
+      settings: row.settings,
+      zones: row.zones
     }));
 
     cachedProjectsList = mappedData;

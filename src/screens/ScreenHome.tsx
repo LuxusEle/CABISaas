@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Project } from '../types';
 import { projectService } from '../services/projectService';
 import { subscriptionService } from '../services/subscriptionService';
+import { calculateProjectProgress } from '../utils/progressUtils';
 
 interface ScreenHomeProps {
   onNewProject: () => void;
@@ -219,28 +220,60 @@ const ScreenHome = ({ onNewProject, onQuickStart, onLoadProject, logoUrl, isUser
                         }
                       `}
                     >
-                      <div className="flex justify-between items-start mb-4">
-                        <div className={`
-                          w-8 h-8 rounded-lg flex items-center justify-center transition-colors
-                          ${activeMenuId === p.id 
-                            ? 'bg-amber-500 text-white' 
-                            : 'bg-slate-100 dark:bg-slate-800 group-hover:bg-amber-500 group-hover:text-white text-slate-400 dark:text-slate-500'
-                          }
-                        `}>
-                          <Box size={16} />
+                      <div className="flex justify-between items-center mb-4">
+                        <div className="flex items-center gap-3 overflow-hidden">
+                          <div className={`
+                            w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors
+                            ${activeMenuId === p.id 
+                              ? 'bg-amber-500 text-white' 
+                              : 'bg-slate-100 dark:bg-slate-800 group-hover:bg-amber-500 group-hover:text-white text-slate-400 dark:text-slate-500'
+                            }
+                          `}>
+                            <Box size={16} />
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            <h4 className={`font-black uppercase text-sm tracking-widest transition-colors truncate ${activeMenuId === p.id ? 'text-amber-600 dark:text-amber-400' : 'text-slate-800 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400'}`}>
+                              {p.name}
+                            </h4>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <Clock size={10} className="text-amber-500/60 dark:text-amber-500/40" />
+                              <span className="text-[9px] text-slate-500 dark:text-slate-400 uppercase font-black tracking-widest">
+                                {new Date(p.updated_at).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                        <MousePointer2 size={16} className={`transition-colors ${activeMenuId === p.id ? 'text-amber-500' : 'text-slate-300 dark:text-slate-600 group-hover:text-amber-600 dark:group-hover:text-amber-500'}`} />
+                        <MousePointer2 size={16} className={`shrink-0 transition-colors ${activeMenuId === p.id ? 'text-amber-500' : 'text-slate-300 dark:text-slate-600 group-hover:text-amber-600 dark:group-hover:text-amber-500'}`} />
                       </div>
-                      
-                      <h4 className={`font-black uppercase text-sm tracking-widest mb-1 transition-colors truncate ${activeMenuId === p.id ? 'text-amber-600 dark:text-amber-400' : 'text-slate-800 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400'}`}>
-                        {p.name}
-                      </h4>
-                      <div className="flex items-center gap-2">
-                        <Clock size={10} className="text-slate-400 dark:text-slate-500" />
-                        <span className="text-[9px] text-slate-400 dark:text-slate-500 uppercase font-black tracking-widest">
-                          Updated {new Date(p.updated_at).toLocaleDateString()}
-                        </span>
-                      </div>
+
+                      {/* Progress Summary */}
+                      {(() => {
+                        const stats = calculateProjectProgress(p as Project);
+                        return (
+                          <div className="flex items-center gap-3 mt-3">
+                            {[
+                              { label: 'S', stats: stats.setup },
+                              { label: 'W', stats: stats.walls },
+                              { label: 'O', stats: stats.output }
+                            ].map((phase, i) => (
+                              <div key={i} className="flex flex-col gap-1.5 flex-1">
+                                <div className="flex items-center justify-between px-0.5">
+                                  <span className="text-[7px] font-black uppercase tracking-tighter opacity-40">{phase.label}</span>
+                                  <span className={`text-[8px] font-black ${phase.stats.status === 'complete' ? 'text-emerald-500' : phase.stats.status === 'in_progress' ? 'text-amber-500' : 'text-slate-300'}`}>
+                                    {phase.stats.done}/{phase.stats.total}
+                                  </span>
+                                </div>
+                                <div className="h-1 bg-slate-100 dark:bg-slate-800/50 rounded-full overflow-hidden">
+                                  <div 
+                                    className={`h-full transition-all duration-500 ${phase.stats.status === 'complete' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : phase.stats.status === 'in_progress' ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]' : 'bg-transparent'}`}
+                                    style={{ width: `${(phase.stats.done / phase.stats.total) * 100}%` }}
+                                  />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })()}
                     </button>
 
                     {/* Quick Action Dropdown */}
