@@ -134,6 +134,7 @@ export default function App() {
               company_name: user.email?.split('@')[0] || 'My Company',
               phone: '',
               currency: '$',
+              projects_count: 0,
               role: 'user' as const
             };
             await profileService.updateProfile(user.id, defaultProfile);

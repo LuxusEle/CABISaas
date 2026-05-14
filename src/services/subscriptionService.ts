@@ -157,12 +157,14 @@ export const subscriptionService = {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) return false;
 
-    const { count } = await supabase
-      .from('projects')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userData.user.id);
+    // Fetch the persistent counter from the profile
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('projects_count')
+      .eq('id', userData.user.id)
+      .single();
 
-    return (count || 0) < 3;
+    return (profile?.projects_count || 0) < 3;
   },
 
   async isPro(): Promise<boolean> {

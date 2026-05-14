@@ -10,6 +10,7 @@ export interface UserProfile {
   website_url?: string;
   tax_id?: string;
   currency?: string;
+  projects_count: number;
   role: 'user' | 'admin';
   updated_at: string;
 }
