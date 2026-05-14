@@ -136,6 +136,7 @@ export interface ProjectSettings {
     includeDrawers: boolean;
   };
   constructionType?: string;
+  workflowMode?: 'traditional' | 'advanced';
   completedSteps?: string[];
   progress?: ProjectProgress;
 }
@@ -180,6 +181,7 @@ export interface ProjectMaterialSettings {
   drawerMaterial: string;
   backMaterial: string;
   shelfMaterial: string;
+  backsplashMaterial: string;
 
   // Sheet specifications per material
   sheetSpecs: Record<string, {

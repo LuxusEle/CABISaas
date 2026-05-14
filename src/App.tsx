@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
-import { Home, Box, Moon, Sun, Table2, Settings, LayoutDashboard, Wrench, CreditCard, Book, ChevronLeft, Save, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Home, Box, Moon, Sun, Table2, Settings, LayoutDashboard, Wrench, CreditCard, Book, ChevronLeft, Save, ArrowRight, ShieldCheck, Building2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Screen, Project } from './types';
 import { GlobalProjectProgress } from './components/GlobalProjectProgress';
@@ -22,11 +22,13 @@ import ScreenWallEditor from './screens/ScreenWallEditor';
 import ScreenHome from './screens/ScreenHome';
 import ScreenProjectSetup from './screens/ScreenProjectSetup';
 import ScreenBOMReport from './screens/ScreenBOMReport';
+import { ProfilePage } from './components/ProfilePage';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import { track } from '@vercel/analytics';
 import ScreenAdminDashboard from './screens/ScreenAdminDashboard';
 import { UserProfile, profileService } from './services/profileService';
+import { createDemoProject } from './utils/demoProject';
 
 
 // --- PROTECTED ROUTE COMPONENT ---
@@ -64,7 +66,7 @@ export default function App() {
     if (isDark) document.documentElement.classList.add('dark');
     else document.documentElement.classList.remove('dark');
   }, [isDark]);
-  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
 
   const [screen, setScreen] = useState<Screen>(Screen.LANDING);
   const [project, setProject] = useState<Project>(createNewProject());
@@ -111,8 +113,21 @@ export default function App() {
       // If user is logged in, load their saved logo and profile
       if (user) {
         // Load Profile
-        profileService.getProfile(user.id).then(profile => {
-          if (profile) setUserProfile(profile);
+        profileService.getProfile(user.id).then(async (profile) => {
+          if (profile) {
+            setUserProfile(profile);
+          } else {
+            // Create default profile for OAuth/New users
+            const defaultProfile = {
+              email: user.email,
+              company_name: user.email?.split('@')[0] || 'My Company',
+              phone: '',
+              role: 'user' as const
+            };
+            await profileService.updateProfile(user.id, defaultProfile);
+            const newProfile = await profileService.getProfile(user.id);
+            if (newProfile) setUserProfile(newProfile);
+          }
         });
 
         const savedLogo = await logoService.getUserLogo(user.id);
@@ -130,6 +145,15 @@ export default function App() {
       }
 
       setAuthLoading(false);
+
+      // Check for login redirect from password reset
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('mode') === 'login') {
+        setAuthModalMode('login');
+        setShowAuthModal(true);
+        // Clean up the URL
+        window.history.replaceState({}, '', '/');
+      }
     };
     checkAuth();
 
@@ -137,8 +161,21 @@ export default function App() {
       const subscription = authService.onAuthStateChange((user) => {
         setUser(user);
         if (user) {
-          profileService.getProfile(user.id).then(profile => {
-            if (profile) setUserProfile(profile);
+          profileService.getProfile(user.id).then(async (profile) => {
+            if (profile) {
+              setUserProfile(profile);
+            } else {
+              // Create default profile for OAuth/New users
+              const defaultProfile = {
+                email: user.email,
+                company_name: user.email?.split('@')[0] || 'My Company',
+                phone: '',
+                role: 'user' as const
+              };
+              await profileService.updateProfile(user.id, defaultProfile);
+              const newProfile = await profileService.getProfile(user.id);
+              if (newProfile) setUserProfile(newProfile);
+            }
           });
         } else {
           setUserProfile(null);
@@ -275,6 +312,28 @@ export default function App() {
     });
   };
 
+  const handleQuickStart = () => {
+    requireAuth(async () => {
+      // Fetch user's saved profile to use for the new project
+      let profileData: any = null;
+      if (user) {
+        profileData = await profileService.getProfile(user.id);
+      }
+
+      const demoProj = createDemoProject(profileData?.company_name);
+      if (userProfile?.logo_url) {
+        demoProj.settings.logoUrl = userProfile.logo_url;
+      }
+
+      // Just set state and navigate straight to the editor
+      lastSavedProjectRef.current = JSON.stringify(demoProj);
+      setProject(demoProj);
+      setIsDirty(false);
+      navigate('/walls?view=studio');
+      track('demo_project_created');
+    });
+  };
+
   const openAuthModal = (mode: 'login' | 'signup') => {
     setAuthModalMode(mode);
     setShowAuthModal(true);
@@ -329,6 +388,7 @@ export default function App() {
               <NavButton active={location.pathname === '/setup'} path="/setup" icon={<Settings size={22} />} label="Project Setup" isDirty={isDirty} isExpanded={isSidebarExpanded} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
               <NavButton active={location.pathname === '/walls'} path="/walls?view=iso" icon={<Box size={22} />} label="3D Design Studio" isDirty={isDirty} isExpanded={isSidebarExpanded} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
               <NavButton active={location.pathname === '/bom'} path="/bom" icon={<Table2 size={22} />} label="Reports & BOM" isDirty={isDirty} isExpanded={isSidebarExpanded} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
+              <NavButton active={location.pathname === '/profile'} path="/profile" icon={<Building2 size={22} />} label="Business Profile" isDirty={isDirty} isExpanded={isSidebarExpanded} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
               <NavButton active={location.pathname === '/pricing'} path="/pricing" icon={<CreditCard size={22} />} label="Subscription" isDirty={isDirty} isExpanded={isSidebarExpanded} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
               <NavButton active={location.pathname === '/docs'} path="/docs" icon={<Book size={22} />} label="Documentation" isDirty={isDirty} isExpanded={isSidebarExpanded} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
               {userProfile?.role === 'admin' && (
@@ -468,14 +528,16 @@ export default function App() {
               <ProtectedRoute user={user} loading={authLoading}>
                 <ScreenHome
                   onNewProject={handleStartProject}
-                  onLoadProject={(p) => {
+                  onLoadProject={(p, targetPath) => {
                     const fixed = ensureProjectSettings(p);
                     lastSavedProjectRef.current = JSON.stringify(fixed);
                     setProject(fixed);
-                    navigate('/walls?view=iso');
+                    navigate(targetPath || '/walls?view=iso');
                   }}
+                  onQuickStart={handleQuickStart}
                   logoUrl={project.settings.logoUrl}
                   isUserPro={isUserPro}
+                  isDark={isDark}
                 />
               </ProtectedRoute>
             } />
@@ -501,6 +563,16 @@ export default function App() {
             <Route path="/bom" element={
               <ProtectedRoute user={user} loading={authLoading}>
                 <ScreenBOMReport project={project} setProject={setProject} isUserPro={isUserPro} />
+              </ProtectedRoute>
+            } />
+            <Route path="/profile" element={
+              <ProtectedRoute user={user} loading={authLoading}>
+                <ProfilePage 
+                  user={user} 
+                  onBack={() => navigate('/dashboard')}
+                  onProfileUpdate={(updated) => setUserProfile(updated)}
+                  isDark={isDark}
+                />
               </ProtectedRoute>
             } />
             <Route path="/admin" element={
@@ -529,6 +601,15 @@ export default function App() {
             } />
             <Route path="/testing" element={
               <CabinetTestingPage isDark={isDark} />
+            } />
+            <Route path="/reset-password" element={
+              <ResetPasswordPage 
+                onOpenModal={openAuthModal}
+                isDark={isDark}
+                setIsDark={setIsDark}
+                onGetStarted={() => openAuthModal('signup')}
+                onSignIn={() => openAuthModal('login')}
+              />
             } />
             <Route path="*" element={
               <LandingPage
@@ -706,5 +787,26 @@ const MobileNavButton = ({ active, onClick, icon, label, path, isDirty, canDisca
       {icon}
       <span className="text-[10px] font-bold">{label}</span>
     </button>
+  );
+};
+
+const ResetPasswordPage = ({ onOpenModal, isDark, setIsDark, onGetStarted, onSignIn }: any) => {
+  useEffect(() => {
+    // Small delay to ensure Supabase handles the recovery session
+    const timer = setTimeout(() => {
+      onOpenModal('update-password');
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [onOpenModal]);
+
+  return (
+    <div className="flex-1">
+      <LandingPage
+        onGetStarted={onGetStarted}
+        onSignIn={onSignIn}
+        isDark={isDark}
+        setIsDark={setIsDark}
+      />
+    </div>
   );
 };

@@ -1,8 +1,30 @@
 import React, { useState } from 'react';
-import { X, Mail, Lock, Loader, LogOut, User as UserIcon, Sparkles, Building2, Phone, ArrowRight, CheckCircle2, Upload } from 'lucide-react';
+import { X, Mail, Lock, Loader, LogOut, User as UserIcon, Sparkles, Building2, Phone, ArrowRight, CheckCircle2, Upload, Eye, EyeOff } from 'lucide-react';
+import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
+import 'react-phone-number-input/style.css';
 import { authService } from '../services/authService';
 import type { User } from '@supabase/supabase-js';
 import { track } from '@vercel/analytics';
+import { getVisitorCountry } from '../utils/geoUtils';
+
+const GoogleIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.66l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+  </svg>
+);
+
+const CustomPhoneInput = React.forwardRef((props: any, ref) => (
+  <input
+    {...props}
+    ref={ref}
+    className="w-full bg-transparent border-none text-white font-medium outline-none placeholder:text-slate-600 py-4 px-2"
+  />
+));
+
+// Helper is now imported from ../utils/geoUtils
 
 interface AuthModalProps {
   onClose: () => void;
@@ -14,33 +36,53 @@ interface AuthModalProps {
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogout, user, initialMode = 'login', onNavigateToPolicy }) => {
-  const [mode, setMode] = useState<'login' | 'signup'>(initialMode);
+  const [mode, setMode] = useState<'login' | 'signup' | 'forgot-password' | 'update-password'>(initialMode as any);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [companyName, setCompanyName] = useState('');
   const [phone, setPhone] = useState('');
-  const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [showOtp, setShowOtp] = useState(false);
   const [otpToken, setOtpToken] = useState('');
   const [resending, setResending] = useState(false);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [showPassword, setShowPassword] = useState(false);
+
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const { error } = await authService.signInWithGoogle();
+      if (error) {
+        setError(error.message);
+        setLoading(false);
+      }
+      // Note: The page will redirect for OAuth, so we don't necessarily need to set loading to false here
+    } catch (err: any) {
+      setError(err.message || 'An error occurred during Google sign-in');
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (mode === 'signup' && password !== confirmPassword) {
+    if ((mode === 'signup' || mode === 'update-password') && password !== confirmPassword) {
       setError('Passwords do not match');
       return;
     }
 
-    if (password.length < 6) {
+    if (mode !== 'forgot-password' && password.length < 6) {
       setError('Password must be at least 6 characters');
+      return;
+    }
+
+    if (mode === 'signup' && phone && !isValidPhoneNumber(phone)) {
+      setError('Please enter a valid international phone number');
       return;
     }
 
@@ -52,27 +94,72 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
     setLoading(true);
 
     try {
-      const result = mode === 'login'
-        ? await authService.signIn(email, password)
-        : await authService.signUp(email, password);
-
-      if (result.error) {
-        setError(result.error.message);
-      } else {
-        // If signup but no session, it means OTP is required
-        if (mode === 'signup' && !result.session) {
-          setShowOtp(true);
+      if (mode === 'forgot-password') {
+        const { error } = await authService.resetPassword(email);
+        if (error) {
+          setError(error.message);
         } else {
-          if (mode === 'signup') {
-            track('registration_completed', { method: 'password' });
+          setMessage('Password reset link has been sent to your email.');
+        }
+      } else if (mode === 'update-password') {
+        // Double check session before update
+        const { user: currentUser } = await authService.getCurrentUser();
+        if (!currentUser) {
+          setError('Auth session missing or expired. Please try requesting a new reset link.');
+          setLoading(false);
+          return;
+        }
+
+        const { error } = await authService.updatePassword(password);
+        if (error) {
+          setError(error.message);
+        } else {
+          setMessage('Password updated successfully! Redirecting to login...');
+          // Sign out and redirect to home with a login flag to clear the recovery hash
+          authService.signOut().then(() => {
+            setTimeout(() => {
+              window.location.href = '/?mode=login';
+            }, 2000);
+          });
+        }
+      } else {
+        const result = mode === 'login'
+          ? await authService.signIn(email, password)
+          : await authService.signUp(email, password);
+
+        if (result.error) {
+          setError(result.error.message);
+        } else {
+          // If signup but no session, it means OTP is required
+          if (mode === 'signup' && !result.session) {
+            setShowOtp(true);
+          } else {
+            if (mode === 'signup' && result.user) {
+              track('registration_completed', { method: 'password' });
+              // If OTP is disabled in Supabase, we save the profile immediately
+              await saveProfile(result.user);
+            }
+            onSuccess();
           }
-          onSuccess();
         }
       }
     } catch (err: any) {
       setError(err.message || 'An error occurred');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const saveProfile = async (user: User) => {
+    try {
+      const { profileService } = await import('../services/profileService');
+      await profileService.updateProfile(user.id, {
+        email: email,
+        company_name: companyName || email.split('@')[0],
+        phone: phone || undefined
+      });
+    } catch (profileErr) {
+      console.error("Profile update failed:", profileErr);
     }
   };
 
@@ -86,29 +173,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
       if (result.error) {
         setError(result.error.message);
       } else if (result.user) {
-        // NOW we are authenticated, let's save the profile details
-        try {
-          let uploadedLogoUrl = '';
-          if (logoFile) {
-            const { logoService } = await import('../services/logoService');
-            const uploadResult = await logoService.uploadLogo(logoFile, result.user.id);
-            if (uploadResult) {
-              uploadedLogoUrl = uploadResult.url;
-            }
-          }
-
-          const { profileService } = await import('../services/profileService');
-          await profileService.updateProfile(result.user.id, {
-            company_name: companyName,
-            phone: phone,
-            logo_url: uploadedLogoUrl || undefined
-          });
-        } catch (profileErr) {
-          console.error("Delayed profile update failed:", profileErr);
-          // We don't block the login if profile update fails, 
-          // but at least the user is in now.
-        }
-
+        // Save the profile details after verification
+        await saveProfile(result.user);
         track('registration_confirmed', { method: 'otp' });
         onSuccess();
       }
@@ -140,8 +206,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
     }
   };
 
-  // If user is logged in, show profile view
-  if (user) {
+  // If user is logged in, show profile view (unless we are in the middle of a password update)
+  if (user && mode !== 'update-password') {
     return (
       <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade-in">
         <div className="bg-slate-900 border border-slate-800 rounded-[2.5rem] shadow-2xl max-w-md w-full p-10 relative animate-modal-pop overflow-hidden">
@@ -174,7 +240,43 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
   }
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade-in">
+    <>
+      {/* Custom Styles for Phone Input to force Dark Theme */}
+      <style>{`
+        .phone-input-container .PhoneInput {
+          --PhoneInputCountryFlag-borderColor: transparent;
+          --PhoneInputCountrySelectArrow-color: #64748b;
+          --PhoneInputCountrySelectArrow-opacity: 0.7;
+        }
+        
+        .phone-input-container input.PhoneInputInput {
+          background: transparent !important;
+          border: none !important;
+          box-shadow: none !important;
+          color: white !important;
+          outline: none !important;
+        }
+
+        .phone-input-container .PhoneInputCountry {
+          background: transparent !important;
+          margin-right: 8px;
+        }
+
+        /* Target the native select dropdown */
+        .phone-input-container select.PhoneInputCountrySelect {
+          background-color: #0f172a !important;
+          color: white !important;
+          cursor: pointer;
+        }
+
+        /* Ensure the native options are styled (limited browser support but helps) */
+        .phone-input-container select.PhoneInputCountrySelect option {
+          background-color: #0f172a !important;
+          color: white !important;
+        }
+      `}</style>
+      
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade-in">
       <style>{`
         @keyframes modalPop {
           0% { opacity: 0; transform: scale(0.95) translateY(30px); }
@@ -309,24 +411,32 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
                   </p>
                 </div>
 
+                {/* Google OAuth Option */}
+                {(mode === 'login' || mode === 'signup') && (
+                  <div className="mb-8">
+                    <button
+                      type="button"
+                      onClick={handleGoogleSignIn}
+                      disabled={loading}
+                      className="w-full bg-white hover:bg-slate-50 text-slate-900 font-bold py-4 rounded-2xl transition-all flex items-center justify-center gap-3 border border-slate-200 shadow-sm active:scale-[0.98]"
+                    >
+                      <GoogleIcon />
+                      <span className="text-sm">Continue with Google</span>
+                    </button>
+
+                    <div className="flex items-center gap-4 mt-8">
+                      <div className="h-[1px] flex-1 bg-slate-800/50" />
+                      <span className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] whitespace-nowrap">Or continue with email</span>
+                      <div className="h-[1px] flex-1 bg-slate-800/50" />
+                    </div>
+                  </div>
+                )}
+
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-4">
-                    {mode === 'signup' ? (
+                    {mode === 'signup' && (
                       <>
-                        {/* 1. Company Name */}
-                        <div className="relative group">
-                          <Building2 className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-amber-500 transition-colors" size={20} />
-                          <input
-                            type="text"
-                            value={companyName}
-                            onChange={(e) => setCompanyName(e.target.value)}
-                            required
-                            placeholder="Company Name"
-                            className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-14 pr-6 text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all placeholder:text-slate-600"
-                          />
-                        </div>
-
-                        {/* 2. Email Address */}
+                        {/* 1. Email Address */}
                         <div className="relative group">
                           <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-amber-500 transition-colors" size={20} />
                           <input
@@ -338,50 +448,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
                             className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-14 pr-6 text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all placeholder:text-slate-600"
                           />
                         </div>
-
-                        {/* 3. Phone */}
-                        <div className="relative group">
-                          <Phone className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-amber-500 transition-colors" size={20} />
-                          <input
-                            type="tel"
+ 
+                        {/* 2. Phone (Optional) */}
+                        <div className="relative group phone-input-container flex items-center bg-slate-900/50 border border-slate-800 rounded-2xl focus-within:ring-2 focus-within:ring-amber-500/20 focus-within:border-amber-500 transition-all px-4">
+                          <PhoneInput
+                            international
+                            defaultCountry={getVisitorCountry() as any}
                             value={phone}
-                            onChange={(e) => setPhone(e.target.value)}
-                            required
-                            placeholder="Phone Number"
-                            className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-14 pr-6 text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all placeholder:text-slate-600"
+                            onChange={(value) => setPhone(value || '')}
+                            placeholder="Phone Number (Optional)"
+                            inputComponent={CustomPhoneInput}
+                            className="flex-1 flex items-center"
                           />
-                        </div>
-
-                        {/* 4. Logo Upload */}
-                        <div className="relative group">
-                          <input 
-                            type="file" 
-                            ref={fileInputRef}
-                            className="hidden" 
-                            accept="image/*"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                setLogoFile(file);
-                                setLogoPreview(URL.createObjectURL(file));
-                              }
-                            }}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => fileInputRef.current?.click()}
-                            className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 px-6 flex items-center justify-between text-slate-400 font-medium hover:border-amber-500 transition-all group"
-                          >
-                            <div className="flex items-center gap-4">
-                              <Upload size={20} className="text-slate-600 group-hover:text-amber-500 transition-colors" />
-                              <span>{logoFile ? logoFile.name : 'Company Logo'}</span>
-                            </div>
-                            {logoPreview && (
-                              <div className="w-10 h-10 rounded-lg overflow-hidden border border-slate-700">
-                                <img src={logoPreview} alt="Logo" className="w-full h-full object-cover" />
-                              </div>
-                            )}
-                          </button>
                         </div>
 
                         {/* 5. Password & Confirm */}
@@ -389,29 +467,45 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
                           <div className="relative group">
                             <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-amber-500 transition-colors" size={20} />
                             <input
-                              type="password"
+                              type={showPassword ? "text" : "password"}
                               value={password}
                               onChange={(e) => setPassword(e.target.value)}
                               required
                               minLength={6}
                               placeholder="Password"
-                              className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-14 pr-6 text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all placeholder:text-slate-600"
+                              className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-14 pr-12 text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all placeholder:text-slate-600"
                             />
+                            <button
+                              type="button"
+                              onClick={() => setShowPassword(!showPassword)}
+                              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 hover:text-amber-500 transition-colors"
+                            >
+                              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                            </button>
                           </div>
                           <div className="relative group">
                             <input
-                              type="password"
+                              type={showPassword ? "text" : "password"}
                               value={confirmPassword}
                               onChange={(e) => setConfirmPassword(e.target.value)}
                               required
                               minLength={6}
                               placeholder="Confirm"
-                              className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 px-6 text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all placeholder:text-slate-600"
+                              className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 px-12 text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all placeholder:text-slate-600"
                             />
+                            <button
+                              type="button"
+                              onClick={() => setShowPassword(!showPassword)}
+                              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 hover:text-amber-500 transition-colors"
+                            >
+                              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                            </button>
                           </div>
                         </div>
                       </>
-                    ) : (
+                    )}
+
+                    {mode === 'login' && (
                       <>
                         {/* Login Mode */}
                         <div className="relative group">
@@ -428,13 +522,90 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
                         <div className="relative group">
                           <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-amber-500 transition-colors" size={20} />
                           <input
-                            type="password"
+                            type={showPassword ? "text" : "password"}
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
                             placeholder="Password"
-                            className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-14 pr-6 text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all placeholder:text-slate-600"
+                            className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-14 pr-12 text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all placeholder:text-slate-600"
                           />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 hover:text-amber-500 transition-colors"
+                          >
+                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
+                        </div>
+                        <div className="text-right">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setMode('forgot-password');
+                              setError('');
+                              setMessage('');
+                            }}
+                            className="text-[10px] font-black text-slate-500 hover:text-amber-500 uppercase tracking-widest transition-all"
+                          >
+                            Forgot Password?
+                          </button>
+                        </div>
+                      </>
+                    )}
+
+                    {mode === 'forgot-password' && (
+                      <div className="relative group">
+                        <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-amber-500 transition-colors" size={20} />
+                        <input
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          required
+                          placeholder="Email Address"
+                          className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-14 pr-6 text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all placeholder:text-slate-600"
+                        />
+                      </div>
+                    )}
+
+                    {mode === 'update-password' && (
+                      <>
+                        <div className="relative group">
+                          <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-amber-500 transition-colors" size={20} />
+                          <input
+                            type={showPassword ? "text" : "password"}
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                            minLength={6}
+                            placeholder="New Password"
+                            className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-14 pr-12 text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all placeholder:text-slate-600"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 hover:text-amber-500 transition-colors"
+                          >
+                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
+                        </div>
+                        <div className="relative group">
+                          <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-amber-500 transition-colors" size={20} />
+                          <input
+                            type={showPassword ? "text" : "password"}
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            required
+                            minLength={6}
+                            placeholder="Confirm New Password"
+                            className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-14 pr-12 text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all placeholder:text-slate-600"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 hover:text-amber-500 transition-colors"
+                          >
+                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
                         </div>
                       </>
                     )}
@@ -463,14 +634,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
                     </div>
                   )}
 
+                  {message && (
+                    <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-emerald-500 text-xs font-bold flex items-center gap-3">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      {message}
+                    </div>
+                  )}
+
                   <button
                     type="submit"
-                    disabled={loading || (mode === 'signup' && !agreedToTerms)}
+                    disabled={loading || (mode === 'signup' && !agreedToTerms) || (mode === 'forgot-password' && !email)}
                     className="w-full bg-slate-200 hover:bg-white text-slate-900 font-black py-5 rounded-2xl transition-all disabled:opacity-30 flex items-center justify-center gap-3 uppercase tracking-widest text-xs shadow-xl active:scale-[0.98]"
                   >
                     {loading ? <Loader className="animate-spin" size={20} /> : (
                       <>
-                        {mode === 'login' ? 'Sign In' : 'Create Account'}
+                        {mode === 'login' ? 'Sign In' : mode === 'signup' ? 'Create Account' : mode === 'forgot-password' ? 'Send Reset Link' : 'Update Password'}
                         <ArrowRight size={18} />
                       </>
                     )}
@@ -480,20 +658,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
                     <button
                       type="button"
                       onClick={() => {
-                        setMode(mode === 'login' ? 'signup' : 'login');
+                        if (mode === 'forgot-password' || mode === 'update-password') setMode('login');
+                        else setMode(mode === 'login' ? 'signup' : 'login');
                         setError('');
+                        setMessage('');
                       }}
                       className="text-[11px] font-black text-slate-500 hover:text-amber-500 uppercase tracking-[0.2em] transition-colors"
                     >
-                      {mode === 'login' ? 'Need an account? Sign Up' : 'Back to Sign In'}
+                      {mode === 'login' ? 'Need an account? Sign Up' : mode === 'signup' ? 'Back to Sign In' : 'Back to Login'}
                     </button>
                   </div>
                 </form>
               </>
             )}
           </div>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };

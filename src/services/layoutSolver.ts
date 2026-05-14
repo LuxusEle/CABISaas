@@ -36,8 +36,9 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
   zones.forEach((zone) => {
     const wallCornerOffset = zone.obstacles.find(o => o.id === 'corner_wall_offset');
     if (wallCornerOffset) {
-      const baseOffset = settings.depthBase + 25;
-      const wallOffset = settings.depthWall + 25;
+      const baseCornerObs = zone.obstacles.find(o => o.id === 'corner_base_offset');
+      const baseOffset = baseCornerObs ? baseCornerObs.width : (settings.depthBase + 25);
+      const wallOffset = wallCornerOffset.width;
       const alignWidth = baseOffset - wallOffset;
       const x = wallCornerOffset.fromLeft + wallCornerOffset.width;
       if (canPlace(zone, x, alignWidth, CabinetType.WALL, settings)) {
@@ -742,13 +743,7 @@ function injectCorners(current: Zone, next: Zone, settings: ProjectSettings) {
   }
 
   // 2. Base Corner Offset (Usually Depth + 25mm)
-  let baseOffset = settings.depthBase + 25;
-  
-  // Ruby Rule: If window is close to the corner, extend the offset to meet the window start
-  const window = next.obstacles.find(o => o.type === 'window');
-  if (window && window.fromLeft > baseOffset && window.fromLeft < baseOffset + 400) {
-    baseOffset = window.fromLeft;
-  }
+  const baseOffset = settings.depthBase + 25;
 
   current.cabinets.push({
     id: uuid(), 
@@ -779,8 +774,8 @@ function injectCorners(current: Zone, next: Zone, settings: ProjectSettings) {
     depth 
   });
 
-  // Wall Corner
-  const wallCornerOffset = wDepth + 25;
+  // Wall Corner Offset
+  const wallCornerOffset = settings.depthWall + 25;
   current.cabinets.push({
     id: uuid(), 
     preset: PresetType.WALL_CORNER, 

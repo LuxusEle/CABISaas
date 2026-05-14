@@ -94,4 +94,35 @@ export const authService = {
     });
     return { error };
   },
+
+  /**
+   * Send password reset email
+   */
+  async resetPassword(email: string): Promise<{ error: AuthError | null }> {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    return { error };
+  },
+
+  /**
+   * Update the user's password (used in the recovery flow)
+   */
+  async updatePassword(password: string): Promise<{ error: AuthError | null }> {
+    const { error } = await supabase.auth.updateUser({ password });
+    return { error };
+  },
+
+  /**
+   * Sign in with Google OAuth
+   */
+  async signInWithGoogle(): Promise<{ error: AuthError | null }> {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/dashboard`
+      }
+    });
+    return { error };
+  }
 };

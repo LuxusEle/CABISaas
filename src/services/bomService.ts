@@ -925,7 +925,8 @@ export const ensureProjectSettings = (project: Project): Project => {
       materialSettings: {
         ...defaults.settings.materialSettings,
         ...(project.settings?.materialSettings || {})
-      }
+      },
+      workflowMode: project.settings?.workflowMode || 'traditional'
     },
     zones: (project.zones || []).map(zone => ({
       ...zone,
@@ -997,10 +998,9 @@ export const createNewProject = (logoUrl?: string): Project => ({
     quotationApprovedDate: undefined,
     layoutPreferences: {
       includeTall: true,
-      includeSink: true,
-      includeCooker: true,
       includeDrawers: true
     },
+    workflowMode: 'traditional',
     progress: {
       dxfDownloaded: false,
       excelDownloaded: false,
