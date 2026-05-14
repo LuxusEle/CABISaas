@@ -16,7 +16,8 @@ interface Costs {
 }
 
 // Helper to load images
-const loadImageBase64 = (url: string): Promise<string> => {
+// Helper to load images with dimensions
+const loadImageWithDimensions = (url: string): Promise<{ base64: string, width: number, height: number }> => {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.crossOrigin = 'Anonymous';
@@ -26,7 +27,11 @@ const loadImageBase64 = (url: string): Promise<string> => {
       canvas.height = img.height;
       const ctx = canvas.getContext('2d');
       ctx?.drawImage(img, 0, 0);
-      resolve(canvas.toDataURL('image/png'));
+      resolve({
+        base64: canvas.toDataURL('image/jpeg', 0.9),
+        width: img.width,
+        height: img.height
+      });
     };
     img.onerror = () => reject(new Error(`Failed to load image: ${url}`));
     img.src = url;
@@ -275,21 +280,26 @@ export const generateQuotationPDF = async (
     doc.line(margin, yPos, pageWidth - margin, yPos);
     yPos += 12;
 
-    const imgWidth = pageWidth - margin * 2;
-    const imgHeight = (imgWidth / 16) * 9; // 16:9 aspect ratio
+    const targetWidth = pageWidth - margin * 2;
 
     for (let i = 0; i < project.settings.designCaptures.length; i++) {
       const url = project.settings.designCaptures[i];
       
-      // Check if we need a new page for images
-      if (yPos + imgHeight > pageHeight - 30) {
-        doc.addPage();
-        yPos = margin + 10;
-      }
-
       try {
-        const base64 = await loadImageBase64(url);
-        doc.addImage(base64, 'JPEG', margin, yPos, imgWidth, imgHeight);
+        const { base64 } = await loadImageWithDimensions(url);
+        
+        // Use jsPDF's built-in dimension detector for maximum accuracy
+        const props = doc.getImageProperties(base64);
+        const ratio = props.width / props.height;
+        const imgHeight = targetWidth / ratio;
+        
+        // Check if we need a new page for images
+        if (yPos + imgHeight > pageHeight - 30) {
+          doc.addPage();
+          yPos = margin + 10;
+        }
+
+        doc.addImage(base64, 'JPEG', margin, yPos, targetWidth, imgHeight);
         
         yPos += imgHeight + 4;
         doc.setFontSize(9);
@@ -349,8 +359,8 @@ export const generateQuotationPDF = async (
     const textureUrl = project.settings.materialSettings?.textureUrls?.[part.key];
     if (textureUrl) {
       try {
-        const base64 = await loadImageBase64(textureUrl);
-        doc.addImage(base64, 'PNG', pageWidth - margin - 45, yPos, 30, 20);
+        const { base64 } = await loadImageWithDimensions(textureUrl);
+        doc.addImage(base64, 'JPEG', pageWidth - margin - 45, yPos, 30, 20);
       } catch (err) {
         doc.setFontSize(8);
         doc.setTextColor(200, 100, 100);

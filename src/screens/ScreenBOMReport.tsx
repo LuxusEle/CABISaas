@@ -788,7 +788,7 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
                   {project.settings.designCaptures.map((url, i) => (
                     <div key={i} className="group relative">
                       <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-800 shadow-sm transition-all hover:shadow-md">
-                        <img src={url} className="w-full h-auto object-cover aspect-video" alt={`Design ${i + 1}`} />
+                        <img src={url} className="w-full h-auto object-contain" alt={`Design ${i + 1}`} />
                         <div className="p-3 bg-white dark:bg-slate-900 flex justify-between items-center border-t border-slate-100 dark:border-slate-800">
                           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">Design View {i + 1}</span>
                         </div>
