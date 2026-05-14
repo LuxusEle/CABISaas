@@ -78,7 +78,7 @@ export const MaterialSelector: React.FC<MaterialSelectorProps> = ({ materials = 
                   <optgroup key={thickness} label={`${thickness}mm`}>
                     {(types as SheetType[]).map((type) => (
                       <option key={type.id} value={type.name}>
-                        {type.name} - ${type.price_per_sheet.toFixed(2)}
+                        {type.name} - {currency} {type.price_per_sheet.toFixed(2)}
                       </option>
                     ))}
                   </optgroup>
@@ -101,7 +101,7 @@ export const MaterialSelector: React.FC<MaterialSelectorProps> = ({ materials = 
                   <optgroup key={thickness} label={`${thickness}mm`}>
                     {(types as SheetType[]).map((type) => (
                       <option key={type.id} value={type.name}>
-                        {type.name} - {currency}{type.price_per_sheet.toFixed(2)}
+                        {type.name} - {currency} {type.price_per_sheet.toFixed(2)}
                       </option>
                     ))}
                   </optgroup>
@@ -124,7 +124,7 @@ export const MaterialSelector: React.FC<MaterialSelectorProps> = ({ materials = 
                   .filter(t => t.thickness <= 6)
                   .map((type) => (
                     <option key={type.id} value={type.name}>
-                      {type.name} - {currency}{type.price_per_sheet.toFixed(2)}
+                      {type.name} - {currency} {type.price_per_sheet.toFixed(2)}
                     </option>
                   ))}
               </select>
@@ -145,7 +145,7 @@ export const MaterialSelector: React.FC<MaterialSelectorProps> = ({ materials = 
                   .filter(t => t.thickness >= 16)
                   .map((type) => (
                     <option key={type.id} value={type.name}>
-                      {type.name} - {currency}{type.price_per_sheet.toFixed(2)}
+                      {type.name} - {currency} {type.price_per_sheet.toFixed(2)}
                     </option>
                   ))}
               </select>

@@ -7,9 +7,9 @@ import { generateRubyLayout } from '../services/layoutSolver';
  * This ensures all cabinets are logically placed and professionally finished
  * using the system's own design intelligence.
  */
-export const createDemoProject = (companyName: string = 'Demo Kitchens'): Project => {
+export const createDemoProject = (companyName: string = 'Demo Kitchens', currency: string = '$'): Project => {
   // 1. Initialize Project Shell
-  let project = createNewProject();
+  let project = createNewProject(undefined, currency);
   project.name = 'AI-Powered Master Kitchen';
   project.company = companyName;
 

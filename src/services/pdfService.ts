@@ -100,7 +100,7 @@ export const generateQuotationPDF = async (
   doc.setTextColor(40, 40, 40);
   doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
-  doc.text(`${currency}${costs.totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, pageWidth - margin, yPos + 11, { align: 'right' });
+  doc.text(`${currency} ${costs.totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, pageWidth - margin, yPos + 11, { align: 'right' });
 
   yPos += 30;
 
@@ -149,7 +149,7 @@ export const generateQuotationPDF = async (
   doc.text('1', margin, yPos);
   doc.text((project.name || 'Cabinet Project') + ' Specifications', margin + 10, yPos);
 
-  doc.text(`${currency}${costs.totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, pageWidth - margin, yPos, { align: 'right' });
+  doc.text(`${currency} ${costs.totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, pageWidth - margin, yPos, { align: 'right' });
 
   yPos += 8;
   doc.setFontSize(8);
@@ -253,14 +253,14 @@ export const generateQuotationPDF = async (
   doc.text('Sub Total', pageWidth - 80, summaryY + 12);
   doc.setTextColor(40, 40, 40);
   doc.setFont('helvetica', 'bold');
-  doc.text(`${currency}${costs.totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, pageWidth - margin, summaryY + 12, { align: 'right' });
+  doc.text(`${currency} ${costs.totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, pageWidth - margin, summaryY + 12, { align: 'right' });
 
   doc.line(pageWidth - 80, summaryY + 18, pageWidth - margin, summaryY + 18);
 
   doc.setFontSize(12);
   doc.text('Total', pageWidth - 80, summaryY + 28);
   doc.setFontSize(14);
-  doc.text(`${currency}${costs.totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, pageWidth - margin, summaryY + 28, { align: 'right' });
+  doc.text(`${currency} ${costs.totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, pageWidth - margin, summaryY + 28, { align: 'right' });
 
   // Page 2: Material Selections & Terms
   doc.addPage();

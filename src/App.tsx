@@ -298,7 +298,7 @@ export default function App() {
         profileData = await profileService.getProfile(user.id);
       }
 
-      const newProj = createNewProject(profileData?.logo_url || undefined);
+      const newProj = createNewProject(profileData?.logo_url || undefined, profileData?.currency || '$');
       if (profileData) {
         newProj.company = profileData.company_name || newProj.company;
       }
@@ -320,9 +320,9 @@ export default function App() {
         profileData = await profileService.getProfile(user.id);
       }
 
-      const demoProj = createDemoProject(profileData?.company_name);
-      if (userProfile?.logo_url) {
-        demoProj.settings.logoUrl = userProfile.logo_url;
+      const demoProj = createDemoProject(profileData?.company_name, profileData?.currency || '$');
+      if (profileData?.logo_url) {
+        demoProj.settings.logoUrl = profileData.logo_url;
       }
 
       // Just set state and navigate straight to the editor
