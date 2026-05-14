@@ -190,13 +190,74 @@ export const projectService = {
   /**
    * Delete a project
    */
+  /**
+   * Delete a project and all its associated assets (storage captures and material textures)
+   */
   async deleteProject(id: string): Promise<{ error: any }> {
-    const { error } = await supabase
-      .from('projects')
-      .delete()
-      .eq('id', id);
+    try {
+      // 1. Get the project first to find asset URLs
+      const { data: project, error: fetchError } = await this.getProject(id);
+      if (fetchError || !project) return { error: fetchError || new Error('Project not found') };
 
-    return { error };
+      // 2. Collect all potential image URLs
+      const urlsToDelete: { bucket: string; url: string }[] = [];
+
+      // Design captures (Folder-based in storageService.uploadDesignCapture)
+      // We'll try to list and delete the folder 'projectId/*'
+      const { data: captureFiles } = await supabase.storage
+        .from('design-captures')
+        .list(id);
+      
+      if (captureFiles && captureFiles.length > 0) {
+        const paths = captureFiles.map(f => `${id}/${f.name}`);
+        await supabase.storage.from('design-captures').remove(paths);
+      }
+
+      // Material textures
+      const textures = project.settings.materialSettings?.textureUrls;
+      if (textures) {
+        Object.values(textures).forEach(url => {
+          if (url && typeof url === 'string' && url.includes('cabinet-materials')) {
+            urlsToDelete.push({ bucket: 'cabinet-materials', url });
+          }
+        });
+      }
+
+      // Delete material textures
+      for (const item of urlsToDelete) {
+        const path = this.extractStoragePath(item.url, item.bucket);
+        if (path) {
+          await supabase.storage.from(item.bucket).remove([path]);
+        }
+      }
+
+      // 3. Finally delete the database record
+      const { error } = await supabase
+        .from('projects')
+        .delete()
+        .eq('id', id);
+
+      // Clear cache
+      cachedProjectsList = null;
+
+      return { error };
+    } catch (err) {
+      console.error('Error in deleteProject workflow:', err);
+      return { error: err };
+    }
+  },
+
+  /**
+   * Helper to extract storage path from a public URL
+   */
+  extractStoragePath(url: string, bucket: string): string | null {
+    try {
+      const parts = url.split(`/${bucket}/`);
+      if (parts.length < 2) return null;
+      return parts[1];
+    } catch (e) {
+      return null;
+    }
   },
 
   /**

@@ -12,6 +12,7 @@ import { SingleCabinetEditorModal } from '../components/SingleCabinetEditorModal
 import { TestingSettings } from '../components/CabinetTestingUtils';
 import { recalculateCabinetPositions } from '../services/advancedWorkflowService';
 import { storageService } from '../services/storageService';
+import { ConfirmationModal } from '../components/ConfirmationModal';
 import { CabinetViewerHandle } from '../components/3d/CabinetViewer';
 import ReactCrop, { type Crop, centerCrop, makeAspectCrop, PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
@@ -1899,77 +1900,38 @@ const ScreenWallEditor = ({
         </div>
       )}
 
-      {/* Custom Snapshot Deletion Confirmation Modal */}
-      <AnimatePresence>
-        {confirmDeleteSnapshot && (
-          <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setConfirmDeleteSnapshot(null)}
-              className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
-            />
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800"
-            >
-              <div className="p-8 text-center">
-                <div className="w-20 h-20 bg-rose-100 dark:bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <X size={40} className="text-rose-500" />
-                </div>
-                <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-2">Delete Snapshot?</h3>
-                <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed mb-8 px-4">
-                  This will permanently remove the image from storage and your quotation visuals. This action cannot be undone.
-                </p>
-                
-                <div className="relative w-full aspect-video rounded-2xl overflow-hidden mb-8 border border-slate-100 dark:border-slate-800 shadow-inner">
-                  <img src={confirmDeleteSnapshot.url} className="w-full h-full object-cover" alt="To Delete" />
-                  <div className="absolute inset-0 bg-rose-500/10 mix-blend-overlay" />
-                </div>
-
-                <div className="flex gap-4">
-                  <button
-                    onClick={() => setConfirmDeleteSnapshot(null)}
-                    className="flex-1 py-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-black uppercase tracking-widest text-[10px] rounded-2xl transition-all"
-                  >
-                    Keep it
-                  </button>
-                  <button
-                    onClick={async () => {
-                      const { url, index } = confirmDeleteSnapshot;
-                      setIsCapturing(true); // Reusing capturing state for loading indicator
-                      const success = await storageService.deleteDesignCapture(url);
-                      
-                      if (success) {
-                        const updatedProject = {
-                          ...project,
-                          settings: {
-                            ...project.settings,
-                            designCaptures: project.settings.designCaptures?.filter((_, idx) => idx !== index)
-                          }
-                        };
-                        setProject(updatedProject);
-                        await onSave(updatedProject);
-                        setConfirmDeleteSnapshot(null);
-                      } else {
-                        alert('Error deleting from storage.');
-                      }
-                      setIsCapturing(false);
-                    }}
-                    disabled={isCapturing}
-                    className="flex-1 py-4 bg-rose-500 hover:bg-rose-600 text-white font-black uppercase tracking-widest text-[10px] rounded-2xl shadow-xl shadow-rose-500/20 transition-all flex items-center justify-center"
-                  >
-                    {isCapturing ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : 'Delete Permanently'}
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <ConfirmationModal 
+        isOpen={!!confirmDeleteSnapshot}
+        onClose={() => setConfirmDeleteSnapshot(null)}
+        onConfirm={async () => {
+          if (!confirmDeleteSnapshot) return;
+          const { url, index } = confirmDeleteSnapshot;
+          setIsCapturing(true); 
+          const success = await storageService.deleteDesignCapture(url);
+          
+          if (success) {
+            const updatedProject = {
+              ...project,
+              settings: {
+                ...project.settings,
+                designCaptures: project.settings.designCaptures?.filter((_, idx) => idx !== index)
+              }
+            };
+            setProject(updatedProject);
+            await onSave(updatedProject);
+            setConfirmDeleteSnapshot(null);
+          } else {
+            alert('Error deleting from storage.');
+          }
+          setIsCapturing(false);
+        }}
+        title="Delete Snapshot?"
+        message="This will permanently remove the image from storage and your quotation visuals. This action cannot be undone."
+        confirmText="Delete Permanently"
+        cancelText="Keep it"
+        imageUrl={confirmDeleteSnapshot?.url}
+        isLoading={isCapturing}
+      />
     </div>
   );
 };

@@ -2,13 +2,14 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Layers, Zap, List, Box, Lock, Clock, ArrowUpRight, Plus, Settings2, ShieldCheck, 
-  Settings, Table2, ChevronRight, MousePointer2
+  Settings, Table2, ChevronRight, MousePointer2, Trash2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Project } from '../types';
 import { projectService } from '../services/projectService';
 import { subscriptionService } from '../services/subscriptionService';
 import { calculateProjectProgress } from '../utils/progressUtils';
+import { ConfirmationModal } from '../components/ConfirmationModal';
 
 interface ScreenHomeProps {
   onNewProject: () => void;
@@ -26,6 +27,8 @@ const ScreenHome = ({ onNewProject, onQuickStart, onLoadProject, logoUrl, isUser
   const [loadingProjectId, setLoadingProjectId] = useState<string | null>(null);
   const [canCreate, setCanCreate] = useState(true);
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+  const [confirmDeleteProject, setConfirmDeleteProject] = useState<any | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -79,6 +82,30 @@ const ScreenHome = ({ onNewProject, onQuickStart, onLoadProject, logoUrl, isUser
       onNewProject();
     } else {
       navigate('/pricing');
+    }
+  };
+
+  const handleDeleteProject = (pMetadata: any) => {
+    setConfirmDeleteProject(pMetadata);
+    setActiveMenuId(null);
+  };
+
+  const executeDeleteProject = async () => {
+    if (!confirmDeleteProject) return;
+    
+    setIsDeleting(true);
+    try {
+      const { error } = await projectService.deleteProject(confirmDeleteProject.id);
+      if (error) {
+        alert("Failed to delete project. Please try again.");
+      } else {
+        // Refresh list
+        const { data } = await projectService.getProjectsList();
+        if (data) setProjects(data);
+        setConfirmDeleteProject(null);
+      }
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -334,6 +361,26 @@ const ScreenHome = ({ onNewProject, onQuickStart, onLoadProject, logoUrl, isUser
                                 </div>
                                 <ChevronRight size={14} className="text-slate-300 group-hover/item:translate-x-1 transition-transform" />
                               </button>
+
+                              <div className="h-[1px] bg-slate-100 dark:bg-slate-800 my-1" />
+
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteProject(p);
+                                }}
+                                className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors group/item"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 bg-red-500/10 rounded-lg flex items-center justify-center text-red-500">
+                                    <Trash2 size={16} />
+                                  </div>
+                                  <div className="text-left">
+                                    <p className="text-[10px] font-black uppercase text-red-600 dark:text-red-500 tracking-widest">Delete Project</p>
+                                    <p className="text-[8px] text-slate-400 font-bold uppercase italic">Permanent removal</p>
+                                  </div>
+                                </div>
+                              </button>
                             </div>
                           </motion.div>
                         </div>
@@ -357,6 +404,18 @@ const ScreenHome = ({ onNewProject, onQuickStart, onLoadProject, logoUrl, isUser
           </div>
         </div>
       </div>
+
+      <ConfirmationModal
+        isOpen={!!confirmDeleteProject}
+        onClose={() => setConfirmDeleteProject(null)}
+        onConfirm={executeDeleteProject}
+        title="Delete Project?"
+        message={`Are you sure you want to permanently delete "${confirmDeleteProject?.name}"? This will remove the database record and all associated images from storage. This action cannot be undone.`}
+        confirmText="Delete Permanently"
+        cancelText="Keep Project"
+        isLoading={isDeleting}
+        type="danger"
+      />
     </div>
   );
 };
