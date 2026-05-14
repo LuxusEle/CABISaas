@@ -122,7 +122,7 @@ describe('bomService', () => {
       expect(project.name).toBe('New Kitchen');
       expect(project.zones).toHaveLength(1);
       expect(project.zones[0].id).toBe('Wall A');
-      expect(project.settings.currency).toBe('LKR');
+      expect(project.settings.currency).toBe('$');
     });
 
     it('should have valid default settings', () => {

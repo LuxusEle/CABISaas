@@ -8,7 +8,7 @@ interface BOMData {
   cabinetCount: number;
 }
 
-export const exportToQuotationPDF = (project: Project, data: BOMData, currency: string = 'LKR', totalWithMargin?: number) => {
+export const exportToQuotationPDF = (project: Project, data: BOMData, currency: string = '$', totalWithMargin?: number) => {
   // This function now just triggers print - the quotation content should be rendered in the DOM
   // with appropriate print-only CSS classes
   return {

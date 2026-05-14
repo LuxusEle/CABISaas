@@ -133,6 +133,7 @@ export default function App() {
               email: user.email,
               company_name: user.email?.split('@')[0] || 'My Company',
               phone: '',
+              currency: '$',
               role: 'user' as const
             };
             await profileService.updateProfile(user.id, defaultProfile);
@@ -167,9 +168,25 @@ export default function App() {
       }
     };
     checkAuth();
+  }, []);
 
-    // Listen to auth changes
-      const subscription = authService.onAuthStateChange((user) => {
+  // Proactive currency synchronization
+  useEffect(() => {
+    const targetCurrency = userProfile?.currency || '$';
+    if (project.settings.currency !== targetCurrency) {
+      setProject(prev => ({
+        ...prev,
+        settings: { 
+          ...prev.settings, 
+          currency: targetCurrency
+        }
+      }));
+    }
+  }, [userProfile?.currency, project.settings.currency]);
+
+  // Listen to auth changes
+  useEffect(() => {
+    const subscription = authService.onAuthStateChange((user) => {
         setUser(user);
         if (user) {
           profileService.getProfile(user.id).then(async (profile) => {
