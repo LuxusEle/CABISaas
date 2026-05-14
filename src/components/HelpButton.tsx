@@ -1,9 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { HelpCircle, X, Send, MessageSquare, Bug, Lightbulb, AlertCircle, HelpCircleIcon, Camera, Trash2, Undo, Check, ArrowRight, Paperclip, FileText, Image, XCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { feedbackService } from '../services/feedbackService';
 import html2canvas from 'html2canvas';
 
-const ROTATING_PHRASES: string[] = [];
+const ROTATING_PHRASES = [
+  "Need help?",
+  "Found a bug?",
+  "Have a suggestion?",
+  "Ask a question",
+  "Report an issue"
+];
 
 const FEEDBACK_TYPES = [
   { id: 'suggestion', label: 'Suggestion', icon: Lightbulb, color: 'text-amber-500' },
@@ -22,7 +29,11 @@ interface Annotation {
   endY?: number;
 }
 
-export const HelpButton: React.FC = () => {
+interface HelpButtonProps {
+  disablePhrases?: boolean;
+}
+
+export const HelpButton: React.FC<HelpButtonProps> = ({ disablePhrases = false }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedType, setSelectedType] = useState('suggestion');
   const [message, setMessage] = useState('');
@@ -70,7 +81,31 @@ export const HelpButton: React.FC = () => {
     };
   }, []);
 
-  // Rotate phrases removed as per user request
+  // Rotate phrases
+  useEffect(() => {
+    if (disablePhrases || isHidden) {
+      setShowPhrase(false);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setShowPhrase(true);
+      
+      const hideTimer = setTimeout(() => {
+        setShowPhrase(false);
+        
+        const nextTimer = setTimeout(() => {
+          setCurrentPhraseIndex((prev) => (prev + 1) % ROTATING_PHRASES.length);
+        }, 500); // Wait for fade out
+        
+        return () => clearTimeout(nextTimer);
+      }, 4000); // Show for 4 seconds
+      
+      return () => clearTimeout(hideTimer);
+    }, 2000); // Wait 2 seconds before showing next
+
+    return () => clearTimeout(timer);
+  }, [currentPhraseIndex, disablePhrases, isHidden]);
 
   // Screenshot state
   const [screenshot, setScreenshot] = useState<string | null>(null);
@@ -393,25 +428,44 @@ export const HelpButton: React.FC = () => {
         </button>
 
         {/* Support Button */}
-        <button
-          onClick={() => {
-            setIsAnnotating(false);
-            setScreenshot(null);
-            setFinalScreenshot(null);
-            setAnnotations([]);
-            setIsOpen(true);
-          }}
-          className="w-12 h-12 md:w-14 md:h-14 bg-amber-500 hover:bg-amber-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center group"
-          aria-label="Help & Feedback"
-        >
-          <HelpCircle className="w-6 h-6 md:w-7 md:h-7 group-hover:scale-110 transition-transform" />
-          
-          {hasUnreadReply && (
-            <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-white dark:border-slate-900 animate-bounce shadow-lg">
-              1
-            </span>
-          )}
-        </button>
+        <div className="relative flex items-center gap-3">
+          <AnimatePresence>
+            {showPhrase && !disablePhrases && (
+              <motion.div
+                initial={{ opacity: 0, x: 20, scale: 0.8 }}
+                animate={{ opacity: 1, x: 0, scale: 1 }}
+                exit={{ opacity: 0, x: 20, scale: 0.8 }}
+                className="absolute right-full mr-3 whitespace-nowrap bg-white dark:bg-slate-800 px-4 py-2 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 pointer-events-none"
+              >
+                <span className="text-xs font-black text-amber-500 uppercase tracking-widest italic">
+                  {ROTATING_PHRASES[currentPhraseIndex]}
+                </span>
+                {/* Tooltip Arrow */}
+                <div className="absolute top-1/2 -right-1.5 -translate-y-1/2 w-3 h-3 bg-white dark:bg-slate-800 border-r border-t border-slate-100 dark:border-slate-800 rotate-45" />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <button
+            onClick={() => {
+              setIsAnnotating(false);
+              setScreenshot(null);
+              setFinalScreenshot(null);
+              setAnnotations([]);
+              setIsOpen(true);
+            }}
+            className="w-12 h-12 md:w-14 md:h-14 bg-amber-500 hover:bg-amber-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center group relative"
+            aria-label="Help & Feedback"
+          >
+            <HelpCircle className="w-6 h-6 md:w-7 md:h-7 group-hover:scale-110 transition-transform" />
+            
+            {hasUnreadReply && (
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-white dark:border-slate-900 animate-bounce shadow-lg">
+                1
+              </span>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Feedback Modal */}

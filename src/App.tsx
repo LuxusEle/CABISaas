@@ -732,7 +732,7 @@ export default function App() {
       )}
 
       {/* Help Button - Available on all screens */}
-      <HelpButton />
+      <HelpButton disablePhrases={screen === Screen.WALL_EDITOR} />
 
       {/* Vercel Analytics & Speed Insights */}
       <Analytics />
