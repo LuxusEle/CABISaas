@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Book, ChevronRight, LayoutDashboard, Settings, Box, Table2, Map, CreditCard, FileText, Lightbulb, HelpCircle, CheckCircle } from 'lucide-react';
+import { Book, ChevronRight, Settings, Settings2, Box, Table2, CreditCard, Lightbulb, HelpCircle, CheckCircle } from 'lucide-react';
 import { LandingHeader } from './LandingHeader';
 
 interface DocSection {
@@ -54,16 +54,26 @@ export const DocsPage: React.FC<DocsPageProps> = ({
         <div className="space-y-4">
           <h3 className="text-xl font-bold text-slate-900 dark:text-white">Welcome to CabEngine Pro</h3>
           <p className="text-slate-600 dark:text-slate-300">
-            CabEngine Pro is a comprehensive cabinet design and manufacturing application that helps you:
+            CabEngine Pro is an advanced engineering suite for high-fidelity cabinet design and manufacturing. It enables you to:
           </p>
           <ul className="list-disc list-inside space-y-2 text-slate-600 dark:text-slate-300 ml-4">
-            <li>Design kitchen and cabinet layouts with multiple wall zones</li>
-            <li>Generate accurate Bill of Materials (BOM) with cost calculations</li>
-            <li>Optimize material cutting patterns to minimize waste</li>
-            <li>Create professional elevation drawings and plans</li>
-            <li>Manage material types, hardware, and pricing</li>
-            <li>Export data to Excel and PDF formats</li>
+            <li>Design complex kitchen layouts with multiple wall zones</li>
+            <li>Generate accurate Bill of Materials (BOM) and costings</li>
+            <li>Optimize material nesting and cutting patterns</li>
+            <li>Create professional technical drawings and elevations</li>
+            <li>Manage global material libraries and hardware</li>
           </ul>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+            <div className="p-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+              <h4 className="font-black text-xs uppercase tracking-widest text-amber-600 dark:text-amber-500 mb-2">New Here?</h4>
+              <p className="text-sm text-slate-600 dark:text-slate-400 italic">Use the <strong>Quick Start Demo</strong> from the dashboard to instantly load a professional layout and explore all features.</p>
+            </div>
+            <div className="p-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+              <h4 className="font-black text-xs uppercase tracking-widest text-blue-600 dark:text-blue-500 mb-2">Workspace Theme</h4>
+              <p className="text-sm text-slate-600 dark:text-slate-400 italic">Toggle <strong>Light/Dark mode</strong> in the sidebar. The entire interface is theme-aware for different design environments.</p>
+            </div>
+          </div>
 
           <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mt-4">
             <h4 className="font-bold text-amber-800 dark:text-amber-400 flex items-center gap-2">
@@ -71,7 +81,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
               Quick Tip
             </h4>
             <p className="text-sm text-amber-700 dark:text-amber-300 mt-2">
-              All your work is automatically saved to the cloud. You can access your projects from any device by logging into your account.
+              Access any project directly from the <strong>Dashboard</strong> using the Action Menu overlay to jump straight to Setup, 3D Studio, or BOM.
             </p>
           </div>
         </div>
@@ -83,79 +93,39 @@ export const DocsPage: React.FC<DocsPageProps> = ({
       icon: <CheckCircle className="w-5 h-5" />,
       content: (
         <div className="space-y-6">
-          <h3 className="text-xl font-bold text-slate-900 dark:text-white">Step-by-Step Guide to Complete a Project</h3>
+          <h3 className="text-xl font-bold text-slate-900 dark:text-white">Step-by-Step Engineering Process</h3>
 
           <div className="space-y-6">
             <div className="border-l-4 border-amber-500 pl-4">
-              <h4 className="font-bold text-slate-900 dark:text-white text-lg">Step 1: Project Setup</h4>
+              <h4 className="font-bold text-slate-900 dark:text-white text-lg">Step 1: Project Identity & Mode</h4>
               <p className="text-slate-600 dark:text-slate-300 mt-2">
-                Configure your project settings including company name, currency, material costs, and nesting parameters.
+                Configure site address and contact info. Enable <strong>Advanced Mode</strong> if you prefer manual weaponry box entry over automatic solvers.
               </p>
-              <div className="mt-3 bg-slate-50 dark:bg-slate-800 p-3 rounded-lg">
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  <strong>Location:</strong> Click "Setup" in the sidebar → Fill in Project Info, Dimensions & Nesting settings
-                </p>
-              </div>
+              <p className="text-[10px] font-bold text-slate-400 mt-2 italic uppercase">Location: Sidebar → Setup → Step 1: Identity</p>
             </div>
 
             <div className="border-l-4 border-blue-500 pl-4">
-              <h4 className="font-bold text-slate-900 dark:text-white text-lg">Step 2: Configure Materials</h4>
+              <h4 className="font-bold text-slate-900 dark:text-white text-lg">Step 2: Materials & Branding</h4>
               <p className="text-slate-600 dark:text-slate-300 mt-2">
-                Add your sheet types (plywood, MDF, melamine) with thickness and pricing. Also add hardware items like hinges, handles, and drawer slides.
+                Define your sheet library, hardware, and material allocation. Visit the <strong>Business Profile</strong> to sync your company logo for reports.
               </p>
-              <div className="mt-3 bg-slate-50 dark:bg-slate-800 p-3 rounded-lg">
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  <strong>Location:</strong> Setup page → "Sheet Types & Materials" and "Hardware & Accessories" sections
-                </p>
-              </div>
+              <p className="text-[10px] font-bold text-slate-400 mt-2 italic uppercase">Location: Sidebar → Setup → Steps 2-8</p>
             </div>
 
             <div className="border-l-4 border-green-500 pl-4">
-              <h4 className="font-bold text-slate-900 dark:text-white text-lg">Step 3: Material Allocation</h4>
+              <h4 className="font-bold text-slate-900 dark:text-white text-lg">Step 3: Studio Visualization</h4>
               <p className="text-slate-600 dark:text-slate-300 mt-2">
-                Assign default materials to different cabinet components (carcass, doors, drawers, back panels, shelves).
+                Design your walls in the <strong>3D Studio</strong>. Toggle between Realistic and Technical views to verify textures and dimensions.
               </p>
-              <div className="mt-3 bg-slate-50 dark:bg-slate-800 p-3 rounded-lg">
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  <strong>Location:</strong> Setup page → "Material Allocation by Part Type" section
-                </p>
-              </div>
+              <p className="text-[10px] font-bold text-slate-400 mt-2 italic uppercase">Location: Sidebar → 3D Design Studio</p>
             </div>
 
             <div className="border-l-4 border-purple-500 pl-4">
-              <h4 className="font-bold text-slate-900 dark:text-white text-lg">Step 4: Design Walls</h4>
+              <h4 className="font-bold text-slate-900 dark:text-white text-lg">Step 4: Production Export</h4>
               <p className="text-slate-600 dark:text-slate-300 mt-2">
-                Add cabinets to your wall zones. You can manually place cabinets or use the auto-fill feature. Configure each cabinet's type, preset, and materials.
+                Review your BOM, check material nesting in the Cut Plan, and export your final technical dossier (Excel/PDF/JSON).
               </p>
-              <div className="mt-3 bg-slate-50 dark:bg-slate-800 p-3 rounded-lg">
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  <strong>Location:</strong> Click "Walls" in the sidebar → Select wall zone → Add/Edit cabinets
-                </p>
-              </div>
-            </div>
-
-            <div className="border-l-4 border-red-500 pl-4">
-              <h4 className="font-bold text-slate-900 dark:text-white text-lg">Step 5: Generate BOM</h4>
-              <p className="text-slate-600 dark:text-slate-300 mt-2">
-                View your complete Bill of Materials including material sheets, hardware quantities, and cost estimates. The system automatically calculates hinges (2 per door), handles, and drawer slides.
-              </p>
-              <div className="mt-3 bg-slate-50 dark:bg-slate-800 p-3 rounded-lg">
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  <strong>Location:</strong> Click "BOM" in the sidebar → View Material List, Cut Plan, or Wall Plans
-                </p>
-              </div>
-            </div>
-
-            <div className="border-l-4 border-teal-500 pl-4">
-              <h4 className="font-bold text-slate-900 dark:text-white text-lg">Step 6: Export & Print</h4>
-              <p className="text-slate-600 dark:text-slate-300 mt-2">
-                Export your project to Excel, print PDF reports with elevations and cut plans, or save as JSON for integration with other systems.
-              </p>
-              <div className="mt-3 bg-slate-50 dark:bg-slate-800 p-3 rounded-lg">
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  <strong>Location:</strong> BOM page → Use the "Print / PDF", "JSON", or "Excel" buttons
-                </p>
-              </div>
+              <p className="text-[10px] font-bold text-slate-400 mt-2 italic uppercase">Location: Sidebar → Reports & BOM</p>
             </div>
           </div>
         </div>
@@ -163,71 +133,52 @@ export const DocsPage: React.FC<DocsPageProps> = ({
     },
     {
       id: 'setup',
-      title: 'Project Setup',
+      title: 'Project Setup & Modes',
       icon: <Settings className="w-5 h-5" />,
       content: (
         <div className="space-y-6">
-          <h3 className="text-xl font-bold text-slate-900 dark:text-white">Understanding Setup Options</h3>
+          <h3 className="text-xl font-bold text-slate-900 dark:text-white">Configuration Options</h3>
 
           <div className="space-y-4">
-            <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-              <h4 className="font-bold text-slate-900 dark:text-white mb-2">Project Information</h4>
-              <ul className="space-y-2 text-slate-600 dark:text-slate-300">
-                <li><strong>Project Name:</strong> The name of your cabinet project</li>
-                <li><strong>Company Name:</strong> Your company name (appears on reports)</li>
-                <li><strong>Currency Symbol:</strong> Displayed on all cost calculations ($, €, £, etc.)</li>
-                <li><strong>Logo URL:</strong> Optional company logo for professional reports</li>
-              </ul>
-            </div>
-
-            <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-              <h4 className="font-bold text-slate-900 dark:text-white mb-2">Dimensions & Nesting</h4>
-              <ul className="space-y-2 text-slate-600 dark:text-slate-300">
-                <li><strong>Base Height:</strong> Height of base cabinets (default: 720mm)</li>
-                <li><strong>Sheet Length:</strong> Length of your material sheets (default: 2440mm)</li>
-                <li><strong>Sheet Width:</strong> Width of your material sheets (default: 1220mm)</li>
-              </ul>
-            </div>
-
-            <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-              <h4 className="font-bold text-slate-900 dark:text-white mb-2">Sheet Types & Materials</h4>
-              <p className="text-slate-600 dark:text-slate-300 mb-2">
-                Add different types of sheet materials you use:
+            <div className="bg-amber-50/50 dark:bg-amber-900/10 p-5 rounded-2xl border border-amber-200/50 dark:border-amber-800/50">
+              <h4 className="font-black text-xs uppercase tracking-widest text-amber-700 dark:text-amber-500 mb-2 flex items-center gap-2">
+                <Settings2 className="w-4 h-4" /> Advanced Mode (Direct Entry)
+              </h4>
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed italic">
+                Enables precise manual control over cabinetry boxes. Skip the automatic layout solver to define exact widths, blind panels, and placement sequence.
               </p>
-              <ul className="space-y-2 text-slate-600 dark:text-slate-300">
-                <li>• <strong>Material Name:</strong> E.g., "White Melamine 16mm"</li>
-                <li>• <strong>Thickness:</strong> Sheet thickness in mm</li>
-                <li>• <strong>Price per Sheet:</strong> Cost for cost calculations</li>
-              </ul>
             </div>
 
-            <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-              <h4 className="font-bold text-slate-900 dark:text-white mb-2">Hardware & Accessories</h4>
-              <p className="text-slate-600 dark:text-slate-300 mb-2">
-                Add hardware items that will appear in your BOM:
-              </p>
-              <ul className="space-y-2 text-slate-600 dark:text-slate-300">
-                <li>• <strong>Item Name:</strong> E.g., "Soft-Close Hinge"</li>
-                <li>• <strong>Default Price:</strong> Unit cost for calculations</li>
-              </ul>
-              <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
-                <p className="text-sm text-amber-700 dark:text-amber-300">
-                  <strong>Note:</strong> Hinges, handles, and drawer slides are automatically calculated based on your cabinet design. Other accessories appear with quantity 1 by default.
-                </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
+                <h4 className="font-bold text-slate-900 dark:text-white mb-2 text-sm uppercase">Materials & Hardware</h4>
+                <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-300">
+                  <li>• <strong>Sheet Types:</strong> Define name, thickness, and sheet price.</li>
+                  <li>• <strong>Accessories:</strong> Add hardware with custom unit costs.</li>
+                  <li>• <strong>Tile Scaling:</strong> Set backsplash tile dimensions for 3D realism.</li>
+                </ul>
+              </div>
+              <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
+                <h4 className="font-bold text-slate-900 dark:text-white mb-2 text-sm uppercase">Material Allocation</h4>
+                <p className="text-[10px] text-slate-400 mb-2 uppercase font-black">Assign defaults to:</p>
+                <ul className="space-y-1 text-xs text-slate-600 dark:text-slate-300">
+                  <li>• <strong>Carcass (Box):</strong> Sides, top, and bottom.</li>
+                  <li>• <strong>Front Doors:</strong> Finished exterior faces.</li>
+                  <li>• <strong>Drawer Boxes:</strong> Bottoms and internal sides.</li>
+                  <li>• <strong>Back Panels:</strong> Typically thinner materials.</li>
+                </ul>
               </div>
             </div>
 
             <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-              <h4 className="font-bold text-slate-900 dark:text-white mb-2">Material Allocation by Part Type</h4>
-              <p className="text-slate-600 dark:text-slate-300 mb-2">
-                Assign default materials to different cabinet components:
+              <h4 className="font-bold text-slate-900 dark:text-white mb-2">Business Profile & Branding</h4>
+              <p className="text-sm text-slate-600 dark:text-slate-300 mb-2">
+                Your company identity is global and persists across projects:
               </p>
-              <ul className="space-y-2 text-slate-600 dark:text-slate-300">
-                <li>• <strong>Carcass (Box):</strong> Material for sides, top, bottom panels</li>
-                <li>• <strong>Front Doors:</strong> Material for cabinet door fronts</li>
-                <li>• <strong>Drawer Boxes:</strong> Material for drawer bottoms and sides</li>
-                <li>• <strong>Back Panels:</strong> Material for cabinet backs (typically thinner)</li>
-                <li>• <strong>Shelves:</strong> Material for adjustable/fixed shelves</li>
+              <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-300">
+                <li>• <strong>Company Logo:</strong> Automatically scales for BOM and Wall Plan headers.</li>
+                <li>• <strong>Business Metadata:</strong> Syncs company name and address to all invoices.</li>
+                <li>• <strong>Real-time Sync:</strong> Ensures all devices show your latest pro status.</li>
               </ul>
             </div>
           </div>
@@ -236,66 +187,44 @@ export const DocsPage: React.FC<DocsPageProps> = ({
     },
     {
       id: 'walls',
-      title: 'Wall Editor',
+      title: '3D Design Studio',
       icon: <Box className="w-5 h-5" />,
       content: (
         <div className="space-y-6">
-          <h3 className="text-xl font-bold text-slate-900 dark:text-white">Designing Your Cabinets</h3>
+          <h3 className="text-xl font-bold text-slate-900 dark:text-white">Studio Tools & Visualization</h3>
 
           <div className="space-y-4">
-            <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-              <h4 className="font-bold text-slate-900 dark:text-white mb-2">Wall Zones</h4>
-              <p className="text-slate-600 dark:text-slate-300">
-                You can design cabinets for multiple wall zones (Wall A, Wall B, Wall C, Island). Toggle zones on/off as needed. Each zone is designed independently.
+            <div className="bg-white dark:bg-slate-800 rounded-lg p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
+              <h4 className="font-black text-xs uppercase tracking-widest text-amber-600 dark:text-amber-500 mb-3">Realistic Visualization</h4>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                The studio uses physically accurate rendering for professional presentations:
               </p>
-            </div>
-
-            <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-              <h4 className="font-bold text-slate-900 dark:text-white mb-2">Adding Cabinets</h4>
-              <ol className="list-decimal list-inside space-y-2 text-slate-600 dark:text-slate-300">
-                <li>Click on the wall visualization where you want to add a cabinet</li>
-                <li>Select the cabinet type: <strong>Base</strong>, <strong>Wall</strong>, or <strong>Tall</strong></li>
-                <li>Choose a preset (e.g., Base 2-Door, Wall Standard, Tall Oven)</li>
-                <li>Set the width (or use the default)</li>
-                <li>Click "Add Cabinet"</li>
-              </ol>
-            </div>
-
-            <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-              <h4 className="font-bold text-slate-900 dark:text-white mb-2">Cabinet Presets</h4>
-              <ul className="space-y-2 text-slate-600 dark:text-slate-300">
-                <li><strong>Base 2-Door:</strong> Standard base cabinet with two doors</li>
-                <li><strong>Base 3-Drawer:</strong> Base cabinet with three drawers</li>
-                <li><strong>Base Corner:</strong> Corner cabinet for L-shaped layouts</li>
-                <li><strong>Wall Standard:</strong> Standard wall cabinet</li>
-                <li><strong>Tall Oven/Micro:</strong> Tall cabinet for built-in ovens</li>
-                <li><strong>Tall Utility:</strong> Full-height storage cabinet</li>
-                <li><strong>Sink Unit:</strong> Base cabinet designed for sinks</li>
-                <li><strong>Open Box:</strong> Open shelving unit</li>
+              <ul className="space-y-3 text-xs text-slate-600 dark:text-slate-300">
+                <li>• <strong>View Toggles:</strong> Switch between Realistic (Textures) and Technical (Wireframe).</li>
+                <li>• <strong>Tile Scaling:</strong> Backsplash textures scale based on your hardware library dimensions.</li>
+                <li>• <strong>ISO Elevation:</strong> View specific wall zones in flattened technical elevation.</li>
               </ul>
             </div>
 
             <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-              <h4 className="font-bold text-slate-900 dark:text-white mb-2">Editing & Arranging</h4>
-              <ul className="space-y-2 text-slate-600 dark:text-slate-300">
-                <li><strong>Move:</strong> Click the arrow buttons to swap cabinet positions</li>
-                <li><strong>Edit:</strong> Click on a cabinet to modify its width, preset, or materials</li>
-                <li><strong>Delete:</strong> Select a cabinet and click the delete button</li>
-                <li><strong>Auto-Fill:</strong> Use the "Auto Fill" button to automatically populate a zone with standard cabinets</li>
-              </ul>
+              <h4 className="font-bold text-slate-900 dark:text-white mb-2">Cabinet Presets Library</h4>
+              <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-xs text-slate-600 dark:text-slate-300">
+                <li>• <strong>Base 2-Door:</strong> Standard base unit</li>
+                <li>• <strong>Base 3-Drawer:</strong> Multi-drawer base</li>
+                <li>• <strong>Base Corner:</strong> L-shaped corner unit</li>
+                <li>• <strong>Wall Standard:</strong> Upper wall cabinet</li>
+                <li>• <strong>Tall Utility:</strong> Full-height storage</li>
+                <li>• <strong>Tall Oven/Micro:</strong> Appliance housing</li>
+                <li>• <strong>Sink Unit:</strong> Plumbing-ready base</li>
+                <li>• <strong>Open Box:</strong> Decorative shelving</li>
+              </div>
             </div>
 
             <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-              <h4 className="font-bold text-slate-900 dark:text-white mb-2">Obstacles</h4>
-              <p className="text-slate-600 dark:text-slate-300 mb-2">
-                Add obstacles like windows, doors, pipes, and columns to your wall:
+              <h4 className="font-bold text-slate-900 dark:text-white mb-2 text-sm uppercase">Obstacles & Site Constraints</h4>
+              <p className="text-xs text-slate-600 dark:text-slate-300 mb-2">
+                Define on-site obstacles (Windows, Doors, Pipes) to ensure layout feasibility. Obstacles appear as hatched regions in the technical elevation view.
               </p>
-              <ul className="space-y-2 text-slate-600 dark:text-slate-300">
-                <li>Click on the wall to add an obstacle</li>
-                <li>Select the type (window, door, pipe, column)</li>
-                <li>Set the width and position</li>
-                <li>Obstacles appear as hatched areas on the elevation</li>
-              </ul>
             </div>
           </div>
         </div>
@@ -303,96 +232,41 @@ export const DocsPage: React.FC<DocsPageProps> = ({
     },
     {
       id: 'bom',
-      title: 'Bill of Materials (BOM)',
+      title: 'Reports & BOM',
       icon: <Table2 className="w-5 h-5" />,
       content: (
         <div className="space-y-6">
-          <h3 className="text-xl font-bold text-slate-900 dark:text-white">Understanding Your BOM</h3>
+          <h3 className="text-xl font-bold text-slate-900 dark:text-white">Production Analytics</h3>
 
           <div className="space-y-4">
             <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-              <h4 className="font-bold text-slate-900 dark:text-white mb-2">Cost Estimate Card</h4>
-              <p className="text-slate-600 dark:text-slate-300">
-                At the top of the BOM page, you'll see a summary of costs:
-              </p>
-              <ul className="list-disc list-inside mt-2 space-y-1 text-slate-600 dark:text-slate-300">
-                <li><strong>Material:</strong> Cost of all sheet materials</li>
-                <li><strong>Hardware:</strong> Cost of hinges, handles, drawer slides, and accessories</li>
-                <li><strong>Labor:</strong> Estimated labor cost based on cabinet count</li>
-                <li><strong>Total:</strong> Complete project cost with margin</li>
+              <h4 className="font-bold text-slate-900 dark:text-white mb-2">Cost Breakdown & Estimates</h4>
+              <p className="text-xs text-slate-600 dark:text-slate-300 mb-3">The summary card tracks financial metrics in real-time:</p>
+              <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-300">
+                <li>• <strong>Material Cost:</strong> Raw sheet material totals.</li>
+                <li>• <strong>Hardware Totals:</strong> Hinges (2/door), handles, and drawer slides.</li>
+                <li>• <strong>Labor Estimate:</strong> Projected assembly/install time.</li>
+                <li>• <strong>Total Quote:</strong> Final project cost including margin.</li>
               </ul>
             </div>
 
-            <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-              <h4 className="font-bold text-slate-900 dark:text-white mb-2">Materials & Hardware Table</h4>
-              <p className="text-slate-600 dark:text-slate-300 mb-2">
-                This table shows all materials and hardware needed:
-              </p>
-              <ul className="space-y-2 text-slate-600 dark:text-slate-300">
-                <li>• <strong>Sheet Materials:</strong> Lists each material type with quantity and cost</li>
-                <li>• <strong>Soft-Close Hinges:</strong> Automatically calculated as 2 per door</li>
-                <li>• <strong>Handle/Knob:</strong> Quantity = doors + drawers</li>
-                <li>• <strong>Drawer Slide (Pair):</strong> Quantity = number of drawers</li>
-                <li>• <strong>Other Accessories:</strong> From your hardware list</li>
-              </ul>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
+                <h4 className="font-bold text-slate-900 dark:text-white mb-2 text-sm uppercase">Cut Plan Optimization</h4>
+                <p className="text-xs text-slate-600 dark:text-slate-400 italic">Visual layout of parts on sheets to minimize waste and optimize material usage.</p>
+              </div>
+              <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
+                <h4 className="font-bold text-slate-900 dark:text-white mb-2 text-sm uppercase">Wall Elevations</h4>
+                <p className="text-xs text-slate-600 dark:text-slate-400 italic">Technical drawings for each wall zone with unit schedules and dimensions.</p>
+              </div>
             </div>
 
             <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-              <h4 className="font-bold text-slate-900 dark:text-white mb-2">Material List View</h4>
-              <p className="text-slate-600 dark:text-slate-300">
-                Shows a detailed breakdown of every part needed for each cabinet position (POS 1, POS 2, etc.). Each cabinet's parts are listed with dimensions.
-              </p>
-            </div>
-
-            <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-              <h4 className="font-bold text-slate-900 dark:text-white mb-2">Cut Plan View</h4>
-              <p className="text-slate-600 dark:text-slate-300">
-                Visual representation of how parts are arranged on material sheets to minimize waste. Shows each sheet with parts laid out and waste percentage.
-              </p>
-            </div>
-
-            <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-              <h4 className="font-bold text-slate-900 dark:text-white mb-2">Wall Plans View</h4>
-              <p className="text-slate-600 dark:text-slate-300">
-                Elevation drawings for each wall zone showing cabinet positions with dimensions. Includes unit schedule tables for reference.
-              </p>
-            </div>
-
-            <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-              <h4 className="font-bold text-slate-900 dark:text-white mb-2">Export Options</h4>
-              <ul className="space-y-2 text-slate-600 dark:text-slate-300">
-                <li><strong>Print / PDF:</strong> Generate printable reports with title blocks</li>
-                <li><strong>Excel:</strong> Export detailed parts list to spreadsheet</li>
-                <li><strong>JSON:</strong> Export raw data for integration with other software</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      )
-    },
-    {
-      id: 'plan',
-      title: 'Kitchen Plan',
-      icon: <Map className="w-5 h-5" />,
-      content: (
-        <div className="space-y-6">
-          <h3 className="text-xl font-bold text-slate-900 dark:text-white">Kitchen Plan View</h3>
-
-          <div className="space-y-4">
-            <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-              <h4 className="font-bold text-slate-900 dark:text-white mb-2">Overview</h4>
-              <p className="text-slate-600 dark:text-slate-300">
-                The Kitchen Plan view provides a top-down 2D layout of all your wall zones. This helps visualize the overall kitchen layout and cabinet positioning.
-              </p>
-            </div>
-
-            <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-              <h4 className="font-bold text-slate-900 dark:text-white mb-2">Features</h4>
-              <ul className="space-y-2 text-slate-600 dark:text-slate-300">
-                <li>• View all active wall zones in one diagram</li>
-                <li>• See cabinet positions and dimensions from above</li>
-                <li>• Obstacles (windows, doors) are clearly marked</li>
-                <li>• Useful for overall space planning</li>
+              <h4 className="font-bold text-slate-900 dark:text-white mb-2">Export & Technical Dossier</h4>
+              <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-300">
+                <li>• <strong>Print / PDF:</strong> Full dossier with title blocks and branding.</li>
+                <li>• <strong>Excel (XLSX):</strong> Detailed parts list for procurement.</li>
+                <li>• <strong>Raw JSON:</strong> Full project state for technical integration.</li>
               </ul>
             </div>
           </div>
@@ -401,33 +275,39 @@ export const DocsPage: React.FC<DocsPageProps> = ({
     },
     {
       id: 'pricing',
-      title: 'Pricing & Subscription',
+      title: 'Access & Subscription',
       icon: <CreditCard className="w-5 h-5" />,
       content: (
         <div className="space-y-6">
-          <h3 className="text-xl font-bold text-slate-900 dark:text-white">Subscription Plans</h3>
+          <h3 className="text-xl font-bold text-slate-900 dark:text-white">Subscription Policies</h3>
 
           <div className="space-y-4">
-            <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-              <h4 className="font-bold text-slate-900 dark:text-white mb-2">Free Plan</h4>
-              <ul className="space-y-2 text-slate-600 dark:text-slate-300">
-                <li>✓ Design up to 3 projects</li>
-                <li>✓ Basic cabinet presets</li>
-                <li>✓ Export to PDF</li>
-                <li>✗ Limited material types</li>
-              </ul>
+            <div className="bg-white dark:bg-slate-800 rounded-lg p-5 border-2 border-amber-500 dark:border-amber-400">
+              <h4 className="font-black text-xs uppercase tracking-widest text-amber-600 dark:text-amber-500 mb-2">New User Privilege</h4>
+              <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed italic">
+                Experience the full power of the platform: your <strong>first two projects</strong> are automatically granted <strong>PRO status</strong>, enabling all export formats and Advanced mode.
+              </p>
             </div>
 
-            <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border-2 border-amber-500 dark:border-amber-400">
-              <h4 className="font-bold text-amber-600 dark:text-amber-400 mb-2">Pro Plan</h4>
-              <ul className="space-y-2 text-slate-600 dark:text-slate-300">
-                <li>✓ Unlimited projects</li>
-                <li>✓ All cabinet presets including custom</li>
-                <li>✓ Full BOM export (Excel, PDF, JSON)</li>
-                <li>✓ Unlimited material types</li>
-                <li>✓ Priority support</li>
-                <li>✓ Cloud backup</li>
-              </ul>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
+                <h4 className="font-bold text-slate-900 dark:text-white mb-2">Free Tier</h4>
+                <ul className="space-y-1 text-xs text-slate-500 dark:text-slate-400">
+                  <li>✓ Design up to 2 projects</li>
+                  <li>✓ Realistic 3D visuals</li>
+                  <li>✗ Limited to basic presets</li>
+                  <li>✗ No Excel/PDF branding</li>
+                </ul>
+              </div>
+              <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
+                <h4 className="font-bold text-slate-900 dark:text-white mb-2">Pro Tier</h4>
+                <ul className="space-y-1 text-xs text-slate-500 dark:text-slate-400">
+                  <li>✓ Unlimited projects</li>
+                  <li>✓ Full export suite</li>
+                  <li>✓ Custom business branding</li>
+                  <li>✓ Advanced Direct Entry mode</li>
+                </ul>
+              </div>
             </div>
           </div>
         </div>
@@ -439,48 +319,34 @@ export const DocsPage: React.FC<DocsPageProps> = ({
       icon: <HelpCircle className="w-5 h-5" />,
       content: (
         <div className="space-y-6">
-          <h3 className="text-xl font-bold text-slate-900 dark:text-white">Frequently Asked Questions</h3>
+          <h3 className="text-xl font-bold text-slate-900 dark:text-white">Common Questions</h3>
 
           <div className="space-y-4">
             <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-              <h4 className="font-bold text-slate-900 dark:text-white mb-2">Q: How do I change the currency?</h4>
-              <p className="text-slate-600 dark:text-slate-300">
-                A: Go to Setup → Project Info section → Change the "Currency Symbol" field. This will update all cost displays throughout the app.
+              <h4 className="font-bold text-slate-900 dark:text-white mb-2">Q: Why are my backsplash tiles looking stretched?</h4>
+              <p className="text-slate-600 dark:text-slate-300 text-sm">
+                A: Verify the physical <strong>Tile Dimensions</strong> in your Accessory library. Realistic textures require accurate dimensions to calculate real-world scaling.
               </p>
             </div>
 
             <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-              <h4 className="font-bold text-slate-900 dark:text-white mb-2">Q: Can I add custom cabinet sizes?</h4>
-              <p className="text-slate-600 dark:text-slate-300">
-                A: Yes! When adding a cabinet, you can specify any width. You can also create custom cabinet presets with the Pro plan.
+              <h4 className="font-bold text-slate-900 dark:text-white mb-2">Q: How do I jump directly to BOM from the dashboard?</h4>
+              <p className="text-slate-600 dark:text-slate-300 text-sm">
+                A: Click any project card on the dashboard to open the <strong>Action Menu overlay</strong>. Select "Reports & BOM" to skip direct to production data.
               </p>
             </div>
 
             <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-              <h4 className="font-bold text-slate-900 dark:text-white mb-2">Q: How are hinge quantities calculated?</h4>
-              <p className="text-slate-600 dark:text-slate-300">
-                A: The system automatically calculates 2 hinges per door. Wall cabinets with 2 doors get 4 hinges, single-door cabinets get 2 hinges.
+              <h4 className="font-bold text-slate-900 dark:text-white mb-2">Q: Does Advanced Mode affect BOM precision?</h4>
+              <p className="text-slate-600 dark:text-slate-300 text-sm">
+                A: No. Advanced Mode only changes the entry method (manual vs automated solver). Engineering logic and cost calculations remain 100% accurate.
               </p>
             </div>
 
             <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-              <h4 className="font-bold text-slate-900 dark:text-white mb-2">Q: Why is my wall plan cutting off in the PDF?</h4>
-              <p className="text-slate-600 dark:text-slate-300">
-                A: Make sure to use the "Print / PDF" button from the BOM page. The wall plans are automatically scaled to fit on the page. If you have many cabinets, they may span multiple pages.
-              </p>
-            </div>
-
-            <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-              <h4 className="font-bold text-slate-900 dark:text-white mb-2">Q: Can I save my project and continue later?</h4>
-              <p className="text-slate-600 dark:text-slate-300">
-                A: Yes! All projects are automatically saved to the cloud when you're logged in. You can access them from the Dashboard anytime.
-              </p>
-            </div>
-
-            <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-              <h4 className="font-bold text-slate-900 dark:text-white mb-2">Q: How do I delete a cabinet?</h4>
-              <p className="text-slate-600 dark:text-slate-300">
-                A: Click on the cabinet you want to delete in the wall editor, then click the "Delete" button in the edit panel.
+              <h4 className="font-bold text-slate-900 dark:text-white mb-2 text-sm uppercase">Technical Support</h4>
+              <p className="text-slate-600 dark:text-slate-300 text-xs italic">
+                For complex engineering queries or hardware integration help, contact us at <span className="text-amber-600 font-bold">support@protradee.com</span>.
               </p>
             </div>
           </div>
@@ -488,6 +354,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
       )
     }
   ];
+
 
   return (
     <div className="h-full overflow-y-auto bg-slate-50 dark:bg-slate-950">

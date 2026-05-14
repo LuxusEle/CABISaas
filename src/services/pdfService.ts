@@ -16,7 +16,8 @@ interface Costs {
 }
 
 // Helper to load images
-const loadImageBase64 = (url: string): Promise<string> => {
+// Helper to load images with dimensions
+const loadImageWithDimensions = (url: string): Promise<{ base64: string, width: number, height: number }> => {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.crossOrigin = 'Anonymous';
@@ -26,7 +27,11 @@ const loadImageBase64 = (url: string): Promise<string> => {
       canvas.height = img.height;
       const ctx = canvas.getContext('2d');
       ctx?.drawImage(img, 0, 0);
-      resolve(canvas.toDataURL('image/png'));
+      resolve({
+        base64: canvas.toDataURL('image/jpeg', 0.9),
+        width: img.width,
+        height: img.height
+      });
     };
     img.onerror = () => reject(new Error(`Failed to load image: ${url}`));
     img.src = url;
@@ -100,7 +105,7 @@ export const generateQuotationPDF = async (
   doc.setTextColor(40, 40, 40);
   doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
-  doc.text(`${currency}${costs.totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, pageWidth - margin, yPos + 11, { align: 'right' });
+  doc.text(`${currency} ${costs.totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, pageWidth - margin, yPos + 11, { align: 'right' });
 
   yPos += 30;
 
@@ -149,7 +154,7 @@ export const generateQuotationPDF = async (
   doc.text('1', margin, yPos);
   doc.text((project.name || 'Cabinet Project') + ' Specifications', margin + 10, yPos);
 
-  doc.text(`${currency}${costs.totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, pageWidth - margin, yPos, { align: 'right' });
+  doc.text(`${currency} ${costs.totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, pageWidth - margin, yPos, { align: 'right' });
 
   yPos += 8;
   doc.setFontSize(8);
@@ -253,16 +258,63 @@ export const generateQuotationPDF = async (
   doc.text('Sub Total', pageWidth - 80, summaryY + 12);
   doc.setTextColor(40, 40, 40);
   doc.setFont('helvetica', 'bold');
-  doc.text(`${currency}${costs.totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, pageWidth - margin, summaryY + 12, { align: 'right' });
+  doc.text(`${currency} ${costs.totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, pageWidth - margin, summaryY + 12, { align: 'right' });
 
   doc.line(pageWidth - 80, summaryY + 18, pageWidth - margin, summaryY + 18);
 
   doc.setFontSize(12);
   doc.text('Total', pageWidth - 80, summaryY + 28);
   doc.setFontSize(14);
-  doc.text(`${currency}${costs.totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, pageWidth - margin, summaryY + 28, { align: 'right' });
+  doc.text(`${currency} ${costs.totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, pageWidth - margin, summaryY + 28, { align: 'right' });
 
-  // Page 2: Material Selections & Terms
+  // Page 2: Design Visuals (if available) - Move up as requested
+  if (project.settings.designCaptures && project.settings.designCaptures.length > 0) {
+    doc.addPage();
+    yPos = margin;
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(40, 40, 40);
+    doc.text('DESIGN VISUALS', margin, yPos);
+    yPos += 8;
+    doc.setDrawColor(200, 200, 200);
+    doc.line(margin, yPos, pageWidth - margin, yPos);
+    yPos += 12;
+
+    const targetWidth = pageWidth - margin * 2;
+
+    for (let i = 0; i < project.settings.designCaptures.length; i++) {
+      const url = project.settings.designCaptures[i];
+      
+      try {
+        const { base64 } = await loadImageWithDimensions(url);
+        
+        // Use jsPDF's built-in dimension detector for maximum accuracy
+        const props = doc.getImageProperties(base64);
+        const ratio = props.width / props.height;
+        const imgHeight = targetWidth / ratio;
+        
+        // Check if we need a new page for images
+        if (yPos + imgHeight > pageHeight - 30) {
+          doc.addPage();
+          yPos = margin + 10;
+        }
+
+        doc.addImage(base64, 'JPEG', margin, yPos, targetWidth, imgHeight);
+        
+        yPos += imgHeight + 4;
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'italic');
+        doc.setTextColor(150, 150, 150);
+        doc.text(`Design View ${i + 1}`, margin, yPos);
+        
+        yPos += 15; // Space between stacked images
+      } catch (err) {
+        console.error('Failed to add design capture to PDF:', err);
+      }
+    }
+  }
+
+  // Page 3: Material Selections & Terms
   doc.addPage();
   yPos = margin;
 
@@ -307,8 +359,8 @@ export const generateQuotationPDF = async (
     const textureUrl = project.settings.materialSettings?.textureUrls?.[part.key];
     if (textureUrl) {
       try {
-        const base64 = await loadImageBase64(textureUrl);
-        doc.addImage(base64, 'PNG', pageWidth - margin - 45, yPos, 30, 20);
+        const { base64 } = await loadImageWithDimensions(textureUrl);
+        doc.addImage(base64, 'JPEG', pageWidth - margin - 45, yPos, 30, 20);
       } catch (err) {
         doc.setFontSize(8);
         doc.setTextColor(200, 100, 100);
@@ -326,8 +378,9 @@ export const generateQuotationPDF = async (
   }
 
   yPos += 10;
+  yPos += 10;
 
-  // Page 3: Terms & Conditions
+  // Page 4: Terms & Conditions
   doc.addPage();
   yPos = margin;
 

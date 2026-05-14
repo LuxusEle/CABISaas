@@ -938,13 +938,13 @@ export const ensureProjectSettings = (project: Project): Project => {
   };
 };
 
-export const createNewProject = (logoUrl?: string): Project => ({
+export const createNewProject = (logoUrl?: string, currency: string = '$'): Project => ({
   id: uuid(),
   name: '',
   designer: 'Me',
   company: 'My Shop',
   settings: {
-    currency: 'LKR',
+    currency: currency,
     logoUrl: logoUrl,
     // Dimensions - Updated to match Ruby CBX defaults
     baseHeight: 870,    // Ruby: 870mm (includes plinth)
@@ -984,7 +984,7 @@ export const createNewProject = (logoUrl?: string): Project => ({
       pricePerSheet: 0.00,
       pricePerHardwareUnit: 0.00,
       laborCost: 0,
-      marginPercent: 50,
+      marginPercent: 65,
       transportCost: 0
     },
     materialSettings: {
@@ -993,12 +993,15 @@ export const createNewProject = (logoUrl?: string): Project => ({
       drawerMaterial: 'Shutter',
       backMaterial: 'MDF 6mm',
       shelfMaterial: 'Plywood',
+      backsplashMaterial: 'White Tile',
       sheetSpecs: {}
     },
     quotationApprovedDate: undefined,
     layoutPreferences: {
       includeTall: true,
-      includeDrawers: true
+      includeDrawers: true,
+      includeSink: true,
+      includeCooker: true
     },
     workflowMode: 'traditional',
     progress: {

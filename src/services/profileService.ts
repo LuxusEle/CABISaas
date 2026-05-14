@@ -6,6 +6,11 @@ export interface UserProfile {
   company_name: string;
   phone: string;
   logo_url?: string;
+  business_address?: string;
+  website_url?: string;
+  tax_id?: string;
+  currency?: string;
+  projects_count: number;
   role: 'user' | 'admin';
   updated_at: string;
 }

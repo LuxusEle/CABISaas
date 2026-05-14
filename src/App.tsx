@@ -97,8 +97,19 @@ export default function App() {
 
   // Automatically calculate isDirty based on project content comparison
   useEffect(() => {
-    const currentStr = JSON.stringify(project);
-    setIsDirty(currentStr !== lastSavedProjectRef.current);
+    // Determine if structural design changes occurred (ignoring design captures)
+    const getDesignState = (p: Project) => {
+      const { settings, ...rest } = p;
+      const { designCaptures, ...restSettings } = settings || {};
+      return JSON.stringify({ ...rest, settings: restSettings });
+    };
+
+    const currentDesignStr = getDesignState(project);
+    const lastSavedDesignStr = lastSavedProjectRef.current 
+      ? getDesignState(JSON.parse(lastSavedProjectRef.current))
+      : '';
+
+    setIsDirty(currentDesignStr !== lastSavedDesignStr);
   }, [project]);
 
   const navigate = useNavigate();
@@ -122,6 +133,8 @@ export default function App() {
               email: user.email,
               company_name: user.email?.split('@')[0] || 'My Company',
               phone: '',
+              currency: '$',
+              projects_count: 0,
               role: 'user' as const
             };
             await profileService.updateProfile(user.id, defaultProfile);
@@ -156,9 +169,25 @@ export default function App() {
       }
     };
     checkAuth();
+  }, []);
 
-    // Listen to auth changes
-      const subscription = authService.onAuthStateChange((user) => {
+  // Proactive currency synchronization
+  useEffect(() => {
+    const targetCurrency = userProfile?.currency || '$';
+    if (project.settings.currency !== targetCurrency) {
+      setProject(prev => ({
+        ...prev,
+        settings: { 
+          ...prev.settings, 
+          currency: targetCurrency
+        }
+      }));
+    }
+  }, [userProfile?.currency, project.settings.currency]);
+
+  // Listen to auth changes
+  useEffect(() => {
+    const subscription = authService.onAuthStateChange((user) => {
         setUser(user);
         if (user) {
           profileService.getProfile(user.id).then(async (profile) => {
@@ -298,7 +327,7 @@ export default function App() {
         profileData = await profileService.getProfile(user.id);
       }
 
-      const newProj = createNewProject(profileData?.logo_url || undefined);
+      const newProj = createNewProject(profileData?.logo_url || undefined, profileData?.currency || '$');
       if (profileData) {
         newProj.company = profileData.company_name || newProj.company;
       }
@@ -320,9 +349,9 @@ export default function App() {
         profileData = await profileService.getProfile(user.id);
       }
 
-      const demoProj = createDemoProject(profileData?.company_name);
-      if (userProfile?.logo_url) {
-        demoProj.settings.logoUrl = userProfile.logo_url;
+      const demoProj = createDemoProject(profileData?.company_name, profileData?.currency || '$');
+      if (profileData?.logo_url) {
+        demoProj.settings.logoUrl = profileData.logo_url;
       }
 
       // Just set state and navigate straight to the editor
@@ -383,11 +412,19 @@ export default function App() {
               </button>
             </div>
 
-            <nav className="flex flex-col gap-3 w-full px-3">
+            <nav className="flex flex-col gap-2 w-full px-3">
               <NavButton active={location.pathname === '/dashboard'} path="/dashboard" icon={<Home size={22} />} label="Dashboard" isDirty={isDirty} isExpanded={isSidebarExpanded} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
-              <NavButton active={location.pathname === '/setup'} path="/setup" icon={<Settings size={22} />} label="Project Setup" isDirty={isDirty} isExpanded={isSidebarExpanded} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
-              <NavButton active={location.pathname === '/walls'} path="/walls?view=iso" icon={<Box size={22} />} label="3D Design Studio" isDirty={isDirty} isExpanded={isSidebarExpanded} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
-              <NavButton active={location.pathname === '/bom'} path="/bom" icon={<Table2 size={22} />} label="Reports & BOM" isDirty={isDirty} isExpanded={isSidebarExpanded} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
+              
+              {['/setup', '/walls', '/bom'].includes(location.pathname) && (
+                <div className={`mt-2 mb-2 p-1 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 flex flex-col gap-1 transition-all ${!isSidebarExpanded ? 'items-center' : ''}`}>
+                  {isSidebarExpanded && (
+                    <div className="px-3 py-2 text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 italic">Project Phase</div>
+                  )}
+                  <NavButton active={location.pathname === '/setup'} path="/setup" icon={<Settings size={22} />} label="Project Setup" isDirty={isDirty} isExpanded={isSidebarExpanded} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
+                  <NavButton active={location.pathname === '/walls'} path="/walls?view=iso" icon={<Box size={22} />} label="3D Design Studio" isDirty={isDirty} isExpanded={isSidebarExpanded} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
+                  <NavButton active={location.pathname === '/bom'} path="/bom" icon={<Table2 size={22} />} label="Reports & BOM" isDirty={isDirty} isExpanded={isSidebarExpanded} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
+                </div>
+              )}
               <NavButton active={location.pathname === '/profile'} path="/profile" icon={<Building2 size={22} />} label="Business Profile" isDirty={isDirty} isExpanded={isSidebarExpanded} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
               <NavButton active={location.pathname === '/pricing'} path="/pricing" icon={<CreditCard size={22} />} label="Subscription" isDirty={isDirty} isExpanded={isSidebarExpanded} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
               <NavButton active={location.pathname === '/docs'} path="/docs" icon={<Book size={22} />} label="Documentation" isDirty={isDirty} isExpanded={isSidebarExpanded} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
@@ -543,7 +580,7 @@ export default function App() {
             } />
             <Route path="/setup" element={
               <ProtectedRoute user={user} loading={authLoading}>
-                <ScreenProjectSetup project={project} setProject={setProject} onSave={() => handleSaveProject(project)} onSaveProject={handleSaveProject} isDark={isDark} isUserPro={isUserPro} />
+                <ScreenProjectSetup project={project} setProject={setProject} onSave={(p?: Project) => handleSaveProject(p || project)} onSaveProject={handleSaveProject} isDark={isDark} isUserPro={isUserPro} />
               </ProtectedRoute>
             } />
             <Route path="/walls" element={
@@ -555,7 +592,7 @@ export default function App() {
                   isDark={isDark}
                   isDirty={isDirty}
                   isSaving={isSaving}
-                  onSave={() => handleSaveProject(project)}
+                  onSave={(p?: Project) => handleSaveProject(p || project)}
                   isUserPro={isUserPro}
                 />
               </ProtectedRoute>
@@ -695,7 +732,7 @@ export default function App() {
       )}
 
       {/* Help Button - Available on all screens */}
-      <HelpButton />
+      <HelpButton disablePhrases={screen === Screen.WALL_EDITOR} />
 
       {/* Vercel Analytics & Speed Insights */}
       <Analytics />

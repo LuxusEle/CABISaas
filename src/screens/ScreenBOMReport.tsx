@@ -14,6 +14,7 @@ import { optimizeCuts } from '../services/nestingService';
 import { exportAllSheetsToDXFZip, exportSingleSheetToDXF, exportAllDrillingToZip } from '../services/dxfExportService';
 import { generateQuotationPDF } from '../services/pdfService';
 import { projectService } from '../services/projectService';
+import { formatPrice } from '../utils/formatUtils';
 
 interface ScreenBOMReportProps {
   project: Project;
@@ -285,7 +286,7 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
 
   // Format currency helper
   const formatCurrency = (amount: number) => {
-    return `${currency}${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return formatPrice(amount, currency);
   };
 
   return (
@@ -373,20 +374,20 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
           <div className={`${activeView === 'list' ? 'block' : 'hidden print:block'} bg-white dark:bg-slate-900 text-slate-900 dark:text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl print:bg-white print:text-black print:border-2 print:border-black print:break-inside-avoid shadow-xl print:shadow-none`}>
             <h3 className="text-amber-600 dark:text-amber-500 font-bold mb-3 sm:mb-4 flex items-center gap-2 print:text-black text-base sm:text-lg"><DollarSign size={18} /> Cost Estimate</h3>
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-6">
-              <div><div className="text-slate-500 dark:text-slate-400 text-xs uppercase print:text-black">Material</div><div className="text-lg sm:text-xl font-bold">{currency}{baseCosts.materialCost.toFixed(2)}</div></div>
-              <div><div className="text-slate-500 dark:text-slate-400 text-xs uppercase print:text-black">Hardware</div><div className="text-lg sm:text-xl font-bold">{currency}{baseCosts.hardwareCost.toFixed(2)}</div></div>
-              <div><div className="text-slate-500 dark:text-slate-400 text-xs uppercase print:text-black">Labor</div><div className="text-lg sm:text-xl font-bold">{currency}{baseCosts.laborCost.toFixed(2)}</div></div>
-              <div><div className="text-slate-500 dark:text-slate-400 text-xs uppercase print:text-black">Transport</div><div className="text-lg sm:text-xl font-bold">{currency}{baseCosts.transportCost.toFixed(2)}</div></div>
-              <div><div className="text-slate-500 dark:text-slate-400 text-xs uppercase print:text-black">Other</div><div className="text-lg sm:text-xl font-bold">{currency}{baseCosts.otherCost.toFixed(2)}</div></div>
+              <div><div className="text-slate-500 dark:text-slate-400 text-xs uppercase print:text-black">Material</div><div className="text-lg sm:text-xl font-bold">{formatCurrency(baseCosts.materialCost)}</div></div>
+              <div><div className="text-slate-500 dark:text-slate-400 text-xs uppercase print:text-black">Hardware</div><div className="text-lg sm:text-xl font-bold">{formatCurrency(baseCosts.hardwareCost)}</div></div>
+              <div><div className="text-slate-500 dark:text-slate-400 text-xs uppercase print:text-black">Labor</div><div className="text-lg sm:text-xl font-bold">{formatCurrency(baseCosts.laborCost)}</div></div>
+              <div><div className="text-slate-500 dark:text-slate-400 text-xs uppercase print:text-black">Transport</div><div className="text-lg sm:text-xl font-bold">{formatCurrency(baseCosts.transportCost)}</div></div>
+              <div><div className="text-slate-500 dark:text-slate-400 text-xs uppercase print:text-black">Other</div><div className="text-lg sm:text-xl font-bold">{formatCurrency(baseCosts.otherCost)}</div></div>
             </div>
             <div className="grid grid-cols-2 gap-3 sm:gap-6 mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 print:border-black">
               <div>
                 <div className="text-slate-500 dark:text-slate-400 text-xs uppercase print:text-black">Total</div>
-                <div className="text-xl sm:text-2xl font-bold">{currency}{baseCosts.subtotal.toFixed(2)}</div>
+                <div className="text-xl sm:text-2xl font-bold">{formatCurrency(baseCosts.subtotal)}</div>
               </div>
               <div className="text-right">
                 <div className="text-amber-600 dark:text-amber-500 text-xs uppercase print:text-black">Sub Total ({(project.settings.costs?.marginPercent ?? 50)}% margin)</div>
-                <div className="text-2xl sm:text-3xl font-black">{currency}{costs.totalPrice.toFixed(2)}</div>
+                <div className="text-2xl sm:text-3xl font-black">{formatCurrency(costs.totalPrice)}</div>
               </div>
             </div>
           </div>
@@ -414,7 +415,7 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
                       <tr className="hover:bg-slate-50/50 transition-colors">
                         <td className="p-3 font-bold text-slate-900 dark:text-white print:text-black">Soft-Close Hinges</td>
                         <td className="p-3 text-center font-black text-amber-600">{hingeQuantity}</td>
-                        <td className="p-3 text-right font-medium">{currency}{hingeTotalCost.toFixed(2)}</td>
+                        <td className="p-3 text-right font-medium">{formatCurrency(hingeTotalCost)}</td>
                       </tr>
                     )}
                     {/* Handles */}
@@ -422,7 +423,7 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
                       <tr className="hover:bg-slate-50/50 transition-colors">
                         <td className="p-3 font-bold text-slate-900 dark:text-white print:text-black">Handle/Knob Set</td>
                         <td className="p-3 text-center font-black text-amber-600">{handleQuantity}</td>
-                        <td className="p-3 text-right font-medium">{currency}{handleTotalCost.toFixed(2)}</td>
+                        <td className="p-3 text-right font-medium">{formatCurrency(handleTotalCost)}</td>
                       </tr>
                     )}
                     {/* Slides */}
@@ -430,7 +431,7 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
                       <tr className="hover:bg-slate-50/50 transition-colors">
                         <td className="p-3 font-bold text-slate-900 dark:text-white print:text-black">Drawer Slides (Pairs)</td>
                         <td className="p-3 text-center font-black text-amber-600">{drawerSlideQuantity}</td>
-                        <td className="p-3 text-right font-medium">{currency}{drawerSlideTotalCost.toFixed(2)}</td>
+                        <td className="p-3 text-right font-medium">{formatCurrency(drawerSlideTotalCost)}</td>
                       </tr>
                     )}
                     {/* Granite */}
@@ -438,7 +439,7 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
                       <tr className="hover:bg-slate-50/50 transition-colors">
                         <td className="p-3 font-bold text-slate-900 dark:text-white print:text-black">Granite Countertop (Sqft)</td>
                         <td className="p-3 text-center font-black text-amber-600">{totalGraniteSqft.toFixed(2)}</td>
-                        <td className="p-3 text-right font-medium">{currency}{graniteTotalCost.toFixed(2)}</td>
+                        <td className="p-3 text-right font-medium">{formatCurrency(graniteTotalCost)}</td>
                       </tr>
                     )}
                     {/* Tile */}
@@ -446,7 +447,7 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
                       <tr className="hover:bg-slate-50/50 transition-colors">
                         <td className="p-3 font-bold text-slate-900 dark:text-white print:text-black">Tile Backsplash (Pcs)</td>
                         <td className="p-3 text-center font-black text-amber-600">{totalTileCount}</td>
-                        <td className="p-3 text-right font-medium">{currency}{tileTotalCost.toFixed(2)}</td>
+                        <td className="p-3 text-right font-medium">{formatCurrency(tileTotalCost)}</td>
                       </tr>
                     )}
                     {/* Legs */}
@@ -454,7 +455,7 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
                       <tr className="hover:bg-slate-50/50 transition-colors">
                         <td className="p-3 font-bold text-slate-900 dark:text-white print:text-black">Adjustable Legs</td>
                         <td className="p-3 text-center font-black text-amber-600">{totalLegs}</td>
-                        <td className="p-3 text-right font-medium">{currency}{(totalLegs * (accessories.find(a => a.name.toLowerCase().includes('adjustable leg'))?.default_amount || 2)).toFixed(2)}</td>
+                        <td className="p-3 text-right font-medium">{formatCurrency(totalLegs * (accessories.find(a => a.name.toLowerCase().includes('adjustable leg'))?.default_amount || 2))}</td>
                       </tr>
                     )}
                     {/* Other Hardware from Automated Calculation */}
@@ -481,7 +482,7 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
                           <tr key={name} className="hover:bg-slate-50/50 transition-colors">
                             <td className="p-3 font-bold text-slate-900 dark:text-white print:text-black">{name}</td>
                             <td className="p-3 text-center font-black text-amber-600">{qty}</td>
-                            <td className="p-3 text-right font-medium">{currency}{(qty * unitCost).toFixed(2)}</td>
+                            <td className="p-3 text-right font-medium">{formatCurrency(qty * unitCost)}</td>
                           </tr>
                         );
                       })}
@@ -495,7 +496,7 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
                           <div className="w-1 h-4 bg-amber-500 rounded-full" /> {exp.name}
                         </td>
                         <td className="p-3 text-center font-black text-amber-600">1</td>
-                        <td className="p-3 text-right font-bold text-amber-600">{currency}{exp.amount.toFixed(2)}</td>
+                        <td className="p-3 text-right font-bold text-amber-600">{formatCurrency(exp.amount)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -524,7 +525,7 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
                         <td className="p-3 font-bold text-slate-900 dark:text-white print:text-black">{m.material}</td>
                         <td className="p-3 text-center font-mono text-slate-500">{m.dims}</td>
                         <td className="p-3 text-center font-black text-lg text-amber-600">{m.sheets}</td>
-                        <td className="p-3 text-right font-medium">{currency}{m.cost.toFixed(2)}</td>
+                        <td className="p-3 text-right font-medium">{formatCurrency(m.cost)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -775,9 +776,34 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
               Sink, tap, cooker, and hood to be provided by the customer unless mentioned above.
             </div>
 
+            {/* DESIGN VISUALS SECTION (PAGE 2) */}
+            {project.settings.designCaptures && project.settings.designCaptures.length > 0 && (
+              <div className="space-y-8">
+                <div className="border-t-2 border-dashed border-slate-200 my-12 relative">
+                  <span className="absolute left-1/2 -top-3 -translate-x-1/2 bg-white px-4 text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">Page 02 - Design Visuals</span>
+                </div>
+                
+                <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.3em] mb-4">Design Visuals</h4>
+                <div className="space-y-6">
+                  {project.settings.designCaptures.map((url, i) => (
+                    <div key={i} className="group relative">
+                      <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-800 shadow-sm transition-all hover:shadow-md">
+                        <img src={url} className="w-full h-auto object-contain" alt={`Design ${i + 1}`} />
+                        <div className="p-3 bg-white dark:bg-slate-900 flex justify-between items-center border-t border-slate-100 dark:border-slate-800">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">Design View {i + 1}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* PAGE BREAK / DIVIDER */}
             <div className="border-t-2 border-dashed border-slate-200 my-12 relative">
-               <span className="absolute left-1/2 -top-3 -translate-x-1/2 bg-white px-4 text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">Page 02 - Materials</span>
+               <span className="absolute left-1/2 -top-3 -translate-x-1/2 bg-white px-4 text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">
+                 Page {project.settings.designCaptures?.length ? '03' : '02'} - Materials
+               </span>
             </div>
 
             {/* MATERIAL SELECTIONS SECTION (PAGE 2) */}

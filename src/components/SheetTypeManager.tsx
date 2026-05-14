@@ -379,7 +379,7 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
                           <td className="px-3 py-4 text-slate-900 dark:text-white font-bold">{sheetType.name}</td>
                           <td className="px-3 py-4 text-slate-500 font-mono text-xs">{sheetType.thickness}mm</td>
                           <td className="px-3 py-4 text-slate-500 font-mono text-xs">{sheetType.width || 1220} x {sheetType.length || 2440}mm</td>
-                          <td className="px-3 py-4 text-slate-900 dark:text-amber-400 font-black">{currency}{sheetType.price_per_sheet.toFixed(2)}</td>
+                          <td className="px-3 py-4 text-slate-900 dark:text-amber-400 font-black">{currency} {sheetType.price_per_sheet.toFixed(2)}</td>
                           <td className="px-3 py-4 text-right">
                             <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                               <button onClick={() => startEditingSheet(sheetType)} className="p-2 text-amber-500 hover:bg-amber-50 rounded-lg"><Edit2 size={16} /></button>
@@ -504,7 +504,7 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
                                 {acc.width || (acc.unit === 'sqft' ? 2 : 600)} x {acc.length || (acc.unit === 'sqft' ? 2 : 600)}
                                 {acc.unit === 'sqft' ? 'ft' : 'mm'}
                               </td>
-                              <td className="px-3 py-4 text-slate-900 dark:text-amber-400 font-black">{currency}{acc.default_amount.toFixed(2)}</td>
+                              <td className="px-3 py-4 text-slate-900 dark:text-amber-400 font-black">{currency} {acc.default_amount.toFixed(2)}</td>
                               <td className="px-3 py-4 text-right">
                                 <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                   <button onClick={() => startEditingAccessory(acc)} className="p-2 text-amber-500 hover:bg-amber-50 rounded-lg"><Edit2 size={16} /></button>
@@ -618,7 +618,7 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
                       ) : (
                         <>
                           <td className="px-3 py-4 text-slate-900 dark:text-white font-bold">{acc.name}</td>
-                          <td className="px-3 py-4 text-slate-900 dark:text-blue-400 font-black">{currency}{acc.default_amount.toFixed(2)}</td>
+                          <td className="px-3 py-4 text-slate-900 dark:text-blue-400 font-black">{currency} {acc.default_amount.toFixed(2)}</td>
                           <td className="px-3 py-4 text-right">
                             <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                               <button onClick={() => startEditingAccessory(acc)} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg"><Edit2 size={16} /></button>

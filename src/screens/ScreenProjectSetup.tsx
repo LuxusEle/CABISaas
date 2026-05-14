@@ -18,7 +18,7 @@ import { recalculateCabinetPositions, calculateTotalZoneLength, createAdvancedCa
 interface ScreenProjectSetupProps {
   project: Project;
   setProject: React.Dispatch<React.SetStateAction<Project>>;
-  onSave: () => void;
+  onSave: (p?: Project) => Promise<any>;
   onSaveProject?: (p: Project) => Promise<any>;
   isDark: boolean;
   isUserPro?: boolean;
@@ -1029,7 +1029,7 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
                         <div className="space-y-4">
                           <div className="grid grid-cols-[1fr_180px_60px] gap-4 px-6 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">
                             <div>Expense Description</div>
-                            <div className="text-right">Amount ({project.settings.currency || 'LKR'})</div>
+                             <div className="text-right">Amount ({project.settings.currency || '$'})</div>
                             <div className="text-right">Action</div>
                           </div>
 

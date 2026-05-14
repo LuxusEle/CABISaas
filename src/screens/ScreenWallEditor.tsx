@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Box, DoorOpen, Settings, Settings2, RotateCcw, Lock, X, ArrowLeft, ArrowRight, Save, LayoutDashboard, Calculator, Zap, Menu, Layers, Table2, Maximize2 } from 'lucide-react';
 import { Screen, Project, Zone, PresetType, CabinetType, CabinetUnit, Obstacle, AutoFillOptions } from '../types';
 import { autoFillZone, resolveCollisions, resolveLocalCollisions } from '../services/bomService';
@@ -10,12 +11,18 @@ import { CabinetSpanSlider } from '../components/CabinetSpanSlider';
 import { SingleCabinetEditorModal } from '../components/SingleCabinetEditorModal';
 import { TestingSettings } from '../components/CabinetTestingUtils';
 import { recalculateCabinetPositions } from '../services/advancedWorkflowService';
+import { storageService } from '../services/storageService';
+import { ConfirmationModal } from '../components/ConfirmationModal';
+import { CabinetViewerHandle } from '../components/3d/CabinetViewer';
+import ReactCrop, { type Crop, centerCrop, makeAspectCrop, PixelCrop } from 'react-image-crop';
+import 'react-image-crop/dist/ReactCrop.css';
+import { getCroppedImg } from '../utils/cropImage';
 
 interface ScreenWallEditorProps {
   project: Project;
   setProject: React.Dispatch<React.SetStateAction<Project>>;
   setScreen: (s: Screen) => void;
-  onSave: () => Promise<any>;
+  onSave: (p?: Project) => Promise<any>;
   isDark: boolean;
   isDirty: boolean;
   isSaving: boolean;
@@ -32,12 +39,65 @@ const ScreenWallEditor = ({
   isSaving, 
   isUserPro 
 }: ScreenWallEditorProps) => {
+  const cabinetViewerRef = useRef<CabinetViewerHandle>(null);
+  const [isCapturing, setIsCapturing] = useState(false);
   const [activeTab, setActiveTab] = useState<string>(project.zones[0]?.id || 'Wall A');
   
   const [isTransparent, setIsTransparent] = useState(false);
   const [isSkeleton, setIsSkeleton] = useState(false);
   const [swapMode, setSwapMode] = useState(false);
   const [swapSelection, setSwapSelection] = useState<{ zoneId: string, index: number }[]>([]);
+  const [pendingCapture, setPendingCapture] = useState<string | null>(null);
+  const [confirmDeleteSnapshot, setConfirmDeleteSnapshot] = useState<{ url: string, index: number } | null>(null);
+  
+  // Cropping State
+  const [crop, setCrop] = useState<Crop>();
+  const [completedCrop, setCompletedCrop] = useState<Crop>(); // Use percentage crop
+  const [isCropping, setIsCropping] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  const onImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const { width, height } = e.currentTarget;
+    const initialCrop = centerCrop(
+      makeAspectCrop(
+        { unit: '%', width: 90 },
+        16 / 9,
+        width,
+        height
+      ),
+      width,
+      height
+    );
+    setCrop(initialCrop);
+  };
+
+  const handleCropConfirm = async () => {
+    if (!pendingCapture || !completedCrop || !imgRef.current) return;
+    
+    const img = imgRef.current;
+    
+    // Map percentage to natural pixels
+    const naturalCrop = {
+      x: (completedCrop.x * img.naturalWidth) / 100,
+      y: (completedCrop.y * img.naturalHeight) / 100,
+      width: (completedCrop.width * img.naturalWidth) / 100,
+      height: (completedCrop.height * img.naturalHeight) / 100,
+    };
+
+    try {
+      const croppedBase64 = await getCroppedImg(pendingCapture, naturalCrop);
+      if (croppedBase64) {
+        setPendingCapture(croppedBase64);
+        setIsCropping(false);
+        setCompletedCrop(undefined);
+      } else {
+        setIsCropping(false);
+      }
+    } catch (e) {
+      console.error('Cropping error:', e);
+      setIsCropping(false);
+    }
+  };
 
   const handleCabinetSelection = (index: number, zoneId?: string) => {
     const targetZoneId = zoneId || activeTab;
@@ -582,6 +642,7 @@ const ScreenWallEditor = ({
                   />
                 ) : (
                   <CabinetViewer 
+                    ref={cabinetViewerRef}
                     project={project} 
                     activeWallId={activeTab} 
                     onCabinetSelect={(zoneId, i) => handleCabinetSelection(i, zoneId)}
@@ -600,6 +661,116 @@ const ScreenWallEditor = ({
                     skeletonView={isSkeleton}
                     isStudio={visualMode === 'studio'}
                   />
+                )}
+
+                {/* Desktop: Capture Button Overlay for Studio Mode */}
+                {visualMode === 'studio' && !pendingCapture && (
+                  <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-30">
+                    <button
+                      onClick={() => {
+                        if (!cabinetViewerRef.current || isCapturing) return;
+                        const base64 = cabinetViewerRef.current.takeSnapshot();
+                        if (base64) {
+                          setPendingCapture(base64);
+                        }
+                      }}
+                      disabled={isCapturing}
+                      className="flex items-center gap-3 px-8 py-4 bg-amber-500 hover:bg-amber-600 text-white font-black uppercase tracking-widest text-sm rounded-full shadow-2xl transition-all transform hover:scale-105 active:scale-95 group"
+                    >
+                      <Maximize2 size={18} className="group-hover:rotate-12 transition-transform" />
+                      Capture Design Snapshot
+                    </button>
+                  </div>
+                )}
+
+                {/* Desktop: Snapshot Preview Overlay */}
+                {pendingCapture && (
+                  <div className="absolute inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-300 p-12">
+                    <div className="max-w-full max-h-full flex flex-col gap-8 items-center w-full">
+                      <div className="bg-white dark:bg-slate-900 p-2 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-500 flex items-center justify-center relative w-full max-w-5xl overflow-auto h-[70vh]">
+                        {isCropping ? (
+                          <ReactCrop
+                            crop={crop}
+                            onChange={c => setCrop(c)}
+                            onComplete={(c, percentCrop) => setCompletedCrop(percentCrop)}
+                            className="max-w-full max-h-full"
+                          >
+                            <img 
+                              ref={imgRef}
+                              src={pendingCapture} 
+                              onLoad={onImageLoad}
+                              className="max-h-[65vh] object-contain block w-auto" 
+                              alt="To Crop" 
+                            />
+                          </ReactCrop>
+                        ) : (
+                          <img 
+                            src={pendingCapture} 
+                            className="max-w-full max-h-full rounded-2xl object-contain block h-auto w-auto" 
+                            alt="Design Preview" 
+                          />
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center justify-center gap-6">
+                        {!isCropping ? (
+                          <>
+                            <button
+                              onClick={() => setIsCropping(true)}
+                              className="px-10 py-4 bg-amber-600 text-white font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-amber-700 transition-all shadow-xl flex items-center gap-2"
+                            >
+                              <Layers size={16} />
+                              Crop Image
+                            </button>
+                            <button
+                              onClick={() => setPendingCapture(null)}
+                              className="px-10 py-4 bg-slate-800 text-white font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-slate-700 transition-all border border-slate-700 shadow-xl"
+                            >
+                              Try Again
+                            </button>
+                            <button
+                              onClick={async () => {
+                                setIsCapturing(true);
+                                const url = await storageService.uploadDesignCapture(project.id, pendingCapture);
+                                if (url) {
+                                  const updatedProject = {
+                                    ...project,
+                                    settings: {
+                                      ...project.settings,
+                                      designCaptures: [...(project.settings.designCaptures || []), url]
+                                    }
+                                  };
+                                  setProject(updatedProject);
+                                  setPendingCapture(null);
+                                  await onSave(updatedProject);
+                                }
+                                setIsCapturing(false);
+                              }}
+                              disabled={isCapturing}
+                              className="px-10 py-4 bg-amber-500 text-white font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-amber-600 transition-all shadow-2xl shadow-amber-500/30"
+                            >
+                              {isCapturing ? 'Uploading...' : 'Accept & Save Snapshot'}
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => setIsCropping(false)}
+                              className="px-10 py-4 bg-slate-800 text-white font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-slate-700 transition-all border border-slate-700"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={handleCropConfirm}
+                              className="px-10 py-4 bg-amber-500 text-white font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-amber-600 transition-all shadow-2xl shadow-amber-500/30"
+                            >
+                              Apply Crop Box
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
 
@@ -729,6 +900,115 @@ const ScreenWallEditor = ({
                      <Maximize2 size={14} className="rotate-45" />
                      <span>Exit Studio</span>
                    </button>
+                </div>
+              )}
+
+              {visualMode === 'studio' && !pendingCapture && (
+                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30">
+                  <button
+                    onClick={() => {
+                      if (!cabinetViewerRef.current || isCapturing) return;
+                      const base64 = cabinetViewerRef.current.takeSnapshot();
+                      if (base64) {
+                        setPendingCapture(base64);
+                      }
+                    }}
+                    disabled={isCapturing}
+                    className="flex items-center gap-2 px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white font-black uppercase tracking-widest text-xs rounded-full shadow-2xl transition-all transform hover:scale-105 active:scale-95"
+                  >
+                    <Maximize2 size={16} />
+                    Capture View
+                  </button>
+                </div>
+              )}
+
+              {pendingCapture && (
+                <div className="absolute inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-300">
+                  <div className="max-w-[95%] max-h-[95%] flex flex-col gap-6 w-full">
+                    <div className="bg-white dark:bg-slate-900 p-2 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-500 flex items-center justify-center relative h-[60vh] w-full overflow-auto">
+                      {isCropping ? (
+                        <ReactCrop
+                          crop={crop}
+                          onChange={c => setCrop(c)}
+                          onComplete={(c, percentCrop) => setCompletedCrop(percentCrop)}
+                        >
+                          <img 
+                            ref={imgRef}
+                            src={pendingCapture} 
+                            onLoad={onImageLoad}
+                            className="max-h-[55vh] object-contain block w-auto" 
+                            alt="To Crop" 
+                          />
+                        </ReactCrop>
+                      ) : (
+                        <img 
+                          src={pendingCapture} 
+                          className="max-w-full max-h-full rounded-xl object-contain block h-auto w-auto" 
+                          alt="Design Preview" 
+                        />
+                      )}
+                    </div>
+                    
+                    <div className="flex flex-wrap items-center justify-center gap-3">
+                      {!isCropping ? (
+                        <>
+                          <button
+                            onClick={() => setIsCropping(true)}
+                            className="w-full py-4 bg-amber-500 text-white font-black uppercase tracking-widest text-xs rounded-xl flex items-center justify-center gap-2 shadow-lg mb-2"
+                          >
+                            <Layers size={14} />
+                            Crop Image
+                          </button>
+                          <div className="flex w-full gap-3">
+                            <button
+                              onClick={() => setPendingCapture(null)}
+                              className="flex-1 py-3 bg-slate-800 text-white font-black uppercase tracking-widest text-[10px] rounded-xl hover:bg-slate-700 transition-all border border-slate-700"
+                            >
+                              Try Again
+                            </button>
+                            <button
+                              onClick={async () => {
+                                setIsCapturing(true);
+                                const url = await storageService.uploadDesignCapture(project.id, pendingCapture);
+                                if (url) {
+                                  const updatedProject = {
+                                    ...project,
+                                    settings: {
+                                      ...project.settings,
+                                      designCaptures: [...(project.settings.designCaptures || []), url]
+                                    }
+                                  };
+                                  setProject(updatedProject);
+                                  setPendingCapture(null);
+                                  await onSave(updatedProject);
+                                }
+                                setIsCapturing(false);
+                              }}
+                              disabled={isCapturing}
+                              className="flex-[2] py-3 bg-amber-500 text-white font-black uppercase tracking-widest text-[10px] rounded-xl shadow-lg shadow-amber-500/20"
+                            >
+                              {isCapturing ? 'Saving...' : 'Accept & Save'}
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => setIsCropping(false)}
+                            className="flex-1 py-3 bg-slate-800 text-white font-black uppercase tracking-widest text-[10px] rounded-xl"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={handleCropConfirm}
+                            className="flex-1 py-3 bg-amber-500 text-white font-black uppercase tracking-widest text-[10px] rounded-xl shadow-lg"
+                          >
+                            Apply Crop
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -1389,6 +1669,26 @@ const ScreenWallEditor = ({
             </div>
           ) : (
             <div className="flex-1 flex flex-col overflow-hidden">
+              {/* Captured Snapshots Gallery */}
+              {project.settings.designCaptures && project.settings.designCaptures.length > 0 && (
+                <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Saved Snapshots</label>
+                  <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                    {project.settings.designCaptures.map((url, i) => (
+                      <div key={i} className="relative group/thumb shrink-0">
+                        <img src={url} className="w-16 h-16 object-cover rounded-xl border-2 border-white dark:border-slate-800 shadow-sm" alt={`Snapshot ${i}`} />
+                        <button 
+                          onClick={() => setConfirmDeleteSnapshot({ url, index: i })}
+                          className="absolute -top-1 -right-1 bg-rose-500 text-white rounded-full p-1 shadow-lg opacity-0 group-hover/thumb:opacity-100 transition-opacity"
+                        >
+                          <X size={8} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Migrated 3D Controls Sidebar Section */}
               {visualMode === 'iso' && (
                 <div className="p-4 border-b border-slate-200 dark:border-slate-800 space-y-4 bg-slate-50/50 dark:bg-slate-900/50">
@@ -1599,6 +1899,39 @@ const ScreenWallEditor = ({
           </div>
         </div>
       )}
+
+      <ConfirmationModal 
+        isOpen={!!confirmDeleteSnapshot}
+        onClose={() => setConfirmDeleteSnapshot(null)}
+        onConfirm={async () => {
+          if (!confirmDeleteSnapshot) return;
+          const { url, index } = confirmDeleteSnapshot;
+          setIsCapturing(true); 
+          const success = await storageService.deleteDesignCapture(url);
+          
+          if (success) {
+            const updatedProject = {
+              ...project,
+              settings: {
+                ...project.settings,
+                designCaptures: project.settings.designCaptures?.filter((_, idx) => idx !== index)
+              }
+            };
+            setProject(updatedProject);
+            await onSave(updatedProject);
+            setConfirmDeleteSnapshot(null);
+          } else {
+            alert('Error deleting from storage.');
+          }
+          setIsCapturing(false);
+        }}
+        title="Delete Snapshot?"
+        message="This will permanently remove the image from storage and your quotation visuals. This action cannot be undone."
+        confirmText="Delete Permanently"
+        cancelText="Keep it"
+        imageUrl={confirmDeleteSnapshot?.url}
+        isLoading={isCapturing}
+      />
     </div>
   );
 };
