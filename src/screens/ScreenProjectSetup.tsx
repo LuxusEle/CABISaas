@@ -18,7 +18,7 @@ import { recalculateCabinetPositions, calculateTotalZoneLength, createAdvancedCa
 interface ScreenProjectSetupProps {
   project: Project;
   setProject: React.Dispatch<React.SetStateAction<Project>>;
-  onSave: () => void;
+  onSave: (p?: Project) => Promise<any>;
   onSaveProject?: (p: Project) => Promise<any>;
   isDark: boolean;
   isUserPro?: boolean;

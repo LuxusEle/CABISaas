@@ -2,6 +2,7 @@
 import React, { Suspense, useRef, useState, useMemo, useEffect, useCallback } from 'react';
 import { Canvas, useThree, useLoader } from '@react-three/fiber';
 import { OrbitControls, Grid, Html, useProgress, PerspectiveCamera, Environment, ContactShadows, Line, useTexture } from '@react-three/drei';
+import { useImperativeHandle, forwardRef } from 'react';
 import * as THREE from 'three';
 import { Video, Box, Download } from 'lucide-react';
 import { exportSceneToGLB } from '../../services/export3dService';
@@ -39,6 +40,10 @@ interface Props {
   isStudio?: boolean;
   isMobile?: boolean;
   swapSelection?: { zoneId: string, index: number }[];
+}
+
+export interface CabinetViewerHandle {
+  takeSnapshot: () => string | null;
 }
 
 import { ExpenseTemplate, expenseTemplateService } from '../../services/expenseTemplateService';
@@ -1223,31 +1228,41 @@ const Scene = ({
   );
 };
 
+export const CabinetViewer = forwardRef<CabinetViewerHandle, Props>((props, ref) => {
+  const { 
+    project, 
+    showHardware = true, 
+    showEmptyWalls = false, 
+    onWallClick, 
+    onCabinetClick,
+    activeWallId, 
+    lightTheme = false,
+    draggedCabinet,
+    onDropCabinet,
+    selectedCabinet,
+    onCabinetSelect,
+    onSettingsUpdate,
+    viewMode = 'isometric',
+    onViewModeChange,
+    doorOpenAngle = 0,
+    onDoorOpenAngleChange,
+    onShowHardwareChange,
+    opacity,
+    skeletonView,
+    isStudio = false,
+    isMobile: isMobileProp,
+    swapSelection
+  } = props;
 
-export const CabinetViewer: React.FC<Props> = ({ 
-  project, 
-  showHardware = true, 
-  showEmptyWalls = false, 
-  onWallClick, 
-  onCabinetClick,
-  activeWallId, 
-  lightTheme = false,
-  draggedCabinet,
-  onDropCabinet,
-  selectedCabinet,
-  onCabinetSelect,
-  onSettingsUpdate,
-  viewMode = 'isometric',
-  onViewModeChange,
-  doorOpenAngle = 0,
-  onDoorOpenAngleChange,
-  onShowHardwareChange,
-  opacity,
-  skeletonView,
-  isStudio = false,
-  isMobile: isMobileProp,
-  swapSelection
-}) => {
+  const domCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  
+  useImperativeHandle(ref, () => ({
+    takeSnapshot: () => {
+      if (!domCanvasRef.current) return null;
+      return domCanvasRef.current.toDataURL('image/jpeg', 0.9);
+    }
+  }));
+
   const isMobile = useMemo(() => isMobileProp ?? (typeof window !== 'undefined' && window.innerWidth < 768), [isMobileProp]);
   // Link forceGola to project settings for persistence
   const forceGola = project.settings.advancedTestingSettings?.enableGola ?? false;
@@ -1398,6 +1413,9 @@ export const CabinetViewer: React.FC<Props> = ({
         </>
 
       <Canvas 
+        onCreated={({ gl }) => {
+          domCanvasRef.current = gl.domElement;
+        }}
         shadows
         camera={{ position: [2000, 2000, 2000], fov: 45, near: 10, far: 50000 }}
         gl={{ 
@@ -1444,7 +1462,7 @@ export const CabinetViewer: React.FC<Props> = ({
       </Canvas>
     </div>
   );
-};
+});
 
 const StudioEnvironment = ({ center, size }: { center: [number, number, number], size: { width: number, depth: number } }) => {
   const floorW = Math.max(5000, size.width + 3000);

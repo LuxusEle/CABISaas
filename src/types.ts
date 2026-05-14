@@ -68,6 +68,7 @@ export interface ProjectSettings {
   // Appearance
   currency: string;
   logoUrl?: string;
+  designCaptures?: string[];
 
   // Dimensions
   baseHeight: number;

@@ -97,8 +97,19 @@ export default function App() {
 
   // Automatically calculate isDirty based on project content comparison
   useEffect(() => {
-    const currentStr = JSON.stringify(project);
-    setIsDirty(currentStr !== lastSavedProjectRef.current);
+    // Determine if structural design changes occurred (ignoring design captures)
+    const getDesignState = (p: Project) => {
+      const { settings, ...rest } = p;
+      const { designCaptures, ...restSettings } = settings || {};
+      return JSON.stringify({ ...rest, settings: restSettings });
+    };
+
+    const currentDesignStr = getDesignState(project);
+    const lastSavedDesignStr = lastSavedProjectRef.current 
+      ? getDesignState(JSON.parse(lastSavedProjectRef.current))
+      : '';
+
+    setIsDirty(currentDesignStr !== lastSavedDesignStr);
   }, [project]);
 
   const navigate = useNavigate();
@@ -551,7 +562,7 @@ export default function App() {
             } />
             <Route path="/setup" element={
               <ProtectedRoute user={user} loading={authLoading}>
-                <ScreenProjectSetup project={project} setProject={setProject} onSave={() => handleSaveProject(project)} onSaveProject={handleSaveProject} isDark={isDark} isUserPro={isUserPro} />
+                <ScreenProjectSetup project={project} setProject={setProject} onSave={(p?: Project) => handleSaveProject(p || project)} onSaveProject={handleSaveProject} isDark={isDark} isUserPro={isUserPro} />
               </ProtectedRoute>
             } />
             <Route path="/walls" element={
@@ -563,7 +574,7 @@ export default function App() {
                   isDark={isDark}
                   isDirty={isDirty}
                   isSaving={isSaving}
-                  onSave={() => handleSaveProject(project)}
+                  onSave={(p?: Project) => handleSaveProject(p || project)}
                   isUserPro={isUserPro}
                 />
               </ProtectedRoute>

@@ -776,9 +776,34 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
               Sink, tap, cooker, and hood to be provided by the customer unless mentioned above.
             </div>
 
+            {/* DESIGN VISUALS SECTION (PAGE 2) */}
+            {project.settings.designCaptures && project.settings.designCaptures.length > 0 && (
+              <div className="space-y-8">
+                <div className="border-t-2 border-dashed border-slate-200 my-12 relative">
+                  <span className="absolute left-1/2 -top-3 -translate-x-1/2 bg-white px-4 text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">Page 02 - Design Visuals</span>
+                </div>
+                
+                <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.3em] mb-4">Design Visuals</h4>
+                <div className="space-y-6">
+                  {project.settings.designCaptures.map((url, i) => (
+                    <div key={i} className="group relative">
+                      <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-800 shadow-sm transition-all hover:shadow-md">
+                        <img src={url} className="w-full h-auto object-cover aspect-video" alt={`Design ${i + 1}`} />
+                        <div className="p-3 bg-white dark:bg-slate-900 flex justify-between items-center border-t border-slate-100 dark:border-slate-800">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">Design View {i + 1}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* PAGE BREAK / DIVIDER */}
             <div className="border-t-2 border-dashed border-slate-200 my-12 relative">
-               <span className="absolute left-1/2 -top-3 -translate-x-1/2 bg-white px-4 text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">Page 02 - Materials</span>
+               <span className="absolute left-1/2 -top-3 -translate-x-1/2 bg-white px-4 text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">
+                 Page {project.settings.designCaptures?.length ? '03' : '02'} - Materials
+               </span>
             </div>
 
             {/* MATERIAL SELECTIONS SECTION (PAGE 2) */}

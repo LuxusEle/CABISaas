@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Box, DoorOpen, Settings, Settings2, RotateCcw, Lock, X, ArrowLeft, ArrowRight, Save, LayoutDashboard, Calculator, Zap, Menu, Layers, Table2, Maximize2 } from 'lucide-react';
 import { Screen, Project, Zone, PresetType, CabinetType, CabinetUnit, Obstacle, AutoFillOptions } from '../types';
 import { autoFillZone, resolveCollisions, resolveLocalCollisions } from '../services/bomService';
@@ -10,12 +11,14 @@ import { CabinetSpanSlider } from '../components/CabinetSpanSlider';
 import { SingleCabinetEditorModal } from '../components/SingleCabinetEditorModal';
 import { TestingSettings } from '../components/CabinetTestingUtils';
 import { recalculateCabinetPositions } from '../services/advancedWorkflowService';
+import { storageService } from '../services/storageService';
+import { CabinetViewerHandle } from '../components/3d/CabinetViewer';
 
 interface ScreenWallEditorProps {
   project: Project;
   setProject: React.Dispatch<React.SetStateAction<Project>>;
   setScreen: (s: Screen) => void;
-  onSave: () => Promise<any>;
+  onSave: (p?: Project) => Promise<any>;
   isDark: boolean;
   isDirty: boolean;
   isSaving: boolean;
@@ -32,12 +35,16 @@ const ScreenWallEditor = ({
   isSaving, 
   isUserPro 
 }: ScreenWallEditorProps) => {
+  const cabinetViewerRef = useRef<CabinetViewerHandle>(null);
+  const [isCapturing, setIsCapturing] = useState(false);
   const [activeTab, setActiveTab] = useState<string>(project.zones[0]?.id || 'Wall A');
   
   const [isTransparent, setIsTransparent] = useState(false);
   const [isSkeleton, setIsSkeleton] = useState(false);
   const [swapMode, setSwapMode] = useState(false);
   const [swapSelection, setSwapSelection] = useState<{ zoneId: string, index: number }[]>([]);
+  const [pendingCapture, setPendingCapture] = useState<string | null>(null);
+  const [confirmDeleteSnapshot, setConfirmDeleteSnapshot] = useState<{ url: string, index: number } | null>(null);
 
   const handleCabinetSelection = (index: number, zoneId?: string) => {
     const targetZoneId = zoneId || activeTab;
@@ -582,6 +589,7 @@ const ScreenWallEditor = ({
                   />
                 ) : (
                   <CabinetViewer 
+                    ref={cabinetViewerRef}
                     project={project} 
                     activeWallId={activeTab} 
                     onCabinetSelect={(zoneId, i) => handleCabinetSelection(i, zoneId)}
@@ -600,6 +608,70 @@ const ScreenWallEditor = ({
                     skeletonView={isSkeleton}
                     isStudio={visualMode === 'studio'}
                   />
+                )}
+
+                {/* Desktop: Capture Button Overlay for Studio Mode */}
+                {visualMode === 'studio' && !pendingCapture && (
+                  <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-30">
+                    <button
+                      onClick={() => {
+                        if (!cabinetViewerRef.current || isCapturing) return;
+                        const base64 = cabinetViewerRef.current.takeSnapshot();
+                        if (base64) {
+                          setPendingCapture(base64);
+                        }
+                      }}
+                      disabled={isCapturing}
+                      className="flex items-center gap-3 px-8 py-4 bg-amber-500 hover:bg-amber-600 text-white font-black uppercase tracking-widest text-sm rounded-full shadow-2xl transition-all transform hover:scale-105 active:scale-95 group"
+                    >
+                      <Maximize2 size={18} className="group-hover:rotate-12 transition-transform" />
+                      Capture Design Snapshot
+                    </button>
+                  </div>
+                )}
+
+                {/* Desktop: Snapshot Preview Overlay */}
+                {pendingCapture && (
+                  <div className="absolute inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-300 p-12">
+                    <div className="max-w-full max-h-full flex flex-col gap-8 items-center">
+                      <div className="bg-white dark:bg-slate-900 p-2 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-500 overflow-hidden flex items-center justify-center">
+                        <img 
+                          src={pendingCapture} 
+                          className="max-w-[90vw] max-h-[70vh] rounded-2xl object-contain block h-auto w-auto" 
+                          alt="Design Preview" 
+                        />
+                      </div>
+                      <div className="flex items-center justify-center gap-6">
+                        <button
+                          onClick={() => setPendingCapture(null)}
+                          className="px-10 py-4 bg-slate-800 text-white font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-slate-700 transition-all border border-slate-700 shadow-xl"
+                        >
+                          Try Again
+                        </button>
+                        <button
+                          onClick={async () => {
+                            setIsCapturing(true);
+                            const url = await storageService.uploadDesignCapture(project.id, pendingCapture);
+                            if (url) {
+                              setProject(prev => ({
+                                ...prev,
+                                settings: {
+                                  ...prev.settings,
+                                  designCaptures: [...(prev.settings.designCaptures || []), url]
+                                }
+                              }));
+                              setPendingCapture(null);
+                            }
+                            setIsCapturing(false);
+                          }}
+                          disabled={isCapturing}
+                          className="px-10 py-4 bg-amber-500 text-white font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-amber-600 transition-all shadow-2xl shadow-amber-500/30"
+                        >
+                          {isCapturing ? 'Uploading...' : 'Accept & Save Snapshot'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
 
@@ -729,6 +801,71 @@ const ScreenWallEditor = ({
                      <Maximize2 size={14} className="rotate-45" />
                      <span>Exit Studio</span>
                    </button>
+                </div>
+              )}
+
+              {visualMode === 'studio' && !pendingCapture && (
+                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30">
+                  <button
+                    onClick={() => {
+                      if (!cabinetViewerRef.current || isCapturing) return;
+                      const base64 = cabinetViewerRef.current.takeSnapshot();
+                      if (base64) {
+                        setPendingCapture(base64);
+                      }
+                    }}
+                    disabled={isCapturing}
+                    className="flex items-center gap-2 px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white font-black uppercase tracking-widest text-xs rounded-full shadow-2xl transition-all transform hover:scale-105 active:scale-95"
+                  >
+                    <Maximize2 size={16} />
+                    Capture View
+                  </button>
+                </div>
+              )}
+
+              {pendingCapture && (
+                <div className="absolute inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-300">
+                  <div className="max-w-[90%] max-h-[90%] flex flex-col gap-6">
+                    <div className="bg-white dark:bg-slate-900 p-2 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-500 overflow-hidden flex items-center justify-center">
+                      <img 
+                        src={pendingCapture} 
+                        className="max-w-[85vw] max-h-[60vh] rounded-xl object-contain block h-auto w-auto" 
+                        alt="Design Preview" 
+                      />
+                    </div>
+                    <div className="flex items-center justify-center gap-4">
+                      <button
+                        onClick={() => setPendingCapture(null)}
+                        className="px-8 py-3 bg-slate-800 text-white font-black uppercase tracking-widest text-xs rounded-xl hover:bg-slate-700 transition-all border border-slate-700"
+                      >
+                        Try Again
+                      </button>
+                      <button
+                        onClick={async () => {
+                          setIsCapturing(true);
+                          const url = await storageService.uploadDesignCapture(project.id, pendingCapture);
+                          if (url) {
+                            const updatedProject = {
+                              ...project,
+                              settings: {
+                                ...project.settings,
+                                designCaptures: [...(project.settings.designCaptures || []), url]
+                              }
+                            };
+                            setProject(updatedProject);
+                            setPendingCapture(null);
+                            // Auto-save immediately to avoid leaving the project "dirty" for just an image
+                            await onSave(updatedProject);
+                          }
+                          setIsCapturing(false);
+                        }}
+                        disabled={isCapturing}
+                        className="px-8 py-3 bg-amber-500 text-white font-black uppercase tracking-widest text-xs rounded-xl hover:bg-amber-600 transition-all shadow-xl shadow-amber-500/20"
+                      >
+                        {isCapturing ? 'Saving...' : 'Accept & Save'}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -1389,6 +1526,26 @@ const ScreenWallEditor = ({
             </div>
           ) : (
             <div className="flex-1 flex flex-col overflow-hidden">
+              {/* Captured Snapshots Gallery */}
+              {project.settings.designCaptures && project.settings.designCaptures.length > 0 && (
+                <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Saved Snapshots</label>
+                  <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                    {project.settings.designCaptures.map((url, i) => (
+                      <div key={i} className="relative group/thumb shrink-0">
+                        <img src={url} className="w-16 h-16 object-cover rounded-xl border-2 border-white dark:border-slate-800 shadow-sm" alt={`Snapshot ${i}`} />
+                        <button 
+                          onClick={() => setConfirmDeleteSnapshot({ url, index: i })}
+                          className="absolute -top-1 -right-1 bg-rose-500 text-white rounded-full p-1 shadow-lg opacity-0 group-hover/thumb:opacity-100 transition-opacity"
+                        >
+                          <X size={8} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Migrated 3D Controls Sidebar Section */}
               {visualMode === 'iso' && (
                 <div className="p-4 border-b border-slate-200 dark:border-slate-800 space-y-4 bg-slate-50/50 dark:bg-slate-900/50">
@@ -1599,6 +1756,78 @@ const ScreenWallEditor = ({
           </div>
         </div>
       )}
+
+      {/* Custom Snapshot Deletion Confirmation Modal */}
+      <AnimatePresence>
+        {confirmDeleteSnapshot && (
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setConfirmDeleteSnapshot(null)}
+              className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800"
+            >
+              <div className="p-8 text-center">
+                <div className="w-20 h-20 bg-rose-100 dark:bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <X size={40} className="text-rose-500" />
+                </div>
+                <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-2">Delete Snapshot?</h3>
+                <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed mb-8 px-4">
+                  This will permanently remove the image from storage and your quotation visuals. This action cannot be undone.
+                </p>
+                
+                <div className="relative w-full aspect-video rounded-2xl overflow-hidden mb-8 border border-slate-100 dark:border-slate-800 shadow-inner">
+                  <img src={confirmDeleteSnapshot.url} className="w-full h-full object-cover" alt="To Delete" />
+                  <div className="absolute inset-0 bg-rose-500/10 mix-blend-overlay" />
+                </div>
+
+                <div className="flex gap-4">
+                  <button
+                    onClick={() => setConfirmDeleteSnapshot(null)}
+                    className="flex-1 py-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-black uppercase tracking-widest text-[10px] rounded-2xl transition-all"
+                  >
+                    Keep it
+                  </button>
+                  <button
+                    onClick={async () => {
+                      const { url, index } = confirmDeleteSnapshot;
+                      setIsCapturing(true); // Reusing capturing state for loading indicator
+                      const success = await storageService.deleteDesignCapture(url);
+                      
+                      if (success) {
+                        const updatedProject = {
+                          ...project,
+                          settings: {
+                            ...project.settings,
+                            designCaptures: project.settings.designCaptures?.filter((_, idx) => idx !== index)
+                          }
+                        };
+                        setProject(updatedProject);
+                        await onSave(updatedProject);
+                        setConfirmDeleteSnapshot(null);
+                      } else {
+                        alert('Error deleting from storage.');
+                      }
+                      setIsCapturing(false);
+                    }}
+                    disabled={isCapturing}
+                    className="flex-1 py-4 bg-rose-500 hover:bg-rose-600 text-white font-black uppercase tracking-widest text-[10px] rounded-2xl shadow-xl shadow-rose-500/20 transition-all flex items-center justify-center"
+                  >
+                    {isCapturing ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : 'Delete Permanently'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

@@ -262,7 +262,49 @@ export const generateQuotationPDF = async (
   doc.setFontSize(14);
   doc.text(`${currency} ${costs.totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, pageWidth - margin, summaryY + 28, { align: 'right' });
 
-  // Page 2: Material Selections & Terms
+  // Page 2: Design Visuals (if available) - Move up as requested
+  if (project.settings.designCaptures && project.settings.designCaptures.length > 0) {
+    doc.addPage();
+    yPos = margin;
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(40, 40, 40);
+    doc.text('DESIGN VISUALS', margin, yPos);
+    yPos += 8;
+    doc.setDrawColor(200, 200, 200);
+    doc.line(margin, yPos, pageWidth - margin, yPos);
+    yPos += 12;
+
+    const imgWidth = pageWidth - margin * 2;
+    const imgHeight = (imgWidth / 16) * 9; // 16:9 aspect ratio
+
+    for (let i = 0; i < project.settings.designCaptures.length; i++) {
+      const url = project.settings.designCaptures[i];
+      
+      // Check if we need a new page for images
+      if (yPos + imgHeight > pageHeight - 30) {
+        doc.addPage();
+        yPos = margin + 10;
+      }
+
+      try {
+        const base64 = await loadImageBase64(url);
+        doc.addImage(base64, 'JPEG', margin, yPos, imgWidth, imgHeight);
+        
+        yPos += imgHeight + 4;
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'italic');
+        doc.setTextColor(150, 150, 150);
+        doc.text(`Design View ${i + 1}`, margin, yPos);
+        
+        yPos += 15; // Space between stacked images
+      } catch (err) {
+        console.error('Failed to add design capture to PDF:', err);
+      }
+    }
+  }
+
+  // Page 3: Material Selections & Terms
   doc.addPage();
   yPos = margin;
 
@@ -326,8 +368,9 @@ export const generateQuotationPDF = async (
   }
 
   yPos += 10;
+  yPos += 10;
 
-  // Page 3: Terms & Conditions
+  // Page 4: Terms & Conditions
   doc.addPage();
   yPos = margin;
 
