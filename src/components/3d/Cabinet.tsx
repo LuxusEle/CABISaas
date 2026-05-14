@@ -89,7 +89,7 @@ const VisualHood: React.FC<{ width: number; depth: number; y: number; opacity?: 
   );
 };
 
-export const Cabinet: React.FC<Props> = ({
+export const Cabinet = React.memo(({
   unit,
   position,
   rotation,
@@ -110,7 +110,7 @@ export const Cabinet: React.FC<Props> = ({
   isStudio = false,
   isMobile = false,
   obstacles = []
-}) => {
+}: Props) => {
   const [hovered, setHovered] = React.useState(false);
 
   React.useEffect(() => {
@@ -399,4 +399,37 @@ export const Cabinet: React.FC<Props> = ({
       )}
     </group>
   );
-};
+}, (prev, next) => {
+  // Deep comparison for the unit object and other relevant props
+  if (prev.isSelected !== next.isSelected) return false;
+  if (prev.isHighlighted !== next.isHighlighted) return false;
+  if (prev.doorOpenAngle !== next.doorOpenAngle) return false;
+  if (prev.opacity !== next.opacity) return false;
+  if (prev.skeletonView !== next.skeletonView) return false;
+  if (prev.isStudio !== next.isStudio) return false;
+  if (prev.rotation !== next.rotation) return false;
+  if (prev.position[0] !== next.position[0] || prev.position[1] !== next.position[1] || prev.position[2] !== next.position[2]) return false;
+  
+  // Compare unit properties that affect visual rendering
+  const uP = prev.unit;
+  const uN = next.unit;
+  if (uP.id !== uN.id) return false;
+  if (uP.width !== uN.width) return false;
+  if (uP.height !== uN.height) return false;
+  if (uP.depth !== uN.depth) return false;
+  if (uP.preset !== uN.preset) return false;
+  if (uP.fromLeft !== uN.fromLeft) return false;
+  if (JSON.stringify(uP.advancedSettings) !== JSON.stringify(uN.advancedSettings)) return false;
+  if (JSON.stringify(uP.materials) !== JSON.stringify(uN.materials)) return false;
+  
+  // Compare settings that affect cabinet appearance
+  if (prev.settings?.thickness !== next.settings?.thickness) return false;
+  if (prev.settings?.baseHeight !== next.settings?.baseHeight) return false;
+  if (prev.settings?.wallHeight !== next.settings?.wallHeight) return false;
+  if (prev.settings?.tallHeight !== next.settings?.tallHeight) return false;
+  if (prev.settings?.counterThickness !== next.settings?.counterThickness) return false;
+  if (prev.settings?.toeKickHeight !== next.settings?.toeKickHeight) return false;
+  if (prev.settings?.wallCabinetElevation !== next.settings?.wallCabinetElevation) return false;
+  
+  return true;
+});
