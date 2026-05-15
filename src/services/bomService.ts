@@ -839,6 +839,13 @@ export const calculateProjectCost = (
 
   // Helper to find price for a material
   const findSheetPrice = (materialName: string): number => {
+    // 1. Try project-specific sheetSpecs snapshot first
+    if (settings.materialSettings?.sheetSpecs?.[materialName]) {
+      const spec = settings.materialSettings.sheetSpecs[materialName];
+      if (spec.pricePerSheet > 0) return spec.pricePerSheet;
+    }
+
+    // 2. Fallback to global sheetTypes list if provided
     const matched = sheetTypes.find(st =>
       materialName.toLowerCase().includes(st.name.toLowerCase()) ||
       st.name.toLowerCase().includes(materialName.toLowerCase())
@@ -846,6 +853,8 @@ export const calculateProjectCost = (
     if (matched && matched.price_per_sheet > 0) {
       return matched.price_per_sheet;
     }
+
+    // 3. Final fallback to project-wide default
     return costs.pricePerSheet;
   };
 
@@ -859,13 +868,28 @@ export const calculateProjectCost = (
   });
   const materialCost = Object.values(materialCostMap).reduce((sum, price) => sum + price, 0);
 
-  // 2. Hardware - Use calculated total if provided, otherwise fall back to flat rate
-  let hardwareCost: number;
+  // 2. Hardware - Prioritize individual item prices from expenses snapshot
+  let hardwareCost = 0;
   if (calculatedHardwareCost !== undefined) {
     hardwareCost = calculatedHardwareCost;
   } else {
-    const totalHardwareItems = Object.values(bomData.hardwareSummary).reduce((a, b) => a + b, 0);
-    hardwareCost = totalHardwareItems * costs.pricePerHardwareUnit;
+    // Look up prices for each hardware type in the summary
+    Object.entries(bomData.hardwareSummary).forEach(([name, qty]) => {
+      // 1. Try project-specific hardwareSpecs snapshot
+      const spec = settings.materialSettings?.hardwareSpecs?.[name];
+      if (spec && spec.price > 0) {
+        hardwareCost += (spec.price * qty);
+      } else {
+        // 2. Fallback to costs.expenses (for legacy projects or manual overrides)
+        const expenseItem = costs.expenses?.find(e => e.name.toLowerCase() === name.toLowerCase());
+        if (expenseItem) {
+          hardwareCost += (expenseItem.amount * qty);
+        } else {
+          // 3. Final fallback to flat rate per unit
+          hardwareCost += (qty * (costs.pricePerHardwareUnit || 0));
+        }
+      }
+    });
   }
 
   // 3. Additional Expenses (Labor, Transport + Custom)
@@ -902,6 +926,49 @@ export const calculateProjectCost = (
     margin,
     totalPrice: subtotal + margin
   };
+};
+
+/**
+ * Snapshots global material and hardware prices into a project's local settings.
+ * This ensures that project-specific overrides are preserved and projects aren't
+ * affected by future global price changes.
+ */
+export const snapshotGlobalLayer = (
+  project: Project, 
+  globalSheets: SheetType[], 
+  globalHardware: any[]
+): Project => {
+  const updatedProject = { ...project };
+  const sheetSpecs: Record<string, any> = { ...project.settings.materialSettings?.sheetSpecs };
+
+  // 1. Snapshot Sheet Prices
+  globalSheets.forEach(sheet => {
+    sheetSpecs[sheet.name] = {
+      width: sheet.width || 1220,
+      length: sheet.length || 2440,
+      thickness: sheet.thickness,
+      pricePerSheet: sheet.price_per_sheet
+    };
+  });
+
+  // 2. Snapshot Hardware Prices
+  const hardwareSpecs: Record<string, { price: number }> = { ...project.settings.materialSettings?.hardwareSpecs };
+  globalHardware.forEach(hw => {
+    hardwareSpecs[hw.name] = {
+      price: hw.default_amount || 0
+    };
+  });
+
+  updatedProject.settings = {
+    ...project.settings,
+    materialSettings: {
+      ...project.settings.materialSettings!,
+      sheetSpecs,
+      hardwareSpecs
+    }
+  };
+
+  return updatedProject;
 };
 
 /**

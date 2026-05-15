@@ -4,9 +4,11 @@ import { Home, Box, Moon, Sun, Table2, Settings, LayoutDashboard, Wrench, Credit
 import { motion, AnimatePresence } from 'framer-motion';
 import { Screen, Project } from './types';
 import { GlobalProjectProgress } from './components/GlobalProjectProgress';
-import { createNewProject, ensureProjectSettings } from './services/bomService';
+import { createNewProject, ensureProjectSettings, snapshotGlobalLayer } from './services/bomService';
 import { authService } from './services/authService';
 import { subscriptionService } from './services/subscriptionService';
+import { sheetTypeService } from './services/sheetTypeService';
+import { expenseTemplateService } from './services/expenseTemplateService';
 import type { User } from '@supabase/supabase-js';
 import { AuthModal } from './components/AuthModal';
 import { LandingPage } from './components/LandingPage';
@@ -254,9 +256,17 @@ export default function App() {
   const toggleTheme = () => setIsDark(!isDark);
 
   useEffect(() => {
-    // Skip auto-save if we're on Home screen, Setup screen, or if project is just the initial blank one or already saving
+    // Skip auto-save if we're on Landing, Setup, or if project is already saving
     const isSetupScreen = location.pathname === '/setup';
-    if (screen === Screen.LANDING || isSetupScreen || !project.id || project.id.length < 20 || isSaving) return;
+    if (screen === Screen.LANDING || isSetupScreen || !project.id || isSaving) return;
+
+    // VALIDATION: For new projects (ID length < 20), only auto-save if user has provided a name and length
+    const isNew = project.id.length < 20;
+    if (isNew) {
+      const hasName = project.name && project.name.trim().length > 0;
+      const hasWallLength = project.zones.some(z => z.totalLength > 0);
+      if (!hasName || !hasWallLength) return;
+    }
 
     const timer = setTimeout(() => {
       handleSaveProject(project);
@@ -271,6 +281,18 @@ export default function App() {
     console.log('Saving project...', projectToSave.name, projectToSave.id);
 
     const isNew = projectToSave.id.length < 20; // Simple check for uuid() vs DB UUID
+    
+    // NEW PROJECT VALIDATION: Prevent 'Untitled' garbage in DB
+    if (isNew) {
+      const hasName = projectToSave.name && projectToSave.name.trim().length > 0;
+      const hasWallLength = projectToSave.zones.some(z => z.totalLength > 0);
+      if (!hasName || !hasWallLength) {
+        console.log('Project is missing name or wall length. Skipping initial database save.');
+        setIsSaving(false);
+        return null;
+      }
+    }
+
     try {
       const { data, error } = isNew
         ? await projectService.createProject(projectToSave)
@@ -313,8 +335,20 @@ export default function App() {
         newProj.company = profileData.company_name || newProj.company;
       }
 
-      // Use resetProject or setProject with markAsSaved to ensure clean start
-      setProject(newProj);
+      // Snapshot global layer prices into the new project
+      try {
+        const [globalSheets, globalHardware] = await Promise.all([
+          sheetTypeService.getSheetTypes(),
+          expenseTemplateService.getTemplates()
+        ]);
+        
+        const snapshottedProj = snapshotGlobalLayer(newProj, globalSheets, globalHardware);
+        setProject(snapshottedProj);
+      } catch (err) {
+        console.warn('Failed to snapshot global prices, using defaults:', err);
+        setProject(newProj);
+      }
+
       markAsSaved();
       navigate('/setup?step=project');
     });

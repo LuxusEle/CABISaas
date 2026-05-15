@@ -988,6 +988,45 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
                           currency={project.settings.currency || '$'}
                           sheetTypesExpanded={true}
                           showSheetsOnly={true}
+                          isProjectLayer={true}
+                          sheetSpecs={project.settings.materialSettings?.sheetSpecs}
+                          hardwareSpecs={project.settings.materialSettings?.hardwareSpecs}
+                          onSheetUpdate={(sheet) => {
+                            setProject(prev => ({
+                              ...prev,
+                              settings: {
+                                ...prev.settings,
+                                materialSettings: {
+                                  ...prev.settings.materialSettings!,
+                                  sheetSpecs: {
+                                    ...prev.settings.materialSettings?.sheetSpecs,
+                                    [sheet.name]: {
+                                      width: sheet.width,
+                                      length: sheet.length,
+                                      thickness: sheet.thickness,
+                                      pricePerSheet: sheet.price_per_sheet
+                                    }
+                                  }
+                                }
+                              }
+                            }));
+                          }}
+                          onAccessoryUpdate={(acc) => {
+                            setProject(prev => {
+                              const hardwareSpecs = { ...(prev.settings.materialSettings?.hardwareSpecs || {}) };
+                              hardwareSpecs[acc.name] = { price: acc.default_amount };
+                              return {
+                                ...prev,
+                                settings: {
+                                  ...prev.settings,
+                                  materialSettings: {
+                                    ...prev.settings.materialSettings!,
+                                    hardwareSpecs
+                                  }
+                                }
+                              };
+                            });
+                          }}
                         />
                       </div>
                     )}
@@ -1002,6 +1041,25 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
                           currency={project.settings.currency || '$'}
                           accessoriesExpanded={true}
                           showHardwareOnly={true}
+                          isProjectLayer={true}
+                          hardwareSpecs={project.settings.materialSettings?.hardwareSpecs}
+                          onAccessoryUpdate={(acc) => {
+                            setProject(prev => {
+                              const hardwareSpecs = { ...(prev.settings.materialSettings?.hardwareSpecs || {}) };
+                              hardwareSpecs[acc.name] = { price: acc.default_amount };
+                              
+                              return {
+                                ...prev,
+                                settings: {
+                                  ...prev.settings,
+                                  materialSettings: {
+                                    ...prev.settings.materialSettings!,
+                                    hardwareSpecs
+                                  }
+                                }
+                              };
+                            });
+                          }}
                         />
                       </div>
                     )}

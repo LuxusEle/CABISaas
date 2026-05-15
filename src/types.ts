@@ -191,6 +191,10 @@ export interface ProjectMaterialSettings {
     thickness: number;
     pricePerSheet: number;
   }>;
+  // Hardware specifications per item
+  hardwareSpecs?: Record<string, {
+    price: number;
+  }>;
   textureUrls?: Record<string, string>;
 }
 
