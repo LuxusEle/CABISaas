@@ -94,7 +94,22 @@ const ScreenWallEditor = ({
     }
   };
 
-  const handleCabinetSelection = (index: number, zoneId?: string) => {
+  // Undo/Redo history
+  const [history, setHistory] = useState<{ zones: typeof project.zones; activeTab: string; timestamp: number }[]>([]);
+  const [redoStack, setRedoStack] = useState<{ zones: typeof project.zones; activeTab: string; timestamp: number }[]>([]);
+  const maxHistorySize = 20;
+
+  // Save state to history
+  const saveToHistory = React.useCallback(() => {
+    setHistory(prev => {
+      const newHistory = [{ zones: JSON.parse(JSON.stringify(project.zones)), activeTab, timestamp: Date.now() }, ...prev].slice(0, maxHistorySize);
+      return newHistory;
+    });
+    // Clear redo stack when new action occurs
+    setRedoStack([]);
+  }, [project.zones, activeTab]);
+
+  const handleCabinetSelection = React.useCallback((index: number, zoneId?: string) => {
     const targetZoneId = zoneId || activeTab;
     const zone = project.zones.find(z => z.id === targetZoneId);
     if (!zone) return;
@@ -212,7 +227,8 @@ const ScreenWallEditor = ({
         setActiveTab(targetZoneId);
       }
     }
-  };
+  }, [activeTab, project.zones, swapMode, swapSelection, saveToHistory, setProject]);
+
   // Keep activeTab in sync if the current one is deleted or project changes
   useEffect(() => {
     if (!project.zones.some(z => z.id === activeTab)) {
@@ -239,7 +255,7 @@ const ScreenWallEditor = ({
         }));
       }
     }
-  }, [project.zones, activeTab, project.settings.workflowMode]);
+  }, [project.zones, activeTab, project.settings.workflowMode, setProject]);
 
   const currentZoneIndex = project.zones.findIndex(z => z.id === activeTab);
   const currentZone = project.zones[currentZoneIndex] || project.zones[0];
@@ -254,11 +270,6 @@ const ScreenWallEditor = ({
   const dragStartRef = useRef<{ startY: number; startHeight: number } | null>(null);
   const [showAdvancedCabinetEditor, setShowAdvancedCabinetEditor] = useState(false);
   const [initialZoneCabinetsBackup, setInitialZoneCabinetsBackup] = useState<CabinetUnit[] | null>(null);
-
-  // Undo/Redo history
-  const [history, setHistory] = useState<{ zones: typeof project.zones; activeTab: string; timestamp: number }[]>([]);
-  const [redoStack, setRedoStack] = useState<{ zones: typeof project.zones; activeTab: string; timestamp: number }[]>([]);
-  const maxHistorySize = 20;
 
   const [selectedCabinet, setSelectedCabinet] = useState<{ zoneId: string, id: string } | null>(null);
   
@@ -280,15 +291,6 @@ const ScreenWallEditor = ({
   const [draggingCabinet, setDraggingCabinet] = useState<CabinetUnit | null>(null);
   const [draggingPosition, setDraggingPosition] = useState<{ x: number, y: number } | null>(null);
 
-  // Save state to history
-  const saveToHistory = () => {
-    setHistory(prev => {
-      const newHistory = [{ zones: JSON.parse(JSON.stringify(project.zones)), activeTab, timestamp: Date.now() }, ...prev].slice(0, maxHistorySize);
-      return newHistory;
-    });
-    // Clear redo stack when new action occurs
-    setRedoStack([]);
-  };
 
   useEffect(() => {
     if (draggingCabinet) {

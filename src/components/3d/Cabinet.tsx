@@ -403,11 +403,18 @@ export const Cabinet = React.memo(({
   // Deep comparison for the unit object and other relevant props
   if (prev.isSelected !== next.isSelected) return false;
   if (prev.isHighlighted !== next.isHighlighted) return false;
+  if (prev.onClick !== next.onClick) return false;
+  if (prev.onDimensionClick !== next.onDimensionClick) return false;
   if (prev.doorOpenAngle !== next.doorOpenAngle) return false;
   if (prev.opacity !== next.opacity) return false;
   if (prev.skeletonView !== next.skeletonView) return false;
   if (prev.isStudio !== next.isStudio) return false;
+  if (prev.isMobile !== next.isMobile) return false;
   if (prev.rotation !== next.rotation) return false;
+  if (prev.label !== next.label) return false;
+  if (prev.showHardware !== next.showHardware) return false;
+  if (prev.forceGola !== next.forceGola) return false;
+  if (prev.showDimensionLabels !== next.showDimensionLabels) return false;
   if (prev.position[0] !== next.position[0] || prev.position[1] !== next.position[1] || prev.position[2] !== next.position[2]) return false;
   
   // Compare unit properties that affect visual rendering
@@ -419,6 +426,7 @@ export const Cabinet = React.memo(({
   if (uP.depth !== uN.depth) return false;
   if (uP.preset !== uN.preset) return false;
   if (uP.fromLeft !== uN.fromLeft) return false;
+  if (uP.label !== uN.label) return false;
   if (JSON.stringify(uP.advancedSettings) !== JSON.stringify(uN.advancedSettings)) return false;
   if (JSON.stringify(uP.materials) !== JSON.stringify(uN.materials)) return false;
   
