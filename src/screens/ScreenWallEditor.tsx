@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Box, DoorOpen, Settings, Settings2, RotateCcw, Lock, X, ArrowLeft, ArrowRight, Save, LayoutDashboard, Calculator, Zap, Menu, Layers, Table2, Maximize2 } from 'lucide-react';
@@ -17,28 +17,23 @@ import { CabinetViewerHandle } from '../components/3d/CabinetViewer';
 import ReactCrop, { type Crop, centerCrop, makeAspectCrop, PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import { getCroppedImg } from '../utils/cropImage';
+import { useProjectStore } from '../store/useProjectStore';
 
 interface ScreenWallEditorProps {
-  project: Project;
-  setProject: React.Dispatch<React.SetStateAction<Project>>;
   setScreen: (s: Screen) => void;
   onSave: (p?: Project) => Promise<any>;
   isDark: boolean;
-  isDirty: boolean;
-  isSaving: boolean;
   isUserPro: boolean;
 }
 
 const ScreenWallEditor = ({ 
-  project, 
-  setProject, 
   setScreen, 
   onSave, 
   isDark, 
-  isDirty, 
-  isSaving, 
   isUserPro 
 }: ScreenWallEditorProps) => {
+  const { project, setProject, isDirty, isSaving } = useProjectStore();
+
   const cabinetViewerRef = useRef<CabinetViewerHandle>(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const [activeTab, setActiveTab] = useState<string>(project.zones[0]?.id || 'Wall A');
@@ -628,7 +623,6 @@ const ScreenWallEditor = ({
                   <WallVisualizer 
                     zone={currentZone}
                     height={currentZone.wallHeight || 2400}
-                    settings={project.settings}
                     onCabinetClick={(i) => handleCabinetSelection(i)}
                     onObstacleClick={(i) => openEdit('obstacle', i)}
                     onCabinetMove={handleCabinetMove}
@@ -643,7 +637,6 @@ const ScreenWallEditor = ({
                 ) : (
                   <CabinetViewer 
                     ref={cabinetViewerRef}
-                    project={project} 
                     activeWallId={activeTab} 
                     onCabinetSelect={(zoneId, i) => handleCabinetSelection(i, zoneId)}
                     onSettingsUpdate={(settings) => setProject(prev => ({ ...prev, settings: { ...prev.settings, ...settings } }))}
@@ -1016,7 +1009,6 @@ const ScreenWallEditor = ({
                 <WallVisualizer 
                   zone={currentZone}
                   height={currentZone.wallHeight || 2400}
-                  settings={project.settings}
                   onCabinetClick={(i) => openEdit('cabinet', i)}
                   onObstacleClick={(i) => openEdit('obstacle', i)}
                   onCabinetMove={handleCabinetMove}
@@ -1030,7 +1022,6 @@ const ScreenWallEditor = ({
                 />
               ) : (
                 <CabinetViewer 
-                  project={project} 
                   activeWallId={activeTab} 
                   onCabinetSelect={visualMode === 'studio' ? undefined : ((zoneId, i) => handleCabinetSelection(i, zoneId))}
                   onSettingsUpdate={(settings) => setProject(prev => ({ ...prev, settings: { ...prev.settings, ...settings } }))}

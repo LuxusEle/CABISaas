@@ -30,6 +30,7 @@ import ScreenAdminDashboard from './screens/ScreenAdminDashboard';
 import { UserProfile, profileService } from './services/profileService';
 import { createDemoProject } from './utils/demoProject';
 
+import { useProjectStore } from './store/useProjectStore';
 
 // --- PROTECTED ROUTE COMPONENT ---
 const ProtectedRoute = ({ user, loading, children }: { user: User | null, loading: boolean, children: React.ReactNode }) => {
@@ -57,6 +58,8 @@ const ProtectedRoute = ({ user, loading, children }: { user: User | null, loadin
 // --- MAIN APP COMPONENT ---
 
 export default function App() {
+  const { project, setProject, isDirty, isSaving, setIsSaving, markAsSaved, resetProject } = useProjectStore();
+  
   const [isDark, setIsDark] = useState(() => {
     try { return localStorage.getItem('app-theme') !== 'false'; } catch { return true; }
   });
@@ -69,7 +72,6 @@ export default function App() {
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
 
   const [screen, setScreen] = useState<Screen>(Screen.LANDING);
-  const [project, setProject] = useState<Project>(createNewProject());
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isUserPro, setIsUserPro] = useState(false);
@@ -91,26 +93,7 @@ export default function App() {
   const [authModalMode, setAuthModalMode] = useState<'login' | 'signup'>('login');
   const [showPolicyModal, setShowPolicyModal] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
-  const [isDirty, setIsDirty] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const lastSavedProjectRef = useRef<string>(JSON.stringify(project));
 
-  // Automatically calculate isDirty based on project content comparison
-  useEffect(() => {
-    // Determine if structural design changes occurred (ignoring design captures)
-    const getDesignState = (p: Project) => {
-      const { settings, ...rest } = p;
-      const { designCaptures, ...restSettings } = settings || {};
-      return JSON.stringify({ ...rest, settings: restSettings });
-    };
-
-    const currentDesignStr = getDesignState(project);
-    const lastSavedDesignStr = lastSavedProjectRef.current 
-      ? getDesignState(JSON.parse(lastSavedProjectRef.current))
-      : '';
-
-    setIsDirty(currentDesignStr !== lastSavedDesignStr);
-  }, [project]);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -150,10 +133,9 @@ export default function App() {
               ...prev,
               settings: { ...prev.settings, logoUrl: savedLogo }
             };
-            // Sync ref so it doesn't stay dirty
-            lastSavedProjectRef.current = JSON.stringify(updated);
             return updated;
           });
+          markAsSaved();
         }
       }
 
@@ -304,10 +286,9 @@ export default function App() {
           track('project_created', { name: projectToSave.name });
         }
         const fixedData = ensureProjectSettings(data);
-        lastSavedProjectRef.current = JSON.stringify(fixedData);
-        setIsDirty(false);
-        // Always update local state with server data to ensure perfect sync (e.g. timestamps, normalized settings)
+        // Important: Update store and mark as saved
         setProject(fixedData);
+        markAsSaved();
         return fixedData;
       }
     } catch (err) {
@@ -332,11 +313,9 @@ export default function App() {
         newProj.company = profileData.company_name || newProj.company;
       }
 
-      // Just set state and navigate - do NOT save to database yet
-      // This ensures isDirty is false because project matches lastSavedProjectRef
-      lastSavedProjectRef.current = JSON.stringify(newProj);
+      // Use resetProject or setProject with markAsSaved to ensure clean start
       setProject(newProj);
-      setIsDirty(false);
+      markAsSaved();
       navigate('/setup?step=project');
     });
   };
@@ -355,9 +334,8 @@ export default function App() {
       }
 
       // Just set state and navigate straight to the editor
-      lastSavedProjectRef.current = JSON.stringify(demoProj);
       setProject(demoProj);
-      setIsDirty(false);
+      markAsSaved();
       navigate('/walls?view=studio');
       track('demo_project_created');
     });
@@ -567,12 +545,11 @@ export default function App() {
                   onNewProject={handleStartProject}
                   onLoadProject={(p, targetPath) => {
                     const fixed = ensureProjectSettings(p);
-                    lastSavedProjectRef.current = JSON.stringify(fixed);
                     setProject(fixed);
+                    markAsSaved();
                     navigate(targetPath || '/walls?view=iso');
                   }}
                   onQuickStart={handleQuickStart}
-                  logoUrl={project.settings.logoUrl}
                   isUserPro={isUserPro}
                   isDark={isDark}
                 />
@@ -580,18 +557,14 @@ export default function App() {
             } />
             <Route path="/setup" element={
               <ProtectedRoute user={user} loading={authLoading}>
-                <ScreenProjectSetup project={project} setProject={setProject} onSave={(p?: Project) => handleSaveProject(p || project)} onSaveProject={handleSaveProject} isDark={isDark} isUserPro={isUserPro} />
+                <ScreenProjectSetup onSave={(p?: Project) => handleSaveProject(p || project)} onSaveProject={handleSaveProject} isDark={isDark} isUserPro={isUserPro} />
               </ProtectedRoute>
             } />
             <Route path="/walls" element={
               <ProtectedRoute user={user} loading={authLoading}>
                 <ScreenWallEditor
-                  project={project}
-                  setProject={setProject}
                   setScreen={setScreen}
                   isDark={isDark}
-                  isDirty={isDirty}
-                  isSaving={isSaving}
                   onSave={(p?: Project) => handleSaveProject(p || project)}
                   isUserPro={isUserPro}
                 />
@@ -599,7 +572,7 @@ export default function App() {
             } />
             <Route path="/bom" element={
               <ProtectedRoute user={user} loading={authLoading}>
-                <ScreenBOMReport project={project} setProject={setProject} isUserPro={isUserPro} />
+                <ScreenBOMReport isUserPro={isUserPro} />
               </ProtectedRoute>
             } />
             <Route path="/profile" element={
@@ -618,8 +591,8 @@ export default function App() {
                   <ScreenAdminDashboard 
                     onLoadProject={(p) => {
                       const fixed = ensureProjectSettings(p);
-                      lastSavedProjectRef.current = JSON.stringify(fixed);
                       setProject(fixed);
+                      markAsSaved();
                       navigate('/walls?view=iso');
                     }} 
                   />

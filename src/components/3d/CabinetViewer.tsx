@@ -18,9 +18,10 @@ RectAreaLightUniformsLib.init();
 useTexture.preload('/textures/wood.png');
 
 import { throttle } from '../../utils/throttle';
+import { useProjectStore } from '../../store/useProjectStore';
 
 interface Props {
-  project: Project;
+  project?: Project; // Keep as optional for backward compatibility or special cases
   showHardware?: boolean;
   showEmptyWalls?: boolean;
   onWallClick?: (wallId: string) => void;
@@ -1206,8 +1207,9 @@ const Scene = ({
 };
 
 export const CabinetViewer = forwardRef<CabinetViewerHandle, Props>((props, ref) => {
+  const storeProject = useProjectStore(s => s.project);
   const { 
-    project, 
+    project = storeProject, 
     showHardware = true, 
     showEmptyWalls = false, 
     onWallClick, 

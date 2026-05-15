@@ -31,7 +31,8 @@
     "react-markdown": "^10.1.0",
     "react-phone-number-input": "^3.4.16",
     "react-router-dom": "^7.13.1",
-    "three": "^0.160.0"
+    "three": "^0.160.0",
+    "zustand": "^5.0.13"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",

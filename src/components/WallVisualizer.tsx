@@ -1,7 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react';
+import * as React from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Zone, CabinetUnit, PresetType, CabinetType, ProjectSettings } from '../types';
 import { getActiveColor } from '../services/cabinetColors';
-import { div } from 'three/tsl';
+import { useProjectStore } from '../store/useProjectStore';
 
 interface Props {
   zone: Zone;
@@ -25,22 +26,24 @@ interface Props {
   onLimitMove?: (type: 'start' | 'end', value: number) => void;
 }
 
-export const WallVisualizer: React.FC<Props> = ({
-  zone, height, settings,
-  onCabinetClick, onObstacleClick,
-  onCabinetMove, onObstacleMove, onDragEnd,
-  onSwapCabinets,
-  hideArrows = false,
-  selectedCabinet,
-  swapSelection = [],
-  onCabinetSelect,
-  draggedCabinet,
-  onDropCabinet,
-  isStatic = false,
-  forceWhite = false,
-  editLimits = false,
-  onLimitMove
-}) => {
+export const WallVisualizer: React.FC<Props> = (props) => {
+  const storeSettings = useProjectStore(s => s.project.settings);
+  const {
+    zone, height, settings = storeSettings,
+    onCabinetClick, onObstacleClick,
+    onCabinetMove, onObstacleMove, onDragEnd,
+    onSwapCabinets,
+    hideArrows = false,
+    selectedCabinet,
+    swapSelection = [],
+    onCabinetSelect,
+    draggedCabinet,
+    onDropCabinet,
+    isStatic = false,
+    forceWhite = false,
+    editLimits = false,
+    onLimitMove
+  } = props;
   const [panning, setPanning] = useState<{
     startClientX: number;
     startClientY: number;

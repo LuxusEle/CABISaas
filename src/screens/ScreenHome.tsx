@@ -10,17 +10,20 @@ import { projectService } from '../services/projectService';
 import { subscriptionService } from '../services/subscriptionService';
 import { calculateProjectProgress } from '../utils/progressUtils';
 import { ConfirmationModal } from '../components/ConfirmationModal';
+import { useProjectStore } from '../store/useProjectStore';
 
 interface ScreenHomeProps {
   onNewProject: () => void;
   onQuickStart: () => void;
   onLoadProject: (p: Project, targetPath?: string) => void;
-  logoUrl?: string;
   isUserPro: boolean;
   isDark: boolean;
 }
 
-const ScreenHome = ({ onNewProject, onQuickStart, onLoadProject, logoUrl, isUserPro, isDark }: ScreenHomeProps) => {
+const ScreenHome = ({ onNewProject, onQuickStart, onLoadProject, isUserPro, isDark }: ScreenHomeProps) => {
+  const { project } = useProjectStore();
+  const logoUrl = project.settings.logoUrl;
+
   const navigate = useNavigate();
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

@@ -14,17 +14,18 @@ import { logoService } from '../services/logoService';
 import { subscriptionService } from '../services/subscriptionService';
 import { supabase } from '../services/supabaseClient';
 import { recalculateCabinetPositions, calculateTotalZoneLength, createAdvancedCabinet } from '../services/advancedWorkflowService';
+import { useProjectStore } from '../store/useProjectStore';
 
 interface ScreenProjectSetupProps {
-  project: Project;
-  setProject: React.Dispatch<React.SetStateAction<Project>>;
   onSave: (p?: Project) => Promise<any>;
   onSaveProject?: (p: Project) => Promise<any>;
   isDark: boolean;
   isUserPro?: boolean;
 }
 
-const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark, isUserPro }: ScreenProjectSetupProps) => {
+const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: ScreenProjectSetupProps) => {
+  const { project, setProject } = useProjectStore();
+
   const navigate = useNavigate();
   const location = useLocation();
   
