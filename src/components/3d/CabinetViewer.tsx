@@ -17,8 +17,11 @@ RectAreaLightUniformsLib.init();
 // Pre-warm assets to prevent "cold start" hangups on complex projects
 useTexture.preload('/textures/wood.png');
 
+import { throttle } from '../../utils/throttle';
+import { useProjectStore } from '../../store/useProjectStore';
+
 interface Props {
-  project: Project;
+  project?: Project; // Keep as optional for backward compatibility or special cases
   showHardware?: boolean;
   showEmptyWalls?: boolean;
   onWallClick?: (wallId: string) => void;
@@ -48,7 +51,7 @@ export interface CabinetViewerHandle {
 
 import { ExpenseTemplate, expenseTemplateService } from '../../services/expenseTemplateService';
 
-const ZoneBacksplash: React.FC<{ zone: Zone; project: Project; position: [number, number, number]; rotation: number; skeletonView?: boolean; isStudio?: boolean }> = ({ zone, project, position, rotation, skeletonView = false, isStudio = false }) => {
+const ZoneBacksplash = React.memo(({ zone, project, position, rotation, skeletonView = false, isStudio = false }: { zone: Zone; project: Project; position: [number, number, number]; rotation: number; skeletonView?: boolean; isStudio?: boolean }) => {
   const [tileDims, setTileDims] = useState({ width: 600, height: 600 });
 
   useEffect(() => {
@@ -65,125 +68,90 @@ const ZoneBacksplash: React.FC<{ zone: Zone; project: Project; position: [number
     loadTileDims();
   }, []);
 
-  const baseCabinets = zone.cabinets.filter(c => c.type === CabinetType.BASE);
-  if (baseCabinets.length === 0) return null;
+  const pieces = useMemo(() => {
+    const baseCabinets = zone.cabinets.filter(c => c.type === CabinetType.BASE);
+    if (baseCabinets.length === 0) return [];
 
-  const baseHeight = project.settings.baseHeight || 870;
-  const counterThickness = project.settings.counterThickness || 40;
-  const wallElevation = project.settings.wallCabinetElevation || 450;
-  const wallCabinetHeight = project.settings.wallHeight || 720;
+    const result: { x: number; y: number; w: number; h: number }[] = [];
+    const baseHeight = project.settings.baseHeight || 870;
+    const counterThickness = project.settings.counterThickness || 40;
+    const wallElevation = project.settings.wallCabinetElevation || 450;
+    const wallCabinetHeight = project.settings.wallHeight || 720;
 
-  // Cover exactly from the startLimit to the endLimit (the granite boundaries)
-  const minX = zone.startLimit || 0;
-  const maxX = zone.endLimit || (baseCabinets.length > 0 ? Math.max(...baseCabinets.map(c => (c.fromLeft || 0) + c.width)) : zone.totalLength);
-  const fullWidth = maxX - minX;
-  
-  const tileBottomY = baseHeight + counterThickness;
-  const tileTopY = tileBottomY + wallElevation;
-
-  // Obstacle avoidance
-  const obstacles = zone.obstacles || [];
-  const overlappingObstacles = obstacles.filter(obs => {
-    const obsLeft = obs.fromLeft;
-    const obsRight = obsLeft + obs.width;
-    const obsBottom = obs.sillHeight || obs.elevation || 0;
-    const obsTop = obsBottom + obs.height;
+    const minX = zone.startLimit || 0;
+    const maxX = zone.endLimit || (baseCabinets.length > 0 ? Math.max(...baseCabinets.map(c => (c.fromLeft || 0) + c.width)) : zone.totalLength);
     
-    const horizontalOverlap = Math.max(minX, obsLeft) < Math.min(maxX, obsRight);
-    const verticalOverlap = Math.max(tileBottomY, obsBottom) < Math.min(tileTopY + wallCabinetHeight, obsTop);
-    
-    return horizontalOverlap && verticalOverlap;
-  });
+    const tileBottomY = baseHeight + counterThickness;
+    const tileTopY = tileBottomY + wallElevation;
 
-  const pieces: { x: number; y: number; w: number; h: number }[] = [];
-  
-  // Define the base tiling areas
-  // We'll also identify cooker areas to make them higher
-  const cookerCabinets = zone.cabinets.filter(c => c.preset === PresetType.COOKER_HOB || (c.preset === PresetType.BASE_DRAWER_3 && c.width >= 600));
-  const wallCabinets = zone.cabinets.filter(c => c.type === CabinetType.WALL);
+    const obstacles = zone.obstacles || [];
+    const overlappingObstacles = obstacles.filter(obs => {
+      const obsLeft = obs.fromLeft;
+      const obsRight = obsLeft + obs.width;
+      const obsBottom = obs.sillHeight || obs.elevation || 0;
+      const obsTop = obsBottom + obs.height;
+      const horizontalOverlap = Math.max(minX, obsLeft) < Math.min(maxX, obsRight);
+      const verticalOverlap = Math.max(tileBottomY, obsBottom) < Math.min(tileTopY + wallCabinetHeight, obsTop);
+      return horizontalOverlap && verticalOverlap;
+    });
 
-  const renderPiece = (startX: number, endX: number) => {
-    if (startX >= endX) return;
-    
-    let currentPieceX = startX;
-    
-    // Check if this segment contains a cooker
-    cookerCabinets.forEach(cooker => {
-      const cL = cooker.fromLeft || 0;
-      const cR = cL + cooker.width;
-      
-      if (Math.max(startX, cL) < Math.min(endX, cR)) {
-        // Piece before cooker
-        if (cL > currentPieceX) {
-          pieces.push({ x: currentPieceX + (cL - currentPieceX) / 2, y: tileBottomY + wallElevation / 2, w: cL - currentPieceX, h: wallElevation });
+    const cookerCabinets = zone.cabinets.filter(c => c.preset === PresetType.COOKER_HOB || (c.preset === PresetType.BASE_DRAWER_3 && c.width >= 600));
+    const wallCabinets = zone.cabinets.filter(c => c.type === CabinetType.WALL);
+
+    const renderPieceInternal = (startX: number, endX: number) => {
+      if (startX >= endX) return;
+      let currentPieceX = startX;
+      cookerCabinets.forEach(cooker => {
+        const cL = cooker.fromLeft || 0;
+        const cR = cL + cooker.width;
+        if (Math.max(startX, cL) < Math.min(endX, cR)) {
+          if (cL > currentPieceX) {
+            result.push({ x: currentPieceX + (cL - currentPieceX) / 2, y: tileBottomY + wallElevation / 2, w: cL - currentPieceX, h: wallElevation });
+          }
+          const activeL = Math.max(startX, cL);
+          const activeR = Math.min(endX, cR);
+          const wallCabAbove = wallCabinets.find(wc => {
+            const wcL = wc.fromLeft || 0;
+            const wcR = wcL + wc.width;
+            return Math.max(activeL, wcL) < Math.min(activeR, wcR);
+          });
+          const wallCabOffset = wallCabAbove?.advancedSettings?.elevationOffset || 0;
+          const hoodTileH = wallElevation + wallCabOffset;
+          result.push({ x: activeL + (activeR - activeL) / 2, y: tileBottomY + hoodTileH / 2, w: activeR - activeL, h: hoodTileH });
+          currentPieceX = activeR;
         }
-        
-        // Piece behind cooker (Higher, but respect wall cabinets)
-        const activeL = Math.max(startX, cL);
-        const activeR = Math.min(endX, cR);
-        
-        // Find if there's a wall cabinet above this cooker
-        const wallCabAbove = wallCabinets.find(wc => {
-          const wcL = wc.fromLeft || 0;
-          const wcR = wcL + wc.width;
-          return Math.max(activeL, wcL) < Math.min(activeR, wcR);
-        });
-
-        // If there's a wall cabinet above, we only tile up to its bottom (zBase - tileBottomY)
-        // wall cabinet zBase = baseHeight + counterThickness + wallElevation + offset
-        const wallCabOffset = wallCabAbove?.advancedSettings?.elevationOffset || 0;
-        const hoodTileH = wallElevation + wallCabOffset;
-        
-        pieces.push({ x: activeL + (activeR - activeL) / 2, y: tileBottomY + hoodTileH / 2, w: activeR - activeL, h: hoodTileH });
-        
-        currentPieceX = activeR;
+      });
+      if (currentPieceX < endX) {
+        result.push({ x: currentPieceX + (endX - currentPieceX) / 2, y: tileBottomY + wallElevation / 2, w: endX - currentPieceX, h: wallElevation });
       }
-    });
+    };
 
-    // Final piece in this segment
-    if (currentPieceX < endX) {
-      pieces.push({ x: currentPieceX + (endX - currentPieceX) / 2, y: tileBottomY + wallElevation / 2, w: endX - currentPieceX, h: wallElevation });
+    if (overlappingObstacles.length === 0) {
+      renderPieceInternal(minX, maxX);
+    } else {
+      let currentX = minX;
+      const sortedObs = [...overlappingObstacles].sort((a, b) => a.fromLeft - b.fromLeft);
+      sortedObs.forEach(obs => {
+        const obsL = Math.max(minX, obs.fromLeft);
+        const obsR = Math.min(maxX, obs.fromLeft + obs.width);
+        const obsB = (obs.sillHeight || obs.elevation || 0);
+        const obsT = obsB + obs.height;
+        if (obsL > currentX) renderPieceInternal(currentX, obsL);
+        if (obsB > tileBottomY) {
+          const h = Math.min(wallElevation, obsB - tileBottomY);
+          result.push({ x: obsL + (obsR - obsL) / 2, y: tileBottomY + h / 2, w: obsR - obsL, h });
+        }
+        if (obsT < tileTopY) {
+          const h = Math.min(wallElevation, tileTopY - obsT);
+          result.push({ x: obsL + (obsR - obsL) / 2, y: tileTopY - h / 2, w: obsR - obsL, h });
+        }
+        currentX = obsR;
+      });
+      if (currentX < maxX) renderPieceInternal(currentX, maxX);
     }
-  };
+    return result;
+  }, [zone, project.settings]);
 
-  if (overlappingObstacles.length === 0) {
-    renderPiece(minX, maxX);
-  } else {
-    let currentX = minX;
-    const sortedObs = [...overlappingObstacles].sort((a, b) => a.fromLeft - b.fromLeft);
-    
-    sortedObs.forEach(obs => {
-      const obsL = Math.max(minX, obs.fromLeft);
-      const obsR = Math.min(maxX, obs.fromLeft + obs.width);
-      const obsB = (obs.sillHeight || obs.elevation || 0);
-      const obsT = obsB + obs.height;
-
-      // Piece before this obstacle
-      if (obsL > currentX) {
-        renderPiece(currentX, obsL);
-      }
-
-      // Piece below obstacle
-      if (obsB > tileBottomY) {
-        const h = Math.min(wallElevation, obsB - tileBottomY);
-        pieces.push({ x: obsL + (obsR - obsL) / 2, y: tileBottomY + h / 2, w: obsR - obsL, h });
-      }
-
-      // Piece above obstacle
-      if (obsT < tileTopY) {
-        const h = Math.min(wallElevation, tileTopY - obsT);
-        pieces.push({ x: obsL + (obsR - obsL) / 2, y: tileTopY - h / 2, w: obsR - obsL, h });
-      }
-
-      currentX = obsR;
-    });
-
-    if (currentX < maxX) {
-      renderPiece(currentX, maxX);
-    }
-  }
-
-  // Load texture if available
   const backsplashTextureUrl = project.settings.materialSettings?.textureUrls?.backsplash;
   const backsplashTexture = backsplashTextureUrl ? useLoader(THREE.TextureLoader, backsplashTextureUrl) : null;
 
@@ -193,6 +161,8 @@ const ZoneBacksplash: React.FC<{ zone: Zone; project: Project; position: [number
   }
 
   const { width: tileWidth, height: tileHeight } = tileDims;
+
+  if (pieces.length === 0) return null;
 
   return (
     <group name={`backsplash-${zone.id}`} position={position} rotation={[0, rotation, 0]}>
@@ -208,7 +178,7 @@ const ZoneBacksplash: React.FC<{ zone: Zone; project: Project; position: [number
               map={tex} 
               roughness={0.15} 
               metalness={0.4} 
-              emissive="#111111" // Subtle boost for dark textures
+              emissive="#111111"
               emissiveIntensity={0.5}
             />
           );
@@ -233,7 +203,15 @@ const ZoneBacksplash: React.FC<{ zone: Zone; project: Project; position: [number
       })}
     </group>
   );
-};
+}, (prev, next) => {
+  if (prev.isStudio !== next.isStudio) return false;
+  if (prev.skeletonView !== next.skeletonView) return false;
+  if (prev.rotation !== next.rotation) return false;
+  if (prev.position[0] !== next.position[0] || prev.position[1] !== next.position[1] || prev.position[2] !== next.position[2]) return false;
+  if (JSON.stringify(prev.zone.cabinets) !== JSON.stringify(next.zone.cabinets)) return false;
+  if (JSON.stringify(prev.project.settings.materialSettings) !== JSON.stringify(next.project.settings.materialSettings)) return false;
+  return true;
+});
 
 const LoadingFallback = () => {
   const { progress } = useProgress();
@@ -801,7 +779,7 @@ const Scene = ({
   useEffect(() => {
     if (!draggedCabinet) return;
 
-    const onGlobalMove = (e: PointerEvent) => {
+    const onGlobalMove = throttle((e: PointerEvent) => {
       const rect = gl.domElement.getBoundingClientRect();
       const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
       const y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
@@ -837,7 +815,7 @@ const Scene = ({
           if (floorHit) updatePreview(floorHit.point);
         }
       }
-    };
+    }, 16);
 
     const onGlobalUp = () => {
       handleDrop();
@@ -1229,8 +1207,9 @@ const Scene = ({
 };
 
 export const CabinetViewer = forwardRef<CabinetViewerHandle, Props>((props, ref) => {
+  const storeProject = useProjectStore(s => s.project);
   const { 
-    project, 
+    project = storeProject, 
     showHardware = true, 
     showEmptyWalls = false, 
     onWallClick, 
@@ -1417,6 +1396,8 @@ export const CabinetViewer = forwardRef<CabinetViewerHandle, Props>((props, ref)
           domCanvasRef.current = gl.domElement;
         }}
         shadows
+        frameloop="demand"
+        dpr={[1, 2]}
         camera={{ position: [2000, 2000, 2000], fov: 45, near: 10, far: 50000 }}
         gl={{ 
           preserveDrawingBuffer: true,

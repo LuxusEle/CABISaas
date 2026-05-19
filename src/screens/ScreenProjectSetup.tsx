@@ -14,17 +14,18 @@ import { logoService } from '../services/logoService';
 import { subscriptionService } from '../services/subscriptionService';
 import { supabase } from '../services/supabaseClient';
 import { recalculateCabinetPositions, calculateTotalZoneLength, createAdvancedCabinet } from '../services/advancedWorkflowService';
+import { useProjectStore } from '../store/useProjectStore';
 
 interface ScreenProjectSetupProps {
-  project: Project;
-  setProject: React.Dispatch<React.SetStateAction<Project>>;
   onSave: (p?: Project) => Promise<any>;
   onSaveProject?: (p: Project) => Promise<any>;
   isDark: boolean;
   isUserPro?: boolean;
 }
 
-const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark, isUserPro }: ScreenProjectSetupProps) => {
+const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: ScreenProjectSetupProps) => {
+  const { project, setProject } = useProjectStore();
+
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -987,6 +988,45 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
                           currency={project.settings.currency || '$'}
                           sheetTypesExpanded={true}
                           showSheetsOnly={true}
+                          isProjectLayer={true}
+                          sheetSpecs={project.settings.materialSettings?.sheetSpecs}
+                          hardwareSpecs={project.settings.materialSettings?.hardwareSpecs}
+                          onSheetUpdate={(sheet) => {
+                            setProject(prev => ({
+                              ...prev,
+                              settings: {
+                                ...prev.settings,
+                                materialSettings: {
+                                  ...prev.settings.materialSettings!,
+                                  sheetSpecs: {
+                                    ...prev.settings.materialSettings?.sheetSpecs,
+                                    [sheet.name]: {
+                                      width: sheet.width,
+                                      length: sheet.length,
+                                      thickness: sheet.thickness,
+                                      pricePerSheet: sheet.price_per_sheet
+                                    }
+                                  }
+                                }
+                              }
+                            }));
+                          }}
+                          onAccessoryUpdate={(acc) => {
+                            setProject(prev => {
+                              const hardwareSpecs = { ...(prev.settings.materialSettings?.hardwareSpecs || {}) };
+                              hardwareSpecs[acc.name] = { price: acc.default_amount };
+                              return {
+                                ...prev,
+                                settings: {
+                                  ...prev.settings,
+                                  materialSettings: {
+                                    ...prev.settings.materialSettings!,
+                                    hardwareSpecs
+                                  }
+                                }
+                              };
+                            });
+                          }}
                         />
                       </div>
                     )}
@@ -1001,6 +1041,25 @@ const ScreenProjectSetup = ({ project, setProject, onSave, onSaveProject, isDark
                           currency={project.settings.currency || '$'}
                           accessoriesExpanded={true}
                           showHardwareOnly={true}
+                          isProjectLayer={true}
+                          hardwareSpecs={project.settings.materialSettings?.hardwareSpecs}
+                          onAccessoryUpdate={(acc) => {
+                            setProject(prev => {
+                              const hardwareSpecs = { ...(prev.settings.materialSettings?.hardwareSpecs || {}) };
+                              hardwareSpecs[acc.name] = { price: acc.default_amount };
+                              
+                              return {
+                                ...prev,
+                                settings: {
+                                  ...prev.settings,
+                                  materialSettings: {
+                                    ...prev.settings.materialSettings!,
+                                    hardwareSpecs
+                                  }
+                                }
+                              };
+                            });
+                          }}
                         />
                       </div>
                     )}

@@ -24,14 +24,14 @@ interface Props {
   skeletonView?: boolean;
 }
 
-export const Wall: React.FC<Props> = ({ 
+export const Wall = React.memo(({ 
   position, width, height, rotation, 
   obstacles = [], wallIndex = 0, isActive = false, 
   onClick, lightTheme = false, showGrid = false,
   onPointerMove, onPointerOut, onPointerUp,
   opacity = 1, isStudio = false, name,
   skeletonView = false
-}) => {
+}: Props) => {
   const wallThickness = 50;
   const wallDepth = wallThickness;
 
@@ -417,4 +417,16 @@ export const Wall: React.FC<Props> = ({
       })}
     </group>
   );
-};
+}, (prev, next) => {
+  if (prev.width !== next.width) return false;
+  if (prev.height !== next.height) return false;
+  if (prev.rotation !== next.rotation) return false;
+  if (prev.position[0] !== next.position[0] || prev.position[1] !== next.position[1] || prev.position[2] !== next.position[2]) return false;
+  if (prev.opacity !== next.opacity) return false;
+  if (prev.isStudio !== next.isStudio) return false;
+  if (prev.skeletonView !== next.skeletonView) return false;
+  if (prev.showGrid !== next.showGrid) return false;
+  if (prev.lightTheme !== next.lightTheme) return false;
+  if (JSON.stringify(prev.obstacles) !== JSON.stringify(next.obstacles)) return false;
+  return true;
+});

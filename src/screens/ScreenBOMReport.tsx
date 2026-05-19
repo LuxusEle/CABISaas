@@ -15,14 +15,15 @@ import { exportAllSheetsToDXFZip, exportSingleSheetToDXF, exportAllDrillingToZip
 import { generateQuotationPDF } from '../services/pdfService';
 import { projectService } from '../services/projectService';
 import { formatPrice } from '../utils/formatUtils';
+import { useProjectStore } from '../store/useProjectStore';
 
 interface ScreenBOMReportProps {
-  project: Project;
-  setProject: React.Dispatch<React.SetStateAction<Project>>;
   isUserPro: boolean;
 }
 
-const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProps) => {
+const ScreenBOMReport = ({ isUserPro }: ScreenBOMReportProps) => {
+  const { project, setProject } = useProjectStore();
+
   const navigate = useNavigate();
   // Use more specific dependencies to prevent unnecessary recalculations
   const data = useMemo(() => generateProjectBOM(project), [project.id, project.zones, project.settings]);
@@ -639,7 +640,7 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
                       {/* Page 2: Wall Visualization - full page, no title */}
                       <div className="bg-white w-full h-[calc(100vh-80px)] flex flex-col items-center justify-start">
                         <div className="w-full flex items-center justify-center pt-8" style={{ transform: 'scale(0.85)', transformOrigin: 'top center' }}>
-                          <WallVisualizer zone={zone} height={zone.wallHeight || 2400} settings={project.settings} hideArrows={true} />
+                          <WallVisualizer zone={zone} height={zone.wallHeight || 2400} hideArrows={true} />
                         </div>
                       </div>
                     </div>
@@ -670,7 +671,6 @@ const ScreenBOMReport = ({ project, setProject, isUserPro }: ScreenBOMReportProp
                           <WallVisualizer 
                             zone={zone} 
                             height={zone.wallHeight || 2400} 
-                            settings={project.settings} 
                             isStatic={true} 
                             forceWhite={true} 
                           />

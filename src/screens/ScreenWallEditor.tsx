@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Box, DoorOpen, Settings, Settings2, RotateCcw, Lock, X, ArrowLeft, ArrowRight, Save, LayoutDashboard, Calculator, Zap, Menu, Layers, Table2, Maximize2 } from 'lucide-react';
@@ -17,28 +17,23 @@ import { CabinetViewerHandle } from '../components/3d/CabinetViewer';
 import ReactCrop, { type Crop, centerCrop, makeAspectCrop, PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import { getCroppedImg } from '../utils/cropImage';
+import { useProjectStore } from '../store/useProjectStore';
 
 interface ScreenWallEditorProps {
-  project: Project;
-  setProject: React.Dispatch<React.SetStateAction<Project>>;
   setScreen: (s: Screen) => void;
   onSave: (p?: Project) => Promise<any>;
   isDark: boolean;
-  isDirty: boolean;
-  isSaving: boolean;
   isUserPro: boolean;
 }
 
 const ScreenWallEditor = ({ 
-  project, 
-  setProject, 
   setScreen, 
   onSave, 
   isDark, 
-  isDirty, 
-  isSaving, 
   isUserPro 
 }: ScreenWallEditorProps) => {
+  const { project, setProject, isDirty, isSaving } = useProjectStore();
+
   const cabinetViewerRef = useRef<CabinetViewerHandle>(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const [activeTab, setActiveTab] = useState<string>(project.zones[0]?.id || 'Wall A');
@@ -99,7 +94,22 @@ const ScreenWallEditor = ({
     }
   };
 
-  const handleCabinetSelection = (index: number, zoneId?: string) => {
+  // Undo/Redo history
+  const [history, setHistory] = useState<{ zones: typeof project.zones; activeTab: string; timestamp: number }[]>([]);
+  const [redoStack, setRedoStack] = useState<{ zones: typeof project.zones; activeTab: string; timestamp: number }[]>([]);
+  const maxHistorySize = 20;
+
+  // Save state to history
+  const saveToHistory = React.useCallback(() => {
+    setHistory(prev => {
+      const newHistory = [{ zones: JSON.parse(JSON.stringify(project.zones)), activeTab, timestamp: Date.now() }, ...prev].slice(0, maxHistorySize);
+      return newHistory;
+    });
+    // Clear redo stack when new action occurs
+    setRedoStack([]);
+  }, [project.zones, activeTab]);
+
+  const handleCabinetSelection = React.useCallback((index: number, zoneId?: string) => {
     const targetZoneId = zoneId || activeTab;
     const zone = project.zones.find(z => z.id === targetZoneId);
     if (!zone) return;
@@ -217,7 +227,8 @@ const ScreenWallEditor = ({
         setActiveTab(targetZoneId);
       }
     }
-  };
+  }, [activeTab, project.zones, swapMode, swapSelection, saveToHistory, setProject]);
+
   // Keep activeTab in sync if the current one is deleted or project changes
   useEffect(() => {
     if (!project.zones.some(z => z.id === activeTab)) {
@@ -244,7 +255,7 @@ const ScreenWallEditor = ({
         }));
       }
     }
-  }, [project.zones, activeTab, project.settings.workflowMode]);
+  }, [project.zones, activeTab, project.settings.workflowMode, setProject]);
 
   const currentZoneIndex = project.zones.findIndex(z => z.id === activeTab);
   const currentZone = project.zones[currentZoneIndex] || project.zones[0];
@@ -259,11 +270,6 @@ const ScreenWallEditor = ({
   const dragStartRef = useRef<{ startY: number; startHeight: number } | null>(null);
   const [showAdvancedCabinetEditor, setShowAdvancedCabinetEditor] = useState(false);
   const [initialZoneCabinetsBackup, setInitialZoneCabinetsBackup] = useState<CabinetUnit[] | null>(null);
-
-  // Undo/Redo history
-  const [history, setHistory] = useState<{ zones: typeof project.zones; activeTab: string; timestamp: number }[]>([]);
-  const [redoStack, setRedoStack] = useState<{ zones: typeof project.zones; activeTab: string; timestamp: number }[]>([]);
-  const maxHistorySize = 20;
 
   const [selectedCabinet, setSelectedCabinet] = useState<{ zoneId: string, id: string } | null>(null);
   
@@ -285,15 +291,6 @@ const ScreenWallEditor = ({
   const [draggingCabinet, setDraggingCabinet] = useState<CabinetUnit | null>(null);
   const [draggingPosition, setDraggingPosition] = useState<{ x: number, y: number } | null>(null);
 
-  // Save state to history
-  const saveToHistory = () => {
-    setHistory(prev => {
-      const newHistory = [{ zones: JSON.parse(JSON.stringify(project.zones)), activeTab, timestamp: Date.now() }, ...prev].slice(0, maxHistorySize);
-      return newHistory;
-    });
-    // Clear redo stack when new action occurs
-    setRedoStack([]);
-  };
 
   useEffect(() => {
     if (draggingCabinet) {
@@ -628,7 +625,6 @@ const ScreenWallEditor = ({
                   <WallVisualizer 
                     zone={currentZone}
                     height={currentZone.wallHeight || 2400}
-                    settings={project.settings}
                     onCabinetClick={(i) => handleCabinetSelection(i)}
                     onObstacleClick={(i) => openEdit('obstacle', i)}
                     onCabinetMove={handleCabinetMove}
@@ -643,7 +639,6 @@ const ScreenWallEditor = ({
                 ) : (
                   <CabinetViewer 
                     ref={cabinetViewerRef}
-                    project={project} 
                     activeWallId={activeTab} 
                     onCabinetSelect={(zoneId, i) => handleCabinetSelection(i, zoneId)}
                     onSettingsUpdate={(settings) => setProject(prev => ({ ...prev, settings: { ...prev.settings, ...settings } }))}
@@ -1016,7 +1011,6 @@ const ScreenWallEditor = ({
                 <WallVisualizer 
                   zone={currentZone}
                   height={currentZone.wallHeight || 2400}
-                  settings={project.settings}
                   onCabinetClick={(i) => openEdit('cabinet', i)}
                   onObstacleClick={(i) => openEdit('obstacle', i)}
                   onCabinetMove={handleCabinetMove}
@@ -1030,7 +1024,6 @@ const ScreenWallEditor = ({
                 />
               ) : (
                 <CabinetViewer 
-                  project={project} 
                   activeWallId={activeTab} 
                   onCabinetSelect={visualMode === 'studio' ? undefined : ((zoneId, i) => handleCabinetSelection(i, zoneId))}
                   onSettingsUpdate={(settings) => setProject(prev => ({ ...prev, settings: { ...prev.settings, ...settings } }))}

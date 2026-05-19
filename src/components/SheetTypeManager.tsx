@@ -12,6 +12,11 @@ interface SheetTypeManagerProps {
   onToggleAccessories?: () => void;
   showSheetsOnly?: boolean;
   showHardwareOnly?: boolean;
+  onSheetUpdate?: (sheet: SheetType) => void;
+  onAccessoryUpdate?: (acc: ExpenseTemplate) => void;
+  isProjectLayer?: boolean;
+  sheetSpecs?: Record<string, { pricePerSheet: number, width?: number, length?: number, thickness?: number }>;
+  hardwareSpecs?: Record<string, { price: number }>;
 }
 
 export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
@@ -21,7 +26,12 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
   onToggleSheetTypes,
   onToggleAccessories,
   showSheetsOnly = false,
-  showHardwareOnly = false
+  showHardwareOnly = false,
+  onSheetUpdate,
+  onAccessoryUpdate,
+  isProjectLayer = false,
+  sheetSpecs = {},
+  hardwareSpecs = {}
 }) => {
   const [sheetTypes, setSheetTypes] = useState<SheetType[]>([]);
   const [accessories, setAccessories] = useState<ExpenseTemplate[]>([]);
@@ -68,8 +78,39 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
       expenseTemplateService.getTemplates()
     ]);
 
-    setSheetTypes(types);
-    setAccessories(accs);
+    // APPLY OVERRIDES if in project layer
+    let finalTypes = types;
+    let finalAccs = accs;
+
+    if (isProjectLayer) {
+      finalTypes = types.map(sheet => {
+        const override = sheetSpecs[sheet.name];
+        if (override) {
+          return {
+            ...sheet,
+            price_per_sheet: override.pricePerSheet,
+            width: override.width || sheet.width,
+            length: override.length || sheet.length,
+            thickness: override.thickness || sheet.thickness
+          };
+        }
+        return sheet;
+      });
+
+      finalAccs = accs.map(acc => {
+        const override = hardwareSpecs[acc.name];
+        if (override) {
+          return {
+            ...acc,
+            default_amount: override.price
+          };
+        }
+        return acc;
+      });
+    }
+
+    setSheetTypes(finalTypes);
+    setAccessories(finalAccs);
     setIsLoading(false);
   };
 
@@ -96,10 +137,17 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
     setNewSheetType({ name: '', thickness: 16, width: 1220, length: 2440, price_per_sheet: 0 });
     setShowAddForm(null);
 
+    // If we are in project layer, we only update locally and trigger callback
+    if (isProjectLayer) {
+      onSheetUpdate?.(optimisticSheet);
+      return;
+    }
+
     // Save to database in background
     const result = await sheetTypeService.saveSheetType(newSheetType.name, newSheetType.thickness, newSheetType.width, newSheetType.length, newSheetType.price_per_sheet);
     if (result) {
       setSheetTypes(prev => prev.map(s => s.id === tempId ? result : s));
+      onSheetUpdate?.(result);
     } else {
       setSheetTypes(prev => prev.filter(s => s.id !== tempId));
       alert('Failed to save sheet type');
@@ -125,6 +173,12 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
     setNewAccessory({ name: '', price: 0, width: 0, length: 0, unit: 'mm2' });
     setShowAddForm(null);
 
+    // If we are in project layer, we only update locally and trigger callback
+    if (isProjectLayer) {
+      onAccessoryUpdate?.(optimisticAcc);
+      return;
+    }
+
     // Save to database in background
     const result = await expenseTemplateService.saveTemplate(
       newAccessory.name, 
@@ -135,6 +189,7 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
     );
     if (result) {
       setAccessories(prev => prev.map(a => a.id === tempId ? result : a));
+      onAccessoryUpdate?.(result);
     } else {
       setAccessories(prev => prev.filter(a => a.id !== tempId));
       alert('Failed to save accessory');
@@ -169,14 +224,23 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
 
   const handleUpdateSheet = async (id: string) => {
     const originalSheet = sheetTypes.find(s => s.id === id);
+    const updatedSheet = { 
+      ...originalSheet!, 
+      name: editFormData.name, 
+      thickness: editFormData.thickness, 
+      width: editFormData.width, 
+      length: editFormData.length, 
+      price_per_sheet: editFormData.price_per_sheet 
+    };
 
-    // Optimistic update - update local state immediately
-    setSheetTypes(prev => prev.map(s =>
-      s.id === id
-        ? { ...s, name: editFormData.name, thickness: editFormData.thickness, width: editFormData.width, length: editFormData.length, price_per_sheet: editFormData.price_per_sheet }
-        : s
-    ));
+    setSheetTypes(prev => prev.map(s => s.id === id ? updatedSheet : s));
     setEditingId(null);
+
+    // If we are in project layer, we only update locally and trigger callback
+    if (isProjectLayer) {
+      onSheetUpdate?.(updatedSheet);
+      return;
+    }
 
     // Save to database in background
     const success = await sheetTypeService.updateSheetType(id, {
@@ -187,7 +251,9 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
       price_per_sheet: editFormData.price_per_sheet
     });
 
-    if (!success && originalSheet) {
+    if (success) {
+      onSheetUpdate?.(updatedSheet);
+    } else if (originalSheet) {
       // Revert on failure
       setSheetTypes(prev => prev.map(s => s.id === id ? originalSheet : s));
       alert('Failed to update sheet type');
@@ -196,14 +262,23 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
 
   const handleUpdateAccessory = async (id: string) => {
     const originalAcc = accessories.find(a => a.id === id);
+    const updatedAcc = { 
+      ...originalAcc!, 
+      name: editFormData.name, 
+      default_amount: editFormData.default_amount || 0, 
+      width: editFormData.accessory_width, 
+      length: editFormData.accessory_length, 
+      unit: editFormData.accessory_unit 
+    };
 
-    // Optimistic update - update local state immediately
-    setAccessories(prev => prev.map(a =>
-      a.id === id
-        ? { ...a, name: editFormData.name, default_amount: editFormData.default_amount || 0, width: editFormData.accessory_width, length: editFormData.accessory_length, unit: editFormData.accessory_unit }
-        : a
-    ));
+    setAccessories(prev => prev.map(a => a.id === id ? updatedAcc : a));
     setEditingId(null);
+
+    // If we are in project layer, we only update locally and trigger callback
+    if (isProjectLayer) {
+      onAccessoryUpdate?.(updatedAcc);
+      return;
+    }
 
     // Save to database in background
     const success = await expenseTemplateService.updateTemplate(id, {
@@ -214,7 +289,9 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
       unit: editFormData.accessory_unit
     });
 
-    if (!success && originalAcc) {
+    if (success) {
+      onAccessoryUpdate?.(updatedAcc);
+    } else if (originalAcc) {
       // Revert on failure
       setAccessories(prev => prev.map(a => a.id === id ? originalAcc : a));
       alert('Failed to update accessory');
@@ -234,6 +311,9 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
     // Optimistic update - remove from local state immediately
     setSheetTypes(prev => prev.filter(s => s.id !== id));
 
+    // If we are in project layer, we only update locally
+    if (isProjectLayer) return;
+
     // Delete from database in background
     const success = await sheetTypeService.deleteSheetType(id);
 
@@ -251,6 +331,9 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
 
     // Optimistic update - remove from local state immediately
     setAccessories(prev => prev.filter(a => a.id !== id));
+
+    // If we are in project layer, we only update locally
+    if (isProjectLayer) return;
 
     // Delete from database in background
     const success = await expenseTemplateService.deleteTemplate(id);
@@ -295,15 +378,17 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
             <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2 uppercase tracking-tight">
               <Settings2 className="text-amber-500" /> Core Sheet Materials
             </h3>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowAddForm(showAddForm === 'sheet' ? null : 'sheet');
-              }}
-              className="flex items-center gap-2 px-4 py-2 bg-amber-500 text-white text-xs font-bold rounded-full hover:bg-amber-600 transition-all shadow-lg shadow-amber-500/20"
-            >
-              <Plus size={14} /> Add Sheet Material
-            </button>
+            {!isProjectLayer && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowAddForm(showAddForm === 'sheet' ? null : 'sheet');
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-amber-500 text-white text-xs font-bold rounded-full hover:bg-amber-600 transition-all shadow-lg shadow-amber-500/20"
+              >
+                <Plus size={14} /> Add Sheet Material
+              </button>
+            )}
           </div>
 
           <div className="p-0">
@@ -383,7 +468,7 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
                           <td className="px-3 py-4 text-right">
                             <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                               <button onClick={() => startEditingSheet(sheetType)} className="p-2 text-amber-500 hover:bg-amber-50 rounded-lg"><Edit2 size={16} /></button>
-                              {!sheetType.is_default && <button onClick={() => handleDeleteSheet(sheetType.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={16} /></button>}
+                              {!sheetType.is_default && !isProjectLayer && <button onClick={() => handleDeleteSheet(sheetType.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={16} /></button>}
                             </div>
                           </td>
                         </>
@@ -401,16 +486,18 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
                   <h4 className="text-xs font-black text-amber-600 uppercase tracking-widest flex items-center gap-2">
                     <Package size={14} className="text-amber-500" /> Tiling & Surface Materials
                   </h4>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setNewAccessory({ ...newAccessory, name: 'Tile ', unit: 'sqft' });
-                      setShowAddForm(showAddForm === 'accessory' ? null : 'accessory');
-                    }}
-                    className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white text-xs font-bold rounded-full hover:bg-amber-700 transition-all shadow-lg shadow-amber-600/20"
-                  >
-                    <Plus size={14} /> Add Tiling/Surface
-                  </button>
+                  {!isProjectLayer && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setNewAccessory({ ...newAccessory, name: 'Tile ', unit: 'sqft' });
+                        setShowAddForm(showAddForm === 'accessory' ? null : 'accessory');
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white text-xs font-bold rounded-full hover:bg-amber-700 transition-all shadow-lg shadow-amber-600/20"
+                    >
+                      <Plus size={14} /> Add Tiling/Surface
+                    </button>
+                  )}
                 </div>
                 
                 {showAddForm === 'accessory' && (
@@ -508,7 +595,7 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
                               <td className="px-3 py-4 text-right">
                                 <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                   <button onClick={() => startEditingAccessory(acc)} className="p-2 text-amber-500 hover:bg-amber-50 rounded-lg"><Edit2 size={16} /></button>
-                                  <button onClick={() => handleDeleteAccessory(acc.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={16} /></button>
+                                  {!isProjectLayer && <button onClick={() => handleDeleteAccessory(acc.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={16} /></button>}
                                 </div>
                               </td>
                             </>
@@ -535,15 +622,17 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
             ) : (
               <div />
             )}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowAddForm(showAddForm === 'accessory' ? null : 'accessory');
-              }}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white text-xs font-bold rounded-full hover:bg-blue-600 transition-all shadow-lg shadow-blue-500/20"
-            >
-              <Plus size={14} /> Add Accessory
-            </button>
+            {!isProjectLayer && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowAddForm(showAddForm === 'accessory' ? null : 'accessory');
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white text-xs font-bold rounded-full hover:bg-blue-600 transition-all shadow-lg shadow-blue-500/20"
+              >
+                <Plus size={14} /> Add Accessory
+              </button>
+            )}
           </div>
 
           <div className="p-0">
@@ -622,7 +711,7 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
                           <td className="px-3 py-4 text-right">
                             <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                               <button onClick={() => startEditingAccessory(acc)} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg"><Edit2 size={16} /></button>
-                              <button onClick={() => handleDeleteAccessory(acc.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={16} /></button>
+                              {!isProjectLayer && <button onClick={() => handleDeleteAccessory(acc.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={16} /></button>}
                             </div>
                           </td>
                         </>
