@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Client Site Test Simulation</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #0f172a;
+      color: #f8fafc;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      text-align: center;
+    }
+    .container {
+      max-width: 600px;
+      padding: 40px;
+      background-color: #1e293b;
+      border-radius: 24px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+      font-weight: 900;
+      letter-spacing: -0.025em;
+    }
+    p {
+      color: #94a3b8;
+      font-size: 1rem;
+      margin-bottom: 30px;
+      line-height: 1.6;
+    }
+    .key-badge {
+      display: inline-block;
+      padding: 6px 12px;
+      background-color: #0f172a;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 0.8rem;
+      color: #f59e0b;
+      margin-bottom: 20px;
+      border: 1px solid rgba(245, 158, 11, 0.2);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>Cab-Engine</h1>
+    <p>This page simulates your client's custom website. Click the button below to test the embedded setup wizard popup.</p>
+    
+    <div class="key-badge">Active API Key: 262****************************************12a9d</div>
+    <br>
+
+    <!-- Start Cabinet Widget Button -->
+    <button onclick="openCabinetModal()" style="padding: 16px 32px; background: #f59e0b; color: white; border: none; border-radius: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4);">
+      Configure Cabinets
+    </button>
+
+    <!-- Hidden Modal overlay -->
+    <div id="cabinetModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:99999; justify-content:center; align-items:center;">
+      <div style="position:relative; width:96%; max-width:1400px; height:90%; background:#1e293b; border-radius:24px; overflow:hidden; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);">
+        <!-- Close Button -->
+        <button onclick="closeCabinetModal()" style="position:absolute; top:16px; right:16px; border:none; background:rgba(255,255,255,0.05); color:#94a3b8; border-radius:99px; width:36px; height:36px; font-size:22px; cursor:pointer; display:flex; align-items:center; justify-content:center; z-index:100; transition: all 0.2s;">&times;</button>
+        <!-- Iframe targeting Vite Local Dev Server (Port: 3000) -->
+        <iframe src="http://localhost:3000/embed/setup?apiKey=262c38b4b743b7f1043434280cf80ae4de3646362f412a9d" style="width:100%; height:100%; border:none;"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function openCabinetModal() {
+      document.getElementById('cabinetModal').style.display = 'flex';
+    }
+    function closeCabinetModal() {
+      document.getElementById('cabinetModal').style.display = 'none';
+    }
+
+    // Auto close modal when project is submitted and show a confirmation
+    window.addEventListener('message', (event) => {
+      if (event.data.type === 'SETUP_COMPLETED') {
+        closeCabinetModal();
+        alert('Success! Your kitchen setup was saved under project ID: ' + event.data.projectId);
+      }
+    });
+  </script>
+  <!-- End Cabinet Widget Button -->
+
+</body>
+</html>

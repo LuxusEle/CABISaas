@@ -25,6 +25,7 @@ import ScreenHome from './screens/ScreenHome';
 import ScreenProjectSetup from './screens/ScreenProjectSetup';
 import ScreenBOMReport from './screens/ScreenBOMReport';
 import { ProfilePage } from './components/ProfilePage';
+import ScreenEmbedSetup from './screens/ScreenEmbedSetup';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import { track } from '@vercel/analytics';
@@ -383,23 +384,25 @@ export default function App() {
   return (
     <div className="h-[100dvh] w-full flex flex-col font-sans transition-colors duration-200 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-hidden">
       {/* MOBILE HEADER */}
-      <div className="md:hidden h-14 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 shrink-0 z-40 print:hidden">
-        <img src="/landing.png" alt="CabEngine Logo" className="h-8 w-auto object-contain dark:invert-0 invert" />
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowAuthModal(true)}
-            className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
-            title={user?.email || "Login"}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
-          </button>
-          <button onClick={() => setIsDark(!isDark)} className="p-2 rounded-full bg-slate-100 dark:bg-slate-800">{isDark ? <Sun size={18} /> : <Moon size={18} />}</button>
+      {!location.pathname.startsWith('/embed') && (
+        <div className="md:hidden h-14 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 shrink-0 z-40 print:hidden">
+          <img src="/landing.png" alt="CabEngine Logo" className="h-8 w-auto object-contain dark:invert-0 invert" />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowAuthModal(true)}
+              className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+              title={user?.email || "Login"}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+            </button>
+            <button onClick={() => setIsDark(!isDark)} className="p-2 rounded-full bg-slate-100 dark:bg-slate-800">{isDark ? <Sun size={18} /> : <Moon size={18} />}</button>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="flex-1 flex overflow-hidden">
-        {/* DESKTOP SIDEBAR - Hidden on landing page */}
-        {(location.pathname !== '/' && location.pathname !== '/terms' && location.pathname !== '/testing' && (location.pathname !== '/docs' || user)) && (
+        {/* DESKTOP SIDEBAR - Hidden on landing page & embed page */}
+        {(location.pathname !== '/' && location.pathname !== '/terms' && location.pathname !== '/testing' && !location.pathname.startsWith('/embed') && (location.pathname !== '/docs' || user)) && (
           <motion.aside
             initial={false}
             animate={{ width: isSidebarExpanded ? 240 : 80 }}
@@ -594,6 +597,9 @@ export default function App() {
                 <ScreenProjectSetup onSave={(p?: Project) => handleSaveProject(p || project)} onSaveProject={handleSaveProject} isDark={isDark} isUserPro={isUserPro} />
               </ProtectedRoute>
             } />
+            <Route path="/embed/setup" element={
+              <ScreenEmbedSetup isDark={isDark} />
+            } />
             <Route path="/walls" element={
               <ProtectedRoute user={user} loading={authLoading}>
                 <ScreenWallEditor
@@ -668,7 +674,7 @@ export default function App() {
       </div>
 
       {/* MOBILE NAV - NOW A FLEX SIBLING FOR DYNAMIC HEIGHT */}
-      {location.pathname !== '/' && location.pathname !== '/terms' && location.pathname !== '/testing' && (
+      {location.pathname !== '/' && location.pathname !== '/terms' && location.pathname !== '/testing' && !location.pathname.startsWith('/embed') && (
         <div className="md:hidden min-h-[4rem] h-auto mobile-nav bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex items-stretch justify-around z-[100] shrink-0 print:hidden safe-area-bottom">
           <MobileNavButton active={location.pathname === '/dashboard'} path="/dashboard" icon={<Home size={20} />} label="Home" isDirty={isDirty} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
           <MobileNavButton active={location.pathname === '/setup'} path="/setup" icon={<Settings size={20} />} label="Setup" isDirty={isDirty} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
@@ -739,7 +745,7 @@ export default function App() {
       )}
 
       {/* Help Button - Available on all screens */}
-      <HelpButton disablePhrases={screen === Screen.WALL_EDITOR} />
+      {!location.pathname.startsWith('/embed') && <HelpButton disablePhrases={screen === Screen.WALL_EDITOR} />}
 
       {/* Vercel Analytics & Speed Insights */}
       <Analytics />

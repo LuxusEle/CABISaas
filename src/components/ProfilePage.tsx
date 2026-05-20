@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Building2, Mail, Phone, Camera, Check, Loader2, Save, ArrowLeft, Globe, MapPin, Hash, DollarSign, Package, ShieldCheck } from 'lucide-react';
+import { Building2, Mail, Phone, Camera, Check, Loader2, Save, ArrowLeft, Globe, MapPin, Hash, DollarSign, Package, ShieldCheck, Key, Code, Copy } from 'lucide-react';
 import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
 import { profileService, UserProfile } from '../services/profileService';
@@ -30,9 +30,16 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onBack, onProfil
   const [message, setMessage] = useState({ type: '', text: '' });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [apiKey, setApiKey] = useState<string | null>(null);
+  const [loadingKey, setLoadingKey] = useState(true);
+  const [copySuccess, setCopySuccess] = useState(false);
+
   useEffect(() => {
     const fetchProfile = async () => {
-      const data = await profileService.getProfile(user.id);
+      const [data, key] = await Promise.all([
+        profileService.getProfile(user.id),
+        profileService.getApiKey(user.id)
+      ]);
       if (data) {
         setProfile(data);
         setCompanyName(data.company_name);
@@ -43,10 +50,27 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onBack, onProfil
         setTaxId(data.tax_id || '');
         setCurrency(data.currency || '$');
       }
+      setApiKey(key);
+      setLoadingKey(false);
       setLoading(false);
     };
     fetchProfile();
   }, [user.id]);
+
+  const handleGenerateKey = async () => {
+    setLoadingKey(true);
+    const key = await profileService.generateApiKey(user.id);
+    if (key) {
+      setApiKey(key);
+    }
+    setLoadingKey(false);
+  };
+
+  const handleCopyCode = (codeText: string) => {
+    navigator.clipboard.writeText(codeText);
+    setCopySuccess(true);
+    setTimeout(() => setCopySuccess(false), 2000);
+  };
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -255,6 +279,113 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onBack, onProfil
             </div>
             <div className="bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/60 rounded-[2.5rem] p-4 lg:p-6 shadow-xl shadow-slate-200/50 dark:shadow-none">
               <SheetTypeManager currency={currency} accessoriesExpanded={true} showHardwareOnly={true} />
+            </div>
+          </div>
+
+          {/* SECTION 4: CLIENT EMBED WIDGET */}
+          <div className="space-y-6">
+            <div className="flex items-center justify-between px-2">
+              <h3 className="text-sm font-black text-slate-400 uppercase tracking-[0.2em] italic">4. Embed Wizard Widget</h3>
+            </div>
+            <div className="bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/60 rounded-[2.5rem] p-8 lg:p-10 shadow-xl shadow-slate-200/50 dark:shadow-none space-y-8">
+              <div>
+                <h4 className="text-base font-black text-slate-900 dark:text-white uppercase tracking-wider mb-2">Embed Code & API Integration</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium italic">
+                  Expose steps 1-4 of the setup page on your own website. Submissions will automatically sync to your dashboard as new projects.
+                </p>
+              </div>
+
+              {loadingKey ? (
+                <div className="flex items-center justify-center py-6">
+                  <Loader2 className="animate-spin text-amber-500" size={24} />
+                </div>
+              ) : !apiKey ? (
+                <div className="bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800/60 rounded-[2rem] p-8 text-center space-y-4">
+                  <div className="w-12 h-12 bg-amber-500/10 rounded-xl flex items-center justify-center text-amber-500 mx-auto">
+                    <Key size={24} />
+                  </div>
+                  <div>
+                    <h5 className="font-black uppercase text-xs">No Active Embed Key</h5>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium italic mt-1">Generate a widget key to fetch the embed code snippet.</p>
+                  </div>
+                  <button
+                    onClick={handleGenerateKey}
+                    className="bg-amber-500 hover:bg-amber-400 text-white px-6 py-3 rounded-xl font-black uppercase tracking-widest text-[9px] transition-all shadow-xl shadow-amber-500/10 active:scale-95"
+                  >
+                    GENERATE EMBED KEY
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Your Widget API Key</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        readOnly
+                        value={apiKey}
+                        className="flex-1 bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-xl py-3 px-5 text-slate-500 dark:text-slate-400 font-mono text-xs focus:outline-none"
+                      />
+                      <button
+                        onClick={() => handleCopyCode(apiKey)}
+                        className="bg-slate-100 dark:bg-slate-800 hover:bg-amber-500 hover:text-white px-5 rounded-xl text-xs font-bold transition-all border border-slate-200 dark:border-slate-700 hover:border-amber-500"
+                      >
+                        Copy Key
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center px-1">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">HTML Embed Snippet</label>
+                      <button
+                        onClick={() => handleCopyCode(`<!-- Start Cabinet Widget Button -->
+<button onclick="openCabinetModal()" style="padding: 14px 28px; background: #f59e0b; color: white; border: none; border-radius: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; cursor: pointer; transition: all 0.2s;">Configure Cabinets</button>
+
+<!-- Hidden Modal overlay -->
+<div id="cabinetModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:99999; justify-content:center; align-items:center;">
+  <div style="position:relative; width:96%; max-width:1400px; height:90%; background:#1e293b; border-radius:24px; overflow:hidden; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);">
+    <button onclick="closeCabinetModal()" style="position:absolute; top:16px; right:16px; border:none; background:rgba(255,255,255,0.05); color:#94a3b8; border-radius:99px; width:36px; height:36px; font-size:22px; cursor:pointer; display:flex; align-items:center; justify-content:center; z-index:100; transition: all 0.2s;">&times;</button>
+    <iframe src="${window.location.origin}/embed/setup?apiKey=${apiKey}" style="width:100%; height:100%; border:none;"></iframe>
+  </div>
+</div>
+
+<script>
+  function openCabinetModal() {
+    document.getElementById('cabinetModal').style.display = 'flex';
+  }
+  function closeCabinetModal() {
+    document.getElementById('cabinetModal').style.display = 'none';
+  }
+
+  // Auto close modal when project is submitted
+  window.addEventListener('message', (event) => {
+    if (event.data.type === 'SETUP_COMPLETED') {
+      closeCabinetModal();
+    }
+  });
+</script>
+<!-- End Cabinet Widget Button -->`)}
+                        className="text-[10px] text-amber-500 font-bold hover:underline"
+                      >
+                        {copySuccess ? 'Copied!' : 'Copy Code Snippet'}
+                      </button>
+                    </div>
+                    <pre className="p-5 bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-2xl text-[10px] text-slate-500 dark:text-slate-400 font-mono overflow-x-auto whitespace-pre-wrap max-h-48 custom-scrollbar">
+{`<!-- Start Cabinet Widget Button -->
+<button onclick="openCabinetModal()" style="padding: 14px 28px; background: #f59e0b; ...">Configure Cabinets</button>
+
+<!-- Hidden Modal overlay -->
+<div id="cabinetModal" style="display:none; position:fixed; ...">
+  <div style="position:relative; width:96%; max-width:1400px; ...">
+    <button onclick="closeCabinetModal()" ...>&times;</button>
+    <iframe src="${window.location.origin}/embed/setup?apiKey=${apiKey}" ...></iframe>
+  </div>
+</div>`}
+                    </pre>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
