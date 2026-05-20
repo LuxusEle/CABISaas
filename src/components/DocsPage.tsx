@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Book, ChevronRight, Settings, Settings2, Box, Table2, CreditCard, Lightbulb, HelpCircle, CheckCircle } from 'lucide-react';
+import { Book, ChevronRight, Settings, Settings2, Box, Table2, CreditCard, Lightbulb, HelpCircle, CheckCircle, Share2 } from 'lucide-react';
 import { LandingHeader } from './LandingHeader';
 
 interface DocSection {
@@ -308,6 +308,69 @@ export const DocsPage: React.FC<DocsPageProps> = ({
                   <li>✓ Advanced Direct Entry mode</li>
                 </ul>
               </div>
+            </div>
+          </div>
+        </div>
+      )
+    },
+    {
+      id: 'embed',
+      title: 'Embed Configurator API',
+      icon: <Share2 className="w-5 h-5" />,
+      content: (
+        <div className="space-y-6">
+          <h3 className="text-xl font-bold text-slate-900 dark:text-white">Embedding the 3D Planner</h3>
+          <p className="text-slate-600 dark:text-slate-300 text-sm">
+            You can embed the kitchen setup wizard and 3D designer directly into your own website or client portals. This allows your customers to configure their cabinetry layout and submit specifications without leaving your site.
+          </p>
+
+          <div className="space-y-4">
+            <div className="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-2xl border border-slate-200 dark:border-slate-800">
+              <h4 className="font-bold text-slate-900 dark:text-white mb-2 text-sm uppercase">Quick Integration Steps</h4>
+              <ol className="list-decimal list-inside space-y-2 text-xs text-slate-600 dark:text-slate-300">
+                <li>Register your domain under your developer/admin settings to generate an <strong>API Key</strong>.</li>
+                <li>Embed our secure iframe pointing to <code>https://www.protradee.com/embed/setup?apiKey=YOUR_API_KEY</code>.</li>
+                <li>Listen to parent window messages to automatically capture project completion events.</li>
+              </ol>
+            </div>
+
+            <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
+              <h4 className="font-bold text-slate-900 dark:text-white mb-3 text-sm uppercase">Standard HTML Embedding Snippet</h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
+                Use this template to add a customizable lightbox/modal widget that opens the configurator:
+              </p>
+              <pre className="bg-slate-900 text-slate-200 p-4 rounded-xl text-xs overflow-x-auto font-mono max-h-60 leading-relaxed border border-slate-800">
+{`<!-- Start Cabinet Widget Button -->
+<button onclick="openCabinetModal()" style="padding: 14px 28px; background: #f59e0b; color: white; border: none; border-radius: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; cursor: pointer; transition: all 0.2s;">
+  Configure Cabinets
+</button>
+
+<!-- Hidden Modal overlay -->
+<div id="cabinetModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:99999; justify-content:center; align-items:center;">
+  <div style="position:relative; width:96%; max-width:1400px; height:90%; background:#1e293b; border-radius:24px; overflow:hidden; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);">
+    <button onclick="closeCabinetModal()" style="position:absolute; top:16px; right:16px; border:none; background:rgba(255,255,255,0.05); color:#94a3b8; border-radius:99px; width:36px; height:36px; font-size:22px; cursor:pointer; display:flex; align-items:center; justify-content:center; z-index:100;">&times;</button>
+    <iframe src="https://www.protradee.com/embed/setup?apiKey=YOUR_API_KEY" style="width:100%; height:100%; border:none;"></iframe>
+  </div>
+</div>
+
+<script>
+  function openCabinetModal() {
+    document.getElementById('cabinetModal').style.display = 'flex';
+  }
+  function closeCabinetModal() {
+    document.getElementById('cabinetModal').style.display = 'none';
+  }
+
+  // Auto close modal when project is submitted
+  window.addEventListener('message', (event) => {
+    if (event.data.type === 'SETUP_COMPLETED') {
+      closeCabinetModal();
+      // Handle the completed setup: event.data.projectId
+      console.log('Project completed successfully:', event.data.projectId);
+    }
+  });
+</script>`}
+              </pre>
             </div>
           </div>
         </div>
