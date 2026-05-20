@@ -80,5 +80,38 @@ export const profileService = {
       console.error('Error in getAllProfilesAdmin:', error);
       return null;
     }
+  },
+
+  async getApiKey(userId: string): Promise<string | null> {
+    try {
+      const { data, error } = await supabase
+        .from('client_api_keys')
+        .select('api_key')
+        .eq('user_id', userId)
+        .single();
+      if (error) return null;
+      return data.api_key;
+    } catch {
+      return null;
+    }
+  },
+
+  async generateApiKey(userId: string): Promise<string | null> {
+    try {
+      const { data, error } = await supabase
+        .from('client_api_keys')
+        .insert({ user_id: userId })
+        .select('api_key')
+        .single();
+      if (error) {
+        console.error('Error generating key:', error);
+        return null;
+      }
+      return data.api_key;
+    } catch (error) {
+      console.error('Error in generateApiKey:', error);
+      return null;
+    }
   }
 };
+

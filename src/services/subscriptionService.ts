@@ -168,6 +168,11 @@ export const subscriptionService = {
   },
 
   async isPro(): Promise<boolean> {
+    // TEMPORARY: Grant all users Pro features for app launch. Comment/remove the line below to re-enable limits.
+    return true;
+
+    // Uncomment below section to use real pro status
+    /*
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) return false;
 
@@ -178,6 +183,7 @@ export const subscriptionService = {
       .single();
 
     return sub?.plan_id === 'pro' && sub?.status === 'active';
+    */
   },
 
   async getCurrentPlan(): Promise<SubscriptionPlan | null> {
