@@ -470,7 +470,8 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
       // Calculate remaining height to ceiling
       const baseTotal = settings.baseHeight + (settings.counterThickness || 40);
       const wallTotal = (settings.wallCabinetElevation || 450) + settings.wallHeight;
-      const topRowH = Math.max(0, zone.wallHeight - (baseTotal + wallTotal));
+      const wallTopSep = settings.wallTopSeparatorThickness ?? (settings.enableTopRow ? (settings.doorMaterialThickness || 18) : 0);
+      const topRowH = Math.max(0, zone.wallHeight - (baseTotal + wallTotal + wallTopSep));
       
       const wallAndTallCabs = zone.cabinets.filter(
         c => c.type === CabinetType.WALL || c.type === CabinetType.TALL

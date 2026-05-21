@@ -234,7 +234,8 @@ export const WallVisualizer: React.FC<Props> = (props) => {
     const wallElevation = settings?.wallCabinetElevation || 450;
     const baseTotal = baseHeight + counterThickness;
     const wallTotal = wallElevation + wallHeight;
-    const topRowHeight = Math.max(0, (height || 2400) - (baseTotal + wallTotal));
+    const wallTopSep = settings?.wallTopSeparatorThickness ?? (settings?.enableTopRow ? (settings?.doorMaterialThickness || 18) : 0);
+    const topRowHeight = Math.max(0, (height || 2400) - (baseTotal + wallTotal) - wallTopSep);
     
     const tallHeight = (settings?.tallHeight === 2100 || !settings?.tallHeight) ? (baseTotal + wallTotal) : settings.tallHeight;
     const toeKick = settings?.toeKickHeight || 100;
@@ -252,7 +253,7 @@ export const WallVisualizer: React.FC<Props> = (props) => {
     }
     else if (isWallTop) {
         h = unit.advancedSettings?.height || topRowHeight;
-        y = (height || 2400) - baseTotal - wallTotal - h;
+        y = (height || 2400) - baseTotal - wallTotal - wallTopSep - h;
     }
 
     const x = unit.fromLeft;
@@ -451,6 +452,10 @@ export const WallVisualizer: React.FC<Props> = (props) => {
           className="cursor-pointer"
           style={{ pointerEvents: 'all' }}
         >
+          {/* Door material separator between wall row and top row */}
+          {isWallTop && wallTopSep > 0 && (
+            <rect x={x} y={y + h} width={w} height={wallTopSep} fill="#94a3b8" stroke="#64748b" strokeWidth="1" rx="1" />
+          )}
           <rect x={x} y={y} width={w} height={h} rx="2" fill={fillColor} stroke={strokeColor} strokeWidth="2" />
           
           <g>

@@ -132,11 +132,14 @@ export const Cabinet = React.memo(({
   const counterThickness = settings?.counterThickness || 40;
   const wallElevation = settings?.wallCabinetElevation || 450;
   
+  const wallTopSep = settings?.wallTopSeparatorThickness ?? (settings?.enableTopRow ? (settings?.doorMaterialThickness || 18) : 0);
+  const wallTopSepDepth = (settings?.depthTall || 600) + (settings?.doorMaterialThickness || 18);
+
   let zBase = 0;
   if (isWall && !previewMode) {
     zBase = baseHeight + counterThickness + wallElevation + (unit.advancedSettings?.elevationOffset || 0);
   } else if (isWallTop && !previewMode) {
-    zBase = baseHeight + counterThickness + wallElevation + (settings?.wallHeight || 720);
+    zBase = baseHeight + counterThickness + wallElevation + (settings?.wallHeight || 720) + wallTopSep;
   }
 
   const isCooker = unit.preset === PresetType.COOKER_HOB || 
@@ -304,6 +307,22 @@ export const Cabinet = React.memo(({
             <WallCabinetTesting settings={testingSettings} />
           )}
 
+          {/* Door material separator sheet on top of wall cabinet row */}
+          {wallTopSep > 0 && (
+            <mesh position={[width / 2, (height || settings?.wallHeight || 720) + wallTopSep / 2, wallTopSepDepth / 2]}>
+              <boxGeometry args={[width, wallTopSep, wallTopSepDepth]} />
+              <meshStandardMaterial
+                color={isStudio ? '#f8fafc' : '#94a3b8'}
+                roughness={0.6}
+                metalness={0.0}
+                map={doorTexture}
+                transparent={testingSettings.opacity < 1}
+                opacity={testingSettings.opacity}
+                depthWrite={testingSettings.opacity < 1 ? false : true}
+              />
+            </mesh>
+          )}
+
           {/* Dedicated Hood Component for wall units - Attached to bottom, no chimney */}
           {unit.preset === PresetType.HOOD_UNIT && !skeletonView && (
             <group position={[width / 2, -30, depth / 2]}>
@@ -343,6 +362,22 @@ export const Cabinet = React.memo(({
       {isTall && (
         <group position={[0, 0, 0]}>
           <TallCabinetTesting settings={testingSettings} />
+
+          {/* Door material separator sheet on top of tall cabinet row */}
+          {wallTopSep > 0 && (
+            <mesh position={[width / 2, height + wallTopSep / 2, wallTopSepDepth / 2]}>
+              <boxGeometry args={[width, wallTopSep, wallTopSepDepth]} />
+              <meshStandardMaterial
+                color={isStudio ? '#f8fafc' : '#94a3b8'}
+                roughness={0.6}
+                metalness={0.0}
+                map={doorTexture}
+                transparent={testingSettings.opacity < 1}
+                opacity={testingSettings.opacity}
+                depthWrite={testingSettings.opacity < 1 ? false : true}
+              />
+            </mesh>
+          )}
         </group>
       )}
 
