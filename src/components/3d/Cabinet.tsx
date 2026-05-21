@@ -214,6 +214,7 @@ export const Cabinet = React.memo(({
       shelfTexture
     };
     if (forceGola !== undefined) s.enableGola = forceGola;
+    if (isWallTop) s.enableGola = false;
     if (opacity !== undefined) s.opacity = opacity;
     if (skeletonView !== undefined) s.skeletonView = skeletonView;
     if (doorOpenAngle !== undefined) {

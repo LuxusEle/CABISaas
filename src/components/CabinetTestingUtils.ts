@@ -809,7 +809,10 @@ export const getCabinetTestingSettings = (
     merged.shelfDepth = maxShelfDepth;
   }
 
-
+  // Wall top cabinets never use gola mode
+  if (typeStr === 'wall_top') {
+    merged.enableGola = false;
+  }
 
   return merged;
 };
