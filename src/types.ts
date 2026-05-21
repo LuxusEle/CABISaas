@@ -23,7 +23,8 @@ export enum ZoneId {
 export enum CabinetType {
   BASE = 'Base',
   WALL = 'Wall',
-  TALL = 'Tall'
+  TALL = 'Tall',
+  WALL_TOP = 'Wall Top'
 }
 
 export enum PresetType {
@@ -69,6 +70,7 @@ export interface ProjectSettings {
   currency: string;
   logoUrl?: string;
   designCaptures?: string[];
+  enableTopRow?: boolean;
 
   // Dimensions
   baseHeight: number;
@@ -96,6 +98,7 @@ export interface ProjectSettings {
   grooveDepth: number;         // Groove depth for back panels - default: 5mm
   backPanelThickness: number;  // Back panel thickness - default: 6mm
   doorMaterialThickness: number; // Door material thickness - default: 18mm
+  wallTopSeparatorThickness: number; // Door material sheet between wall row and top row cabinets - default: 0 (no separator)
   wallCabinetElevation: number; // Gap from counter top to wall cabinet bottom - default: 450mm
   
   // Manufacturing Settings

@@ -492,7 +492,7 @@ const Scene = ({
       wallCEnd: number;
     }[] = [];
 
-    const wallCounters: Record<number, { B: number; T: number; W: number }> = {};
+    const wallCounters: Record<number, { B: number; T: number; W: number; U: number }> = {};
     
     // First pass: calculate wall dimensions
     const wallLengths = activeZones.map(z => z.totalLength);
@@ -503,7 +503,7 @@ const Scene = ({
     activeZones.forEach((zone, wallIndex) => {
       const wallHeight = zone.wallHeight || 2400;
       
-      wallCounters[wallIndex] = { B: 0, T: 0, W: 0 };
+      wallCounters[wallIndex] = { B: 0, T: 0, W: 0, U: 0 };
     });
 
     activeZones.forEach((zone, wallIndex) => {
@@ -539,14 +539,18 @@ const Scene = ({
         }
 
         const counters = wallCounters[wallIndex];
-        let typeChar = 'B';
+        let typeChar: string;
         if (cab.type === CabinetType.WALL) {
           typeChar = 'W';
           counters.W++;
         } else if (cab.type === CabinetType.TALL) {
           typeChar = 'T';
           counters.T++;
+        } else if (cab.type === CabinetType.WALL_TOP) {
+          typeChar = 'U';
+          counters.U++;
         } else {
+          typeChar = 'B';
           counters.B++;
         }
         const wallNum = String(wallIndex + 1).padStart(2, '0');

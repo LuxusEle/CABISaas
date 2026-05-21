@@ -465,6 +465,104 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
     // Second pass: Fill Wall cabinets, now also aligning with the newly placed Base cabinets
     fillRemaining(zone, CabinetType.WALL, settings, getAlignmentPoints());
     
+    // Third pass: Fill Top Row (ceiling-touch cabinets) if enabled.
+    if (settings.enableTopRow) {
+      // Calculate remaining height to ceiling
+      const baseTotal = settings.baseHeight + (settings.counterThickness || 40);
+      const wallTotal = (settings.wallCabinetElevation || 450) + settings.wallHeight;
+      const wallTopSep = settings.wallTopSeparatorThickness ?? (settings.enableTopRow ? (settings.doorMaterialThickness || 18) : 0);
+      const topRowH = Math.max(0, zone.wallHeight - (baseTotal + wallTotal + wallTopSep));
+      
+      const wallAndTallCabs = zone.cabinets.filter(
+        c => c.type === CabinetType.WALL || c.type === CabinetType.TALL
+      );
+      
+      // Determine top row start offset on next wall after a corner (deeper corner cabinet)
+      const cornerWallOffset = zone.obstacles.find(o => o.id === 'corner_wall_offset' && o.fromLeft < 10);
+      const topRowStart = cornerWallOffset ? (settings.depthTall + 25) : 0;
+
+      // If shifted start, create a filler cabinet from start to the next WALL cabinet's right edge
+      let coveredUpTo = topRowStart;
+      if (topRowStart > 0) {
+        const wallEdges = zone.cabinets
+          .filter(c => c.type === CabinetType.WALL && c.preset !== PresetType.WALL_CORNER)
+          .map(c => c.fromLeft + c.width)
+          .filter(e => e > topRowStart)
+          .sort((a, b) => a - b);
+        const firstEnd = wallEdges[0];
+        if (firstEnd) {
+          const fillWidth = firstEnd - topRowStart;
+          if (fillWidth >= ABSOLUTE_MIN_WIDTH) {
+            zone.cabinets.push({
+              id: uuid(),
+              preset: PresetType.WALL_STD,
+              type: CabinetType.WALL_TOP,
+              width: fillWidth,
+              qty: 1,
+              fromLeft: topRowStart,
+              isAutoFilled: true,
+              label: '',
+              advancedSettings: { height: topRowH, depth: settings.depthTall }
+            });
+          }
+          coveredUpTo = firstEnd;
+        }
+      }
+
+      wallAndTallCabs.forEach(source => {
+        // Skip adding Top Row if it overlaps with any window.
+        const overlapsWindow = zone.obstacles.some(o => 
+          o.type === 'window' && 
+          o.fromLeft < source.fromLeft + source.width && 
+          o.fromLeft + o.width > source.fromLeft
+        );
+        if (overlapsWindow) return;
+
+        // Skip sources fully covered by the corner filler
+        if (source.fromLeft + source.width <= coveredUpTo) return;
+
+        // Keep same width as the source cabinet
+        const topFromLeft = Math.max(source.fromLeft, coveredUpTo);
+        const topWidth = source.width - (topFromLeft - source.fromLeft);
+        if (topWidth < ABSOLUTE_MIN_WIDTH) return;
+
+        if (source.preset === PresetType.WALL_CORNER) {
+          zone.cabinets.push({
+            id: uuid(),
+            preset: PresetType.WALL_CORNER,
+            type: CabinetType.WALL_TOP,
+            width: topWidth,
+            qty: 1,
+            fromLeft: topFromLeft,
+            isAutoFilled: true,
+            label: '',
+            advancedSettings: {
+              height: topRowH,
+              depth: settings.depthTall,
+              blindPanelWidth: settings.depthTall + 25,
+              blindCornerSide: source.advancedSettings?.blindCornerSide ?? 'right',
+              cabinetType: 'wall_corner',
+              enableColumn: source.advancedSettings?.enableColumn,
+              columnWidth: source.advancedSettings?.columnWidth,
+              columnDepth: source.advancedSettings?.columnDepth,
+            }
+          });
+        } else {
+          zone.cabinets.push({
+            id: uuid(),
+            preset: PresetType.WALL_STD,
+            type: CabinetType.WALL_TOP,
+            width: topWidth,
+            qty: 1,
+            fromLeft: topFromLeft,
+            isAutoFilled: true,
+            label: '',
+            advancedSettings: { height: topRowH, depth: settings.depthTall }
+          });
+        }
+      });
+    }
+
     absorbRemainder(zone, settings); // Ruby Rule: Absorb small gaps into corners
     
     applyExposedSides(zone, settings);
@@ -473,12 +571,17 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
     let bIdx = 1;
     let wIdx = 1;
     let tIdx = 1;
+    let uIdx = 1;
     
     const wallPrefix = `W${String(zIdx + 1).padStart(2, '0')}`;
     
     zone.cabinets = [...zone.cabinets].sort((a,b) => a.fromLeft - b.fromLeft).map(c => {
-      const typeChar = c.type === CabinetType.BASE ? 'B' : c.type === CabinetType.WALL ? 'W' : 'T';
-      const seq = typeChar === 'B' ? bIdx++ : typeChar === 'W' ? wIdx++ : tIdx++;
+      let typeChar = 'W';
+      if (c.type === CabinetType.BASE) typeChar = 'B';
+      else if (c.type === CabinetType.TALL) typeChar = 'T';
+      else if (c.type === CabinetType.WALL_TOP) typeChar = 'U';
+      
+      const seq = typeChar === 'B' ? bIdx++ : typeChar === 'W' ? wIdx++ : typeChar === 'U' ? uIdx++ : tIdx++;
       return { ...c, label: `${wallPrefix}${typeChar}${String(seq).padStart(2, '0')}` };
     });
   });
@@ -503,8 +606,8 @@ function applyExposedSides(zone: Zone, settings: ProjectSettings) {
 
   // 1. Detection Pass
   cabinets.forEach((unit) => {
-    // Only for Base, Wall, Tall
-    if (unit.type !== CabinetType.BASE && unit.type !== CabinetType.WALL && unit.type !== CabinetType.TALL) return;
+    // Only for Base, Wall, Tall, Wall Top
+    if (unit.type !== CabinetType.BASE && unit.type !== CabinetType.WALL && unit.type !== CabinetType.TALL && unit.type !== CabinetType.WALL_TOP) return;
     if (unit.preset === PresetType.BASE_CORNER || unit.preset === PresetType.WALL_CORNER) return;
     if (unit.preset === PresetType.FILLER) return;
 
@@ -562,6 +665,23 @@ function applyExposedSides(zone: Zone, settings: ProjectSettings) {
 
       const rightNeighbor = neighbors.find(other => 
         (other.type === unit.type || other.type === CabinetType.TALL) &&
+        Math.abs(other.fromLeft - (unit.fromLeft + unit.width)) < 15 &&
+        getDepth(other) >= unitDepth - 15
+      );
+      if (rightNeighbor) rightExposed = false;
+    }
+
+    // Wall Top: only vetoed by other Wall Top cabinets (different level from Wall/Tall)
+    if (unit.type === CabinetType.WALL_TOP) {
+      const leftNeighbor = neighbors.find(other => 
+        other.type === CabinetType.WALL_TOP &&
+        Math.abs((other.fromLeft + other.width) - unit.fromLeft) < 15 &&
+        getDepth(other) >= unitDepth - 15
+      );
+      if (leftNeighbor) leftExposed = false;
+
+      const rightNeighbor = neighbors.find(other => 
+        other.type === CabinetType.WALL_TOP &&
         Math.abs(other.fromLeft - (unit.fromLeft + unit.width)) < 15 &&
         getDepth(other) >= unitDepth - 15
       );
@@ -653,7 +773,10 @@ function applyExposedSides(zone: Zone, settings: ProjectSettings) {
 
     for (let j = 0; j < i; j++) {
       const prev = sorted[j];
-      const collide = (current.type === prev.type || current.type === CabinetType.TALL || prev.type === CabinetType.TALL);
+      const isWallTop = current.type === CabinetType.WALL_TOP || prev.type === CabinetType.WALL_TOP;
+      const collide = isWallTop
+        ? current.type === prev.type
+        : (current.type === prev.type || current.type === CabinetType.TALL || prev.type === CabinetType.TALL);
       if (collide) {
         const prevRight = prev.fromLeft + prev.width;
         if (prevRight > minLeft) minLeft = prevRight;
@@ -673,7 +796,10 @@ function applyExposedSides(zone: Zone, settings: ProjectSettings) {
       // Push previous cabinets back
       for (let j = i - 1; j >= 0; j--) {
         const prev = sorted[j];
-        const collide = (current.type === prev.type || current.type === CabinetType.TALL || prev.type === CabinetType.TALL);
+        const isWallTop = current.type === CabinetType.WALL_TOP || prev.type === CabinetType.WALL_TOP;
+        const collide = isWallTop
+          ? current.type === prev.type
+          : (current.type === prev.type || current.type === CabinetType.TALL || prev.type === CabinetType.TALL);
         if (collide) {
           const overlap = (prev.fromLeft + prev.width) - current.fromLeft;
           if (overlap > 0) {

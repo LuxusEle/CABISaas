@@ -61,13 +61,19 @@ const calculateDoors = (cabinetWidth: number, doorHeight: number, settings: Proj
 // --- COLLISION LOGIC ---
 
 export const resolveCollisions = (zone: Zone): Zone => {
-  // Sort and create fresh copies to avoid mutating original state
-  const sortedCabs = [...zone.cabinets]
-    .sort((a, b) => a.fromLeft - b.fromLeft)
+  // Preserve WALL_TOP cabinets exactly — they must not be moved by collision resolution
+  const wallTops = zone.cabinets
+    .filter(c => c.type === CabinetType.WALL_TOP)
+    .map(c => ({ ...c }));
+  const others = zone.cabinets
+    .filter(c => c.type !== CabinetType.WALL_TOP)
     .map(c => ({ ...c }));
 
+  // Sort and create fresh copies to avoid mutating original state
+  const sortedCabs = [...others]
+    .sort((a, b) => a.fromLeft - b.fromLeft);
+
   // First pass: Push right to resolve overlaps
-  // First pass: Push right to resolve overlaps with other cabinets AND obstacles
   for (let i = 0; i < sortedCabs.length; i++) {
     const next = sortedCabs[i];
     let maxRight = next.fromLeft;
@@ -137,7 +143,7 @@ export const resolveCollisions = (zone: Zone): Zone => {
 
   return {
     ...zone,
-    cabinets: sortedCabs
+    cabinets: [...sortedCabs, ...wallTops].sort((a, b) => a.fromLeft - b.fromLeft)
   };
 };
 
@@ -494,12 +500,13 @@ export const autoFillZone = (
   let bIdx = getExistingLabels(CabinetType.BASE) + 1;
   let wIdx = getExistingLabels(CabinetType.WALL) + 1;
   let tIdx = getExistingLabels(CabinetType.TALL) + 1;
+  let uIdx = getExistingLabels(CabinetType.WALL_TOP) + 1;
 
   const numbered = finalCabs.map(c => {
     let label = c.label; // Preserve existing labels
     if (!label) {
-      const typeChar = c.type === CabinetType.BASE ? 'B' : c.type === CabinetType.WALL ? 'W' : 'T';
-      const seq = typeChar === 'B' ? bIdx++ : typeChar === 'W' ? wIdx++ : tIdx++;
+      const typeChar = c.type === CabinetType.BASE ? 'B' : c.type === CabinetType.WALL ? 'W' : c.type === CabinetType.WALL_TOP ? 'U' : 'T';
+      const seq = typeChar === 'B' ? bIdx++ : typeChar === 'W' ? wIdx++ : typeChar === 'U' ? uIdx++ : tIdx++;
       label = `${zone.id}${typeChar}${String(seq).padStart(2, '0')}`;
     }
     return { ...c, label };
@@ -557,7 +564,7 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
     exportWallCornerCabinetDXF(t, null, dataCollector);
   } else if (t.cabinetType === 'base') {
     exportBaseCabinetDXF(t, null, dataCollector);
-  } else if (t.cabinetType === 'wall') {
+  } else if (t.cabinetType === 'wall' || t.cabinetType === 'wall_top') {
     exportWallCabinetDXF(t, null, dataCollector);
   } else if (t.cabinetType === 'tall') {
     exportTallCabinetDXF(t, null, dataCollector);
@@ -602,7 +609,7 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
   if (unit.type === CabinetType.BASE || isTall) {
     parts.push({ id: uuid(), name: HW.LEG, qty: isTall ? 6 : 4, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
   }
-  if (unit.type === CabinetType.WALL) {
+  if (unit.type === CabinetType.WALL || unit.type === CabinetType.WALL_TOP) {
     parts.push({ id: uuid(), name: HW.HANGER, qty: 1, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
   }
 
@@ -660,18 +667,23 @@ export const generateProjectBOM = (project: Project): {
     let bIdx = 1;
     let wIdx = 1;
     let tIdx = 1;
+    let uIdx = 1;
 
     sortedCabinets.forEach((unit, index) => {
       // Only skip filler panels, include other auto-filled cabinets (boxes)
       if (unit.isAutoFilled && unit.preset === PresetType.FILLER) return;
 
       cabinetCount++;
-      if (unit.type !== CabinetType.WALL) zoneLen += unit.width;
+      if (unit.type !== CabinetType.WALL && unit.type !== CabinetType.WALL_TOP) zoneLen += unit.width;
 
       // Assign sequential label for the report: W01B01, W01W01 etc.
       const wallPrefix = `W${String(zIdx + 1).padStart(2, '0')}`;
-      const typeChar = unit.type === CabinetType.BASE ? 'B' : unit.type === CabinetType.WALL ? 'W' : 'T';
-      const seq = typeChar === 'B' ? bIdx++ : typeChar === 'W' ? wIdx++ : tIdx++;
+      let typeChar = 'W';
+      if (unit.type === CabinetType.BASE) typeChar = 'B';
+      else if (unit.type === CabinetType.TALL) typeChar = 'T';
+      else if (unit.type === CabinetType.WALL_TOP) typeChar = 'U';
+      
+      const seq = typeChar === 'B' ? bIdx++ : typeChar === 'W' ? wIdx++ : typeChar === 'U' ? uIdx++ : tIdx++;
       const effectiveLabel = `${wallPrefix}${typeChar}${String(seq).padStart(2, '0')}`;
 
       // Temporarily override unit label for part generation
@@ -708,6 +720,61 @@ export const generateProjectBOM = (project: Project): {
 
     totalLinearFeet += (zoneLen / 304.8);
   });
+
+  // Merge contiguous WALL_TOP separators into full-length pieces for cut plan
+  const wallTopSep = project.settings.wallTopSeparatorThickness ?? (project.settings.enableTopRow ? (project.settings.doorMaterialThickness || 18) : 0);
+  if (wallTopSep > 0) {
+    const sepDepth = (project.settings.depthTall || 600) + (project.settings.doorMaterialThickness || 18);
+    const doorMat = project.settings.materialSettings?.doorMaterial || 'Face';
+    project.zones.filter(z => z.active).forEach((zone, zIdx) => {
+      const wallTops = zone.cabinets
+        .filter(c => c.type === CabinetType.WALL_TOP)
+        .sort((a, b) => a.fromLeft - b.fromLeft);
+
+      if (wallTops.length === 0) return;
+
+      const wallPrefix = `W${String(zIdx + 1).padStart(2, '0')}`;
+      let merged = {
+        fromLeft: wallTops[0].fromLeft,
+        right: wallTops[0].fromLeft + wallTops[0].width,
+        cabLabels: [`${wallPrefix}U${String(1).padStart(2, '0')}`]
+      };
+      const mergedPieces: { fromLeft: number; width: number; cabLabels: string[] }[] = [];
+
+      for (let i = 1; i < wallTops.length; i++) {
+        const next = wallTops[i];
+        const nextLabel = `${wallPrefix}U${String(i + 1).padStart(2, '0')}`;
+        if (next.fromLeft <= merged.right + 2) {
+          merged.right = Math.max(merged.right, next.fromLeft + next.width);
+          merged.cabLabels.push(nextLabel);
+        } else {
+          mergedPieces.push({ fromLeft: merged.fromLeft, width: merged.right - merged.fromLeft, cabLabels: merged.cabLabels });
+          merged = { fromLeft: next.fromLeft, right: next.fromLeft + next.width, cabLabels: [nextLabel] };
+        }
+      }
+      mergedPieces.push({ fromLeft: merged.fromLeft, width: merged.right - merged.fromLeft, cabLabels: merged.cabLabels });
+
+      mergedPieces.forEach(p => {
+        const sepArea = (p.width * sepDepth) / 1000000;
+        totalArea += sepArea;
+        groups.push({
+          cabinetId: `sep_z${zIdx + 1}`,
+          cabinetName: `Wall Top Separator - ${p.cabLabels.join(',')}`,
+          items: [{
+            id: uuid(),
+            name: 'Wall Top Separator',
+            qty: 1,
+            width: p.width,
+            length: sepDepth,
+            material: doorMat,
+            category: 'door',
+            label: p.cabLabels.join(','),
+            cabinetLabel: p.cabLabels.join(','),
+          }]
+        });
+      });
+    });
+  }
 
   // Calculate nails based on hinge count (6 nails per hinge)
   const totalHinges = hardwareSummary[HW.HINGE] || 0;
@@ -750,20 +817,83 @@ export const getMaterialRequirements = (
       let bIdx = 1;
       let wIdx = 1;
       let tIdx = 1;
+      let uIdx = 1;
       const sortedCabinets = [...zone.cabinets].sort((a, b) => a.fromLeft - b.fromLeft);
 
       sortedCabinets.forEach((unit, index) => {
         if (unit.isAutoFilled && unit.preset === PresetType.FILLER) return;
         
         const wallPrefix = `W${String(zIdx + 1).padStart(2, '0')}`;
-        const typeChar = unit.type === CabinetType.BASE ? 'B' : unit.type === CabinetType.WALL ? 'W' : 'T';
-        const seq = typeChar === 'B' ? bIdx++ : typeChar === 'W' ? wIdx++ : tIdx++;
+        let typeChar = 'W';
+        if (unit.type === CabinetType.BASE) typeChar = 'B';
+        else if (unit.type === CabinetType.TALL) typeChar = 'T';
+        else if (unit.type === CabinetType.WALL_TOP) typeChar = 'U';
+        
+        const seq = typeChar === 'B' ? bIdx++ : typeChar === 'W' ? wIdx++ : typeChar === 'U' ? uIdx++ : tIdx++;
         const effectiveLabel = `${wallPrefix}${typeChar}${String(seq).padStart(2, '0')}`;
         
         const parts = generateCabinetParts({ ...unit, label: effectiveLabel }, project.settings, index);
         allParts.push(...parts.filter(p => !p.isHardware));
       });
     });
+
+  // Merge contiguous WALL_TOP separators into full-length pieces for easier CNC
+  const wallTopSep = project.settings.wallTopSeparatorThickness ?? (project.settings.enableTopRow ? (project.settings.doorMaterialThickness || 18) : 0);
+  if (wallTopSep > 0) {
+    const sepDepth = (project.settings.depthTall || 600) + (project.settings.doorMaterialThickness || 18);
+    const doorMat = project.settings.materialSettings?.doorMaterial || 'Face';
+    project.zones.filter(z => z.active).forEach((zone, zIdx) => {
+      const wallTops = zone.cabinets
+        .filter(c => c.type === CabinetType.WALL_TOP)
+        .sort((a, b) => a.fromLeft - b.fromLeft);
+
+      if (wallTops.length === 0) return;
+
+      const wallPrefix = `W${String(zIdx + 1).padStart(2, '0')}`;
+      let merged = {
+        fromLeft: wallTops[0].fromLeft,
+        right: wallTops[0].fromLeft + wallTops[0].width,
+        cabLabels: [`${wallPrefix}U${String(1).padStart(2, '0')}`]
+      };
+      let uSepIdx = 1;
+      for (let i = 1; i < wallTops.length; i++) {
+        const next = wallTops[i];
+        const nextLabel = `${wallPrefix}U${String(++uSepIdx).padStart(2, '0')}`;
+        if (next.fromLeft <= merged.right + 2) {
+          merged.right = Math.max(merged.right, next.fromLeft + next.width);
+          merged.cabLabels.push(nextLabel);
+        } else {
+          const pieceWidth = merged.right - merged.fromLeft;
+          const label = merged.cabLabels.join(',');
+          allParts.push({
+            id: uuid(),
+            name: 'Wall Top Separator',
+            qty: 1,
+            width: pieceWidth,
+            length: sepDepth,
+            material: doorMat,
+            category: 'door',
+            label,
+            cabinetLabel: label,
+          });
+          merged = { fromLeft: next.fromLeft, right: next.fromLeft + next.width, cabLabels: [nextLabel] };
+        }
+      }
+      const pieceWidth = merged.right - merged.fromLeft;
+      const label = merged.cabLabels.join(',');
+      allParts.push({
+        id: uuid(),
+        name: 'Wall Top Separator',
+        qty: 1,
+        width: pieceWidth,
+        length: sepDepth,
+        material: doorMat,
+        category: 'door',
+        label,
+        cabinetLabel: label,
+      });
+    });
+  }
 
   // Group parts by material
   const materialGroups = allParts.reduce((acc, part) => {

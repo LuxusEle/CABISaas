@@ -226,11 +226,18 @@ export const WallVisualizer: React.FC<Props> = (props) => {
   const renderCabinetDetail = (unit: CabinetUnit, index: number) => {
     const isTall = unit.type === CabinetType.TALL;
     const isWall = unit.type === CabinetType.WALL;
+    const isWallTop = unit.type === CabinetType.WALL_TOP;
     
     const baseHeight = settings?.baseHeight || 870;
     const wallHeight = settings?.wallHeight || 720;
     const counterThickness = settings?.counterThickness || 40;
-    const tallHeight = (settings?.tallHeight === 2100 || !settings?.tallHeight) ? (baseHeight + counterThickness + (settings?.wallCabinetElevation || 450) + wallHeight) : settings.tallHeight;
+    const wallElevation = settings?.wallCabinetElevation || 450;
+    const baseTotal = baseHeight + counterThickness;
+    const wallTotal = wallElevation + wallHeight;
+    const wallTopSep = settings?.wallTopSeparatorThickness ?? (settings?.enableTopRow ? (settings?.doorMaterialThickness || 18) : 0);
+    const topRowHeight = Math.max(0, (height || 2400) - (baseTotal + wallTotal) - wallTopSep);
+    
+    const tallHeight = (settings?.tallHeight === 2100 || !settings?.tallHeight) ? (baseTotal + wallTotal) : settings.tallHeight;
     const toeKick = settings?.toeKickHeight || 100;
     
     let h = baseHeight - toeKick;
@@ -242,8 +249,11 @@ export const WallVisualizer: React.FC<Props> = (props) => {
     }
     else if (isWall) { 
         h = unit.advancedSettings?.height || wallHeight; 
-        const wallElevation = settings?.wallCabinetElevation || 450;
-        y = (height || 2400) - baseHeight - counterThickness - wallElevation - wallHeight;
+        y = (height || 2400) - baseTotal - wallTotal;
+    }
+    else if (isWallTop) {
+        h = unit.advancedSettings?.height || topRowHeight;
+        y = (height || 2400) - baseTotal - wallTotal - wallTopSep - h;
     }
 
     const x = unit.fromLeft;
@@ -442,6 +452,10 @@ export const WallVisualizer: React.FC<Props> = (props) => {
           className="cursor-pointer"
           style={{ pointerEvents: 'all' }}
         >
+          {/* Door material separator between wall row and top row */}
+          {isWallTop && wallTopSep > 0 && (
+            <rect x={x} y={y + h} width={w} height={wallTopSep} fill="#94a3b8" stroke="#64748b" strokeWidth="1" rx="1" />
+          )}
           <rect x={x} y={y} width={w} height={h} rx="2" fill={fillColor} stroke={strokeColor} strokeWidth="2" />
           
           <g>
@@ -701,14 +715,22 @@ export const WallVisualizer: React.FC<Props> = (props) => {
           const ct = settings?.counterThickness || 40;
           const wallElev = settings?.wallCabinetElevation || 450;
           const wallH = settings?.wallHeight || 720;
+          const baseTotal = baseH + ct;
+          const wallTotal = wallElev + wallH;
+          const topRowHeight = Math.max(0, height - (baseTotal + wallTotal));
           
           const points = [
             { y: height, label: '0' },
             { y: height - baseH - ct, label: (baseH + ct).toString() },
             { y: height - baseH - ct - wallElev, label: (baseH + ct + wallElev).toString() },
             { y: height - baseH - ct - wallElev - wallH, label: (baseH + ct + wallElev + wallH).toString() },
-            { y: 0, label: height.toString() }
-          ].sort((a, b) => b.y - a.y);
+          ];
+          
+          if (settings?.enableTopRow && topRowHeight > 0) {
+            points.push({ y: height - baseTotal - wallTotal - topRowHeight, label: (baseTotal + wallTotal + topRowHeight).toString() });
+          }
+          points.push({ y: 0, label: height.toString() });
+          points.sort((a, b) => b.y - a.y);
 
           return (
             <g>

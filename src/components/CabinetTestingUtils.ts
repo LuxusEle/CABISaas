@@ -73,7 +73,7 @@ export interface TestingSettings {
   numDrawers: number;
   numShelves: number;
   showShelves: boolean;
-  cabinetType: 'base' | 'sink' | 'wall' | 'tall' | 'corner' | 'wall_corner';
+  cabinetType: 'base' | 'sink' | 'wall' | 'tall' | 'corner' | 'wall_corner' | 'wall_top';
   blindPanelWidth: number;
   blindCornerSide: 'left' | 'right';
   hingeDiameter: number;
@@ -713,11 +713,11 @@ export const getCabinetTestingSettings = (
   heightOverride?: number,
   depthOverride?: number
 ): TestingSettings => {
-  const typeStr = unit.type.toLowerCase() as 'base' | 'wall' | 'tall';
+  const typeStr = unit.type === 'Wall Top' ? 'wall_top' : unit.type.toLowerCase() as 'base' | 'wall' | 'tall' | 'wall_top';
   
   // 1. Determine base dimensions from global settings if not overridden
-  const initialHeight = heightOverride ?? (typeStr === 'tall' ? globalSettings.tallHeight : typeStr === 'wall' ? globalSettings.wallHeight : globalSettings.baseHeight);
-  const initialDepth = depthOverride ?? (typeStr === 'tall' ? globalSettings.depthTall : typeStr === 'wall' ? globalSettings.depthWall : globalSettings.depthBase);
+  const initialHeight = heightOverride ?? (typeStr === 'tall' ? globalSettings.tallHeight : (typeStr === 'wall' || typeStr === 'wall_top') ? globalSettings.wallHeight : globalSettings.baseHeight);
+  const initialDepth = depthOverride ?? (typeStr === 'tall' ? globalSettings.depthTall : (typeStr === 'wall' || typeStr === 'wall_top') ? globalSettings.depthWall : globalSettings.depthBase);
   const initialToeKick = (typeStr === 'base' || typeStr === 'tall') ? (globalSettings.toeKickHeight ?? 100) : 0;
   
   // 2. Map basic cabinet properties + global defaults to TestingSettings
@@ -780,10 +780,10 @@ export const getCabinetTestingSettings = (
     // Always respect the current width from the layout
     merged.width = widthOverride ?? unit.width;
     merged.height = unit.advancedSettings.height ?? initialHeight;
-    merged.depth = initialDepth;
+    merged.depth = unit.advancedSettings.depth ?? initialDepth;
   } else {
     // Default visibility logic for new units
-    if (typeStr === 'wall') {
+    if (typeStr === 'wall' || typeStr === 'wall_top') {
       merged.showDrawers = false;
       merged.showDoors = true;
       merged.shelfDepth = initialDepth - merged.panelThickness - merged.backPanelThickness;
@@ -809,7 +809,10 @@ export const getCabinetTestingSettings = (
     merged.shelfDepth = maxShelfDepth;
   }
 
-
+  // Wall top cabinets never use gola mode
+  if (typeStr === 'wall_top') {
+    merged.enableGola = false;
+  }
 
   return merged;
 };
