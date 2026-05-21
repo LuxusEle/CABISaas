@@ -494,12 +494,13 @@ export const autoFillZone = (
   let bIdx = getExistingLabels(CabinetType.BASE) + 1;
   let wIdx = getExistingLabels(CabinetType.WALL) + 1;
   let tIdx = getExistingLabels(CabinetType.TALL) + 1;
+  let uIdx = getExistingLabels(CabinetType.WALL_TOP) + 1;
 
   const numbered = finalCabs.map(c => {
     let label = c.label; // Preserve existing labels
     if (!label) {
-      const typeChar = c.type === CabinetType.BASE ? 'B' : c.type === CabinetType.WALL ? 'W' : 'T';
-      const seq = typeChar === 'B' ? bIdx++ : typeChar === 'W' ? wIdx++ : tIdx++;
+      const typeChar = c.type === CabinetType.BASE ? 'B' : c.type === CabinetType.WALL ? 'W' : c.type === CabinetType.WALL_TOP ? 'U' : 'T';
+      const seq = typeChar === 'B' ? bIdx++ : typeChar === 'W' ? wIdx++ : typeChar === 'U' ? uIdx++ : tIdx++;
       label = `${zone.id}${typeChar}${String(seq).padStart(2, '0')}`;
     }
     return { ...c, label };
@@ -678,7 +679,7 @@ export const generateProjectBOM = (project: Project): {
     let bIdx = 1;
     let wIdx = 1;
     let tIdx = 1;
-    let wtIdx = 1;
+    let uIdx = 1;
 
     sortedCabinets.forEach((unit, index) => {
       // Only skip filler panels, include other auto-filled cabinets (boxes)
@@ -692,9 +693,9 @@ export const generateProjectBOM = (project: Project): {
       let typeChar = 'W';
       if (unit.type === CabinetType.BASE) typeChar = 'B';
       else if (unit.type === CabinetType.TALL) typeChar = 'T';
-      else if (unit.type === CabinetType.WALL_TOP) typeChar = 'WT';
+      else if (unit.type === CabinetType.WALL_TOP) typeChar = 'U';
       
-      const seq = typeChar === 'B' ? bIdx++ : typeChar === 'W' ? wIdx++ : typeChar === 'WT' ? wtIdx++ : tIdx++;
+      const seq = typeChar === 'B' ? bIdx++ : typeChar === 'W' ? wIdx++ : typeChar === 'U' ? uIdx++ : tIdx++;
       const effectiveLabel = `${wallPrefix}${typeChar}${String(seq).padStart(2, '0')}`;
 
       // Temporarily override unit label for part generation
@@ -773,7 +774,7 @@ export const getMaterialRequirements = (
       let bIdx = 1;
       let wIdx = 1;
       let tIdx = 1;
-      let wtIdx = 1;
+      let uIdx = 1;
       const sortedCabinets = [...zone.cabinets].sort((a, b) => a.fromLeft - b.fromLeft);
 
       sortedCabinets.forEach((unit, index) => {
@@ -783,9 +784,9 @@ export const getMaterialRequirements = (
         let typeChar = 'W';
         if (unit.type === CabinetType.BASE) typeChar = 'B';
         else if (unit.type === CabinetType.TALL) typeChar = 'T';
-        else if (unit.type === CabinetType.WALL_TOP) typeChar = 'WT';
+        else if (unit.type === CabinetType.WALL_TOP) typeChar = 'U';
         
-        const seq = typeChar === 'B' ? bIdx++ : typeChar === 'W' ? wIdx++ : typeChar === 'WT' ? wtIdx++ : tIdx++;
+        const seq = typeChar === 'B' ? bIdx++ : typeChar === 'W' ? wIdx++ : typeChar === 'U' ? uIdx++ : tIdx++;
         const effectiveLabel = `${wallPrefix}${typeChar}${String(seq).padStart(2, '0')}`;
         
         const parts = generateCabinetParts({ ...unit, label: effectiveLabel }, project.settings, index);

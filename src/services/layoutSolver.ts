@@ -571,7 +571,7 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
     let bIdx = 1;
     let wIdx = 1;
     let tIdx = 1;
-    let wtIdx = 1;
+    let uIdx = 1;
     
     const wallPrefix = `W${String(zIdx + 1).padStart(2, '0')}`;
     
@@ -579,9 +579,9 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
       let typeChar = 'W';
       if (c.type === CabinetType.BASE) typeChar = 'B';
       else if (c.type === CabinetType.TALL) typeChar = 'T';
-      else if (c.type === CabinetType.WALL_TOP) typeChar = 'WT';
+      else if (c.type === CabinetType.WALL_TOP) typeChar = 'U';
       
-      const seq = typeChar === 'B' ? bIdx++ : typeChar === 'W' ? wIdx++ : typeChar === 'WT' ? wtIdx++ : tIdx++;
+      const seq = typeChar === 'B' ? bIdx++ : typeChar === 'W' ? wIdx++ : typeChar === 'U' ? uIdx++ : tIdx++;
       return { ...c, label: `${wallPrefix}${typeChar}${String(seq).padStart(2, '0')}` };
     });
   });
