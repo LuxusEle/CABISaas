@@ -61,13 +61,19 @@ const calculateDoors = (cabinetWidth: number, doorHeight: number, settings: Proj
 // --- COLLISION LOGIC ---
 
 export const resolveCollisions = (zone: Zone): Zone => {
-  // Sort and create fresh copies to avoid mutating original state
-  const sortedCabs = [...zone.cabinets]
-    .sort((a, b) => a.fromLeft - b.fromLeft)
+  // Preserve WALL_TOP cabinets exactly — they must not be moved by collision resolution
+  const wallTops = zone.cabinets
+    .filter(c => c.type === CabinetType.WALL_TOP)
+    .map(c => ({ ...c }));
+  const others = zone.cabinets
+    .filter(c => c.type !== CabinetType.WALL_TOP)
     .map(c => ({ ...c }));
 
+  // Sort and create fresh copies to avoid mutating original state
+  const sortedCabs = [...others]
+    .sort((a, b) => a.fromLeft - b.fromLeft);
+
   // First pass: Push right to resolve overlaps
-  // First pass: Push right to resolve overlaps with other cabinets AND obstacles
   for (let i = 0; i < sortedCabs.length; i++) {
     const next = sortedCabs[i];
     let maxRight = next.fromLeft;
@@ -137,7 +143,7 @@ export const resolveCollisions = (zone: Zone): Zone => {
 
   return {
     ...zone,
-    cabinets: sortedCabs
+    cabinets: [...sortedCabs, ...wallTops].sort((a, b) => a.fromLeft - b.fromLeft)
   };
 };
 
