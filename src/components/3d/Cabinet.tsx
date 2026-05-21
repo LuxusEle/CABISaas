@@ -120,12 +120,13 @@ export const Cabinet = React.memo(({
 
   const isWall = unit.type === CabinetType.WALL;
   const isTall = unit.type === CabinetType.TALL;
-  const isBase = !isWall && !isTall;
+  const isWallTop = unit.type === CabinetType.WALL_TOP;
+  const isBase = !isWall && !isTall && !isWallTop;
 
   // Use effective dimensions (layout sizes)
   const width = unit.width;
-  const depth = unit.depth || unit.advancedSettings?.depth || (isWall ? settings?.depthWall || 300 : isTall ? (settings?.depthTall || 560) : (settings?.depthBase || 560));
-  const height = unit.height || unit.advancedSettings?.height || (isTall ? ((settings?.tallHeight === 2100 || !settings?.tallHeight) ? ((settings?.baseHeight || 870) + (settings?.counterThickness || 40) + (settings?.wallCabinetElevation || 450) + (settings?.wallHeight || 720)) : settings.tallHeight) : isWall ? (settings?.wallHeight || 720) : (settings?.baseHeight || 870));
+  const depth = unit.depth || unit.advancedSettings?.depth || (isWall || isWallTop ? settings?.depthWall || 300 : isTall ? (settings?.depthTall || 560) : (settings?.depthBase || 560));
+  const height = unit.height || unit.advancedSettings?.height || (isTall ? ((settings?.tallHeight === 2100 || !settings?.tallHeight) ? ((settings?.baseHeight || 870) + (settings?.counterThickness || 40) + (settings?.wallCabinetElevation || 450) + (settings?.wallHeight || 720)) : settings.tallHeight) : (isWall || isWallTop) ? (settings?.wallHeight || 720) : (settings?.baseHeight || 870));
   
   const baseHeight = settings?.baseHeight || 870;
   const counterThickness = settings?.counterThickness || 40;
@@ -134,6 +135,8 @@ export const Cabinet = React.memo(({
   let zBase = 0;
   if (isWall && !previewMode) {
     zBase = baseHeight + counterThickness + wallElevation + (unit.advancedSettings?.elevationOffset || 0);
+  } else if (isWallTop && !previewMode) {
+    zBase = baseHeight + counterThickness + wallElevation + (settings?.wallHeight || 720);
   }
 
   const isCooker = unit.preset === PresetType.COOKER_HOB || 
@@ -324,6 +327,16 @@ export const Cabinet = React.memo(({
                 rotation={[-Math.PI / 2, 0, 0]}
               />
             </group>
+          )}
+        </group>
+      )}
+
+      {isWallTop && (
+        <group position={[0, zBase, 0]}>
+          {unit.preset === PresetType.WALL_CORNER ? (
+            <WallCornerCabinetTesting settings={testingSettings} />
+          ) : (
+            <WallCabinetTesting settings={testingSettings} />
           )}
         </group>
       )}

@@ -1226,6 +1226,30 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
                             </label>
                           ))}
                         </div>
+                        
+                        <div className="bg-slate-50 dark:bg-slate-800/30 p-8 rounded-[2.5rem] border-2 border-slate-100 dark:border-slate-800 space-y-6">
+                          <label className="flex items-center gap-4 cursor-pointer group">
+                            <input
+                              type="checkbox"
+                              className="w-6 h-6 rounded-lg border-2 border-slate-300 dark:border-slate-600 text-amber-500 focus:ring-amber-500 accent-amber-500"
+                              checked={project.settings.enableTopRow || false}
+                              onChange={(e) => setProject({
+                                ...project,
+                                settings: { ...project.settings, enableTopRow: e.target.checked }
+                              })}
+                            />
+                            <div>
+                              <h5 className="font-black uppercase tracking-tight text-sm text-slate-900 dark:text-white">Ceiling-Touch Wall Cabinets (Top Row)</h5>
+                              <p className="text-xs text-slate-500 font-medium italic mt-1">Automatically stack a second row of wall cabinets to reach the ceiling.</p>
+                            </div>
+                          </label>
+                          
+                          {project.settings.enableTopRow && (
+                            <div className="pl-10 animate-in fade-in slide-in-from-top-4 duration-300">
+                              <p className="text-xs text-amber-500 font-bold italic">Top row height is automatically calculated from wall ceiling height to fit perfectly.</p>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
 

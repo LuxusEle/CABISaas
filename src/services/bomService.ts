@@ -557,7 +557,7 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
     exportWallCornerCabinetDXF(t, null, dataCollector);
   } else if (t.cabinetType === 'base') {
     exportBaseCabinetDXF(t, null, dataCollector);
-  } else if (t.cabinetType === 'wall') {
+  } else if (t.cabinetType === 'wall' || t.cabinetType === 'wall_top') {
     exportWallCabinetDXF(t, null, dataCollector);
   } else if (t.cabinetType === 'tall') {
     exportTallCabinetDXF(t, null, dataCollector);
@@ -602,7 +602,7 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
   if (unit.type === CabinetType.BASE || isTall) {
     parts.push({ id: uuid(), name: HW.LEG, qty: isTall ? 6 : 4, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
   }
-  if (unit.type === CabinetType.WALL) {
+  if (unit.type === CabinetType.WALL || unit.type === CabinetType.WALL_TOP) {
     parts.push({ id: uuid(), name: HW.HANGER, qty: 1, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
   }
 
@@ -660,18 +660,23 @@ export const generateProjectBOM = (project: Project): {
     let bIdx = 1;
     let wIdx = 1;
     let tIdx = 1;
+    let wtIdx = 1;
 
     sortedCabinets.forEach((unit, index) => {
       // Only skip filler panels, include other auto-filled cabinets (boxes)
       if (unit.isAutoFilled && unit.preset === PresetType.FILLER) return;
 
       cabinetCount++;
-      if (unit.type !== CabinetType.WALL) zoneLen += unit.width;
+      if (unit.type !== CabinetType.WALL && unit.type !== CabinetType.WALL_TOP) zoneLen += unit.width;
 
       // Assign sequential label for the report: W01B01, W01W01 etc.
       const wallPrefix = `W${String(zIdx + 1).padStart(2, '0')}`;
-      const typeChar = unit.type === CabinetType.BASE ? 'B' : unit.type === CabinetType.WALL ? 'W' : 'T';
-      const seq = typeChar === 'B' ? bIdx++ : typeChar === 'W' ? wIdx++ : tIdx++;
+      let typeChar = 'W';
+      if (unit.type === CabinetType.BASE) typeChar = 'B';
+      else if (unit.type === CabinetType.TALL) typeChar = 'T';
+      else if (unit.type === CabinetType.WALL_TOP) typeChar = 'WT';
+      
+      const seq = typeChar === 'B' ? bIdx++ : typeChar === 'W' ? wIdx++ : typeChar === 'WT' ? wtIdx++ : tIdx++;
       const effectiveLabel = `${wallPrefix}${typeChar}${String(seq).padStart(2, '0')}`;
 
       // Temporarily override unit label for part generation
@@ -750,14 +755,19 @@ export const getMaterialRequirements = (
       let bIdx = 1;
       let wIdx = 1;
       let tIdx = 1;
+      let wtIdx = 1;
       const sortedCabinets = [...zone.cabinets].sort((a, b) => a.fromLeft - b.fromLeft);
 
       sortedCabinets.forEach((unit, index) => {
         if (unit.isAutoFilled && unit.preset === PresetType.FILLER) return;
         
         const wallPrefix = `W${String(zIdx + 1).padStart(2, '0')}`;
-        const typeChar = unit.type === CabinetType.BASE ? 'B' : unit.type === CabinetType.WALL ? 'W' : 'T';
-        const seq = typeChar === 'B' ? bIdx++ : typeChar === 'W' ? wIdx++ : tIdx++;
+        let typeChar = 'W';
+        if (unit.type === CabinetType.BASE) typeChar = 'B';
+        else if (unit.type === CabinetType.TALL) typeChar = 'T';
+        else if (unit.type === CabinetType.WALL_TOP) typeChar = 'WT';
+        
+        const seq = typeChar === 'B' ? bIdx++ : typeChar === 'W' ? wIdx++ : typeChar === 'WT' ? wtIdx++ : tIdx++;
         const effectiveLabel = `${wallPrefix}${typeChar}${String(seq).padStart(2, '0')}`;
         
         const parts = generateCabinetParts({ ...unit, label: effectiveLabel }, project.settings, index);

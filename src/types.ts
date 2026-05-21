@@ -23,7 +23,8 @@ export enum ZoneId {
 export enum CabinetType {
   BASE = 'Base',
   WALL = 'Wall',
-  TALL = 'Tall'
+  TALL = 'Tall',
+  WALL_TOP = 'Wall Top'
 }
 
 export enum PresetType {
@@ -69,6 +70,7 @@ export interface ProjectSettings {
   currency: string;
   logoUrl?: string;
   designCaptures?: string[];
+  enableTopRow?: boolean;
 
   // Dimensions
   baseHeight: number;
