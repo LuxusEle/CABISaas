@@ -3,7 +3,7 @@ import { Html, Outlines, Text } from '@react-three/drei';
 import * as THREE from 'three';
 import { useLoader } from '@react-three/fiber';
 import { CabinetUnit, CabinetType, ProjectSettings, PresetType, Obstacle } from '../../types';
-import { getCabinetTestingSettings } from '../CabinetTestingUtils';
+import { getCabinetTestingSettings, woodPalette } from '../CabinetTestingUtils';
 import { BaseCabinetTesting } from '../BaseCabinetTesting';
 import { BaseCornerCabinetTesting } from '../BaseCornerCabinetTesting';
 import { WallCabinetTesting } from '../WallCabinetTesting';
@@ -134,6 +134,7 @@ export const Cabinet = React.memo(({
   
   const wallTopSep = settings?.wallTopSeparatorThickness ?? (settings?.enableTopRow ? (settings?.doorMaterialThickness || 18) : 0);
   const wallTopSepDepth = (settings?.depthTall || 600) + (settings?.doorMaterialThickness || 18);
+  const doorColor = new THREE.Color(isSelected ? '#2563eb' : woodPalette.door);
 
   let zBase = 0;
   if (isWall && !previewMode) {
@@ -312,10 +313,11 @@ export const Cabinet = React.memo(({
             <mesh position={[width / 2, (height || settings?.wallHeight || 720) + wallTopSep / 2, wallTopSepDepth / 2]}>
               <boxGeometry args={[width, wallTopSep, wallTopSepDepth]} />
               <meshStandardMaterial
-                color={isStudio ? '#f8fafc' : '#94a3b8'}
-                roughness={0.6}
-                metalness={0.0}
-                map={doorTexture}
+                color={isStudio && doorTexture ? '#ffffff' : doorColor}
+                map={isStudio ? doorTexture : undefined}
+                roughness={0.4}
+                metalness={0}
+                side={THREE.DoubleSide}
                 transparent={testingSettings.opacity < 1}
                 opacity={testingSettings.opacity}
                 depthWrite={testingSettings.opacity < 1 ? false : true}
@@ -368,10 +370,11 @@ export const Cabinet = React.memo(({
             <mesh position={[width / 2, height + wallTopSep / 2, wallTopSepDepth / 2]}>
               <boxGeometry args={[width, wallTopSep, wallTopSepDepth]} />
               <meshStandardMaterial
-                color={isStudio ? '#f8fafc' : '#94a3b8'}
-                roughness={0.6}
-                metalness={0.0}
-                map={doorTexture}
+                color={isStudio && doorTexture ? '#ffffff' : doorColor}
+                map={isStudio ? doorTexture : undefined}
+                roughness={0.4}
+                metalness={0}
+                side={THREE.DoubleSide}
                 transparent={testingSettings.opacity < 1}
                 opacity={testingSettings.opacity}
                 depthWrite={testingSettings.opacity < 1 ? false : true}

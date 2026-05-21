@@ -606,6 +606,24 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
     parts.push({ id: uuid(), name: HW.HANGER, qty: 1, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
   }
 
+  // Door material separator on top of wall/tall cabinets below top row
+  const wallTopSep = settings.wallTopSeparatorThickness ?? (settings.enableTopRow ? (settings.doorMaterialThickness || 18) : 0);
+  if (wallTopSep > 0 && (unit.type === CabinetType.WALL || unit.type === CabinetType.TALL)) {
+    const sepDepth = (settings.depthTall || 600) + (settings.doorMaterialThickness || 18);
+    parts.push({
+      id: uuid(),
+      name: 'Wall Top Separator',
+      qty: 1,
+      width: unit.width,
+      length: sepDepth,
+      material: doorMaterial,
+      category: 'door',
+      label: labelPrefix,
+      cabinetId: unit.id,
+      cabinetLabel: unit.label,
+    });
+  }
+
   // Hinges and Handles
   const RUBY_DOOR_THRESHOLD = 599.5;
   let cabinetDoors = 0;
