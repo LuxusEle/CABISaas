@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Sparkles, Box, Ruler, Calculator, ChevronDown, Sun, Moon, Menu, X, User, Check, FileText, Shield } from 'lucide-react';
+import { ArrowRight, Sparkles, Box, Ruler, Calculator, ChevronDown, Sun, Moon, Menu, X, User, Check, FileText, Shield, Download } from 'lucide-react';
 import { Button } from './Button';
 import { LandingDocsModal } from './LandingDocsModal';
 import { LandingHeader } from './LandingHeader';
@@ -273,6 +273,19 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
           to { opacity: 1; transform: translateY(0); }
         }
         .animate-fade-in-up { animation: fadeInUp 0.6s ease-out forwards; }
+        @keyframes pulse-glow {
+          0%, 100% { 
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.2);
+            transform: scale(1);
+          }
+          50% { 
+            box-shadow: 0 0 50px rgba(245, 158, 11, 0.5), 0 0 80px rgba(245, 158, 11, 0.2);
+            transform: scale(1.03);
+          }
+        }
+        .animate-pulse-glow {
+          animation: pulse-glow 2.5s ease-in-out infinite;
+        }
         .text-gradient {
           background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 50%, #f59e0b 100%);
           -webkit-background-clip: text;
@@ -292,6 +305,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
       <section className="relative min-h-screen flex items-start md:items-center justify-center md:pt-14 sm:pt-16 overflow-hidden bg-transparent">
         {/* Layered Overlays Removed as requested */}
 
+        {/* No Download Required - top left */}
+        <div className="absolute top-20 left-8 sm:top-28 sm:left-20 z-20 animate-slide-up" style={{ animationDelay: '0.2s' }}>
+          <div className="inline-flex items-center gap-2 sm:gap-3 px-3 sm:px-5 py-2 sm:py-3 rounded-xl bg-gradient-to-r from-amber-500/10 via-amber-400/20 to-amber-500/10 dark:from-amber-500/20 dark:via-amber-400/30 dark:to-amber-500/20 border border-amber-300/30 dark:border-amber-400/30 animate-pulse-glow backdrop-blur-sm">
+            <Download className="w-5 h-5 sm:w-7 sm:h-7 text-amber-500 flex-shrink-0" />
+            <span className="text-base sm:text-xl md:text-2xl font-black text-amber-600 dark:text-amber-400 whitespace-nowrap">
+              No Download Required
+            </span>
+          </div>
+        </div>
+
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-start md:items-center justify-end min-h-screen pt-4 md:pt-12 pb-24 md:pb-40 w-full">
           <div className="w-full max-w-2xl text-center md:text-right flex flex-col items-center md:items-end md:mr-[15%] xl:mr-[-10%]">
             {/* Animated badge */}
@@ -306,7 +329,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
               <div className="text-xl sm:text-2xl md:text-3xl text-slate-800 dark:text-slate-200 md:text-slate-600 md:dark:text-slate-400 mb-4 sm:mb-6 font-medium">
                 <TypewriterText text="Design. Visualize. Build." delay={800} />
               </div>
-              
+
               <div className="flex flex-col items-center md:items-end gap-2 mb-8 animate-slide-up-blink opacity-0" style={{ animationDelay: '1.2s', animationFillMode: 'forwards' }}>
                 <div className="flex items-center gap-2">
                   <span className="px-2 py-0.5 rounded bg-blue-500 text-[10px] uppercase font-black text-white shadow-lg shadow-blue-500/20">
@@ -458,7 +481,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
                   <span className="text-slate-500 dark:text-slate-400">/month</span>
                 </div>
 
-                <p className="text-slate-600 dark:text-slate-400 mb-6">Perfect for hobbyists and small projects</p>
+                <p className="text-slate-600 dark:text-slate-400 mb-6">Perfect for hobbyists and small projects — instant web access</p>
 
                 <Button
                   size="lg"
@@ -481,6 +504,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
                   <div className="flex items-start gap-3">
                     <Check size={18} className="text-green-500 mt-0.5 flex-shrink-0" />
                     <span className="text-slate-600 dark:text-slate-400 text-sm">3D visualization</span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Check size={18} className="text-green-500 mt-0.5 flex-shrink-0" />
+                    <span className="text-slate-600 dark:text-slate-400 text-sm">Instant browser access — no download</span>
                   </div>
                   <div className="flex items-start gap-3">
                     <X size={18} className="text-red-500 mt-0.5 flex-shrink-0" />
@@ -513,7 +540,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
                   <span className="text-slate-500 dark:text-slate-400">/month</span>
                 </div>
 
-                <p className="text-slate-600 dark:text-slate-400 mb-6">For professionals and growing shops</p>
+                <p className="text-slate-600 dark:text-slate-400 mb-6">For professionals and growing shops — browser-based platform</p>
 
                 <Button
                   size="lg"
@@ -542,12 +569,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
                   </div>
                   <div className="flex items-start gap-3">
                     <Check size={18} className="text-green-500 mt-0.5 flex-shrink-0" />
+                    <span className="text-slate-600 dark:text-slate-400 text-sm">Full cloud-based platform</span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Check size={18} className="text-green-500 mt-0.5 flex-shrink-0" />
                     <span className="text-slate-600 dark:text-slate-400 text-sm">Email support</span>
                   </div>
                 </div>
               </div>
             </div>
           </div>
+
+          <p className="text-center text-sm text-slate-500 dark:text-slate-400 mt-8 max-w-xl mx-auto">
+            CabEngine Pro is a 100% cloud-based SaaS platform. All you need is a modern web browser and an internet connection.
+          </p>
         </div>
       </section>
 
