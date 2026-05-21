@@ -613,24 +613,6 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
     parts.push({ id: uuid(), name: HW.HANGER, qty: 1, width: 0, length: 0, material: 'Hardware', category: 'hardware', isHardware: true });
   }
 
-  // Door material separator on top of wall/tall cabinets below top row
-  const wallTopSep = settings.wallTopSeparatorThickness ?? (settings.enableTopRow ? (settings.doorMaterialThickness || 18) : 0);
-  if (wallTopSep > 0 && (unit.type === CabinetType.WALL || unit.type === CabinetType.TALL)) {
-    const sepDepth = (settings.depthTall || 600) + (settings.doorMaterialThickness || 18);
-    parts.push({
-      id: uuid(),
-      name: 'Wall Top Separator',
-      qty: 1,
-      width: unit.width,
-      length: sepDepth,
-      material: doorMaterial,
-      category: 'door',
-      label: labelPrefix,
-      cabinetId: unit.id,
-      cabinetLabel: unit.label,
-    });
-  }
-
   // Hinges and Handles
   const RUBY_DOOR_THRESHOLD = 599.5;
   let cabinetDoors = 0;
@@ -739,6 +721,61 @@ export const generateProjectBOM = (project: Project): {
     totalLinearFeet += (zoneLen / 304.8);
   });
 
+  // Merge contiguous WALL_TOP separators into full-length pieces for cut plan
+  const wallTopSep = project.settings.wallTopSeparatorThickness ?? (project.settings.enableTopRow ? (project.settings.doorMaterialThickness || 18) : 0);
+  if (wallTopSep > 0) {
+    const sepDepth = (project.settings.depthTall || 600) + (project.settings.doorMaterialThickness || 18);
+    const doorMat = project.settings.materialSettings?.doorMaterial || 'Face';
+    project.zones.filter(z => z.active).forEach((zone, zIdx) => {
+      const wallTops = zone.cabinets
+        .filter(c => c.type === CabinetType.WALL_TOP)
+        .sort((a, b) => a.fromLeft - b.fromLeft);
+
+      if (wallTops.length === 0) return;
+
+      const wallPrefix = `W${String(zIdx + 1).padStart(2, '0')}`;
+      let merged = {
+        fromLeft: wallTops[0].fromLeft,
+        right: wallTops[0].fromLeft + wallTops[0].width,
+        cabLabels: [`${wallPrefix}U${String(1).padStart(2, '0')}`]
+      };
+      const mergedPieces: { fromLeft: number; width: number; cabLabels: string[] }[] = [];
+
+      for (let i = 1; i < wallTops.length; i++) {
+        const next = wallTops[i];
+        const nextLabel = `${wallPrefix}U${String(i + 1).padStart(2, '0')}`;
+        if (next.fromLeft <= merged.right + 2) {
+          merged.right = Math.max(merged.right, next.fromLeft + next.width);
+          merged.cabLabels.push(nextLabel);
+        } else {
+          mergedPieces.push({ fromLeft: merged.fromLeft, width: merged.right - merged.fromLeft, cabLabels: merged.cabLabels });
+          merged = { fromLeft: next.fromLeft, right: next.fromLeft + next.width, cabLabels: [nextLabel] };
+        }
+      }
+      mergedPieces.push({ fromLeft: merged.fromLeft, width: merged.right - merged.fromLeft, cabLabels: merged.cabLabels });
+
+      mergedPieces.forEach(p => {
+        const sepArea = (p.width * sepDepth) / 1000000;
+        totalArea += sepArea;
+        groups.push({
+          cabinetId: `sep_z${zIdx + 1}`,
+          cabinetName: `Wall Top Separator - ${p.cabLabels.join(',')}`,
+          items: [{
+            id: uuid(),
+            name: 'Wall Top Separator',
+            qty: 1,
+            width: p.width,
+            length: sepDepth,
+            material: doorMat,
+            category: 'door',
+            label: p.cabLabels.join(','),
+            cabinetLabel: p.cabLabels.join(','),
+          }]
+        });
+      });
+    });
+  }
+
   // Calculate nails based on hinge count (6 nails per hinge)
   const totalHinges = hardwareSummary[HW.HINGE] || 0;
   if (totalHinges > 0) {
@@ -799,6 +836,64 @@ export const getMaterialRequirements = (
         allParts.push(...parts.filter(p => !p.isHardware));
       });
     });
+
+  // Merge contiguous WALL_TOP separators into full-length pieces for easier CNC
+  const wallTopSep = project.settings.wallTopSeparatorThickness ?? (project.settings.enableTopRow ? (project.settings.doorMaterialThickness || 18) : 0);
+  if (wallTopSep > 0) {
+    const sepDepth = (project.settings.depthTall || 600) + (project.settings.doorMaterialThickness || 18);
+    const doorMat = project.settings.materialSettings?.doorMaterial || 'Face';
+    project.zones.filter(z => z.active).forEach((zone, zIdx) => {
+      const wallTops = zone.cabinets
+        .filter(c => c.type === CabinetType.WALL_TOP)
+        .sort((a, b) => a.fromLeft - b.fromLeft);
+
+      if (wallTops.length === 0) return;
+
+      const wallPrefix = `W${String(zIdx + 1).padStart(2, '0')}`;
+      let merged = {
+        fromLeft: wallTops[0].fromLeft,
+        right: wallTops[0].fromLeft + wallTops[0].width,
+        cabLabels: [`${wallPrefix}U${String(1).padStart(2, '0')}`]
+      };
+      let uSepIdx = 1;
+      for (let i = 1; i < wallTops.length; i++) {
+        const next = wallTops[i];
+        const nextLabel = `${wallPrefix}U${String(++uSepIdx).padStart(2, '0')}`;
+        if (next.fromLeft <= merged.right + 2) {
+          merged.right = Math.max(merged.right, next.fromLeft + next.width);
+          merged.cabLabels.push(nextLabel);
+        } else {
+          const pieceWidth = merged.right - merged.fromLeft;
+          const label = merged.cabLabels.join(',');
+          allParts.push({
+            id: uuid(),
+            name: 'Wall Top Separator',
+            qty: 1,
+            width: pieceWidth,
+            length: sepDepth,
+            material: doorMat,
+            category: 'door',
+            label,
+            cabinetLabel: label,
+          });
+          merged = { fromLeft: next.fromLeft, right: next.fromLeft + next.width, cabLabels: [nextLabel] };
+        }
+      }
+      const pieceWidth = merged.right - merged.fromLeft;
+      const label = merged.cabLabels.join(',');
+      allParts.push({
+        id: uuid(),
+        name: 'Wall Top Separator',
+        qty: 1,
+        width: pieceWidth,
+        length: sepDepth,
+        material: doorMat,
+        category: 'door',
+        label,
+        cabinetLabel: label,
+      });
+    });
+  }
 
   // Group parts by material
   const materialGroups = allParts.reduce((acc, part) => {

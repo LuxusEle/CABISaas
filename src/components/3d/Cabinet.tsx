@@ -309,23 +309,6 @@ export const Cabinet = React.memo(({
             <WallCabinetTesting settings={testingSettings} />
           )}
 
-          {/* Door material separator sheet on top of wall cabinet row */}
-          {wallTopSep > 0 && (
-            <mesh position={[width / 2, (height || settings?.wallHeight || 720) + wallTopSep / 2, wallTopSepDepth / 2]}>
-              <boxGeometry args={[width, wallTopSep, wallTopSepDepth]} />
-              <meshStandardMaterial
-                color={isStudio && doorTexture ? '#ffffff' : doorColor}
-                map={isStudio ? doorTexture : undefined}
-                roughness={0.4}
-                metalness={0}
-                side={THREE.DoubleSide}
-                transparent={testingSettings.opacity < 1}
-                opacity={testingSettings.opacity}
-                depthWrite={testingSettings.opacity < 1 ? false : true}
-              />
-            </mesh>
-          )}
-
           {/* Dedicated Hood Component for wall units - Attached to bottom, no chimney */}
           {unit.preset === PresetType.HOOD_UNIT && !skeletonView && (
             <group position={[width / 2, -30, depth / 2]}>
@@ -360,15 +343,10 @@ export const Cabinet = React.memo(({
           ) : (
             <WallCabinetTesting settings={testingSettings} />
           )}
-        </group>
-      )}
-      {isTall && (
-        <group position={[0, 0, 0]}>
-          <TallCabinetTesting settings={testingSettings} />
 
-          {/* Door material separator sheet on top of tall cabinet row */}
+          {/* Door material separator sheet at bottom of top cabinet, sitting on wall/tall cabinet below */}
           {wallTopSep > 0 && (
-            <mesh position={[width / 2, height + wallTopSep / 2, wallTopSepDepth / 2]}>
+            <mesh position={[width / 2, -wallTopSep / 2, wallTopSepDepth / 2]}>
               <boxGeometry args={[width, wallTopSep, wallTopSepDepth]} />
               <meshStandardMaterial
                 color={isStudio && doorTexture ? '#ffffff' : doorColor}
@@ -382,6 +360,11 @@ export const Cabinet = React.memo(({
               />
             </mesh>
           )}
+        </group>
+      )}
+      {isTall && (
+        <group position={[0, 0, 0]}>
+          <TallCabinetTesting settings={testingSettings} />
         </group>
       )}
 
