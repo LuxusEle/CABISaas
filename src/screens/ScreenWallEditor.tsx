@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Box, DoorOpen, Settings, Settings2, RotateCcw, Lock, X, ArrowLeft, ArrowRight, Save, LayoutDashboard, Calculator, Zap, Menu, Layers, Table2, Maximize2 } from 'lucide-react';
+import { Plus, Box, DoorOpen, Settings, Settings2, RotateCcw, Lock, X, ArrowLeft, ArrowRight, Save, LayoutDashboard, Calculator, Zap, Menu, Layers, Table2, Maximize2, Layout } from 'lucide-react';
 import { Screen, Project, Zone, PresetType, CabinetType, CabinetUnit, Obstacle, AutoFillOptions } from '../types';
 import { autoFillZone, resolveCollisions, resolveLocalCollisions } from '../services/bomService';
 import { Button } from '../components/Button';
@@ -18,6 +18,7 @@ import ReactCrop, { type Crop, centerCrop, makeAspectCrop, PixelCrop } from 'rea
 import 'react-image-crop/dist/ReactCrop.css';
 import { getCroppedImg } from '../utils/cropImage';
 import { useProjectStore } from '../store/useProjectStore';
+import { createDefaultIslandZone, autoFillIsland, createIslandCabinet } from '../services/islandService';
 
 interface ScreenWallEditorProps {
   setScreen: (s: Screen) => void;
@@ -317,13 +318,32 @@ const ScreenWallEditor = ({
     const targetId = zoneId || activeTab || project.zones[0]?.id;
     if (!targetId) return;
 
-    const newCabinet: CabinetUnit = {
-      ...cabinet,
-      id: Math.random().toString(36).substr(2, 9),
-      fromLeft,
-      width: targetWidth || cabinet.width,
-      label: '' 
-    };
+    const targetZone = project.zones.find(z => z.id === targetId);
+    const isIsland = targetZone?.zoneType === 'island';
+
+    let newCabinet: CabinetUnit;
+    if (isIsland) {
+      const w = targetWidth || cabinet.width;
+      const isSink = cabinet.preset === PresetType.SINK_UNIT;
+      const isDrawer = cabinet.preset === PresetType.BASE_DRAWER_3;
+      newCabinet = createIslandCabinet(CabinetType.BASE, w, fromLeft, {
+        showDoors: !isDrawer && !isSink,
+        showDrawers: isDrawer,
+        numDrawers: isDrawer ? 3 : 0,
+        showShelves: !isDrawer && !isSink,
+        numShelves: isSink ? 0 : 2,
+        showBackPanel: !isSink,
+        depth: targetZone?.islandSettings?.islandDepth ?? project.settings.depthBase,
+      });
+    } else {
+      newCabinet = {
+        ...cabinet,
+        id: Math.random().toString(36).substr(2, 9),
+        fromLeft,
+        width: targetWidth || cabinet.width,
+        label: '' 
+      };
+    }
     
     updateZone(z => resolveCollisions({ ...z, cabinets: [...z.cabinets, newCabinet] }), false, targetId);
     setDraggingCabinet(null);
@@ -570,6 +590,21 @@ const ScreenWallEditor = ({
                       <span className="relative z-10">{z.id}</span>
                     </button>
                   ))}
+                  {!project.zones.some(z => z.zoneType === 'island') && (
+                    <button
+                      onClick={() => {
+                        saveToHistory();
+                        setProject(prev => ({
+                          ...prev,
+                          zones: [...prev.zones, createDefaultIslandZone()]
+                        }));
+                        setActiveTab('Island');
+                      }}
+                      className="px-4 py-3 text-xs font-black uppercase tracking-widest rounded-t-xl text-emerald-500 hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-all"
+                    >
+                      + Island
+                    </button>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-4 pb-1">
@@ -622,20 +657,58 @@ const ScreenWallEditor = ({
               {/* View Area */}
               <div className="flex-1 min-h-0 relative bg-slate-100/30 dark:bg-slate-950/50">
                 {visualMode === 'elevation' ? (
-                  <WallVisualizer 
-                    zone={currentZone}
-                    height={currentZone.wallHeight || 2400}
-                    onCabinetClick={(i) => handleCabinetSelection(i)}
-                    onObstacleClick={(i) => openEdit('obstacle', i)}
-                    onCabinetMove={handleCabinetMove}
-                    onObstacleMove={handleObstacleMove}
-                    onSwapCabinets={handleSwapCabinets}
-                    onDragEnd={() => {}}
-                    selectedCabinet={swapMode ? null : selectedCabinet}
-                    swapSelection={swapMode ? swapSelection : []}
-                    draggedCabinet={draggingCabinet}
-                    onDropCabinet={handleDropCabinet}
-                  />
+                  currentZone.zoneType === 'island' ? (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <div className="text-center p-8 max-w-md">
+                        <Layout size={48} className="mx-auto text-emerald-500 mb-4" />
+                        <h3 className="text-lg font-black text-slate-800 dark:text-white uppercase mb-2">Island Zone</h3>
+                        <p className="text-sm text-slate-500 mb-6">
+                          Switch to <strong>3D Design</strong> view to see the island, or use the cabinet list below to manage cabinets.
+                        </p>
+                        <div className="grid grid-cols-2 gap-3 text-left text-xs">
+                          <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl">
+                            <span className="block text-slate-400 uppercase font-black">Length</span>
+                            <span className="block text-slate-800 dark:text-white font-bold text-lg">
+                              {currentZone.totalLength}mm
+                            </span>
+                          </div>
+                          <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl">
+                            <span className="block text-slate-400 uppercase font-black">Depth</span>
+                            <span className="block text-slate-800 dark:text-white font-bold text-lg">
+                              {currentZone.islandSettings?.islandDepth || project.settings.depthBase}mm
+                            </span>
+                          </div>
+                          <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl">
+                            <span className="block text-slate-400 uppercase font-black">Position</span>
+                            <span className="block text-slate-800 dark:text-white font-bold text-lg">
+                              X:{Math.round(currentZone.islandSettings?.posX ?? 1800)} Z:{Math.round(currentZone.islandSettings?.posZ ?? 1500)}mm
+                            </span>
+                          </div>
+                          <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl">
+                            <span className="block text-slate-400 uppercase font-black">Cabinets</span>
+                            <span className="block text-slate-800 dark:text-white font-bold text-lg">
+                              {currentZone.cabinets.length}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <WallVisualizer 
+                      zone={currentZone}
+                      height={currentZone.wallHeight || 2400}
+                      onCabinetClick={(i) => handleCabinetSelection(i)}
+                      onObstacleClick={(i) => openEdit('obstacle', i)}
+                      onCabinetMove={handleCabinetMove}
+                      onObstacleMove={handleObstacleMove}
+                      onSwapCabinets={handleSwapCabinets}
+                      onDragEnd={() => {}}
+                      selectedCabinet={swapMode ? null : selectedCabinet}
+                      swapSelection={swapMode ? swapSelection : []}
+                      draggedCabinet={draggingCabinet}
+                      onDropCabinet={handleDropCabinet}
+                    />
+                  )
                 ) : (
                   <CabinetViewer 
                     ref={cabinetViewerRef}

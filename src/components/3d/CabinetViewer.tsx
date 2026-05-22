@@ -7,6 +7,7 @@ import * as THREE from 'three';
 import { Video, Box, Download } from 'lucide-react';
 import { exportSceneToGLB } from '../../services/export3dService';
 import { Project, CabinetType, CabinetUnit, Zone, Obstacle, ProjectSettings, PresetType } from '../../types';
+import { getIslandPosition } from '../../services/islandService';
 import { Cabinet } from './Cabinet';
 import { Wall } from './Wall';
 // @ts-ignore
@@ -462,7 +463,7 @@ const Scene = ({
 
   const activeZones = (showEmptyWalls || !!draggedCabinet)
     ? project.zones.filter(z => z.active)
-    : project.zones.filter(z => z.active && z.cabinets.length > 0);
+    : project.zones.filter(z => z.active && (z.zoneType === 'island' || z.cabinets.length > 0));
   
   const layoutData = useMemo(() => {
     const cabinetPositions: { 
@@ -470,7 +471,7 @@ const Scene = ({
       zone: Zone; 
       position: [number, number, number]; 
       rotation: number;
-      wallIndex: number; // This is the zone index
+      wallIndex: number;
       cabinetIndex: number;
       label: string;
     }[] = [];
@@ -492,44 +493,53 @@ const Scene = ({
       wallCEnd: number;
     }[] = [];
 
+    const islandCountertops: {
+      zone: Zone;
+      position: [number, number, number];
+      width: number;
+      depth: number;
+      height: number;
+      rotation: number;
+    }[] = [];
+
     const wallCounters: Record<number, { B: number; T: number; W: number; U: number }> = {};
     
-    // First pass: calculate wall dimensions
-    const wallLengths = activeZones.map(z => z.totalLength);
+    const wallZones = activeZones.filter(z => z.zoneType !== 'island');
+    const islandZones = activeZones.filter(z => z.zoneType === 'island');
+    
+    const wallLengths = wallZones.map(z => z.totalLength);
     const wallAEnd = wallLengths[0] || 0;
     const wallBEnd = wallLengths[1] || 0;
     const wallCEnd = wallLengths[2] || 0;
     
-    activeZones.forEach((zone, wallIndex) => {
-      const wallHeight = zone.wallHeight || 2400;
-      
+    wallZones.forEach((zone, wallIndex) => {
       wallCounters[wallIndex] = { B: 0, T: 0, W: 0, U: 0 };
     });
 
-    activeZones.forEach((zone, wallIndex) => {
+    // Process wall zones (existing logic)
+    wallZones.forEach((zone, wallIndex) => {
       const wallLength = zone.totalLength;
       const wallHeight = zone.wallHeight || 2400;
       
-      // Position cabinets
       zone.cabinets.forEach((cab) => {
         let pos: [number, number, number];
         let rotation: number;
-        const cabinetOffset = 0; // Distance from wall
+        const cabinetOffset = 0;
         
         switch (wallIndex) {
-          case 0: // Wall A: XY plane, cabinets face +Z
+          case 0:
             pos = [cab.fromLeft, 0, cabinetOffset];
             rotation = 0;
             break;
-          case 1: // Wall B: ZY plane, cabinets face -X
+          case 1:
             pos = [wallAEnd - cabinetOffset, 0, cab.fromLeft];
             rotation = -Math.PI / 2;
             break;
-          case 2: // Wall C: XY plane, cabinets face -Z
+          case 2:
             pos = [wallAEnd - cab.fromLeft, 0, wallBEnd - cabinetOffset];
             rotation = Math.PI;
             break;
-          case 3: // Wall D: ZY plane, cabinets face +X
+          case 3:
             pos = [cabinetOffset, 0, wallBEnd - cab.fromLeft];
             rotation = Math.PI / 2;
             break;
@@ -568,28 +578,27 @@ const Scene = ({
         });
       });
       
-      // Position walls
       let wallPos: [number, number, number];
       let wallRot: number;
       let wallW: number;
       
       switch (wallIndex) {
-        case 0: // Wall A: along X axis at Z = 0
+        case 0:
           wallPos = [0, 0, 0];
           wallRot = 0;
           wallW = wallLength;
           break;
-        case 1: // Wall B: along Z axis at X = wallAEnd
+        case 1:
           wallPos = [wallAEnd, 0, 0];
           wallRot = -Math.PI / 2;
           wallW = wallLength;
           break;
-        case 2: // Wall C: along X axis at Z = wallBEnd
+        case 2:
           wallPos = [wallAEnd, 0, wallBEnd];
           wallRot = Math.PI;
           wallW = wallLength;
           break;
-        case 3: // Wall D: along Z axis at X = 0
+        case 3:
           wallPos = [0, 0, wallBEnd];
           wallRot = Math.PI / 2;
           wallW = wallLength;
@@ -609,8 +618,54 @@ const Scene = ({
       });
     });
     
-    // Position obstacles (after all walls are positioned)
-    activeZones.forEach((zone, wallIndex) => {
+    const islandPos = getIslandPosition(project);
+
+    // Process island zones
+    islandZones.forEach((zone, idx) => {
+      const isl = zone.islandSettings;
+      if (!isl) return;
+
+      const cabDepth = isl.islandDepth || project.settings.depthBase || 560;
+      const baseH = project.settings.baseHeight || 870;
+      const ct = project.settings.counterThickness || 40;
+
+      const rot = isl.rotation;
+      const cosR = Math.cos(rot);
+      const sinR = Math.sin(rot);
+
+      const totalCounterWidth = zone.totalLength + isl.leftOverhang + isl.rightOverhang;
+      const totalCounterDepth = cabDepth + isl.frontOverhang + isl.backOverhang +
+        (isl.hasSeating ? isl.seatingOverhang : 0);
+
+      zone.cabinets.forEach((cab) => {
+        const halfLen = zone.totalLength / 2;
+        const halfDepth = cabDepth / 2;
+        const px = islandPos.posX + (cab.fromLeft - halfLen) * cosR + halfDepth * sinR;
+        const pz = islandPos.posZ + (cab.fromLeft - halfLen) * sinR - halfDepth * cosR;
+
+        cabinetPositions.push({
+          unit: { ...cab, depth: cab.depth || cabDepth },
+          zone,
+          position: [px, 0, pz],
+          rotation: rot,
+          wallIndex: wallZones.length + idx,
+          cabinetIndex: zone.cabinets.indexOf(cab),
+          label: `IS${idx + 1}B${String(zone.cabinets.indexOf(cab) + 1).padStart(2, '0')}`,
+        });
+      });
+
+      islandCountertops.push({
+        zone,
+        position: [islandPos.posX, baseH, islandPos.posZ],
+        width: totalCounterWidth,
+        depth: totalCounterDepth,
+        height: baseH + ct,
+        rotation: rot,
+      });
+    });
+    
+    // Position obstacles (wall zones only)
+    wallZones.forEach((zone, wallIndex) => {
       obstaclePositions.push({
         zone,
         obstacles: zone.obstacles,
@@ -621,8 +676,8 @@ const Scene = ({
       });
     });
     
-    return { cabinetPositions, wallPositions, obstaclePositions };
-  }, [activeZones]);
+    return { cabinetPositions, wallPositions, obstaclePositions, islandCountertops };
+  }, [activeZones, project.settings]);
 
   const sceneBounds = useMemo(() => {
     if (layoutData.cabinetPositions.length === 0 && (!showEmptyWalls || layoutData.wallPositions.length === 0)) {
@@ -662,6 +717,28 @@ const Scene = ({
         minZ = Math.min(minZ, z1, z2);
         maxZ = Math.max(maxZ, z1, z2);
         maxY = Math.max(maxY, isWall ? 1400 + cabHeight : cabHeight);
+      });
+
+      // Include island countertops in bounds
+      layoutData.islandCountertops?.forEach(ct => {
+        const halfW = ct.width / 2;
+        const halfD = ct.depth / 2;
+        const cosR = Math.cos(ct.rotation);
+        const sinR = Math.sin(ct.rotation);
+        const corners = [
+          [-halfW, -halfD], [halfW, -halfD],
+          [halfW, halfD], [-halfW, halfD],
+        ].map(([lw, ld]) => ({
+          x: ct.position[0] + lw * cosR - ld * sinR,
+          z: ct.position[2] + lw * sinR + ld * cosR,
+        }));
+        corners.forEach(c => {
+          minX = Math.min(minX, c.x);
+          maxX = Math.max(maxX, c.x);
+          minZ = Math.min(minZ, c.z);
+          maxZ = Math.max(maxZ, c.z);
+        });
+        maxY = Math.max(maxY, ct.height);
       });
     } else if (showEmptyWalls) {
       layoutData.wallPositions.forEach(({ position, width, height, rotation }) => {
@@ -1048,7 +1125,22 @@ const Scene = ({
         />
       )}
 
+      {layoutData.islandCountertops?.map((ct, i) => (
+        <group key={`island-ct-${ct.zone.id}`}>
+          <mesh
+            position={[ct.position[0], ct.position[1] + (project.settings.counterThickness || 40) / 2, ct.position[2]]}
+            rotation={[0, ct.rotation, 0]}
+            castShadow
+            receiveShadow
+          >
+            <boxGeometry args={[ct.width, project.settings.counterThickness || 40, ct.depth]} />
+            <meshStandardMaterial color="#0a0a0a" roughness={0.05} metalness={0.4} />
+          </mesh>
+        </group>
+      ))}
+
       {layoutData.cabinetPositions.map(({ unit, zone, position, rotation, wallIndex, cabinetIndex, label }) => {
+        const isIsland = zone.zoneType === 'island';
         const isSelected = !isStudio && selectedCabinet?.zoneId === zone.id && selectedCabinet?.id === unit.id;
         const isSwapSelected = !isStudio && swapSelection?.some(s => s.zoneId === zone.id && s.index === cabinetIndex);
         
@@ -1065,6 +1157,7 @@ const Scene = ({
               isSelected={isSelected}
               isHighlighted={isSwapSelected}
               skeletonView={skeletonView}
+              isIsland={isIsland}
               onClick={isStudio ? undefined : () => {
                 onCabinetSelect?.(zone.id, cabinetIndex);
               }}
@@ -1294,7 +1387,7 @@ export const CabinetViewer = forwardRef<CabinetViewerHandle, Props>((props, ref)
 
   const activeZones = showEmptyWalls 
     ? project.zones.filter(z => z.active)
-    : project.zones.filter(z => z.active && z.cabinets.length > 0);
+    : project.zones.filter(z => z.active && (z.zoneType === 'island' || z.cabinets.length > 0));
   const hasContent = activeZones.length > 0 && (showEmptyWalls || activeZones.some(z => z.cabinets.length > 0));
 
   useEffect(() => {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Save, FileText, Upload, DollarSign, Settings, Box, Lock, CheckCircle2, AlertCircle, Wand2, ArrowRight, X, MousePointer2, Plus, Check, Pencil, MapPin, Phone, Sparkles, Layout, Layers, Cpu, ChevronDown } from 'lucide-react';
+import { Save, FileText, Upload, DollarSign, Settings, Box, Lock, CheckCircle2, AlertCircle, Wand2, ArrowRight, X, MousePointer2, Plus, Check, Pencil, MapPin, Phone, Sparkles, Layout, Layers, Cpu, ChevronDown, Zap } from 'lucide-react';
 import { Project, CabinetType, PresetType } from '../types';
 import { Button } from '../components/Button';
 import { NumberInput } from '../components/NumberInput';
@@ -10,11 +10,13 @@ import { WallLimitsModal } from '../components/WallLimitsModal';
 import { SheetTypeManager } from '../components/SheetTypeManager';
 import { MaterialAllocationPanel } from '../components/MaterialAllocationPanel';
 import { generateRubyLayout } from '../services/layoutSolver';
+import { autoFillIsland } from '../services/islandService';
 import { logoService } from '../services/logoService';
 import { subscriptionService } from '../services/subscriptionService';
 import { supabase } from '../services/supabaseClient';
 import { recalculateCabinetPositions, calculateTotalZoneLength, createAdvancedCabinet } from '../services/advancedWorkflowService';
 import { useProjectStore } from '../store/useProjectStore';
+import { createDefaultIslandZone } from '../services/islandService';
 
 interface ScreenProjectSetupProps {
   onSave: (p?: Project) => Promise<any>;
@@ -83,7 +85,7 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
   // Step Completion Logic
   const isIdentityDone = project.name.trim().length > 0;
   const isWallsDone = project.zones.length > 0 && project.zones.some(z => z.totalLength > 0);
-  const isLimitsDone = isWallsDone && project.zones.every(z => (z.startLimit !== undefined && z.endLimit !== undefined) || (z.startLimit === 0 && z.endLimit === z.totalLength));
+  const isLimitsDone = isWallsDone && project.zones.filter(z => z.zoneType !== 'island').every(z => (z.startLimit !== undefined && z.endLimit !== undefined) || (z.startLimit === 0 && z.endLimit === z.totalLength));
   const isConstructionDone = (() => {
     const mat = project.settings.materialSettings;
     if (!mat) return false;
@@ -462,19 +464,63 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
                     )}
 
                     {activeModal === 'limits' && (
-                      <WallLimitsModal
-                        ref={wallLimitsRef}
-                        isOpen={true}
-                        onClose={() => {}}
-                        project={project}
-                        isDark={isDark}
-                        isInline={true}
-                        onSave={(newZones) => {
-                          const projectWithZones = { ...project, zones: newZones };
-                          updateProgress('limits', projectWithZones);
-                          setActiveModal('preferences');
-                        }}
-                      />
+                      <div className="h-full flex flex-col">
+                        <div className="flex items-center justify-between px-6 py-3 border-b dark:border-slate-800 shrink-0 bg-white dark:bg-slate-900">
+                          <div className="flex items-center gap-4">
+                            <span className="text-xs font-black uppercase tracking-widest text-slate-400">Island</span>
+                            <button
+                              onClick={() => {
+                                const hasIsland = project.zones.some(z => z.zoneType === 'island');
+                                if (hasIsland) {
+                                  setProject(prev => ({
+                                    ...prev,
+                                    zones: prev.zones.filter(z => z.zoneType !== 'island')
+                                  }));
+                                } else {
+                                  setProject(prev => ({
+                                    ...prev,
+                                    zones: [...prev.zones, createDefaultIslandZone('Island', 1500)]
+                                  }));
+                                }
+                              }}
+                              className={`relative w-12 h-6 rounded-full transition-all ${
+                                project.zones.some(z => z.zoneType === 'island')
+                                  ? 'bg-emerald-500'
+                                  : 'bg-slate-300 dark:bg-slate-700'
+                              }`}
+                            >
+                              <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-all ${
+                                project.zones.some(z => z.zoneType === 'island') ? 'left-6.5' : 'left-0.5'
+                              }`} />
+                            </button>
+                            <span className="text-[11px] text-slate-500 font-medium">
+                              {project.zones.some(z => z.zoneType === 'island')
+                                ? 'Island zone included (configure margins in Island tab below)'
+                                : 'Add a kitchen island'}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex-1 min-h-0">
+                          <WallLimitsModal
+                            ref={wallLimitsRef}
+                            isOpen={true}
+                            onClose={() => {}}
+                            project={project}
+                            isDark={isDark}
+                            isInline={true}
+                            onSave={(newZones) => {
+                              const syncedZones = newZones.map(z =>
+                                z.zoneType === 'island'
+                                  ? autoFillIsland({ ...z, cabinets: [] })
+                                  : z
+                              );
+                              const projectWithZones = { ...project, zones: syncedZones };
+                              updateProgress('limits', projectWithZones);
+                              setActiveModal('preferences');
+                            }}
+                          />
+                        </div>
+                      </div>
                     )}
 
                     {activeModal === 'project' && (
@@ -1485,35 +1531,41 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
             <div className="flex items-center justify-between mb-4">
               <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Completion Rate</span>
               <span className="text-lg font-black text-amber-500 italic">
-                {Math.round((wizardSteps.filter((s) => {
-                  if (s === 'project') return isIdentityDone;
-                  if (s === 'walls') return isWallsDone;
-                  if (s === 'limits') return isLimitsDone;
-                  if (s === 'preferences') return isPreferencesDone;
-                  if (s === 'sheets') return isSheetsDone;
-                  if (s === 'hardware') return isHardwareDone;
-                  if (s === 'construction') return isConstructionDone;
-                  if (s === 'costs') return isCostsDone;
-                  if (s === 'generation') return true;
-                  return false;
-                }).length / wizardSteps.length) * 100)}%
+                {(() => {
+                  const done = wizardSteps.filter(s => {
+                    if (s === 'project') return isIdentityDone;
+                    if (s === 'walls') return isWallsDone;
+                    if (s === 'limits') return isLimitsDone;
+                    if (s === 'preferences') return isPreferencesDone;
+                    if (s === 'sheets') return isSheetsDone;
+                    if (s === 'hardware') return isHardwareDone;
+                    if (s === 'construction') return isConstructionDone;
+                    if (s === 'costs') return isCostsDone;
+                    if (s === 'generation') return true;
+                    return false;
+                  }).length;
+                  return Math.round((done / wizardSteps.length) * 100);
+                })()}%
               </span>
             </div>
             <div className="w-full h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner">
                <div 
                 className="h-full bg-amber-500 transition-all duration-1000 ease-out" 
-                style={{ width: `${(wizardSteps.filter((s) => {
-                  if (s === 'project') return isIdentityDone;
-                  if (s === 'walls') return isWallsDone;
-                  if (s === 'limits') return isLimitsDone;
-                  if (s === 'preferences') return isPreferencesDone;
-                  if (s === 'sheets') return isSheetsDone;
-                  if (s === 'hardware') return isHardwareDone;
-                  if (s === 'construction') return isConstructionDone;
-                  if (s === 'costs') return isCostsDone;
-                  if (s === 'generation') return true;
-                  return false;
-                }).length / wizardSteps.length) * 100}%` }} 
+                style={{ width: `${(() => {
+                  const done = wizardSteps.filter(s => {
+                    if (s === 'project') return isIdentityDone;
+                    if (s === 'walls') return isWallsDone;
+                    if (s === 'limits') return isLimitsDone;
+                    if (s === 'preferences') return isPreferencesDone;
+                    if (s === 'sheets') return isSheetsDone;
+                    if (s === 'hardware') return isHardwareDone;
+                    if (s === 'construction') return isConstructionDone;
+                    if (s === 'costs') return isCostsDone;
+                    if (s === 'generation') return true;
+                    return false;
+                  }).length;
+                  return (done / wizardSteps.length) * 100;
+                })()}%` }} 
                />
             </div>
           </div>

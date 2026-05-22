@@ -128,6 +128,7 @@ export const WallEditModal = forwardRef<any, WallEditModalProps>(({
       sillHeight: type === 'window' ? 1050 : undefined,
       elevation: type === 'pipe' ? 1500 : undefined,
       depth: type === 'column' ? 100 : undefined,
+      hingeSide: type === 'door' ? 'left' : undefined,
     };
     
     newZones[wallIndex] = {
@@ -427,6 +428,20 @@ export const WallEditModal = forwardRef<any, WallEditModalProps>(({
                                     }}
                                     className="w-full px-2 py-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded text-slate-800 dark:text-white"
                                   />
+                                </div>
+                              )}
+                              {obstacle.type === 'door' && (
+                                <div>
+                                  <label className="block text-[10px] text-slate-500">Hinge Side</label>
+                                  <button
+                                    onClick={() => {
+                                      const idx = localZones.findIndex(z => z.id === activeTab);
+                                      handleObstacleChange(idx, obsIndex, 'hingeSide', obstacle.hingeSide === 'right' ? 'left' : 'right');
+                                    }}
+                                    className="w-full px-2 py-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded text-sm font-bold text-slate-800 dark:text-white capitalize"
+                                  >
+                                    {obstacle.hingeSide === 'right' ? 'Right →' : 'Left ←'}
+                                  </button>
                                 </div>
                               )}
                               {obstacle.type === 'pipe' && (

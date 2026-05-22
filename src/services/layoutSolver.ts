@@ -1,5 +1,6 @@
 import { Project, Zone, CabinetUnit, PresetType, CabinetType, ProjectSettings, Obstacle } from '../types';
 import { v4 as uuid } from 'uuid';
+import { autoFillIsland } from './islandService';
 
 export interface LayoutResult {
   project: Project;
@@ -11,16 +12,20 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
   const settings = project.settings;
   
   // 1. Initial State: Clear auto-fill units and corners
+  // Auto-fill island zones with cabinets, clear non-island zones
   const newProject: Project = { 
     ...project, 
-    zones: project.zones.map(z => ({ 
-      ...z, 
-      cabinets: [],
-      obstacles: z.obstacles.filter(o => !o.id.startsWith('corner_'))
-    })) 
+    zones: [
+      ...project.zones.filter(z => z.zoneType === 'island').map(z => autoFillIsland({ ...z })),
+      ...project.zones.filter(z => z.zoneType !== 'island').map(z => ({ 
+        ...z, 
+        cabinets: [],
+        obstacles: z.obstacles.filter(o => !o.id.startsWith('corner_'))
+      })) 
+    ]
   };
   
-  const zones = newProject.zones;
+  const zones = newProject.zones.filter(z => z.zoneType !== 'island');
   
   // 2. Corner Injection (Highest Priority)
   for (let i = 0; i < zones.length; i++) {
