@@ -1164,7 +1164,21 @@ const Scene = ({
         const isSwapSelected = !isStudio && swapSelection?.some(s => s.zoneId === zone.id && s.index === cabinetIndex);
         const localDepth = unit.depth || (unit.type === CabinetType.WALL ? 300 : project.settings.depthBase || 560);
 
-        return (
+        const dims = (() => {
+          const baseH = project.settings.baseHeight || 870;
+          const ct = project.settings.counterThickness || 40;
+          const wallElev = project.settings.wallCabinetElevation || 450;
+          const wallH = project.settings.wallHeight || 720;
+          const tallH = project.settings.tallHeight || 2100;
+          
+          const yBase = unit.type === CabinetType.WALL ? (baseH + ct + wallElev) : 0;
+          const h = unit.type === CabinetType.TALL ? ((project.settings.tallHeight === 2100 || !project.settings.tallHeight) ? (baseH + ct + wallElev + wallH) : tallH) : unit.type === CabinetType.WALL ? wallH : baseH;
+          const d = unit.depth || (unit.type === CabinetType.WALL ? 300 : 560);
+          
+          return { baseH, ct, wallElev, wallH, tallH, yBase, h, d };
+        })();
+
+        return isIsland ? (
           <group key={unit.id} name={`cabinet-group-${unit.id}`} position={position}>
             <group rotation={[0, rotation, 0]}>
               <group position={[-unit.width / 2, 0, -localDepth / 2]}>
@@ -1191,40 +1205,27 @@ const Scene = ({
               obstacles={zone.obstacles}
             />
             {!isStudio && isSelected && !isMobile && (() => {
-              const baseH = project.settings.baseHeight || 870;
-              const ct = project.settings.counterThickness || 40;
-              const wallElev = project.settings.wallCabinetElevation || 450;
-              const wallH = project.settings.wallHeight || 720;
-              const tallH = project.settings.tallHeight || 2100;
-              
-              const yBase = unit.type === CabinetType.WALL ? (baseH + ct + wallElev) : 0;
-              const h = unit.type === CabinetType.TALL ? ((project.settings.tallHeight === 2100 || !project.settings.tallHeight) ? (baseH + ct + wallElev + wallH) : tallH) : unit.type === CabinetType.WALL ? wallH : baseH;
-              const d = unit.depth || (unit.type === CabinetType.WALL ? 300 : 560);
-              
               return (
                 <>
-                  {/* Width Dimension (Top Front) - AMBER */}
                   <Dimension3D 
-                    start={[0, yBase + h, d]} 
-                    end={[unit.width, yBase + h, d]} 
+                    start={[0, dims.yBase + dims.h, dims.d]} 
+                    end={[unit.width, dims.yBase + dims.h, dims.d]} 
                     label={unit.width.toString()} 
                     offset={120}
                     color="#f59e0b"
                   />
-                  {/* Height Dimension (Front Left) - RED */}
                   <Dimension3D 
-                    start={[0, yBase, d]} 
-                    end={[0, yBase + h, d]} 
-                    label={h.toString()} 
+                    start={[0, dims.yBase, dims.d]} 
+                    end={[0, dims.yBase + dims.h, dims.d]} 
+                    label={dims.h.toString()} 
                     offset={-50}
                     color="#ef4444"
                     isVertical
                   />
-                  {/* Depth Dimension (Top Left Edge) - GREEN */}
                   <Dimension3D 
-                    start={[0, yBase + h, 0]} 
-                    end={[0, yBase + h, d]} 
-                    label={d.toString()} 
+                    start={[0, dims.yBase + dims.h, 0]} 
+                    end={[0, dims.yBase + dims.h, dims.d]} 
+                    label={dims.d.toString()} 
                     offset={-50}
                     color="#10b981"
                   />
@@ -1233,6 +1234,59 @@ const Scene = ({
             })()}
               </group>
             </group>
+          </group>
+        ) : (
+          <group key={unit.id} name={`cabinet-group-${unit.id}`} position={position} rotation={[0, rotation, 0]}>
+            <Cabinet
+              unit={unit}
+              position={[0, 0, 0]}
+              rotation={0}
+              showHardware={showHardware}
+              wallIndex={wallIndex}
+              label={label}
+              settings={project.settings}
+              isSelected={isSelected}
+              isHighlighted={isSwapSelected}
+              skeletonView={skeletonView}
+              isIsland={isIsland}
+              onClick={isStudio ? undefined : () => {
+                onCabinetSelect?.(zone.id, cabinetIndex);
+              }}
+              doorOpenAngle={doorOpenAngle}
+              forceGola={forceGola}
+              opacity={opacity}
+              isStudio={isStudio}
+              isMobile={isMobile}
+              obstacles={zone.obstacles}
+            />
+            {!isStudio && isSelected && !isMobile && (() => {
+              return (
+                <>
+                  <Dimension3D 
+                    start={[0, dims.yBase + dims.h, dims.d]} 
+                    end={[unit.width, dims.yBase + dims.h, dims.d]} 
+                    label={unit.width.toString()} 
+                    offset={120}
+                    color="#f59e0b"
+                  />
+                  <Dimension3D 
+                    start={[0, dims.yBase, dims.d]} 
+                    end={[0, dims.yBase + dims.h, dims.d]} 
+                    label={dims.h.toString()} 
+                    offset={-50}
+                    color="#ef4444"
+                    isVertical
+                  />
+                  <Dimension3D 
+                    start={[0, dims.yBase + dims.h, 0]} 
+                    end={[0, dims.yBase + dims.h, dims.d]} 
+                    label={dims.d.toString()} 
+                    offset={-50}
+                    color="#10b981"
+                  />
+                </>
+              );
+            })()}
           </group>
         );
       })}
