@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Printer, Download, FileSpreadsheet, Wrench, CreditCard, Layers, DollarSign, Scissors, FileCode, Check, Lock } from 'lucide-react';
-import { Project, SheetType, PresetType, CabinetType } from '../types';
+import { Project, SheetType, PresetType, CabinetType, Zone } from '../types';
 import { Button } from '../components/Button';
 import { CutPlanVisualizer } from '../components/CutPlanVisualizer';
 import { WallVisualizer } from '../components/WallVisualizer';
@@ -288,6 +288,79 @@ const ScreenBOMReport = ({ isUserPro }: ScreenBOMReportProps) => {
   // Format currency helper
   const formatCurrency = (amount: number) => {
     return formatPrice(amount, currency);
+  };
+
+  const renderIslandPlan = (zone: Zone) => {
+    const totalLength = zone.totalLength || 1500;
+    const depth = zone.islandSettings?.islandDepth || 560;
+    const pad = 60;
+    const sorted = [...zone.cabinets].sort((a, b) => a.fromLeft - b.fromLeft);
+    const vw = totalLength + pad * 2;
+    const vh = depth + pad * 2;
+
+    return (
+      <svg viewBox={`0 0 ${vw} ${vh}`} className="w-full h-full" style={{ maxHeight: '500px' }}>
+        <defs>
+          <marker id="dimArr" viewBox="0 0 8 8" refX="4" refY="4" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+            <path d="M 0 0 L 8 4 L 0 8 z" fill="#3b82f6" />
+          </marker>
+        </defs>
+
+        {/* Cabinets outline */}
+        <rect x={pad} y={pad} width={totalLength} height={depth}
+          fill="#f8fafc" stroke="#1e293b" strokeWidth="2" rx="3" />
+
+        {/* Cabinet divisions */}
+        {sorted.map(cab => (
+          <line key={`div-${cab.id}`}
+            x1={pad + cab.fromLeft} y1={pad}
+            x2={pad + cab.fromLeft} y2={pad + depth}
+            stroke="#94a3b8" strokeWidth="1" strokeDasharray="4 3" />
+        ))}
+        {/* Right edge division */}
+        <line x1={pad + totalLength} y1={pad} x2={pad + totalLength} y2={pad + depth}
+          stroke="#1e293b" strokeWidth="2" />
+
+        {/* Cabinet labels */}
+        {sorted.map(cab => (
+          <text key={`lbl-${cab.id}`}
+            x={pad + cab.fromLeft + cab.width / 2}
+            y={pad + depth / 2 - 4}
+            textAnchor="middle" dominantBaseline="middle"
+            className="text-[11px]" fill="#1e293b" fontWeight="bold"
+            style={{ fontSize: '11px' }}>
+            {cab.label || cab.preset}
+          </text>
+        ))}
+        {sorted.map(cab => (
+          <text key={`w-${cab.id}`}
+            x={pad + cab.fromLeft + cab.width / 2}
+            y={pad + depth / 2 + 12}
+            textAnchor="middle"
+            className="text-[9px]" fill="#64748b" fontWeight="bold"
+            style={{ fontSize: '9px' }}>
+            {cab.width}mm
+          </text>
+        ))}
+
+        {/* Total length dimension */}
+        <line x1={pad} y1={pad + depth + 20} x2={pad + totalLength} y2={pad + depth + 20}
+          stroke="#3b82f6" strokeWidth="1" markerStart="url(#dimArr)" markerEnd="url(#dimArr)" />
+        <text x={pad + totalLength / 2} y={pad + depth + 32}
+          textAnchor="middle" fill="#3b82f6" fontWeight="bold" className="text-[10px]" style={{ fontSize: '10px' }}>
+          {totalLength}mm
+        </text>
+
+        {/* Depth dimension */}
+        <line x1={pad + totalLength + 20} y1={pad} x2={pad + totalLength + 20} y2={pad + depth}
+          stroke="#3b82f6" strokeWidth="1" markerStart="url(#dimArr)" markerEnd="url(#dimArr)" />
+        <text x={pad + totalLength + 32} y={pad + depth / 2}
+          textAnchor="middle" dominantBaseline="middle"
+          fill="#3b82f6" fontWeight="bold" className="text-[10px]" style={{ fontSize: '10px' }}>
+          {depth}mm
+        </text>
+      </svg>
+    );
   };
 
   return (
@@ -640,7 +713,9 @@ const ScreenBOMReport = ({ isUserPro }: ScreenBOMReportProps) => {
                       {/* Page 2: Wall Visualization - full page, no title */}
                       <div className="bg-white w-full h-[calc(100vh-80px)] flex flex-col items-center justify-start">
                         <div className="w-full flex items-center justify-center pt-8" style={{ transform: 'scale(0.85)', transformOrigin: 'top center' }}>
-                          <WallVisualizer zone={zone} height={zone.wallHeight || 2400} hideArrows={true} />
+                          {zone.zoneType === 'island' ? renderIslandPlan(zone) : (
+                            <WallVisualizer zone={zone} height={zone.wallHeight || 2400} hideArrows={true} />
+                          )}
                         </div>
                       </div>
                     </div>
@@ -655,7 +730,7 @@ const ScreenBOMReport = ({ isUserPro }: ScreenBOMReportProps) => {
                         <div>
                           <h3 className="text-xl font-serif font-black text-slate-800 uppercase tracking-widest">{zone.id}</h3>
                           <div className="h-0.5 w-12 bg-amber-500 mt-1" />
-                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2">ELEVATION PLAN / ARCHITECTURAL DRAWING</p>
+                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2">{zone.zoneType === 'island' ? 'PLAN VIEW / ARCHITECTURAL DRAWING' : 'ELEVATION PLAN / ARCHITECTURAL DRAWING'}</p>
                         </div>
                         <div className="text-right">
                           <p className="text-[9px] font-black text-slate-300 uppercase italic">SCALE: NTS</p>
@@ -668,12 +743,14 @@ const ScreenBOMReport = ({ isUserPro }: ScreenBOMReportProps) => {
                         <div className="absolute inset-0 z-20 cursor-default" />
                         
                         <div className="w-full h-full">
-                          <WallVisualizer 
-                            zone={zone} 
-                            height={zone.wallHeight || 2400} 
-                            isStatic={true} 
-                            forceWhite={true} 
-                          />
+                          {zone.zoneType === 'island' ? renderIslandPlan(zone) : (
+                            <WallVisualizer 
+                              zone={zone} 
+                              height={zone.wallHeight || 2400} 
+                              isStatic={true} 
+                              forceWhite={true} 
+                            />
+                          )}
                         </div>
                       </div>
                       

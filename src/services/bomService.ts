@@ -7,7 +7,7 @@ import { exportWallCabinetDXF } from '../components/WallCabinetTesting';
 import { exportTallCabinetDXF } from '../components/TallCabinetTesting';
 import { exportBaseCornerCabinetDXF } from '../components/BaseCornerCabinetTesting';
 import { exportWallCornerCabinetDXF } from '../components/WallCornerCabinetTesting';
-import { resolveIslandCollisions, autoFillIsland } from './islandService';
+import { resolveIslandCollisions, autoFillIsland, getIslandCountertopDimensions } from './islandService';
 
 // Helper to generate unique IDs
 const uuid = () => Math.random().toString(36).substr(2, 9);
@@ -663,6 +663,8 @@ export const generateProjectBOM = (project: Project): {
   let totalGraniteSqft = 0;
   let totalTileAreaMm2 = 0;
 
+  let islIdx = 0;
+
   project.zones.filter(z => z.active).forEach((zone, zIdx) => {
     let zoneLen = 0;
     
@@ -682,12 +684,13 @@ export const generateProjectBOM = (project: Project): {
       if (unit.type !== CabinetType.WALL && unit.type !== CabinetType.WALL_TOP) zoneLen += unit.width;
 
       // Assign sequential label for the report: W01B01, W01W01 etc.
-      const wallPrefix = `W${String(zIdx + 1).padStart(2, '0')}`;
+      const wallPrefix = zone.zoneType === 'island' ? `IS${String(++islIdx).padStart(2, '0')}` : `W${String(zIdx + 1).padStart(2, '0')}`;
+
       let typeChar = 'W';
       if (unit.type === CabinetType.BASE) typeChar = 'B';
       else if (unit.type === CabinetType.TALL) typeChar = 'T';
       else if (unit.type === CabinetType.WALL_TOP) typeChar = 'U';
-      
+
       const seq = typeChar === 'B' ? bIdx++ : typeChar === 'W' ? wIdx++ : typeChar === 'U' ? uIdx++ : tIdx++;
       const effectiveLabel = `${wallPrefix}${typeChar}${String(seq).padStart(2, '0')}`;
 
@@ -714,14 +717,28 @@ export const generateProjectBOM = (project: Project): {
       
       // Accessory Calculations
       if (unit.type === CabinetType.BASE) {
-        const depth = (unit.advancedSettings?.depth || project.settings.depthBase || 560) + 50;
-        totalGraniteSqft += (unit.width * depth) / 92903.04;
+        if (zone.zoneType === 'island') {
+          // Island countertop calculated once below — skip per-cabinet
+        } else {
+          const depth = (unit.advancedSettings?.depth || project.settings.depthBase || 560) + 50;
+          totalGraniteSqft += (unit.width * depth) / 92903.04;
+        }
       }
     });
 
-    // Tile Backsplash
-    const backsplashHeight = project.settings.wallCabinetElevation || 450;
-    totalTileAreaMm2 += (zone.totalLength * backsplashHeight);
+    // Island countertop (single piece across all cabinets)
+    if (zone.zoneType === 'island') {
+      const dims = getIslandCountertopDimensions(zone);
+      if (dims) {
+        totalGraniteSqft += (dims.width * dims.depth) / 92903.04;
+      }
+    }
+
+    // Tile Backsplash — skip for island zones
+    if (zone.zoneType !== 'island') {
+      const backsplashHeight = project.settings.wallCabinetElevation || 450;
+      totalTileAreaMm2 += (zone.totalLength * backsplashHeight);
+    }
 
     totalLinearFeet += (zoneLen / 304.8);
   });
@@ -738,7 +755,7 @@ export const generateProjectBOM = (project: Project): {
 
       if (wallTops.length === 0) return;
 
-      const wallPrefix = `W${String(zIdx + 1).padStart(2, '0')}`;
+      const wallPrefix = zone.zoneType === 'island' ? `IS${String(zIdx + 1).padStart(2, '0')}` : `W${String(zIdx + 1).padStart(2, '0')}`;
       let merged = {
         fromLeft: wallTops[0].fromLeft,
         right: wallTops[0].fromLeft + wallTops[0].width,
@@ -816,6 +833,7 @@ export const getMaterialRequirements = (
   const allParts: BOMItem[] = [];
 
   // Collect all parts from all cabinets
+  let islIdx = 0;
   project.zones
     .filter(z => z.active)
     .forEach((zone, zIdx) => {
@@ -828,7 +846,7 @@ export const getMaterialRequirements = (
       sortedCabinets.forEach((unit, index) => {
         if (unit.isAutoFilled && unit.preset === PresetType.FILLER) return;
         
-        const wallPrefix = `W${String(zIdx + 1).padStart(2, '0')}`;
+        const wallPrefix = zone.zoneType === 'island' ? `IS${String(++islIdx).padStart(2, '0')}` : `W${String(zIdx + 1).padStart(2, '0')}`;
         let typeChar = 'W';
         if (unit.type === CabinetType.BASE) typeChar = 'B';
         else if (unit.type === CabinetType.TALL) typeChar = 'T';
@@ -854,7 +872,7 @@ export const getMaterialRequirements = (
 
       if (wallTops.length === 0) return;
 
-      const wallPrefix = `W${String(zIdx + 1).padStart(2, '0')}`;
+      const wallPrefix = zone.zoneType === 'island' ? `IS${String(zIdx + 1).padStart(2, '0')}` : `W${String(zIdx + 1).padStart(2, '0')}`;
       let merged = {
         fromLeft: wallTops[0].fromLeft,
         right: wallTops[0].fromLeft + wallTops[0].width,
