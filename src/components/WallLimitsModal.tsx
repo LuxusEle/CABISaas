@@ -36,9 +36,11 @@ export const WallLimitsModal = forwardRef<any, WallLimitsModalProps>(({
 
   useEffect(() => {
     if (isOpen) {
+      let foundIsland = false;
       setLocalZones(JSON.parse(JSON.stringify(project.zones)).map((z: Zone) => {
         if (z.zoneType === 'island') {
           setLocalIsland(z);
+          foundIsland = true;
           return z;
         }
         return {
@@ -47,6 +49,7 @@ export const WallLimitsModal = forwardRef<any, WallLimitsModalProps>(({
           endLimit: z.endLimit ?? z.totalLength
         };
       }).filter((z: Zone) => z.zoneType !== 'island'));
+      if (!foundIsland) setLocalIsland(null);
       setActiveTab(project.zones[0]?.id || '');
     }
   }, [project.zones, isOpen]);
