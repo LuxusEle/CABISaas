@@ -487,6 +487,20 @@ const ScreenWallEditor = ({
       
       cabs[index] = { ...targetCab, ...updates };
       
+      // LEFT-HANDLE / MIDDLE-HANDLE DRAG: when fromLeft decreased, pre-shrink left neighbor
+      // so the cabinet can "eat into" the left neighbor's width instead of getting pushed right
+      if ('fromLeft' in updates && updates.fromLeft! < targetCab.fromLeft && index > 0) {
+        const left = cabs[index - 1];
+        const overlap = left.fromLeft + left.width - updates.fromLeft;
+        if (overlap > 0) {
+          left.width = Math.max(50, left.width - overlap);
+          const actualFromLeft = left.fromLeft + left.width;
+          const rightEdge = updates.fromLeft + (updates.width ?? targetCab.width);
+          cabs[index].fromLeft = actualFromLeft;
+          cabs[index].width = Math.max(150, rightEdge - actualFromLeft);
+        }
+      }
+      
       // SYNC LOGIC: If width or position changed, sync cooker/hood counterparts
       if ('width' in updates || 'fromLeft' in updates) {
         const newWidth = updates.width ?? targetCab.width;
@@ -2000,6 +2014,7 @@ const IslandPlanView: React.FC<IslandPlanViewProps> = ({ zone, zones, isDark, se
 
   const islandLen = zone.totalLength || 1500;
   const islDepth = isl.islandDepth || 560;
+  const numRows = isl.numRows || 1;
 
   const wallZones = zones.filter(z => z.zoneType !== 'island');
   const wallA = wallZones.find(z => z.id === 'Wall A');
@@ -2030,7 +2045,12 @@ const IslandPlanView: React.FC<IslandPlanViewProps> = ({ zone, zones, isDark, se
   const islLeft = islCX - islW / 2;
   const islTop = islCY - islH / 2;
 
-  const sorted = [...zone.cabinets].sort((a, b) => a.fromLeft - b.fromLeft);
+  const sorted = [...zone.cabinets].sort((a, b) => {
+    const ra = a.rowIndex ?? 0;
+    const rb = b.rowIndex ?? 0;
+    if (ra !== rb) return ra - rb;
+    return a.fromLeft - b.fromLeft;
+  });
 
   const bgWall = isDark ? '#0F172A' : '#ffffff';
   const bgVoid = isDark ? '#020617' : '#f1f5f9';
@@ -2123,23 +2143,34 @@ const IslandPlanView: React.FC<IslandPlanViewProps> = ({ zone, zones, isDark, se
           return <g key={wz.id}>{cabFootprints}</g>;
         })}
 
+        {numRows > 1 && (
+          <rect x={islLeft} y={islTop} width={islW} height={islH}
+            fill="none" stroke={wallBorder} strokeWidth="1" rx="1" strokeDasharray="4 3" />
+        )}
+        {numRows > 1 && (
+          <line x1={islLeft} y1={islTop + islDepth * scale / numRows} x2={islLeft + islW} y2={islTop + islDepth * scale / numRows}
+            stroke={wallBorder} strokeWidth="1" strokeDasharray="4 3" />
+        )}
+
         {sorted.map((cab, i) => {
           const cabColor = getActiveColor(cab.preset || PresetType.BASE_DOOR);
           const isSel = selectedCabinet?.id === cab.id;
           const x1 = islLeft + cab.fromLeft * scale;
           const w = cab.width * scale;
+          const rowY = islTop + (cab.rowIndex ?? 0) * (islDepth * scale / numRows);
+          const rowH = islDepth * scale / numRows;
           return (
             <g key={cab.id} onClick={() => onCabinetClick(i)} className="cursor-pointer">
-              <rect x={x1} y={islTop} width={w} height={islH}
+              <rect x={x1} y={rowY} width={w} height={rowH}
                 fill={isSel ? 'rgba(59,130,246,0.25)' : cabColor.fill}
                 stroke={isSel ? '#3b82f6' : cabColor.stroke}
                 strokeWidth={isSel ? 1.5 : 0.5} rx="1" />
               {sorted.length > 1 && (
-                <line x1={x1} y1={islTop} x2={x1} y2={islTop + islH}
+                <line x1={x1} y1={rowY} x2={x1} y2={rowY + rowH}
                   stroke={isSel ? '#3b82f6' : '#94a3b8'}
                   strokeWidth={isSel ? 1.5 : 0.5} strokeDasharray="3 2" />
               )}
-              <text x={x1 + w / 2} y={islTop + islH / 2}
+              <text x={x1 + w / 2} y={rowY + rowH / 2}
                 textAnchor="middle" dominantBaseline="middle"
                 fill={isSel ? '#2563eb' : (isDark ? '#e2e8f0' : '#334155')}
                 fontWeight="bold" style={{ fontSize: '10px' }}>
@@ -2148,6 +2179,26 @@ const IslandPlanView: React.FC<IslandPlanViewProps> = ({ zone, zones, isDark, se
             </g>
           );
         })}
+
+        {numRows === 1 && (
+          <g>
+            {isl.facingDirection === 'front' ? (
+              <polygon
+                points={`${islCX},${islTop + islH - 14} ${islCX - 6},${islTop + islH - 6} ${islCX + 6},${islTop + islH - 6}`}
+                fill="#f59e0b" opacity="0.8"
+              />
+            ) : (
+              <polygon
+                points={`${islCX},${islTop + 14} ${islCX - 6},${islTop + 6} ${islCX + 6},${islTop + 6}`}
+                fill="#f59e0b" opacity="0.8"
+              />
+            )}
+            <text x={islCX} y={isl.facingDirection === 'front' ? islTop + islH - 18 : islTop + 20}
+              textAnchor="middle" fill="#f59e0b" fontWeight="bold" style={{ fontSize: '7px' }}>
+              FACE
+            </text>
+          </g>
+        )}
 
         <line x1={offX} y1={offY + roomH + 8}
           x2={offX + roomW} y2={offY + roomH + 8}

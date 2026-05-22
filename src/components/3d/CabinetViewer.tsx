@@ -453,7 +453,11 @@ const Scene = ({
   onExport3D?: (scene: THREE.Scene) => void;
 }) => {
   const [previewPos, setPreviewPos] = useState<{ wallIndex: number; fromLeft: number; width: number } | null>(null);
-  const { raycaster, camera, scene, gl } = useThree();
+  const { raycaster, camera, scene, gl, invalidate } = useThree();
+
+  useEffect(() => {
+    invalidate();
+  }, [project, invalidate]);
 
   useEffect(() => {
     if (onExport3D) {
@@ -639,15 +643,30 @@ const Scene = ({
 
       zone.cabinets.forEach((cab) => {
         const halfLen = zone.totalLength / 2;
-        const halfDepth = cabDepth / 2;
-        const px = islandPos.posX + (cab.fromLeft - halfLen) * cosR + halfDepth * sinR;
-        const pz = islandPos.posZ + (cab.fromLeft - halfLen) * sinR - halfDepth * cosR;
+        const numRows = isl.numRows || 1;
+        const rowDepth = cabDepth / numRows;
+        const rowIdx = cab.rowIndex ?? 0;
+
+        let dz: number;
+        let rowRot: number;
+        if (numRows === 1) {
+          dz = 0;
+          rowRot = rot;
+        } else {
+          dz = (rowIdx === 0 ? -1 : 1) * rowDepth / 2;
+          rowRot = rot + (rowIdx === 0 ? Math.PI : 0);
+        }
+
+        const dx = cab.fromLeft + cab.width / 2 - halfLen;
+        const effectiveDx = numRows === 1 && isl.facingDirection === 'back' ? -dx : dx;
+        const centerX = islandPos.posX + effectiveDx * cosR - dz * sinR;
+        const centerZ = islandPos.posZ + effectiveDx * sinR + dz * cosR;
 
         cabinetPositions.push({
-          unit: { ...cab, depth: cab.depth || cabDepth },
+          unit: { ...cab, depth: cab.depth || rowDepth },
           zone,
-          position: [px, 0, pz],
-          rotation: rot,
+          position: [centerX, 0, centerZ],
+          rotation: rowRot,
           wallIndex: wallZones.length + idx,
           cabinetIndex: zone.cabinets.indexOf(cab),
           label: `IS${idx + 1}B${String(zone.cabinets.indexOf(cab) + 1).padStart(2, '0')}`,
@@ -1143,9 +1162,12 @@ const Scene = ({
         const isIsland = zone.zoneType === 'island';
         const isSelected = !isStudio && selectedCabinet?.zoneId === zone.id && selectedCabinet?.id === unit.id;
         const isSwapSelected = !isStudio && swapSelection?.some(s => s.zoneId === zone.id && s.index === cabinetIndex);
-        
+        const localDepth = unit.depth || (unit.type === CabinetType.WALL ? 300 : project.settings.depthBase || 560);
+
         return (
-          <group key={unit.id} name={`cabinet-group-${unit.id}`} position={position} rotation={[0, rotation, 0]}>
+          <group key={unit.id} name={`cabinet-group-${unit.id}`} position={position}>
+            <group rotation={[0, rotation, 0]}>
+              <group position={[-unit.width / 2, 0, -localDepth / 2]}>
             <Cabinet
               unit={unit}
               position={[0, 0, 0]}
@@ -1209,6 +1231,8 @@ const Scene = ({
                 </>
               );
             })()}
+              </group>
+            </group>
           </group>
         );
       })}

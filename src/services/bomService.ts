@@ -151,6 +151,7 @@ export const resolveCollisions = (zone: Zone): Zone => {
 };
 
 export const resolveLocalCollisions = (zone: Zone, changedIndex: number, settings?: ProjectSettings): Zone => {
+  if (zone.zoneType === 'island') return resolveIslandCollisions(zone);
   const cabs = [...zone.cabinets].map(c => ({ ...c }));
   const cab = cabs[changedIndex];
   if (!cab) return zone;
@@ -1192,6 +1193,8 @@ export const ensureProjectSettings = (project: Project): Project => {
             hasSeating: old.hasSeating ?? false,
             seatingSide: old.seatingSide ?? 'front',
             seatingOverhang: old.seatingOverhang ?? 300,
+            numRows: old.numRows ?? 1,
+            facingDirection: old.facingDirection ?? 'front',
           }
         };
       }

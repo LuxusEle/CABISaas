@@ -212,6 +212,7 @@ export interface CabinetUnit {
   qty: number;
   fromLeft: number;
   isAutoFilled?: boolean;
+  rowIndex?: number;
   label?: string;
   // Custom cabinet support
   customPresetId?: string; // ID of custom preset from database
@@ -240,6 +241,8 @@ export interface IslandSettings {
   hasSeating: boolean;
   seatingSide: 'front' | 'back' | 'left' | 'right';
   seatingOverhang: number;
+  numRows: 1 | 2;
+  facingDirection: 'front' | 'back' | 'left' | 'right';
 }
 
 export interface Zone {
