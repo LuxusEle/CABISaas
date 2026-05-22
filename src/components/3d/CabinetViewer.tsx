@@ -1219,6 +1219,7 @@ const Scene = ({
           cp => cp.zone.id === selectedCabinet.zoneId && cp.unit.id === selectedCabinet.id
         );
         if (!selCabPos) return null;
+        if (selCabPos.wallIndex >= layoutData.wallPositions.length) return null;
         
         const sameWallCabinets = layoutData.cabinetPositions.filter(cp => cp.wallIndex === selCabPos.wallIndex);
         
