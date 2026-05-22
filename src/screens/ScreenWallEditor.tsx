@@ -18,6 +18,7 @@ import ReactCrop, { type Crop, centerCrop, makeAspectCrop, PixelCrop } from 'rea
 import 'react-image-crop/dist/ReactCrop.css';
 import { getCroppedImg } from '../utils/cropImage';
 import { useProjectStore } from '../store/useProjectStore';
+import { getActiveColor } from '../services/cabinetColors';
 import { createDefaultIslandZone, autoFillIsland, createIslandCabinet } from '../services/islandService';
 
 interface ScreenWallEditorProps {
@@ -658,41 +659,13 @@ const ScreenWallEditor = ({
               <div className="flex-1 min-h-0 relative bg-slate-100/30 dark:bg-slate-950/50">
                 {visualMode === 'elevation' ? (
                   currentZone.zoneType === 'island' ? (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <div className="text-center p-8 max-w-md">
-                        <Layout size={48} className="mx-auto text-emerald-500 mb-4" />
-                        <h3 className="text-lg font-black text-slate-800 dark:text-white uppercase mb-2">Island Zone</h3>
-                        <p className="text-sm text-slate-500 mb-6">
-                          Switch to <strong>3D Design</strong> view to see the island, or use the cabinet list below to manage cabinets.
-                        </p>
-                        <div className="grid grid-cols-2 gap-3 text-left text-xs">
-                          <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl">
-                            <span className="block text-slate-400 uppercase font-black">Length</span>
-                            <span className="block text-slate-800 dark:text-white font-bold text-lg">
-                              {currentZone.totalLength}mm
-                            </span>
-                          </div>
-                          <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl">
-                            <span className="block text-slate-400 uppercase font-black">Depth</span>
-                            <span className="block text-slate-800 dark:text-white font-bold text-lg">
-                              {currentZone.islandSettings?.islandDepth || project.settings.depthBase}mm
-                            </span>
-                          </div>
-                          <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl">
-                            <span className="block text-slate-400 uppercase font-black">Position</span>
-                            <span className="block text-slate-800 dark:text-white font-bold text-lg">
-                              X:{Math.round(currentZone.islandSettings?.posX ?? 1800)} Z:{Math.round(currentZone.islandSettings?.posZ ?? 1500)}mm
-                            </span>
-                          </div>
-                          <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl">
-                            <span className="block text-slate-400 uppercase font-black">Cabinets</span>
-                            <span className="block text-slate-800 dark:text-white font-bold text-lg">
-                              {currentZone.cabinets.length}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                    <IslandPlanView
+                      zone={currentZone}
+                      zones={project.zones}
+                      isDark={isDark}
+                      selectedCabinet={selectedCabinet}
+                      onCabinetClick={(i) => handleCabinetSelection(i, currentZone.id)}
+                    />
                   ) : (
                     <WallVisualizer 
                       zone={currentZone}
@@ -1081,20 +1054,30 @@ const ScreenWallEditor = ({
               )}
 
               {visualMode === 'elevation' ? (
-                <WallVisualizer 
-                  zone={currentZone}
-                  height={currentZone.wallHeight || 2400}
-                  onCabinetClick={(i) => openEdit('cabinet', i)}
-                  onObstacleClick={(i) => openEdit('obstacle', i)}
-                  onCabinetMove={handleCabinetMove}
-                  onObstacleMove={handleObstacleMove}
-                  onSwapCabinets={handleSwapCabinets}
-                  onDragEnd={() => {}}
-                  selectedCabinet={selectedCabinet}
-                  swapSelection={swapSelection}
-                  draggedCabinet={draggingCabinet}
-                  onDropCabinet={handleDropCabinet}
-                />
+                currentZone.zoneType === 'island' ? (
+                   <IslandPlanView
+                    zone={currentZone}
+                    zones={project.zones}
+                    isDark={isDark}
+                    selectedCabinet={selectedCabinet}
+                    onCabinetClick={(i) => openEdit('cabinet', i)}
+                  />
+                ) : (
+                  <WallVisualizer 
+                    zone={currentZone}
+                    height={currentZone.wallHeight || 2400}
+                    onCabinetClick={(i) => openEdit('cabinet', i)}
+                    onObstacleClick={(i) => openEdit('obstacle', i)}
+                    onCabinetMove={handleCabinetMove}
+                    onObstacleMove={handleObstacleMove}
+                    onSwapCabinets={handleSwapCabinets}
+                    onDragEnd={() => {}}
+                    selectedCabinet={selectedCabinet}
+                    swapSelection={swapSelection}
+                    draggedCabinet={draggingCabinet}
+                    onDropCabinet={handleDropCabinet}
+                  />
+                )
               ) : (
                 <CabinetViewer 
                   activeWallId={activeTab} 
@@ -1998,6 +1981,195 @@ const ScreenWallEditor = ({
         imageUrl={confirmDeleteSnapshot?.url}
         isLoading={isCapturing}
       />
+    </div>
+  );
+};
+
+interface IslandPlanViewProps {
+  zone: Zone;
+  zones: Zone[];
+  isDark: boolean;
+  selectedCabinet: { zoneId: string; id: string } | null;
+  onCabinetClick: (index: number) => void;
+}
+
+const IslandPlanView: React.FC<IslandPlanViewProps> = ({ zone, zones, isDark, selectedCabinet, onCabinetClick }) => {
+  const settings = useProjectStore(s => s.project.settings);
+  const isl = zone.islandSettings;
+  if (!isl) return null;
+
+  const islandLen = zone.totalLength || 1500;
+  const islDepth = isl.islandDepth || 560;
+
+  const wallZones = zones.filter(z => z.zoneType !== 'island');
+  const wallA = wallZones.find(z => z.id === 'Wall A');
+  const wallB = wallZones.find(z => z.id === 'Wall B');
+  const wallC = wallZones.find(z => z.id === 'Wall C');
+
+  const floorWidth = wallA?.totalLength || 3600;
+  const floorDepth = (wallB?.totalLength || wallC?.totalLength) || 3000;
+
+  const pad = 40;
+  const wallThick = 24;
+  const viewW = 800;
+  const viewH = 600;
+  const availW = viewW - pad * 2 - wallThick;
+  const availH = viewH - pad * 2 - wallThick;
+
+  const scale = Math.min(availW / Math.max(floorWidth, 1), availH / Math.max(floorDepth, 1));
+  const roomW = floorWidth * scale;
+  const roomH = floorDepth * scale;
+
+  const offX = pad + wallThick;
+  const offY = pad;
+
+  const islCX = offX + (isl.posX ?? 1800) * scale;
+  const islCY = offY + (isl.posZ ?? 1500) * scale;
+  const islW = islandLen * scale;
+  const islH = islDepth * scale;
+  const islLeft = islCX - islW / 2;
+  const islTop = islCY - islH / 2;
+
+  const sorted = [...zone.cabinets].sort((a, b) => a.fromLeft - b.fromLeft);
+
+  const bgWall = isDark ? '#0F172A' : '#ffffff';
+  const bgVoid = isDark ? '#020617' : '#f1f5f9';
+  const gridLine = isDark ? '#1e293b' : '#e2e8f0';
+  const wallBorder = isDark ? '#64748b' : '#94a3b8';
+  const wallFill = isDark ? 'rgba(71,85,105,0.3)' : 'rgba(100,116,139,0.15)';
+
+  return (
+    <div className="w-full h-full bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 overflow-hidden relative shadow-inner select-none">
+      <svg viewBox={`0 0 ${viewW} ${viewH}`} className="w-full h-full" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <marker id="dArr" viewBox="0 0 8 8" refX="4" refY="4" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+            <path d="M 0 0 L 8 4 L 0 8 z" fill="#3b82f6" />
+          </marker>
+          <marker id="tick" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="45">
+            <line x1="0" y1="5" x2="10" y2="5" stroke={wallBorder} strokeWidth="2" />
+          </marker>
+          <pattern id="floorGrid" width="50" height="50" patternUnits="userSpaceOnUse">
+            <path d="M 50 0 L 0 0 0 50" fill="none" stroke={gridLine} strokeWidth="1" />
+          </pattern>
+        </defs>
+
+        <rect x="0" y="0" width={viewW} height={viewH} fill={bgVoid} />
+
+        <rect x={offX} y={offY} width={roomW} height={roomH}
+          fill={bgWall} stroke={wallBorder} strokeWidth="2" rx="1" />
+        <rect x={offX} y={offY} width={roomW} height={roomH}
+          fill="url(#floorGrid)" />
+
+        {wallA && (
+          <g>
+            <rect x={offX} y={offY - wallThick} width={roomW} height={wallThick}
+              fill={wallFill} stroke={wallBorder} strokeWidth="1" rx="1" />
+            <text x={offX + roomW / 2} y={offY - wallThick / 2}
+              textAnchor="middle" dominantBaseline="middle"
+              fill={wallBorder} fontWeight="bold" style={{ fontSize: '11px' }}>
+              Wall A
+            </text>
+          </g>
+        )}
+        {wallB && (
+          <g>
+            <rect x={offX + roomW} y={offY} width={wallThick} height={roomH}
+              fill={wallFill} stroke={wallBorder} strokeWidth="1" rx="1" />
+            <text x={offX + roomW + wallThick / 2} y={offY + roomH / 2}
+              textAnchor="middle" dominantBaseline="middle"
+              fill={wallBorder} fontWeight="bold" style={{ fontSize: '11px' }}
+              transform={`rotate(-90, ${offX + roomW + wallThick / 2}, ${offY + roomH / 2})`}>
+              Wall B
+            </text>
+          </g>
+        )}
+        {wallC && (
+          <g>
+            <rect x={offX} y={offY + roomH} width={roomW} height={wallThick}
+              fill={wallFill} stroke={wallBorder} strokeWidth="1" rx="1" />
+            <text x={offX + roomW / 2} y={offY + roomH + wallThick / 2}
+              textAnchor="middle" dominantBaseline="middle"
+              fill={wallBorder} fontWeight="bold" style={{ fontSize: '11px' }}>
+              Wall C
+            </text>
+          </g>
+        )}
+
+        {wallZones.map(wz => {
+          const cabDepth = (cab: typeof wz.cabinets[0]) => {
+            if (cab.type === CabinetType.WALL) return settings.depthWall || 300;
+            if (cab.type === CabinetType.TALL) return settings.depthTall || 560;
+            return settings.depthBase || 560;
+          };
+          const cabFootprints = wz.cabinets.map(cab => {
+            const depth = cabDepth(cab) * scale;
+            if (wz.id === 'Wall A') {
+              return <rect key={cab.id} x={offX + cab.fromLeft * scale} y={offY + 1}
+                width={cab.width * scale} height={depth}
+                fill="rgba(148,163,184,0.08)" stroke="#94a3b8" strokeWidth="0.5" rx="1" />;
+            }
+            if (wz.id === 'Wall B') {
+              return <rect key={cab.id} x={offX + roomW - depth} y={offY + cab.fromLeft * scale}
+                width={depth} height={cab.width * scale}
+                fill="rgba(148,163,184,0.08)" stroke="#94a3b8" strokeWidth="0.5" rx="1" />;
+            }
+            if (wz.id === 'Wall C') {
+              return <rect key={cab.id} x={offX + cab.fromLeft * scale} y={offY + roomH - depth}
+                width={cab.width * scale} height={depth}
+                fill="rgba(148,163,184,0.08)" stroke="#94a3b8" strokeWidth="0.5" rx="1" />;
+            }
+            return null;
+          });
+          return <g key={wz.id}>{cabFootprints}</g>;
+        })}
+
+        {sorted.map((cab, i) => {
+          const cabColor = getActiveColor(cab.preset || PresetType.BASE_DOOR);
+          const isSel = selectedCabinet?.id === cab.id;
+          const x1 = islLeft + cab.fromLeft * scale;
+          const w = cab.width * scale;
+          return (
+            <g key={cab.id} onClick={() => onCabinetClick(i)} className="cursor-pointer">
+              <rect x={x1} y={islTop} width={w} height={islH}
+                fill={isSel ? 'rgba(59,130,246,0.25)' : cabColor.fill}
+                stroke={isSel ? '#3b82f6' : cabColor.stroke}
+                strokeWidth={isSel ? 1.5 : 0.5} rx="1" />
+              {sorted.length > 1 && (
+                <line x1={x1} y1={islTop} x2={x1} y2={islTop + islH}
+                  stroke={isSel ? '#3b82f6' : '#94a3b8'}
+                  strokeWidth={isSel ? 1.5 : 0.5} strokeDasharray="3 2" />
+              )}
+              <text x={x1 + w / 2} y={islTop + islH / 2}
+                textAnchor="middle" dominantBaseline="middle"
+                fill={isSel ? '#2563eb' : (isDark ? '#e2e8f0' : '#334155')}
+                fontWeight="bold" style={{ fontSize: '10px' }}>
+                {cab.label || cab.preset}
+              </text>
+            </g>
+          );
+        })}
+
+        <line x1={offX} y1={offY + roomH + 8}
+          x2={offX + roomW} y2={offY + roomH + 8}
+          stroke={wallBorder} strokeWidth="2"
+          markerStart="url(#tick)" markerEnd="url(#tick)" />
+        <text x={offX + roomW / 2} y={offY + roomH + 20}
+          textAnchor="middle" fill="#3b82f6" fontWeight="black"
+          style={{ fontSize: '11px' }} className="font-mono">
+          TOTAL {floorWidth}mm
+        </text>
+
+        <line x1={offX + roomW + 8} y1={offY + roomH}
+          x2={offX + roomW + 8} y2={offY}
+          stroke={wallBorder} strokeWidth="2"
+          markerStart="url(#tick)" markerEnd="url(#tick)" />
+        <text x={offX + roomW + 20} y={offY + roomH / 2}
+          textAnchor="middle" fill="#3b82f6" fontWeight="black"
+          style={{ fontSize: '11px' }}
+          transform={`rotate(-90, ${offX + roomW + 20}, ${offY + roomH / 2})`}>
+          {floorDepth}mm
+        </text>
+      </svg>
     </div>
   );
 };
