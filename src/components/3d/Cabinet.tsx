@@ -34,6 +34,7 @@ interface Props {
   skeletonView?: boolean;
   isStudio?: boolean;
   isMobile?: boolean;
+  isIsland?: boolean;
   obstacles?: Obstacle[];
 }
 
@@ -109,6 +110,7 @@ export const Cabinet = React.memo(({
   skeletonView = false,
   isStudio = false,
   isMobile = false,
+  isIsland = false,
   obstacles = []
 }: Props) => {
   const [hovered, setHovered] = React.useState(false);
@@ -213,6 +215,7 @@ export const Cabinet = React.memo(({
       doorTexture,
       shelfTexture
     };
+    s.enableIsland = isIsland;
     if (forceGola !== undefined) s.enableGola = forceGola;
     if (isWallTop) s.enableGola = false;
     if (opacity !== undefined) s.opacity = opacity;
@@ -222,7 +225,7 @@ export const Cabinet = React.memo(({
       s.lowerDoorOpenAngle = doorOpenAngle;
     }
     return s;
-  }, [unit, settings, width, height, depth, doorOpenAngle, forceGola, opacity, isSelected, skeletonView, isStudio, carcassTexture, doorTexture]);
+  }, [unit, settings, width, height, depth, doorOpenAngle, forceGola, opacity, isSelected, skeletonView, isStudio, carcassTexture, doorTexture, isIsland]);
 
   return (
     <group 
@@ -293,8 +296,8 @@ export const Cabinet = React.memo(({
         )
       )}
 
-      {/* Granite Countertop - Rendered on top of ALL base cabinets - Hidden in Advanced Mode */}
-      {isBase && !previewMode && settings?.workflowMode !== 'advanced' && (
+      {/* Granite Countertop - Rendered on top of ALL base cabinets - Hidden in Advanced Mode, skipped for island cabinets */}
+      {isBase && !previewMode && !isIsland && settings?.workflowMode !== 'advanced' && (
         <mesh position={[width / 2, height + counterThickness / 2, depth / 2 + 25]}>
           <boxGeometry args={[width, counterThickness, depth + 50]} />
           <meshStandardMaterial color="#0a0a0a" roughness={0.05} metalness={0.4} />

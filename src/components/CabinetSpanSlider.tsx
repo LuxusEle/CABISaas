@@ -169,7 +169,7 @@ export const CabinetSpanSlider: React.FC<CabinetSpanSliderProps> = ({
           const snapPt = snapGuides.find(g => Math.abs(g - newRightEdge) < 15);
           if (snapPt !== undefined && snapPt > startFromLeft + 150) newRightEdge = snapPt;
         }
-        const newWidth = Math.max(150, Math.min(totalLength - startFromLeft, newRightEdge - startFromLeft));
+        const newWidth = Math.max(150, newRightEdge - startFromLeft);
         onChange({ width: Math.round(newWidth) });
       } else if (activeHandle === 'middle') {
         let newFromLeft = Math.max(0, Math.min(totalLength - startWidth, startFromLeft + dx));

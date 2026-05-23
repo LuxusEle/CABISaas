@@ -10,6 +10,7 @@ import { createNewProject, resolveCollisions, resolveLocalCollisions } from '../
 import { supabase } from '../services/supabaseClient';
 import { CabinetViewer } from '../components/3d/CabinetViewer';
 import { generateRubyLayout } from '../services/layoutSolver';
+import { autoFillIsland } from '../services/islandService';
 import { CabinetSpanSlider } from '../components/CabinetSpanSlider';
 import { SingleCabinetEditorModal } from '../components/SingleCabinetEditorModal';
 
@@ -641,7 +642,12 @@ const ScreenEmbedSetup = ({ isDark }: ScreenEmbedSetupProps) => {
                             isDark={isDark}
                             isInline={true}
                             onSave={(newZones) => {
-                              const projectWithZones = { ...project, zones: newZones };
+                              const syncedZones = newZones.map(z =>
+                                z.zoneType === 'island'
+                                  ? autoFillIsland({ ...z, cabinets: [] })
+                                  : z
+                              );
+                              const projectWithZones = { ...project, zones: syncedZones };
                               setProject(projectWithZones);
                               setActiveModal('preferences');
                             }}

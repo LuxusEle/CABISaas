@@ -155,6 +155,7 @@ export interface Obstacle {
   sillHeight?: number; // Distance from floor to bottom of window
   elevation?: number; // Distance from floor (alias or used for other types)
   depth?: number;
+  hingeSide?: 'left' | 'right'; // Door hinge side ('left' = near fromLeft, 'right' = near fromLeft+width)
 }
 
 export interface CustomCabinetConfig {
@@ -211,12 +212,15 @@ export interface CabinetUnit {
   qty: number;
   fromLeft: number;
   isAutoFilled?: boolean;
+  rowIndex?: number;
   label?: string;
   // Custom cabinet support
   customPresetId?: string; // ID of custom preset from database
   customConfig?: CustomCabinetConfig; // Custom configuration
   // Material selection
   materials?: CabinetMaterials;
+  // Island cabinet flag
+  isIsland?: boolean;
   // Exposed sides (for additional side panels)
   exposedLeft?: boolean;
   exposedRight?: boolean;
@@ -226,8 +230,28 @@ export interface CabinetUnit {
   advancedSettings?: Partial<TestingSettings>;
 }
 
+export interface IslandSettings {
+  posX: number;       // X position on floor (from Wall A face)
+  posZ: number;       // Z position on floor (from Wall B face)
+  rotation: number;
+  islandDepth: number;
+  clearance: number;  // Min clearance from all walls
+  frontOverhang: number;
+  backOverhang: number;
+  leftOverhang: number;
+  rightOverhang: number;
+  hasSeating: boolean;
+  seatingSide: 'front' | 'back' | 'left' | 'right';
+  seatingOverhang: number;
+  numRows: 1 | 2;
+  facingDirection: 'front' | 'back' | 'left' | 'right';
+  includeIslandSink?: boolean;
+  includeIslandDrawers?: boolean;
+}
+
 export interface Zone {
   id: string;
+  zoneType?: 'wall' | 'island';
   active: boolean;
   totalLength: number;
   wallHeight: number;
@@ -235,6 +259,7 @@ export interface Zone {
   cabinets: CabinetUnit[];
   startLimit?: number;
   endLimit?: number;
+  islandSettings?: IslandSettings;
 }
 
 export interface Project {

@@ -124,6 +124,7 @@ export interface TestingSettings {
   exposedRight?: boolean;
   leftCoverage?: { start: number, end: number, depth: number }[];
   rightCoverage?: { start: number, end: number, depth: number }[];
+  enableIsland?: boolean;
 }
 
 export const DEFAULT_SETTINGS: TestingSettings = {
@@ -176,6 +177,7 @@ export const DEFAULT_SETTINGS: TestingSettings = {
   drawerBackClearance: 5,
   doorOpenAngle: 0,
   drawerOpenDistances: [0, 0, 0, 0, 0],
+  enableIsland: false,
   golaCutoutDepth: 26,
   golaLCutoutDepth: 26,
   opacity: 1,
@@ -746,6 +748,7 @@ export const getCabinetTestingSettings = (
     exposedRight: unit.exposedRight,
     leftCoverage: unit.leftCoverage,
     rightCoverage: unit.rightCoverage,
+    enableIsland: unit.isIsland ?? false,
   };
 
   // 3. Override with global advancedTestingSettings if present

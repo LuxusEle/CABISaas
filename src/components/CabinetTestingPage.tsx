@@ -524,6 +524,7 @@ export const CabinetTestingPage: React.FC<{ isDark?: boolean }> = ({ isDark = tr
                 <SettingRow label="Top Stretcher W" value={settings.topStretcherWidth} onChange={v => updateSetting('topStretcherWidth', v)} step={10} min={50} max={200} />
               </div>
             )}
+            <CheckboxRow label="Island Mode" checked={settings.enableIsland} onChange={v => updateSetting('enableIsland', v)} />
           </Section>
 
           {(settings.cabinetType === 'base' || settings.cabinetType === 'sink' || settings.cabinetType === 'wall' || settings.cabinetType === 'wall_corner' || settings.cabinetType === 'corner') && (settings.showDoors || settings.showDrawers) && (

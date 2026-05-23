@@ -1,5 +1,6 @@
 import { Project, Zone, CabinetUnit, PresetType, CabinetType, ProjectSettings, Obstacle } from '../types';
 import { v4 as uuid } from 'uuid';
+import { autoFillIsland } from './islandService';
 
 export interface LayoutResult {
   project: Project;
@@ -11,16 +12,20 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
   const settings = project.settings;
   
   // 1. Initial State: Clear auto-fill units and corners
+  // Auto-fill island zones with cabinets, clear non-island zones
   const newProject: Project = { 
     ...project, 
-    zones: project.zones.map(z => ({ 
-      ...z, 
-      cabinets: [],
-      obstacles: z.obstacles.filter(o => !o.id.startsWith('corner_'))
-    })) 
+    zones: [
+      ...project.zones.filter(z => z.zoneType === 'island').map(z => autoFillIsland({ ...z })),
+      ...project.zones.filter(z => z.zoneType !== 'island').map(z => ({ 
+        ...z, 
+        cabinets: [],
+        obstacles: z.obstacles.filter(o => !o.id.startsWith('corner_'))
+      })) 
+    ]
   };
   
-  const zones = newProject.zones;
+  const zones = newProject.zones.filter(z => z.zoneType !== 'island');
   
   // 2. Corner Injection (Highest Priority)
   for (let i = 0; i < zones.length; i++) {
@@ -178,7 +183,12 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
 
   // 3.3 Cooker Unit
   if (prefs.includeCooker) {
-    for (const zone of zones) {
+    // Ruby Rule: Prefer wall without window for cooker placement
+    const zonesNoWindow = zones.filter(z => !z.obstacles.some(o => o.type === 'window'));
+    const zonesWithWindow = zones.filter(z => z.obstacles.some(o => o.type === 'window'));
+    const cookerZones = [...zonesNoWindow, ...zonesWithWindow];
+
+    for (const zone of cookerZones) {
       if (cookerPlaced) break;
       const cookerWidth = 600;
       const gaps = findGaps(zone, CabinetType.BASE, settings);
@@ -191,20 +201,31 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
       
       const sequenceGap = gaps.find(g => g.length >= seqWidth + minLead);
       if (sequenceGap) {
-        // Position cooker so that exactly 600mm is left for the special drawer at the end
-        targetX = sequenceGap.end - seqWidth;
-      } else {
+        const candidateX = sequenceGap.end - seqWidth;
+        // Ruby Rule: cooker must have space for hood directly above
+        if (canPlace(zone, candidateX, cookerWidth, CabinetType.WALL, settings)) {
+          targetX = candidateX;
+        }
+      }
+
+      if (targetX === -1) {
         const minGap = gaps.find(g => g.length >= cookerWidth);
         if (minGap) {
-          // Try to avoid placing immediately next to door/window
           const isNearOpening = (x: number) => zone.obstacles.some(o => 
             (o.type === 'door' || o.type === 'window') && 
             (Math.abs(o.fromLeft + o.width - x) < 5 || Math.abs(o.fromLeft - (x + cookerWidth)) < 5)
           );
-          
+
+          // Try offset by 300 to avoid openings, only if hood also fits
           if (isNearOpening(minGap.start) && minGap.length >= cookerWidth + 300) {
-            targetX = minGap.start + 300;
-          } else {
+            const candidateX = minGap.start + 300;
+            if (canPlace(zone, candidateX, cookerWidth, CabinetType.WALL, settings)) {
+              targetX = candidateX;
+            }
+          }
+
+          // Try start of gap, only if hood also fits
+          if (targetX === -1 && canPlace(zone, minGap.start, cookerWidth, CabinetType.WALL, settings)) {
             targetX = minGap.start;
           }
         }
@@ -221,68 +242,79 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
           isAutoFilled: true, 
           label: '',
           advancedSettings: {
-            showDoors: true, // Lead cabinet logic often uses doors
+            showDoors: true,
             showDrawers: false
           }
         });
-        if (canPlace(zone, targetX, cookerWidth, CabinetType.WALL, settings)) {
-          const wallHeight = settings.wallHeight || 720;
-          placeUnit(zone, { 
-            id: uuid(), 
-            preset: PresetType.HOOD_UNIT, 
-            type: CabinetType.WALL, 
-            width: cookerWidth, 
-            qty: 1, 
-            fromLeft: targetX, 
-            isAutoFilled: true, 
-            label: '',
-            advancedSettings: {
-              height: wallHeight - 150,
-              elevationOffset: 150
-            }
-          });
-        }
+        const wallHeight = settings.wallHeight || 720;
+        placeUnit(zone, { 
+          id: uuid(), 
+          preset: PresetType.HOOD_UNIT, 
+          type: CabinetType.WALL, 
+          width: cookerWidth, 
+          qty: 1, 
+          fromLeft: targetX, 
+          isAutoFilled: true, 
+          label: '',
+          advancedSettings: {
+            height: wallHeight - 150,
+            elevationOffset: 150
+          }
+        });
         cookerPlaced = true;
         break;
       }
 
-      // Fallback: Position in largest gap, snapping to left to avoid fragmented space
+      // Fallback: Position in largest gap, preferring where hood fits
       for (const gap of gaps) {
         if (gap.length >= cookerWidth) {
-          // Snap to left, but try to leave space for exactly one lead cabinet (prefer 600)
-          const candidates = [600, 500, 450, 400, 300, 250, 0];
+          const offsets = [600, 500, 450, 400, 300, 250, 0];
           let x = gap.start;
-          
-          for (const offset of candidates) {
+
+          // First pass: prefer positions away from openings where hood also fits
+          for (const offset of offsets) {
             const candidateX = gap.start + offset;
             if (candidateX + cookerWidth > gap.end) continue;
-            
+
             const nearOpening = zone.obstacles.some(o => 
               (o.type === 'door' || o.type === 'window') && 
               (Math.abs(o.fromLeft + o.width - candidateX) < 5 || Math.abs(o.fromLeft - (candidateX + cookerWidth)) < 5)
             );
-            
-            if (!nearOpening) {
+
+            if (!nearOpening && canPlace(zone, candidateX, cookerWidth, CabinetType.WALL, settings)) {
               x = candidateX;
+              targetX = x;
               break;
             }
           }
 
-          placeUnit(zone, { 
-            id: uuid(), 
-            preset: PresetType.COOKER_HOB, 
-            type: CabinetType.BASE, 
-            width: cookerWidth, 
-            qty: 1, 
-            fromLeft: x, 
-            isAutoFilled: true, 
-            label: '',
-            advancedSettings: {
-              showDoors: true,
-              showDrawers: false
+          // Second pass: allow near opening positions, still requiring hood fit
+          if (targetX === -1) {
+            for (const offset of offsets) {
+              const candidateX = gap.start + offset;
+              if (candidateX + cookerWidth > gap.end) continue;
+              if (canPlace(zone, candidateX, cookerWidth, CabinetType.WALL, settings)) {
+                targetX = candidateX;
+                break;
+              }
             }
-          });
-          if (canPlace(zone, x, cookerWidth, CabinetType.WALL, settings)) {
+          }
+
+          if (targetX !== -1) {
+            placeUnit(zone, { 
+              id: uuid(), 
+              preset: PresetType.COOKER_HOB, 
+              type: CabinetType.BASE, 
+              width: cookerWidth, 
+              qty: 1, 
+              fromLeft: targetX, 
+              isAutoFilled: true, 
+              label: '',
+              advancedSettings: {
+                showDoors: true,
+                showDrawers: false
+              }
+            });
             const wallHeight = settings.wallHeight || 720;
             placeUnit(zone, { 
               id: uuid(), 
@@ -290,7 +322,7 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
               type: CabinetType.WALL, 
               width: cookerWidth, 
               qty: 1, 
-              fromLeft: x, 
+              fromLeft: targetX, 
               isAutoFilled: true, 
               label: '',
               advancedSettings: {
@@ -298,9 +330,9 @@ export const generateRubyLayout = (project: Project): LayoutResult => {
                 elevationOffset: 150
               }
             });
+            cookerPlaced = true;
+            break;
           }
-          cookerPlaced = true;
-          break;
         }
       }
     }

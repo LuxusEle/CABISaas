@@ -7,6 +7,7 @@ import { exportWallCabinetDXF } from '../components/WallCabinetTesting';
 import { exportTallCabinetDXF } from '../components/TallCabinetTesting';
 import { exportBaseCornerCabinetDXF } from '../components/BaseCornerCabinetTesting';
 import { exportWallCornerCabinetDXF } from '../components/WallCornerCabinetTesting';
+import { resolveIslandCollisions, autoFillIsland, getIslandCountertopDimensions } from './islandService';
 
 // Helper to generate unique IDs
 const uuid = () => Math.random().toString(36).substr(2, 9);
@@ -61,6 +62,8 @@ const calculateDoors = (cabinetWidth: number, doorHeight: number, settings: Proj
 // --- COLLISION LOGIC ---
 
 export const resolveCollisions = (zone: Zone): Zone => {
+  if (zone.zoneType === 'island') return resolveIslandCollisions(zone);
+
   // Preserve WALL_TOP cabinets exactly — they must not be moved by collision resolution
   const wallTops = zone.cabinets
     .filter(c => c.type === CabinetType.WALL_TOP)
@@ -148,6 +151,7 @@ export const resolveCollisions = (zone: Zone): Zone => {
 };
 
 export const resolveLocalCollisions = (zone: Zone, changedIndex: number, settings?: ProjectSettings): Zone => {
+  if (zone.zoneType === 'island') return resolveIslandCollisions(zone);
   const cabs = [...zone.cabinets].map(c => ({ ...c }));
   const cab = cabs[changedIndex];
   if (!cab) return zone;
@@ -332,6 +336,8 @@ export const autoFillZone = (
   wallId: string,
   options: AutoFillOptions = { includeSink: true, includeCooker: true, includeTall: false, includeWallCabinets: true, preferDrawers: false }
 ): Zone => {
+  if (zone.zoneType === 'island') return autoFillIsland(zone);
+
   const manualCabs = zone.cabinets.filter(c => !c.isAutoFilled);
   const obstacles = zone.obstacles;
   const totalLength = zone.totalLength;
@@ -589,7 +595,10 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
 
   Object.values(machiningDataMap).forEach(data => {
     const category = resolveCategory(data.name);
-    const material = resolveMaterial(category);
+    let material = resolveMaterial(category);
+    if (t.enableIsland && data.name === 'Island_Back_Panel') {
+      material = doorMaterial;
+    }
     parts.push({
       id: uuid(),
       name: data.name.replace(/_/g, ' '),
@@ -658,6 +667,8 @@ export const generateProjectBOM = (project: Project): {
   let totalGraniteSqft = 0;
   let totalTileAreaMm2 = 0;
 
+  let islIdx = 0;
+
   project.zones.filter(z => z.active).forEach((zone, zIdx) => {
     let zoneLen = 0;
     
@@ -677,12 +688,13 @@ export const generateProjectBOM = (project: Project): {
       if (unit.type !== CabinetType.WALL && unit.type !== CabinetType.WALL_TOP) zoneLen += unit.width;
 
       // Assign sequential label for the report: W01B01, W01W01 etc.
-      const wallPrefix = `W${String(zIdx + 1).padStart(2, '0')}`;
+      const wallPrefix = zone.zoneType === 'island' ? `IS${String(++islIdx).padStart(2, '0')}` : `W${String(zIdx + 1).padStart(2, '0')}`;
+
       let typeChar = 'W';
       if (unit.type === CabinetType.BASE) typeChar = 'B';
       else if (unit.type === CabinetType.TALL) typeChar = 'T';
       else if (unit.type === CabinetType.WALL_TOP) typeChar = 'U';
-      
+
       const seq = typeChar === 'B' ? bIdx++ : typeChar === 'W' ? wIdx++ : typeChar === 'U' ? uIdx++ : tIdx++;
       const effectiveLabel = `${wallPrefix}${typeChar}${String(seq).padStart(2, '0')}`;
 
@@ -709,14 +721,28 @@ export const generateProjectBOM = (project: Project): {
       
       // Accessory Calculations
       if (unit.type === CabinetType.BASE) {
-        const depth = (unit.advancedSettings?.depth || project.settings.depthBase || 560) + 50;
-        totalGraniteSqft += (unit.width * depth) / 92903.04;
+        if (zone.zoneType === 'island') {
+          // Island countertop calculated once below — skip per-cabinet
+        } else {
+          const depth = (unit.advancedSettings?.depth || project.settings.depthBase || 560) + 50;
+          totalGraniteSqft += (unit.width * depth) / 92903.04;
+        }
       }
     });
 
-    // Tile Backsplash
-    const backsplashHeight = project.settings.wallCabinetElevation || 450;
-    totalTileAreaMm2 += (zone.totalLength * backsplashHeight);
+    // Island countertop (single piece across all cabinets)
+    if (zone.zoneType === 'island') {
+      const dims = getIslandCountertopDimensions(zone);
+      if (dims) {
+        totalGraniteSqft += (dims.width * dims.depth) / 92903.04;
+      }
+    }
+
+    // Tile Backsplash — skip for island zones
+    if (zone.zoneType !== 'island') {
+      const backsplashHeight = project.settings.wallCabinetElevation || 450;
+      totalTileAreaMm2 += (zone.totalLength * backsplashHeight);
+    }
 
     totalLinearFeet += (zoneLen / 304.8);
   });
@@ -733,7 +759,7 @@ export const generateProjectBOM = (project: Project): {
 
       if (wallTops.length === 0) return;
 
-      const wallPrefix = `W${String(zIdx + 1).padStart(2, '0')}`;
+      const wallPrefix = zone.zoneType === 'island' ? `IS${String(zIdx + 1).padStart(2, '0')}` : `W${String(zIdx + 1).padStart(2, '0')}`;
       let merged = {
         fromLeft: wallTops[0].fromLeft,
         right: wallTops[0].fromLeft + wallTops[0].width,
@@ -811,6 +837,7 @@ export const getMaterialRequirements = (
   const allParts: BOMItem[] = [];
 
   // Collect all parts from all cabinets
+  let islIdx = 0;
   project.zones
     .filter(z => z.active)
     .forEach((zone, zIdx) => {
@@ -823,7 +850,7 @@ export const getMaterialRequirements = (
       sortedCabinets.forEach((unit, index) => {
         if (unit.isAutoFilled && unit.preset === PresetType.FILLER) return;
         
-        const wallPrefix = `W${String(zIdx + 1).padStart(2, '0')}`;
+        const wallPrefix = zone.zoneType === 'island' ? `IS${String(++islIdx).padStart(2, '0')}` : `W${String(zIdx + 1).padStart(2, '0')}`;
         let typeChar = 'W';
         if (unit.type === CabinetType.BASE) typeChar = 'B';
         else if (unit.type === CabinetType.TALL) typeChar = 'T';
@@ -849,7 +876,7 @@ export const getMaterialRequirements = (
 
       if (wallTops.length === 0) return;
 
-      const wallPrefix = `W${String(zIdx + 1).padStart(2, '0')}`;
+      const wallPrefix = zone.zoneType === 'island' ? `IS${String(zIdx + 1).padStart(2, '0')}` : `W${String(zIdx + 1).padStart(2, '0')}`;
       let merged = {
         fromLeft: wallTops[0].fromLeft,
         right: wallTops[0].fromLeft + wallTops[0].width,
@@ -1125,13 +1152,65 @@ export const ensureProjectSettings = (project: Project): Project => {
       },
       workflowMode: project.settings?.workflowMode || 'traditional'
     },
-    zones: (project.zones || []).map(zone => ({
-      ...zone,
-      cabinets: (zone.cabinets || []).map(cab => ({
-        ...cab,
-        materials: cab.materials || {}
-      }))
-    }))
+    zones: (project.zones || []).map(zone => {
+      // Migration: handle both old IslandSettings formats
+      if (zone.zoneType === 'island' && zone.islandSettings) {
+        const old = zone.islandSettings as any;
+        let posX = old.posX;
+        let posZ = old.posZ;
+        const clearance = old.clearance ?? 1067;
+
+        // Format 1: margin-based (intermediate format with marginFromWallA/B/C/Entrance)
+        if (posX === undefined && 'marginFromWallA' in old) {
+          const wallA = (project.zones || []).find(z => z.id === 'Wall A');
+          const wallB = (project.zones || []).find(z => z.id === 'Wall B');
+          const fw = wallA?.totalLength || 3600;
+          const fd = wallB?.totalLength || 3000;
+          const len = zone.totalLength || 1500;
+          const dep = old.islandDepth || 560;
+          const mA = old.marginFromWallA ?? 1067;
+          const mC = old.marginFromWallC ?? 1067;
+          const mB = old.marginFromWallB ?? 1067;
+          const mE = old.marginFromEntrance ?? 1067;
+          posX = mA + Math.max(fw - mA - mC, 0) / 2;
+          posZ = mB + Math.max(fd - mB - mE, 0) / 2;
+        }
+        // Format 2: very old format already has posX/posZ, just needs clearance
+        else if (posX === undefined) {
+          posX = 1800;
+          posZ = 1500;
+        }
+
+        zone = {
+          ...zone,
+          islandSettings: {
+            posX: Math.round(posX),
+            posZ: Math.round(posZ),
+            rotation: old.rotation ?? 0,
+            islandDepth: old.islandDepth ?? 560,
+            clearance,
+            frontOverhang: old.frontOverhang ?? 25,
+            backOverhang: old.backOverhang ?? 25,
+            leftOverhang: old.leftOverhang ?? 25,
+            rightOverhang: old.rightOverhang ?? 25,
+            hasSeating: old.hasSeating ?? false,
+            seatingSide: old.seatingSide ?? 'front',
+            seatingOverhang: old.seatingOverhang ?? 300,
+            numRows: old.numRows ?? 1,
+            facingDirection: old.facingDirection ?? 'front',
+            includeIslandSink: old.includeIslandSink ?? false,
+            includeIslandDrawers: old.includeIslandDrawers ?? false,
+          }
+        };
+      }
+      return {
+        ...zone,
+        cabinets: (zone.cabinets || []).map(cab => ({
+          ...cab,
+          materials: cab.materials || {}
+        }))
+      };
+    })
   };
 };
 

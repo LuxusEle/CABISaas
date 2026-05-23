@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Box, DoorOpen, Settings, Settings2, RotateCcw, Lock, X, ArrowLeft, ArrowRight, Save, LayoutDashboard, Calculator, Zap, Menu, Layers, Table2, Maximize2 } from 'lucide-react';
+import { Plus, Box, DoorOpen, Settings, Settings2, RotateCcw, Lock, X, ArrowLeft, ArrowRight, Save, LayoutDashboard, Calculator, Zap, Menu, Layers, Table2, Maximize2, Layout } from 'lucide-react';
 import { Screen, Project, Zone, PresetType, CabinetType, CabinetUnit, Obstacle, AutoFillOptions } from '../types';
 import { autoFillZone, resolveCollisions, resolveLocalCollisions } from '../services/bomService';
 import { Button } from '../components/Button';
@@ -18,6 +18,8 @@ import ReactCrop, { type Crop, centerCrop, makeAspectCrop, PixelCrop } from 'rea
 import 'react-image-crop/dist/ReactCrop.css';
 import { getCroppedImg } from '../utils/cropImage';
 import { useProjectStore } from '../store/useProjectStore';
+import { getActiveColor } from '../services/cabinetColors';
+import { createDefaultIslandZone, autoFillIsland, createIslandCabinet } from '../services/islandService';
 
 interface ScreenWallEditorProps {
   setScreen: (s: Screen) => void;
@@ -317,13 +319,32 @@ const ScreenWallEditor = ({
     const targetId = zoneId || activeTab || project.zones[0]?.id;
     if (!targetId) return;
 
-    const newCabinet: CabinetUnit = {
-      ...cabinet,
-      id: Math.random().toString(36).substr(2, 9),
-      fromLeft,
-      width: targetWidth || cabinet.width,
-      label: '' 
-    };
+    const targetZone = project.zones.find(z => z.id === targetId);
+    const isIsland = targetZone?.zoneType === 'island';
+
+    let newCabinet: CabinetUnit;
+    if (isIsland) {
+      const w = targetWidth || cabinet.width;
+      const isSink = cabinet.preset === PresetType.SINK_UNIT;
+      const isDrawer = cabinet.preset === PresetType.BASE_DRAWER_3;
+      newCabinet = createIslandCabinet(CabinetType.BASE, w, fromLeft, {
+        showDoors: !isDrawer && !isSink,
+        showDrawers: isDrawer,
+        numDrawers: isDrawer ? 3 : 0,
+        showShelves: !isDrawer && !isSink,
+        numShelves: isSink ? 0 : 2,
+        showBackPanel: !isSink,
+        depth: targetZone?.islandSettings?.islandDepth ?? project.settings.depthBase,
+      });
+    } else {
+      newCabinet = {
+        ...cabinet,
+        id: Math.random().toString(36).substr(2, 9),
+        fromLeft,
+        width: targetWidth || cabinet.width,
+        label: '' 
+      };
+    }
     
     updateZone(z => resolveCollisions({ ...z, cabinets: [...z.cabinets, newCabinet] }), false, targetId);
     setDraggingCabinet(null);
@@ -466,6 +487,20 @@ const ScreenWallEditor = ({
       
       cabs[index] = { ...targetCab, ...updates };
       
+      // LEFT-HANDLE / MIDDLE-HANDLE DRAG: when fromLeft decreased, pre-shrink left neighbor
+      // so the cabinet can "eat into" the left neighbor's width instead of getting pushed right
+      if ('fromLeft' in updates && updates.fromLeft! < targetCab.fromLeft && index > 0) {
+        const left = cabs[index - 1];
+        const overlap = left.fromLeft + left.width - updates.fromLeft;
+        if (overlap > 0) {
+          left.width = Math.max(50, left.width - overlap);
+          const actualFromLeft = left.fromLeft + left.width;
+          const rightEdge = updates.fromLeft + (updates.width ?? targetCab.width);
+          cabs[index].fromLeft = actualFromLeft;
+          cabs[index].width = Math.max(150, rightEdge - actualFromLeft);
+        }
+      }
+      
       // SYNC LOGIC: If width or position changed, sync cooker/hood counterparts
       if ('width' in updates || 'fromLeft' in updates) {
         const newWidth = updates.width ?? targetCab.width;
@@ -570,6 +605,21 @@ const ScreenWallEditor = ({
                       <span className="relative z-10">{z.id}</span>
                     </button>
                   ))}
+                  {!project.zones.some(z => z.zoneType === 'island') && (
+                    <button
+                      onClick={() => {
+                        saveToHistory();
+                        setProject(prev => ({
+                          ...prev,
+                          zones: [...prev.zones, createDefaultIslandZone()]
+                        }));
+                        setActiveTab('Island');
+                      }}
+                      className="px-4 py-3 text-xs font-black uppercase tracking-widest rounded-t-xl text-emerald-500 hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-all"
+                    >
+                      + Island
+                    </button>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-4 pb-1">
@@ -622,20 +672,30 @@ const ScreenWallEditor = ({
               {/* View Area */}
               <div className="flex-1 min-h-0 relative bg-slate-100/30 dark:bg-slate-950/50">
                 {visualMode === 'elevation' ? (
-                  <WallVisualizer 
-                    zone={currentZone}
-                    height={currentZone.wallHeight || 2400}
-                    onCabinetClick={(i) => handleCabinetSelection(i)}
-                    onObstacleClick={(i) => openEdit('obstacle', i)}
-                    onCabinetMove={handleCabinetMove}
-                    onObstacleMove={handleObstacleMove}
-                    onSwapCabinets={handleSwapCabinets}
-                    onDragEnd={() => {}}
-                    selectedCabinet={swapMode ? null : selectedCabinet}
-                    swapSelection={swapMode ? swapSelection : []}
-                    draggedCabinet={draggingCabinet}
-                    onDropCabinet={handleDropCabinet}
-                  />
+                  currentZone.zoneType === 'island' ? (
+                    <IslandPlanView
+                      zone={currentZone}
+                      zones={project.zones}
+                      isDark={isDark}
+                      selectedCabinet={selectedCabinet}
+                      onCabinetClick={(i) => handleCabinetSelection(i, currentZone.id)}
+                    />
+                  ) : (
+                    <WallVisualizer 
+                      zone={currentZone}
+                      height={currentZone.wallHeight || 2400}
+                      onCabinetClick={(i) => handleCabinetSelection(i)}
+                      onObstacleClick={(i) => openEdit('obstacle', i)}
+                      onCabinetMove={handleCabinetMove}
+                      onObstacleMove={handleObstacleMove}
+                      onSwapCabinets={handleSwapCabinets}
+                      onDragEnd={() => {}}
+                      selectedCabinet={swapMode ? null : selectedCabinet}
+                      swapSelection={swapMode ? swapSelection : []}
+                      draggedCabinet={draggingCabinet}
+                      onDropCabinet={handleDropCabinet}
+                    />
+                  )
                 ) : (
                   <CabinetViewer 
                     ref={cabinetViewerRef}
@@ -1008,20 +1068,30 @@ const ScreenWallEditor = ({
               )}
 
               {visualMode === 'elevation' ? (
-                <WallVisualizer 
-                  zone={currentZone}
-                  height={currentZone.wallHeight || 2400}
-                  onCabinetClick={(i) => openEdit('cabinet', i)}
-                  onObstacleClick={(i) => openEdit('obstacle', i)}
-                  onCabinetMove={handleCabinetMove}
-                  onObstacleMove={handleObstacleMove}
-                  onSwapCabinets={handleSwapCabinets}
-                  onDragEnd={() => {}}
-                  selectedCabinet={selectedCabinet}
-                  swapSelection={swapSelection}
-                  draggedCabinet={draggingCabinet}
-                  onDropCabinet={handleDropCabinet}
-                />
+                currentZone.zoneType === 'island' ? (
+                   <IslandPlanView
+                    zone={currentZone}
+                    zones={project.zones}
+                    isDark={isDark}
+                    selectedCabinet={selectedCabinet}
+                    onCabinetClick={(i) => openEdit('cabinet', i)}
+                  />
+                ) : (
+                  <WallVisualizer 
+                    zone={currentZone}
+                    height={currentZone.wallHeight || 2400}
+                    onCabinetClick={(i) => openEdit('cabinet', i)}
+                    onObstacleClick={(i) => openEdit('obstacle', i)}
+                    onCabinetMove={handleCabinetMove}
+                    onObstacleMove={handleObstacleMove}
+                    onSwapCabinets={handleSwapCabinets}
+                    onDragEnd={() => {}}
+                    selectedCabinet={selectedCabinet}
+                    swapSelection={swapSelection}
+                    draggedCabinet={draggingCabinet}
+                    onDropCabinet={handleDropCabinet}
+                  />
+                )
               ) : (
                 <CabinetViewer 
                   activeWallId={activeTab} 
@@ -1925,6 +1995,232 @@ const ScreenWallEditor = ({
         imageUrl={confirmDeleteSnapshot?.url}
         isLoading={isCapturing}
       />
+    </div>
+  );
+};
+
+interface IslandPlanViewProps {
+  zone: Zone;
+  zones: Zone[];
+  isDark: boolean;
+  selectedCabinet: { zoneId: string; id: string } | null;
+  onCabinetClick: (index: number) => void;
+}
+
+const IslandPlanView: React.FC<IslandPlanViewProps> = ({ zone, zones, isDark, selectedCabinet, onCabinetClick }) => {
+  const settings = useProjectStore(s => s.project.settings);
+  const isl = zone.islandSettings;
+  if (!isl) return null;
+
+  const islandLen = zone.totalLength || 1500;
+  const islDepth = isl.islandDepth || 560;
+  const numRows = isl.numRows || 1;
+
+  const wallZones = zones.filter(z => z.zoneType !== 'island');
+  const wallA = wallZones.find(z => z.id === 'Wall A');
+  const wallB = wallZones.find(z => z.id === 'Wall B');
+  const wallC = wallZones.find(z => z.id === 'Wall C');
+
+  const floorWidth = wallA?.totalLength || 3600;
+  const floorDepth = (wallB?.totalLength || wallC?.totalLength) || 3000;
+
+  const pad = 40;
+  const wallThick = 24;
+  const viewW = 800;
+  const viewH = 600;
+  const availW = viewW - pad * 2 - wallThick;
+  const availH = viewH - pad * 2 - wallThick;
+
+  const scale = Math.min(availW / Math.max(floorWidth, 1), availH / Math.max(floorDepth, 1));
+  const roomW = floorWidth * scale;
+  const roomH = floorDepth * scale;
+
+  const offX = pad + wallThick;
+  const offY = pad;
+
+  const islCX = offX + (isl.posX ?? 1800) * scale;
+  const islCY = offY + (isl.posZ ?? 1500) * scale;
+  const islW = islandLen * scale;
+  const islH = islDepth * scale;
+  const islLeft = islCX - islW / 2;
+  const islTop = islCY - islH / 2;
+
+  const sorted = [...zone.cabinets].sort((a, b) => {
+    const ra = a.rowIndex ?? 0;
+    const rb = b.rowIndex ?? 0;
+    if (ra !== rb) return ra - rb;
+    return a.fromLeft - b.fromLeft;
+  });
+
+  const bgWall = isDark ? '#0F172A' : '#ffffff';
+  const bgVoid = isDark ? '#020617' : '#f1f5f9';
+  const gridLine = isDark ? '#1e293b' : '#e2e8f0';
+  const wallBorder = isDark ? '#64748b' : '#94a3b8';
+  const wallFill = isDark ? 'rgba(71,85,105,0.3)' : 'rgba(100,116,139,0.15)';
+
+  return (
+    <div className="w-full h-full bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 overflow-hidden relative shadow-inner select-none">
+      <svg viewBox={`0 0 ${viewW} ${viewH}`} className="w-full h-full" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <marker id="dArr" viewBox="0 0 8 8" refX="4" refY="4" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+            <path d="M 0 0 L 8 4 L 0 8 z" fill="#3b82f6" />
+          </marker>
+          <marker id="tick" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="45">
+            <line x1="0" y1="5" x2="10" y2="5" stroke={wallBorder} strokeWidth="2" />
+          </marker>
+          <pattern id="floorGrid" width="50" height="50" patternUnits="userSpaceOnUse">
+            <path d="M 50 0 L 0 0 0 50" fill="none" stroke={gridLine} strokeWidth="1" />
+          </pattern>
+        </defs>
+
+        <rect x="0" y="0" width={viewW} height={viewH} fill={bgVoid} />
+
+        <rect x={offX} y={offY} width={roomW} height={roomH}
+          fill={bgWall} stroke={wallBorder} strokeWidth="2" rx="1" />
+        <rect x={offX} y={offY} width={roomW} height={roomH}
+          fill="url(#floorGrid)" />
+
+        {wallA && (
+          <g>
+            <rect x={offX} y={offY - wallThick} width={roomW} height={wallThick}
+              fill={wallFill} stroke={wallBorder} strokeWidth="1" rx="1" />
+            <text x={offX + roomW / 2} y={offY - wallThick / 2}
+              textAnchor="middle" dominantBaseline="middle"
+              fill={wallBorder} fontWeight="bold" style={{ fontSize: '11px' }}>
+              Wall A
+            </text>
+          </g>
+        )}
+        {wallB && (
+          <g>
+            <rect x={offX + roomW} y={offY} width={wallThick} height={roomH}
+              fill={wallFill} stroke={wallBorder} strokeWidth="1" rx="1" />
+            <text x={offX + roomW + wallThick / 2} y={offY + roomH / 2}
+              textAnchor="middle" dominantBaseline="middle"
+              fill={wallBorder} fontWeight="bold" style={{ fontSize: '11px' }}
+              transform={`rotate(-90, ${offX + roomW + wallThick / 2}, ${offY + roomH / 2})`}>
+              Wall B
+            </text>
+          </g>
+        )}
+        {wallC && (
+          <g>
+            <rect x={offX} y={offY + roomH} width={roomW} height={wallThick}
+              fill={wallFill} stroke={wallBorder} strokeWidth="1" rx="1" />
+            <text x={offX + roomW / 2} y={offY + roomH + wallThick / 2}
+              textAnchor="middle" dominantBaseline="middle"
+              fill={wallBorder} fontWeight="bold" style={{ fontSize: '11px' }}>
+              Wall C
+            </text>
+          </g>
+        )}
+
+        {wallZones.map(wz => {
+          const cabDepth = (cab: typeof wz.cabinets[0]) => {
+            if (cab.type === CabinetType.WALL) return settings.depthWall || 300;
+            if (cab.type === CabinetType.TALL) return settings.depthTall || 560;
+            return settings.depthBase || 560;
+          };
+          const cabFootprints = wz.cabinets.map(cab => {
+            const depth = cabDepth(cab) * scale;
+            if (wz.id === 'Wall A') {
+              return <rect key={cab.id} x={offX + cab.fromLeft * scale} y={offY + 1}
+                width={cab.width * scale} height={depth}
+                fill="rgba(148,163,184,0.08)" stroke="#94a3b8" strokeWidth="0.5" rx="1" />;
+            }
+            if (wz.id === 'Wall B') {
+              return <rect key={cab.id} x={offX + roomW - depth} y={offY + cab.fromLeft * scale}
+                width={depth} height={cab.width * scale}
+                fill="rgba(148,163,184,0.08)" stroke="#94a3b8" strokeWidth="0.5" rx="1" />;
+            }
+            if (wz.id === 'Wall C') {
+              return <rect key={cab.id} x={offX + cab.fromLeft * scale} y={offY + roomH - depth}
+                width={cab.width * scale} height={depth}
+                fill="rgba(148,163,184,0.08)" stroke="#94a3b8" strokeWidth="0.5" rx="1" />;
+            }
+            return null;
+          });
+          return <g key={wz.id}>{cabFootprints}</g>;
+        })}
+
+        {numRows > 1 && (
+          <rect x={islLeft} y={islTop} width={islW} height={islH}
+            fill="none" stroke={wallBorder} strokeWidth="1" rx="1" strokeDasharray="4 3" />
+        )}
+        {numRows > 1 && (
+          <line x1={islLeft} y1={islTop + islDepth * scale / numRows} x2={islLeft + islW} y2={islTop + islDepth * scale / numRows}
+            stroke={wallBorder} strokeWidth="1" strokeDasharray="4 3" />
+        )}
+
+        {sorted.map((cab, i) => {
+          const cabColor = getActiveColor(cab.preset || PresetType.BASE_DOOR);
+          const isSel = selectedCabinet?.id === cab.id;
+          const x1 = islLeft + cab.fromLeft * scale;
+          const w = cab.width * scale;
+          const rowY = islTop + (cab.rowIndex ?? 0) * (islDepth * scale / numRows);
+          const rowH = islDepth * scale / numRows;
+          return (
+            <g key={cab.id} onClick={() => onCabinetClick(i)} className="cursor-pointer">
+              <rect x={x1} y={rowY} width={w} height={rowH}
+                fill={isSel ? 'rgba(59,130,246,0.25)' : cabColor.fill}
+                stroke={isSel ? '#3b82f6' : cabColor.stroke}
+                strokeWidth={isSel ? 1.5 : 0.5} rx="1" />
+              {sorted.length > 1 && (
+                <line x1={x1} y1={rowY} x2={x1} y2={rowY + rowH}
+                  stroke={isSel ? '#3b82f6' : '#94a3b8'}
+                  strokeWidth={isSel ? 1.5 : 0.5} strokeDasharray="3 2" />
+              )}
+              <text x={x1 + w / 2} y={rowY + rowH / 2}
+                textAnchor="middle" dominantBaseline="middle"
+                fill={isSel ? '#2563eb' : (isDark ? '#e2e8f0' : '#334155')}
+                fontWeight="bold" style={{ fontSize: '10px' }}>
+                {cab.label || cab.preset}
+              </text>
+            </g>
+          );
+        })}
+
+        {numRows === 1 && (
+          <g>
+            {isl.facingDirection === 'front' ? (
+              <polygon
+                points={`${islCX},${islTop + islH - 14} ${islCX - 6},${islTop + islH - 6} ${islCX + 6},${islTop + islH - 6}`}
+                fill="#f59e0b" opacity="0.8"
+              />
+            ) : (
+              <polygon
+                points={`${islCX},${islTop + 14} ${islCX - 6},${islTop + 6} ${islCX + 6},${islTop + 6}`}
+                fill="#f59e0b" opacity="0.8"
+              />
+            )}
+            <text x={islCX} y={isl.facingDirection === 'front' ? islTop + islH - 18 : islTop + 20}
+              textAnchor="middle" fill="#f59e0b" fontWeight="bold" style={{ fontSize: '7px' }}>
+              FACE
+            </text>
+          </g>
+        )}
+
+        <line x1={offX} y1={offY + roomH + 8}
+          x2={offX + roomW} y2={offY + roomH + 8}
+          stroke={wallBorder} strokeWidth="2"
+          markerStart="url(#tick)" markerEnd="url(#tick)" />
+        <text x={offX + roomW / 2} y={offY + roomH + 20}
+          textAnchor="middle" fill="#3b82f6" fontWeight="black"
+          style={{ fontSize: '11px' }} className="font-mono">
+          TOTAL {floorWidth}mm
+        </text>
+
+        <line x1={offX + roomW + 8} y1={offY + roomH}
+          x2={offX + roomW + 8} y2={offY}
+          stroke={wallBorder} strokeWidth="2"
+          markerStart="url(#tick)" markerEnd="url(#tick)" />
+        <text x={offX + roomW + 20} y={offY + roomH / 2}
+          textAnchor="middle" fill="#3b82f6" fontWeight="black"
+          style={{ fontSize: '11px' }}
+          transform={`rotate(-90, ${offX + roomW + 20}, ${offY + roomH / 2})`}>
+          {floorDepth}mm
+        </text>
+      </svg>
     </div>
   );
 };
