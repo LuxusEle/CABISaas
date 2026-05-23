@@ -215,6 +215,7 @@ export const Cabinet = React.memo(({
       doorTexture,
       shelfTexture
     };
+    s.enableIsland = isIsland;
     if (forceGola !== undefined) s.enableGola = forceGola;
     if (isWallTop) s.enableGola = false;
     if (opacity !== undefined) s.opacity = opacity;
@@ -224,7 +225,7 @@ export const Cabinet = React.memo(({
       s.lowerDoorOpenAngle = doorOpenAngle;
     }
     return s;
-  }, [unit, settings, width, height, depth, doorOpenAngle, forceGola, opacity, isSelected, skeletonView, isStudio, carcassTexture, doorTexture]);
+  }, [unit, settings, width, height, depth, doorOpenAngle, forceGola, opacity, isSelected, skeletonView, isStudio, carcassTexture, doorTexture, isIsland]);
 
   return (
     <group 

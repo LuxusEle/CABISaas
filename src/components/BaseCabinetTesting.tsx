@@ -32,6 +32,8 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
     showNailHoles, nailHoleDiameter,
     drawerSideClearance, drawerBottomThickness, drawerBackThickness, drawerBoxHeightRatio
   } = settings;
+  const enableIsland = settings.enableIsland ?? false;
+  const backInset = enableIsland ? doorMaterialThickness : panelThickness + backPanelThickness;
 
   const isSelected = settings.isSelected;
   const isCooker = settings.preset === PresetType.COOKER_HOB;
@@ -124,7 +126,7 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
       for (let i = 0; i < numShelves; i++) {
         const shelfYCabinet = -innerHeight / 2 + panelThickness + spacing * (i + 1);
         const holeY = shelfYCabinet - panelThickness - (settings.shelfHoleDiameter / 2) - panelThickness / 2;
-        const shelfZStartGlobal = -depth / 2 + panelThickness + backPanelThickness;
+        const shelfZStartGlobal = -depth / 2 + backInset;
         const shelfLength = settings.shelfDepth;
         const zCenterShelf = shelfZStartGlobal + shelfLength / 2;
         
@@ -137,7 +139,7 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
       }
     }
  
-    if (showBackStretchers) {
+    if (!enableIsland && showBackStretchers) {
       const zBackStretcher = -depth / 2 + panelThickness / 2;
       const yCenterTop = panelHeight / 2 - panelThickness - backStretcherHeight / 2;
       const yCenterBottom = -panelHeight / 2 + backStretcherHeight / 2;
@@ -147,12 +149,20 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
         positions.push({ y: yCenterBottom + offset, z: zBackStretcher, r: technicalR, through: true });
       });
     }
+
+    if (enableIsland) {
+      const zSolidBack = -innerDepth / 2 + doorMaterialThickness / 2;
+      const solidBackHeight = innerHeight - panelThickness * 2;
+      calculateNailHolePositions(solidBackHeight).forEach(offset => {
+        positions.push({ y: offset, z: zSolidBack, r: technicalR, through: true });
+      });
+    }
     
     return positions;
-  }, [showNailHoles, innerHeight, depth, panelThickness, backPanelThickness, nailHoleDiameter, settings.shelfHoleDiameter, topStretcherWidth, showBackStretchers, backStretcherHeight, showShelves, numShelves, showDrawers, settings.nailHoleShelfDistance, settings.shelfDepth, isGolaActive, settings.golaLCutoutDepth, settings.golaCutoutDepth]);
+  }, [showNailHoles, innerHeight, depth, panelThickness, backPanelThickness, nailHoleDiameter, settings.shelfHoleDiameter, topStretcherWidth, showBackStretchers, backStretcherHeight, showShelves, numShelves, showDrawers, settings.nailHoleShelfDistance, settings.shelfDepth, isGolaActive, settings.golaLCutoutDepth, settings.golaCutoutDepth, enableIsland, innerDepth, doorMaterialThickness]);
 
   const drawerData = useMemo(() => {
-    const boxDepth = depth - panelThickness - backPanelThickness - settings.drawerBackClearance;
+    const boxDepth = depth - backInset - settings.drawerBackClearance;
     const frontWidth = innerWidth - doorOuterGap * 2;
     const boxWidth = (width - panelThickness * 2) - drawerSideClearance * 2;
     const boxHeight = drawerHeight * drawerBoxHeightRatio;
@@ -210,7 +220,7 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
         frontWidth,
         boxH: boxHeight,
         gapHeights,
-        boxZOffset: (panelThickness + backPanelThickness + settings.drawerBackClearance) / 2
+        boxZOffset: (backInset + settings.drawerBackClearance) / 2
       };
     } else {
       for (let i = 0; i < numDrawers; i++) {
@@ -235,9 +245,9 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
       frontWidth,
       boxH: boxHeight,
       gapHeights,
-      boxZOffset: (panelThickness + backPanelThickness + settings.drawerBackClearance) / 2
+      boxZOffset: (backInset + settings.drawerBackClearance) / 2
     };
-  }, [width, innerHeight, depth, panelThickness, backPanelThickness, doorOuterGap, numDrawers, drawerSideClearance, drawerBoxHeightRatio, settings.drawerBackClearance, innerWidth, nailHoleDiameter, showNailHoles, doorMaterialThickness, drawerBackThickness, drawerBottomThickness, settings.enableGola, settings.golaTopGap, golaVerticalGap, golaHorizontalGap3, drawerHeight, midZForGola]);
+  }, [width, innerHeight, depth, panelThickness, backPanelThickness, doorOuterGap, numDrawers, drawerSideClearance, drawerBoxHeightRatio, settings.drawerBackClearance, innerWidth, nailHoleDiameter, showNailHoles, doorMaterialThickness, drawerBackThickness, drawerBottomThickness, settings.enableGola, settings.golaTopGap, golaVerticalGap, golaHorizontalGap3, drawerHeight, midZForGola, backInset]);
 
   const leftPanelGeo = useMemo(() => {
     const sidePanelHeight = innerHeight - panelThickness;
@@ -250,17 +260,19 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
         });
       }
     }
-    const effectiveGrooveDepth = !settings.showBackPanel ? 0 : grooveDepth;
+    const effectiveGrooveDepth = (enableIsland || !settings.showBackPanel) ? 0 : grooveDepth;
+    const backPanelGrooveStart = -depth / 2 + panelThickness;
+    const backPanelGrooveEnd = -depth / 2 + panelThickness + backPanelThickness;
     return createPanelWithHolesGeo(
       panelThickness, sidePanelHeight, depth,
-      -depth / 2 + panelThickness, -depth / 2 + panelThickness + backPanelThickness,
+      backPanelGrooveStart, backPanelGrooveEnd,
       effectiveGrooveDepth, 'px',
       nailHolePositions,
       settings.nailHoleDepth,
       panelThickness - effectiveGrooveDepth, 0,
       notches
     );
-  }, [panelThickness, innerHeight, depth, backPanelThickness, grooveDepth, nailHolePositions, settings.nailHoleDepth, isGolaActive, settings.golaLCutoutDepth, settings.golaCutoutDepth, settings.golaLCutoutHeight, midZForGola, settings.golaCCutoutHeight, numDrawers, showDrawers, drawerData.gapHeights, settings.showBackPanel]);
+  }, [panelThickness, innerHeight, depth, backPanelThickness, grooveDepth, nailHolePositions, settings.nailHoleDepth, isGolaActive, settings.golaLCutoutDepth, settings.golaCutoutDepth, settings.golaLCutoutHeight, midZForGola, settings.golaCCutoutHeight, numDrawers, showDrawers, drawerData.gapHeights, settings.showBackPanel, enableIsland, backInset]);
 
   const rightPanelGeo = useMemo(() => {
     const sidePanelHeight = innerHeight - panelThickness;
@@ -273,17 +285,19 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
         });
       }
     }
-    const effectiveGrooveDepth = !settings.showBackPanel ? 0 : grooveDepth;
+    const effectiveGrooveDepth = (enableIsland || !settings.showBackPanel) ? 0 : grooveDepth;
+    const backPanelGrooveStart = -depth / 2 + panelThickness;
+    const backPanelGrooveEnd = -depth / 2 + panelThickness + backPanelThickness;
     return createPanelWithHolesGeo(
       panelThickness, sidePanelHeight, depth,
-      -depth / 2 + panelThickness, -depth / 2 + panelThickness + backPanelThickness,
+      backPanelGrooveStart, backPanelGrooveEnd,
       effectiveGrooveDepth, 'nx',
       nailHolePositions,
       settings.nailHoleDepth,
       panelThickness - effectiveGrooveDepth, 0,
       notchesR
     );
-  }, [panelThickness, innerHeight, depth, backPanelThickness, grooveDepth, nailHolePositions, settings.nailHoleDepth, isGolaActive, settings.golaLCutoutDepth, settings.golaCutoutDepth, settings.golaLCutoutHeight, midZForGola, settings.golaCCutoutHeight, numDrawers, showDrawers, drawerData.gapHeights]);
+  }, [panelThickness, innerHeight, depth, backPanelThickness, grooveDepth, nailHolePositions, settings.nailHoleDepth, isGolaActive, settings.golaLCutoutDepth, settings.golaCutoutDepth, settings.golaLCutoutHeight, midZForGola, settings.golaCCutoutHeight, numDrawers, showDrawers, drawerData.gapHeights, enableIsland, backInset]);
 
   const bottomPanelHoles = useMemo(() => {
     if (!showNailHoles) return [];
@@ -299,10 +313,17 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
       positions.push({ y: vRight, z: offset, r: technicalR, through: true });
     });
 
-    if (showBackStretchers) {
+    if (!enableIsland && showBackStretchers) {
       const zBack = -innerDepth / 2 + panelThickness / 2;
       calculateNailHolePositions(innerWidth).forEach(offset => {
         positions.push({ y: offset, z: zBack, r: technicalR, through: true });
+      });
+    }
+
+    if (enableIsland) {
+      const zSolidBack = -innerDepth / 2 + doorMaterialThickness / 2;
+      calculateNailHolePositions(innerWidth - panelThickness * 2).forEach(offset => {
+        positions.push({ y: offset, z: zSolidBack, r: technicalR, through: true });
       });
     }
 
@@ -313,19 +334,20 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
     });
     
     return positions;
-  }, [showNailHoles, innerWidth, innerDepth, panelThickness, nailHoleDiameter, showBackStretchers]);
+  }, [showNailHoles, innerWidth, innerDepth, panelThickness, nailHoleDiameter, showBackStretchers, enableIsland, doorMaterialThickness]);
 
   const bottomPanelGeo = useMemo(() => {
-    const effectiveGrooveDepth = !settings.showBackPanel ? 0 : grooveDepth;
+    const effectiveGrooveDepth = (enableIsland || !settings.showBackPanel) ? 0 : grooveDepth;
     return createPanelWithHolesGeo(
       panelThickness, innerWidth, innerDepth,
-      -innerDepth / 2 + panelThickness, -innerDepth / 2 + panelThickness + backPanelThickness,
+      -innerDepth / 2 + (enableIsland ? 0 : panelThickness),
+      -innerDepth / 2 + backInset,
       effectiveGrooveDepth, 'py',
       bottomPanelHoles,
       settings.nailHoleDepth,
       panelThickness, panelThickness
     );
-  }, [innerWidth, panelThickness, innerDepth, backPanelThickness, grooveDepth, bottomPanelHoles, settings.nailHoleDepth, settings.showBackPanel]);
+  }, [innerWidth, panelThickness, innerDepth, backPanelThickness, grooveDepth, bottomPanelHoles, settings.nailHoleDepth, settings.showBackPanel, enableIsland, backInset]);
 
   const topStretcherBackHoles = useMemo(() => {
     if (!showNailHoles) return [];
@@ -338,7 +360,7 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
   }, [showNailHoles, innerWidth, panelThickness, nailHoleDiameter, topStretcherWidth]);
 
   const topStretcherBackGeo = useMemo(() => {
-    const effectiveGrooveDepth = !settings.showBackPanel ? 0 : grooveDepth;
+    const effectiveGrooveDepth = (enableIsland || !settings.showBackPanel) ? 0 : grooveDepth;
     return createPanelWithHolesGeo(
       panelThickness, innerWidth - panelThickness * 2, topStretcherWidth,
       panelThickness - topStretcherWidth / 2, panelThickness + backPanelThickness - topStretcherWidth / 2,
@@ -346,7 +368,7 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
       topStretcherBackHoles,
       panelThickness
     );
-  }, [innerWidth, panelThickness, topStretcherWidth, backPanelThickness, grooveDepth, topStretcherBackHoles, settings.showBackPanel]);
+  }, [innerWidth, panelThickness, topStretcherWidth, backPanelThickness, grooveDepth, topStretcherBackHoles, settings.showBackPanel, enableIsland]);
 
   const doorGeos = useMemo(() => {
     const geos = [];
@@ -489,38 +511,52 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
         </lineSegments>
       )}
 
-      {showBackPanel && shouldShow('backPanel') && (
+      {/* Solid back panel for island cabinets (door material, inner width, full height) */}
+      {enableIsland && (
+        <mesh position={[carcassXOffset, 0, -innerDepth / 2 + doorMaterialThickness / 2]} castShadow receiveShadow visible={!skeletonView}>
+          <boxGeometry args={[innerWidth - panelThickness * 2, innerHeight - panelThickness * 2, doorMaterialThickness]} />
+          <meshStandardMaterial color={settings.isStudio && settings.doorTexture ? '#ffffff' : doorColor} map={settings.isStudio ? settings.doorTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} side={THREE.DoubleSide} />
+        </mesh>
+      )}
+      {enableIsland && skeletonView && (
+        <lineSegments position={[carcassXOffset, 0, -innerDepth / 2 + doorMaterialThickness / 2]}>
+          <edgesGeometry args={[new THREE.BoxGeometry(innerWidth - panelThickness * 2, innerHeight - panelThickness * 2, doorMaterialThickness)]} />
+          <lineBasicMaterial color={doorColor} linewidth={2} />
+        </lineSegments>
+      )}
+
+      {!enableIsland && showBackPanel && shouldShow('backPanel') && (
         <mesh position={[carcassXOffset + 0 + getOffset('backPanel')[0], 0 + getOffset('backPanel')[1], -innerDepth / 2 + panelThickness + backPanelThickness / 2 + getOffset('backPanel')[2]]} castShadow receiveShadow visible={!skeletonView}>
           <boxGeometry args={[backPanelWidth, backPanelHeight, backPanelThickness]} />
           <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : showDifferentPanelColors ? panelColors.backPanel : backPanelColor} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.5} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
         </mesh>
       )}
-      {showBackPanel && skeletonView && shouldShow('backPanel') && (
+      {!enableIsland && showBackPanel && skeletonView && shouldShow('backPanel') && (
         <lineSegments position={[carcassXOffset + 0 + getOffset('backPanel')[0], 0 + getOffset('backPanel')[1], -innerDepth / 2 + panelThickness + backPanelThickness / 2 + getOffset('backPanel')[2]]}>
           <edgesGeometry args={[new THREE.BoxGeometry(backPanelWidth, backPanelHeight, backPanelThickness)]} />
           <lineBasicMaterial color={getPanelColor('backPanel')} linewidth={2} />
         </lineSegments>
       )}
 
-      {showBackStretchers && shouldShow('backStretcherTop') && (
+      {!enableIsland && showBackStretchers && shouldShow('backStretcherTop') && (
         <mesh position={[carcassXOffset + 0 + getOffset('backStretcherTop')[0], innerHeight / 2 - panelThickness - backStretcherHeight / 2 + getOffset('backStretcherTop')[1], -innerDepth / 2 + panelThickness / 2 + getOffset('backStretcherTop')[2]]} castShadow receiveShadow visible={!skeletonView}>
           <boxGeometry args={[innerWidth - panelThickness * 2, backStretcherHeight, panelThickness]} />
           <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : getPanelColor('backStretcherTop')} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
         </mesh>
       )}
-      {showBackStretchers && shouldShow('backStretcherBottom') && (
+      {!enableIsland && showBackStretchers && shouldShow('backStretcherBottom') && (
         <mesh position={[carcassXOffset + 0 + getOffset('backStretcherBottom')[0], -innerHeight / 2 + panelThickness + backStretcherHeight / 2 + getOffset('backStretcherBottom')[1], -innerDepth / 2 + panelThickness / 2 + getOffset('backStretcherBottom')[2]]} castShadow receiveShadow visible={!skeletonView}>
           <boxGeometry args={[innerWidth - panelThickness * 2, backStretcherHeight, panelThickness]} />
           <meshStandardMaterial color={settings.isStudio && settings.carcassTexture ? '#ffffff' : getPanelColor('backStretcherBottom')} map={settings.isStudio ? settings.carcassTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} />
         </mesh>
       )}
-      {showBackStretchers && skeletonView && shouldShow('backStretcherTop') && (
+      {!enableIsland && showBackStretchers && skeletonView && shouldShow('backStretcherTop') && (
         <lineSegments position={[carcassXOffset + 0 + getOffset('backStretcherTop')[0], innerHeight / 2 - panelThickness - backStretcherHeight / 2 + getOffset('backStretcherTop')[1], -innerDepth / 2 + panelThickness / 2 + getOffset('backStretcherTop')[2]]}>
           <edgesGeometry args={[new THREE.BoxGeometry(innerWidth - panelThickness * 2, backStretcherHeight, panelThickness)]} />
           <lineBasicMaterial color={getPanelColor('backStretcherTop')} linewidth={2} />
         </lineSegments>
       )}
-      {showBackStretchers && skeletonView && shouldShow('backStretcherBottom') && (
+      {!enableIsland && showBackStretchers && skeletonView && shouldShow('backStretcherBottom') && (
         <lineSegments position={[carcassXOffset + 0 + getOffset('backStretcherBottom')[0], -innerHeight / 2 + panelThickness + backStretcherHeight / 2 + getOffset('backStretcherBottom')[1], -innerDepth / 2 + panelThickness / 2 + getOffset('backStretcherBottom')[2]]}>
           <edgesGeometry args={[new THREE.BoxGeometry(innerWidth - panelThickness * 2, backStretcherHeight, panelThickness)]} />
           <lineBasicMaterial color={getPanelColor('backStretcherBottom')} linewidth={2} />
@@ -685,7 +721,7 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
         const availableHeight = innerHeight - panelThickness * 2;
         const spacing = availableHeight / (nS + 1);
         const shelfY = -innerHeight / 2 + panelThickness + spacing * (i + 1);
-        const shelfZOffset = -depth / 2 + panelThickness + backPanelThickness + settings.shelfDepth / 2;
+        const shelfZOffset = -depth / 2 + backInset + settings.shelfDepth / 2;
         return (
           <lineSegments key={`sk-shelf-${i}`} position={[carcassXOffset + 0 + getOffset('shelf', i)[0], shelfY - panelThickness / 2 + getOffset('shelf', i)[1], shelfZOffset + getOffset('shelf', i)[2]]}>
             <edgesGeometry args={[new THREE.BoxGeometry(innerWidth - panelThickness * 2 - 2, panelThickness, settings.shelfDepth)]} />
@@ -699,7 +735,7 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
         const availableHeight = innerHeight - panelThickness * 2;
         const spacing = availableHeight / (nS + 1);
         const shelfY = -innerHeight / 2 + panelThickness + spacing * (i + 1);
-        const shelfZOffset = -depth / 2 + panelThickness + backPanelThickness + settings.shelfDepth / 2;
+        const shelfZOffset = -depth / 2 + backInset + settings.shelfDepth / 2;
         return (
           <mesh 
             key={`shelf-${i}`} 
@@ -741,6 +777,8 @@ export const exportBaseCabinetDXF = async (settings: TestingSettings, zip: JSZip
     hingeDiameter, hingeDepth, hingeHorizontalOffset, hingeVerticalOffset,
     nailHoleDiameter, drawerSideClearance, drawerBottomThickness, drawerBackThickness, drawerBoxHeightRatio
   } = settings;
+  const enableIsland = settings.enableIsland ?? false;
+  const backInset = enableIsland ? doorMaterialThickness : panelThickness + backPanelThickness;
 
   const carcassWidth = width - (settings.exposedLeft ? doorMaterialThickness : 0) - (settings.exposedRight ? doorMaterialThickness : 0);
   const innerWidth = carcassWidth;
@@ -833,7 +871,7 @@ export const exportBaseCabinetDXF = async (settings: TestingSettings, zip: JSZip
 
   const sideW = depth;
   const sideH_Panel = innerHeight - panelThickness;
-  const sideGroove = { x: panelThickness, y: 0, w: backPanelThickness + 2, h: sideH_Panel - panelThickness + grooveDepth, depth: grooveDepth };
+  const sideGroove = enableIsland ? undefined : { x: panelThickness, y: 0, w: backPanelThickness + 2, h: sideH_Panel - panelThickness + grooveDepth, depth: grooveDepth };
   const nailR = nailHoleDiameter / 2;
   const panelHeight = innerHeight - panelThickness;
   const nailY = panelHeight / 2 - panelThickness / 2;
@@ -846,13 +884,21 @@ export const exportBaseCabinetDXF = async (settings: TestingSettings, zip: JSZip
     nailHoles.push({ y: nailY, z: zCenterBackDXF + offset, r: nailR, through: true });
   });
 
-  if (showBackStretchers) {
+  if (!enableIsland && showBackStretchers) {
     const zBS = -depth / 2 + panelThickness / 2;
     const yCenterTopDXF = panelHeight / 2 - panelThickness - backStretcherHeight / 2;
     const yCenterBottomDXF = -panelHeight / 2 + backStretcherHeight / 2;
     calculateNailHolePositions(backStretcherHeight).forEach(offset => {
       nailHoles.push({ y: yCenterTopDXF + offset, z: zBS, r: nailR, through: true });
       nailHoles.push({ y: yCenterBottomDXF + offset, z: zBS, r: nailR, through: true });
+    });
+  }
+
+  if (enableIsland) {
+    const zSolidBack = -innerDepth / 2 + doorMaterialThickness / 2;
+    const solidBackHeight = innerHeight - panelThickness * 2;
+    calculateNailHolePositions(solidBackHeight).forEach(offset => {
+      nailHoles.push({ y: offset, z: zSolidBack, r: nailR, through: true });
     });
   }
 
@@ -864,7 +910,7 @@ export const exportBaseCabinetDXF = async (settings: TestingSettings, zip: JSZip
       const sy = -innerHeight / 2 + panelThickness + spacing * (i + 1);
       const hy = sy - panelThickness / 2 - settings.nailHoleShelfDistance;
       const shelfLength = settings.shelfDepth;
-      const shelfZStartGlobal = -depth / 2 + panelThickness + backPanelThickness;
+      const shelfZStartGlobal = -depth / 2 + backInset;
       const zCenterShelf = shelfZStartGlobal + shelfLength / 2;
       const shelfHoleOffsets = calculateNailHolePositions(shelfLength);
       const finalShelfOffsets = [shelfHoleOffsets[0], shelfHoleOffsets[shelfHoleOffsets.length - 1]];
@@ -904,10 +950,17 @@ export const exportBaseCabinetDXF = async (settings: TestingSettings, zip: JSZip
     bottomHoles.push({ z: vRightB, y: offset, r: nailR, through: true });
   });
 
-  if (showBackStretchers) {
+  if (!enableIsland && showBackStretchers) {
     const yB = -innerDepth / 2 + panelThickness / 2;
     calculateNailHolePositions(innerWidth).forEach(offset => {
       bottomHoles.push({ z: offset, y: yB, r: nailR, through: true });
+    });
+  }
+
+  if (enableIsland) {
+    const ySolidBack = -innerDepth / 2 + doorMaterialThickness / 2;
+    calculateNailHolePositions(innerWidth - panelThickness * 2).forEach(offset => {
+      bottomHoles.push({ z: offset, y: ySolidBack, r: nailR, through: true });
     });
   }
 
@@ -917,9 +970,16 @@ export const exportBaseCabinetDXF = async (settings: TestingSettings, zip: JSZip
     bottomHoles.push({ z: offset, y: zToeKickB, r: nailR, through: true });
   });
 
-  addPanelToZip('Bottom_Panel', innerWidth, innerDepth, bottomHoles, { x: panelThickness, y: panelThickness, w: innerWidth - 2 * panelThickness, h: backPanelThickness + 2, depth: grooveDepth });
+  if (enableIsland) {
+    const groveW = innerWidth - 2 * panelThickness;
+    addPanelToZip('Bottom_Panel', innerWidth, innerDepth, bottomHoles, { x: panelThickness, y: panelThickness, w: groveW, h: 0, depth: 0 });
+  } else {
+    addPanelToZip('Bottom_Panel', innerWidth, innerDepth, bottomHoles, { x: panelThickness, y: panelThickness, w: innerWidth - 2 * panelThickness, h: backPanelThickness + 2, depth: grooveDepth });
+  }
 
-  if (showBackPanel) {
+  if (enableIsland) {
+    addPanelToZip('Island_Back_Panel', innerWidth - panelThickness * 2, innerHeight - panelThickness * 2);
+  } else if (showBackPanel) {
     addPanelToZip('Back_Panel', innerWidth - panelThickness * 2 + grooveDepth * 2, innerHeight - panelThickness * 2 + grooveDepth * 2);
   }
 
@@ -936,12 +996,11 @@ export const exportBaseCabinetDXF = async (settings: TestingSettings, zip: JSZip
     const topBackHoles = calculateNailHolePositions(tbsWidth).map(offset => ({
       z: offset, y: tbsZ, r: technicalR2, through: true
     }));
-    // Groove for back panel (at panelThickness from the edge)
-    const topBackGroove = { x: 0, y: panelThickness, w: tbsWidth, h: backPanelThickness + 2, depth: grooveDepth };
+    const topBackGroove = enableIsland ? undefined : { x: 0, y: panelThickness, w: tbsWidth, h: backPanelThickness + 2, depth: grooveDepth };
     addPanelToZip('top_back_stretcher', tbsWidth, topStretcherWidth, topBackHoles, topBackGroove);
   }
   
-  if (showBackStretchers) {
+  if (!enableIsland && showBackStretchers) {
      addPanelToZip('back_top_stretcher', innerWidth - panelThickness * 2, backStretcherHeight);
      addPanelToZip('back_bottom_stretcher', innerWidth - panelThickness * 2, backStretcherHeight);
   }
@@ -968,7 +1027,7 @@ export const exportBaseCabinetDXF = async (settings: TestingSettings, zip: JSZip
   }
 
   if (showDrawers && numDrawers > 0) {
-    const boxDepth = depth - panelThickness - backPanelThickness - settings.drawerBackClearance;
+    const boxDepth = depth - backInset - settings.drawerBackClearance;
     const boxWidth = (carcassWidth - panelThickness * 2) - drawerSideClearance * 2;
     const boxHeight = (innerHeight / numDrawers) * drawerBoxHeightRatio; // Approx, but good for labels
     

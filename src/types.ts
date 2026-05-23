@@ -219,6 +219,8 @@ export interface CabinetUnit {
   customConfig?: CustomCabinetConfig; // Custom configuration
   // Material selection
   materials?: CabinetMaterials;
+  // Island cabinet flag
+  isIsland?: boolean;
   // Exposed sides (for additional side panels)
   exposedLeft?: boolean;
   exposedRight?: boolean;

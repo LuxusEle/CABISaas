@@ -1159,7 +1159,7 @@ const Scene = ({
       ))}
 
       {layoutData.cabinetPositions.map(({ unit, zone, position, rotation, wallIndex, cabinetIndex, label }) => {
-        const isIsland = zone.zoneType === 'island';
+        const isIsland = unit.isIsland ?? zone.zoneType === 'island';
         const isSelected = !isStudio && selectedCabinet?.zoneId === zone.id && selectedCabinet?.id === unit.id;
         const isSwapSelected = !isStudio && swapSelection?.some(s => s.zoneId === zone.id && s.index === cabinetIndex);
         const localDepth = unit.depth || (unit.type === CabinetType.WALL ? 300 : project.settings.depthBase || 560);

@@ -61,6 +61,7 @@ export const createIslandCabinet = (
     width,
     qty: 1,
     fromLeft,
+    isIsland: true,
     isAutoFilled: false,
     rowIndex: opts.rowIndex,
     depth: opts.depth,
