@@ -158,6 +158,21 @@ export const autoFillIsland = (zone: Zone): Zone => {
     newCabinets.push(...generateRow(1));
   }
 
+  // Set exposed side panels per row (leftmost and rightmost cabinet in each row)
+  const rows = new Map<number, CabinetUnit[]>();
+  newCabinets.forEach(c => {
+    const key = c.rowIndex ?? 0;
+    if (!rows.has(key)) rows.set(key, []);
+    rows.get(key)!.push(c);
+  });
+  for (const [, cabs] of rows) {
+    cabs.sort((a, b) => a.fromLeft - b.fromLeft);
+    if (cabs.length > 0) {
+      cabs[0].exposedLeft = true;
+      cabs[cabs.length - 1].exposedRight = true;
+    }
+  }
+
   return {
     ...zone,
     cabinets: [...existingCabs, ...newCabinets],
