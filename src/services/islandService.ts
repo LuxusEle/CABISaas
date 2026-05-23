@@ -84,8 +84,8 @@ export const autoFillIsland = (zone: Zone): Zone => {
   const numRows = isl?.numRows || 1;
   const cabDepth = isl?.islandDepth;
   const rowDepth = numRows === 2 ? (cabDepth || 560) / 2 : cabDepth;
-  const includeSink = isl?.includeIslandSink ?? false;
-  const includeDrawers = isl?.includeIslandDrawers ?? false;
+  const includeSink = numRows === 1 ? (isl?.includeIslandSink ?? false) : false;
+  const includeDrawers = numRows === 1 ? (isl?.includeIslandDrawers ?? false) : false;
 
   const existingCabs = zone.cabinets.filter(c => !c.isAutoFilled);
 
@@ -166,11 +166,20 @@ export const autoFillIsland = (zone: Zone): Zone => {
     if (!rows.has(key)) rows.set(key, []);
     rows.get(key)!.push(c);
   });
-  for (const [, cabs] of rows) {
+  for (const [rowKey, cabs] of rows) {
     cabs.sort((a, b) => a.fromLeft - b.fromLeft);
     if (cabs.length > 0) {
-      cabs[0].exposedLeft = true;
-      cabs[cabs.length - 1].exposedRight = true;
+      // Row 0 is rotated 180° when numRows === 2 (see CabinetViewer.tsx),
+      // so its local left/right are swapped relative to physical sides.
+      const isRotated = numRows === 2 && rowKey === 0;
+      const shouldSwap = (numRows === 1 && isl.facingDirection === 'back') || isRotated;
+      if (shouldSwap) {
+        cabs[0].exposedRight = true;
+        cabs[cabs.length - 1].exposedLeft = true;
+      } else {
+        cabs[0].exposedLeft = true;
+        cabs[cabs.length - 1].exposedRight = true;
+      }
     }
   }
 

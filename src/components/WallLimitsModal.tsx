@@ -170,7 +170,17 @@ export const WallLimitsModal = forwardRef<any, WallLimitsModalProps>(({
                           ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20'
                           : 'bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 hover:border-amber-300 dark:hover:border-amber-600'
                       }`}>1</button>
-                    <button onClick={() => handleUpdateIslandSetting('numRows', 2)}
+                    <button onClick={() => {
+                      setLocalIsland(prev => ({
+                        ...prev,
+                        islandSettings: {
+                          ...prev.islandSettings,
+                          numRows: 2,
+                          includeIslandSink: false,
+                          includeIslandDrawers: false,
+                        }
+                      }));
+                    }}
                       className={`flex-1 py-2 rounded-lg text-[13px] font-black uppercase transition-all ${
                         isl.numRows === 2
                           ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20'
