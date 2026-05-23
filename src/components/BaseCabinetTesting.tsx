@@ -33,7 +33,8 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
     drawerSideClearance, drawerBottomThickness, drawerBackThickness, drawerBoxHeightRatio
   } = settings;
   const enableIsland = settings.enableIsland ?? false;
-  const backInset = enableIsland ? doorMaterialThickness : panelThickness + backPanelThickness;
+  const backInset = enableIsland ? 0 : panelThickness + backPanelThickness;
+  const shelfDepth = enableIsland ? depth : settings.shelfDepth;
 
   const isSelected = settings.isSelected;
   const isCooker = settings.preset === PresetType.COOKER_HOB;
@@ -127,7 +128,7 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
         const shelfYCabinet = -innerHeight / 2 + panelThickness + spacing * (i + 1);
         const holeY = shelfYCabinet - panelThickness - (settings.shelfHoleDiameter / 2) - panelThickness / 2;
         const shelfZStartGlobal = -depth / 2 + backInset;
-        const shelfLength = settings.shelfDepth;
+        const shelfLength = shelfDepth;
         const zCenterShelf = shelfZStartGlobal + shelfLength / 2;
         
         const shelfHoleOffsets = calculateNailHolePositions(shelfLength);
@@ -150,16 +151,9 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
       });
     }
 
-    if (enableIsland) {
-      const zSolidBack = -innerDepth / 2 + doorMaterialThickness / 2;
-      const solidBackHeight = innerHeight - panelThickness * 2;
-      calculateNailHolePositions(solidBackHeight).forEach(offset => {
-        positions.push({ y: offset, z: zSolidBack, r: technicalR, through: true });
-      });
-    }
     
     return positions;
-  }, [showNailHoles, innerHeight, depth, panelThickness, backPanelThickness, nailHoleDiameter, settings.shelfHoleDiameter, topStretcherWidth, showBackStretchers, backStretcherHeight, showShelves, numShelves, showDrawers, settings.nailHoleShelfDistance, settings.shelfDepth, isGolaActive, settings.golaLCutoutDepth, settings.golaCutoutDepth, enableIsland, innerDepth, doorMaterialThickness]);
+  }, [showNailHoles, innerHeight, depth, panelThickness, backPanelThickness, nailHoleDiameter, settings.shelfHoleDiameter, topStretcherWidth, showBackStretchers, backStretcherHeight, showShelves, numShelves, showDrawers, settings.nailHoleShelfDistance, shelfDepth, isGolaActive, settings.golaLCutoutDepth, settings.golaCutoutDepth, enableIsland]);
 
   const drawerData = useMemo(() => {
     const boxDepth = depth - backInset - settings.drawerBackClearance;
@@ -320,13 +314,6 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
       });
     }
 
-    if (enableIsland) {
-      const zSolidBack = -innerDepth / 2 + doorMaterialThickness / 2;
-      calculateNailHolePositions(innerWidth - panelThickness * 2).forEach(offset => {
-        positions.push({ y: offset, z: zSolidBack, r: technicalR, through: true });
-      });
-    }
-
     // Toe kick holes
     const zToeKick = innerDepth / 2 - 50 - panelThickness / 2;
     calculateNailHolePositions(innerWidth).forEach(offset => {
@@ -334,7 +321,7 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
     });
     
     return positions;
-  }, [showNailHoles, innerWidth, innerDepth, panelThickness, nailHoleDiameter, showBackStretchers, enableIsland, doorMaterialThickness]);
+  }, [showNailHoles, innerWidth, innerDepth, panelThickness, nailHoleDiameter, showBackStretchers, enableIsland]);
 
   const bottomPanelGeo = useMemo(() => {
     const effectiveGrooveDepth = (enableIsland || !settings.showBackPanel) ? 0 : grooveDepth;
@@ -350,14 +337,14 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
   }, [innerWidth, panelThickness, innerDepth, backPanelThickness, grooveDepth, bottomPanelHoles, settings.nailHoleDepth, settings.showBackPanel, enableIsland, backInset]);
 
   const topStretcherBackHoles = useMemo(() => {
-    if (!showNailHoles) return [];
+    if (!showNailHoles || enableIsland) return [];
     const length = innerWidth - panelThickness * 2;
     const technicalR = nailHoleDiameter / 2;
     const z = -topStretcherWidth / 2 + panelThickness / 2;
     return calculateNailHolePositions(length).map(offset => ({
       y: offset, z, r: technicalR, through: true
     }));
-  }, [showNailHoles, innerWidth, panelThickness, nailHoleDiameter, topStretcherWidth]);
+  }, [showNailHoles, innerWidth, panelThickness, nailHoleDiameter, topStretcherWidth, enableIsland]);
 
   const topStretcherBackGeo = useMemo(() => {
     const effectiveGrooveDepth = (enableIsland || !settings.showBackPanel) ? 0 : grooveDepth;
@@ -369,6 +356,43 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
       panelThickness
     );
   }, [innerWidth, panelThickness, topStretcherWidth, backPanelThickness, grooveDepth, topStretcherBackHoles, settings.showBackPanel, enableIsland]);
+
+  const solidBackPanelHoles = useMemo(() => {
+    if (!showNailHoles || !enableIsland) return [];
+    const technicalR = nailHoleDiameter / 2;
+    const zLeft = -innerWidth / 2 + panelThickness / 2;
+    const zRight = innerWidth / 2 - panelThickness / 2;
+    const holes: { y: number, z: number, r: number, through?: boolean }[] = [];
+
+    // Side panel connections (left and right edges, along the height)
+    calculateNailHolePositions(innerHeight).forEach(offset => {
+      holes.push({ z: zLeft, y: offset, r: technicalR, through: true });
+      holes.push({ z: zRight, y: offset, r: technicalR, through: true });
+    });
+
+    // Bottom panel connection (bottom edge, along the width)
+    const yBottom = -innerHeight / 2 + panelThickness / 2;
+    calculateNailHolePositions(innerWidth).forEach(offset => {
+      holes.push({ z: offset, y: yBottom, r: technicalR, through: true });
+    });
+
+    // Top back stretcher connection (top edge, along the stretcher's width)
+    const yTop = innerHeight / 2 - panelThickness / 2;
+    calculateNailHolePositions(innerWidth - panelThickness * 2).forEach(offset => {
+      holes.push({ z: offset, y: yTop, r: technicalR, through: true });
+    });
+
+    return holes;
+  }, [showNailHoles, enableIsland, innerWidth, innerHeight, panelThickness, nailHoleDiameter]);
+
+  const solidBackPanelGeo = useMemo(() => {
+    return createPanelWithHolesGeo(
+      doorMaterialThickness, innerHeight, innerWidth,
+      0, 0, 0, 'none',
+      solidBackPanelHoles,
+      settings.nailHoleDepth
+    );
+  }, [doorMaterialThickness, innerHeight, innerWidth, solidBackPanelHoles, settings.nailHoleDepth]);
 
   const doorGeos = useMemo(() => {
     const geos = [];
@@ -426,9 +450,8 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
 
   const shelfGeo = useMemo(() => {
     const shelfWidth = innerWidth - panelThickness * 2 - 2; // small gap
-    const shelfDepth = settings.shelfDepth;
     return new THREE.BoxGeometry(shelfWidth, panelThickness, shelfDepth);
-  }, [innerWidth, panelThickness, settings.shelfDepth]);
+  }, [innerWidth, panelThickness, shelfDepth]);
 
   const shouldShow = (part: string): boolean => {
     if (!partsSeparatedView) return true;
@@ -511,16 +534,16 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
         </lineSegments>
       )}
 
-      {/* Solid back panel for island cabinets (door material, inner width, full height) */}
+      {/* Solid back panel for island cabinets (door material, mounted on the outside covering side/bottom/top edges) */}
       {enableIsland && (
-        <mesh position={[carcassXOffset, 0, -innerDepth / 2 + doorMaterialThickness / 2]} castShadow receiveShadow visible={!skeletonView}>
-          <boxGeometry args={[innerWidth - panelThickness * 2, innerHeight - panelThickness * 2, doorMaterialThickness]} />
+        <mesh position={[carcassXOffset, 0, -depth / 2 - doorMaterialThickness / 2]} castShadow receiveShadow visible={!skeletonView}>
+          <primitive object={solidBackPanelGeo} attach="geometry" />
           <meshStandardMaterial color={settings.isStudio && settings.doorTexture ? '#ffffff' : doorColor} map={settings.isStudio ? settings.doorTexture : undefined} roughness={0.4} metalness={0} transparent={settings.opacity < 1} opacity={settings.opacity} side={THREE.DoubleSide} />
         </mesh>
       )}
       {enableIsland && skeletonView && (
-        <lineSegments position={[carcassXOffset, 0, -innerDepth / 2 + doorMaterialThickness / 2]}>
-          <edgesGeometry args={[new THREE.BoxGeometry(innerWidth - panelThickness * 2, innerHeight - panelThickness * 2, doorMaterialThickness)]} />
+        <lineSegments position={[carcassXOffset, 0, -depth / 2 - doorMaterialThickness / 2]}>
+          <edgesGeometry args={[solidBackPanelGeo]} />
           <lineBasicMaterial color={doorColor} linewidth={2} />
         </lineSegments>
       )}
@@ -721,10 +744,10 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
         const availableHeight = innerHeight - panelThickness * 2;
         const spacing = availableHeight / (nS + 1);
         const shelfY = -innerHeight / 2 + panelThickness + spacing * (i + 1);
-        const shelfZOffset = -depth / 2 + backInset + settings.shelfDepth / 2;
+        const shelfZOffset = -depth / 2 + backInset + shelfDepth / 2;
         return (
           <lineSegments key={`sk-shelf-${i}`} position={[carcassXOffset + 0 + getOffset('shelf', i)[0], shelfY - panelThickness / 2 + getOffset('shelf', i)[1], shelfZOffset + getOffset('shelf', i)[2]]}>
-            <edgesGeometry args={[new THREE.BoxGeometry(innerWidth - panelThickness * 2 - 2, panelThickness, settings.shelfDepth)]} />
+            <edgesGeometry args={[new THREE.BoxGeometry(innerWidth - panelThickness * 2 - 2, panelThickness, shelfDepth)]} />
             <lineBasicMaterial color={getPanelColor('shelf')} linewidth={2} />
           </lineSegments>
         );
@@ -735,7 +758,7 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
         const availableHeight = innerHeight - panelThickness * 2;
         const spacing = availableHeight / (nS + 1);
         const shelfY = -innerHeight / 2 + panelThickness + spacing * (i + 1);
-        const shelfZOffset = -depth / 2 + backInset + settings.shelfDepth / 2;
+        const shelfZOffset = -depth / 2 + backInset + shelfDepth / 2;
         return (
           <mesh 
             key={`shelf-${i}`} 
@@ -778,7 +801,8 @@ export const exportBaseCabinetDXF = async (settings: TestingSettings, zip: JSZip
     nailHoleDiameter, drawerSideClearance, drawerBottomThickness, drawerBackThickness, drawerBoxHeightRatio
   } = settings;
   const enableIsland = settings.enableIsland ?? false;
-  const backInset = enableIsland ? doorMaterialThickness : panelThickness + backPanelThickness;
+  const backInset = enableIsland ? 0 : panelThickness + backPanelThickness;
+  const shelfDepth = enableIsland ? depth : settings.shelfDepth;
 
   const carcassWidth = width - (settings.exposedLeft ? doorMaterialThickness : 0) - (settings.exposedRight ? doorMaterialThickness : 0);
   const innerWidth = carcassWidth;
@@ -894,14 +918,6 @@ export const exportBaseCabinetDXF = async (settings: TestingSettings, zip: JSZip
     });
   }
 
-  if (enableIsland) {
-    const zSolidBack = -innerDepth / 2 + doorMaterialThickness / 2;
-    const solidBackHeight = innerHeight - panelThickness * 2;
-    calculateNailHolePositions(solidBackHeight).forEach(offset => {
-      nailHoles.push({ y: offset, z: zSolidBack, r: nailR, through: true });
-    });
-  }
-
   if (showShelves && numShelves > 0 && !showDrawers) {
     const availableH = innerHeight - panelThickness * 2;
     const spacing = availableH / (numShelves + 1);
@@ -909,7 +925,7 @@ export const exportBaseCabinetDXF = async (settings: TestingSettings, zip: JSZip
     for (let i = 0; i < numShelves; i++) {
       const sy = -innerHeight / 2 + panelThickness + spacing * (i + 1);
       const hy = sy - panelThickness / 2 - settings.nailHoleShelfDistance;
-      const shelfLength = settings.shelfDepth;
+      const shelfLength = shelfDepth;
       const shelfZStartGlobal = -depth / 2 + backInset;
       const zCenterShelf = shelfZStartGlobal + shelfLength / 2;
       const shelfHoleOffsets = calculateNailHolePositions(shelfLength);
@@ -957,13 +973,6 @@ export const exportBaseCabinetDXF = async (settings: TestingSettings, zip: JSZip
     });
   }
 
-  if (enableIsland) {
-    const ySolidBack = -innerDepth / 2 + doorMaterialThickness / 2;
-    calculateNailHolePositions(innerWidth - panelThickness * 2).forEach(offset => {
-      bottomHoles.push({ z: offset, y: ySolidBack, r: nailR, through: true });
-    });
-  }
-
   // Toe kick holes in bottom panel
   const zToeKickB = innerDepth / 2 - 50 - panelThickness / 2;
   calculateNailHolePositions(innerWidth).forEach(offset => {
@@ -978,7 +987,29 @@ export const exportBaseCabinetDXF = async (settings: TestingSettings, zip: JSZip
   }
 
   if (enableIsland) {
-    addPanelToZip('Island_Back_Panel', innerWidth - panelThickness * 2, innerHeight - panelThickness * 2);
+    const sbpZLeft = -innerWidth / 2 + panelThickness / 2;
+    const sbpZRight = innerWidth / 2 - panelThickness / 2;
+    const sbpHoles: { y: number, z: number, r: number, through?: boolean }[] = [];
+
+    // Side panel connections
+    calculateNailHolePositions(innerHeight).forEach(offset => {
+      sbpHoles.push({ z: sbpZLeft, y: offset, r: nailR, through: true });
+      sbpHoles.push({ z: sbpZRight, y: offset, r: nailR, through: true });
+    });
+
+    // Bottom panel connection
+    const sbpYBottom = -innerHeight / 2 + panelThickness / 2;
+    calculateNailHolePositions(innerWidth).forEach(offset => {
+      sbpHoles.push({ z: offset, y: sbpYBottom, r: nailR, through: true });
+    });
+
+    // Top back stretcher connection
+    const sbpYTop = innerHeight / 2 - panelThickness / 2;
+    calculateNailHolePositions(innerWidth - panelThickness * 2).forEach(offset => {
+      sbpHoles.push({ z: offset, y: sbpYTop, r: nailR, through: true });
+    });
+
+    addPanelToZip('Island_Back_Panel', innerWidth, innerHeight, sbpHoles);
   } else if (showBackPanel) {
     addPanelToZip('Back_Panel', innerWidth - panelThickness * 2 + grooveDepth * 2, innerHeight - panelThickness * 2 + grooveDepth * 2);
   }
@@ -993,7 +1024,7 @@ export const exportBaseCabinetDXF = async (settings: TestingSettings, zip: JSZip
     const technicalR2 = nailHoleDiameter / 2;
     const tbsWidth = innerWidth - panelThickness * 2;
     const tbsZ = -topStretcherWidth / 2 + panelThickness / 2;
-    const topBackHoles = calculateNailHolePositions(tbsWidth).map(offset => ({
+    const topBackHoles = enableIsland ? [] : calculateNailHolePositions(tbsWidth).map(offset => ({
       z: offset, y: tbsZ, r: technicalR2, through: true
     }));
     const topBackGroove = enableIsland ? undefined : { x: 0, y: panelThickness, w: tbsWidth, h: backPanelThickness + 2, depth: grooveDepth };
@@ -1020,7 +1051,6 @@ export const exportBaseCabinetDXF = async (settings: TestingSettings, zip: JSZip
 
   if (showShelves && numShelves > 0 && !showDrawers) {
     const shelfWidth = innerWidth - panelThickness * 2 - 2;
-    const shelfDepth = settings.shelfDepth;
     for (let i = 0; i < numShelves; i++) {
        addPanelToZip(`Shelf_${i + 1}`, shelfWidth, shelfDepth);
     }
