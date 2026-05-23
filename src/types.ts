@@ -243,6 +243,8 @@ export interface IslandSettings {
   seatingOverhang: number;
   numRows: 1 | 2;
   facingDirection: 'front' | 'back' | 'left' | 'right';
+  includeIslandSink?: boolean;
+  includeIslandDrawers?: boolean;
 }
 
 export interface Zone {

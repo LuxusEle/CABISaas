@@ -202,6 +202,39 @@ export const WallLimitsModal = forwardRef<any, WallLimitsModalProps>(({
                     </div>
                   </div>
                 )}
+                {isl.numRows === 1 && (
+                  <div className="rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-700 p-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[11px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-widest">Special Units</span>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">Sink</span>
+                        <button
+                          onClick={() => handleUpdateIslandSetting('includeIslandSink', !isl.includeIslandSink)}
+                          className={`relative w-10 h-5 rounded-full transition-all shrink-0 ${isl.includeIslandSink ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'}`}
+                        >
+                          <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-md transition-all ${isl.includeIslandSink ? 'left-5.5' : 'left-0.5'}`} />
+                        </button>
+                      </div>
+                      {isl.includeIslandSink && (
+                        <p className="text-[9px] text-emerald-600 dark:text-emerald-400 font-medium italic -mt-1">Sink unit placed at center</p>
+                      )}
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">Drawer Unit</span>
+                        <button
+                          onClick={() => handleUpdateIslandSetting('includeIslandDrawers', !isl.includeIslandDrawers)}
+                          className={`relative w-10 h-5 rounded-full transition-all shrink-0 ${isl.includeIslandDrawers ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'}`}
+                        >
+                          <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-md transition-all ${isl.includeIslandDrawers ? 'left-5.5' : 'left-0.5'}`} />
+                        </button>
+                      </div>
+                      {isl.includeIslandDrawers && (
+                        <p className="text-[9px] text-emerald-600 dark:text-emerald-400 font-medium italic -mt-1">Drawer unit placed beside sink</p>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
               <svg viewBox={`0 0 ${viewW} ${viewH}`} className="flex-1 w-full h-full" style={{ fontSize: '8px' }}>
                 <defs>
@@ -456,6 +489,7 @@ export const WallLimitsModal = forwardRef<any, WallLimitsModalProps>(({
               )}
             </div>
           </div>
+
         </div>
       </div>
     );

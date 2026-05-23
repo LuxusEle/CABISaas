@@ -22,6 +22,8 @@ export const createDefaultIslandSettings = (): IslandSettings => ({
   seatingOverhang: 300,
   numRows: 1,
   facingDirection: 'front',
+  includeIslandSink: false,
+  includeIslandDrawers: false,
 });
 
 export const createDefaultIslandZone = (id: string = 'Island', totalLength: number = 1500): Zone => ({
@@ -81,34 +83,29 @@ export const autoFillIsland = (zone: Zone): Zone => {
   const numRows = isl?.numRows || 1;
   const cabDepth = isl?.islandDepth;
   const rowDepth = numRows === 2 ? (cabDepth || 560) / 2 : cabDepth;
+  const includeSink = isl?.includeIslandSink ?? false;
+  const includeDrawers = isl?.includeIslandDrawers ?? false;
 
   const existingCabs = zone.cabinets.filter(c => !c.isAutoFilled);
-  const newCabinets: CabinetUnit[] = [];
-  let remaining = zone.totalLength;
-  let x = 0;
-
-  const isOccupied = (start: number, w: number, rowIdx?: number) => {
-    const rowMatch = (r?: number) =>
-      rowIdx === undefined || r === rowIdx || (rowIdx === 0 && r === undefined);
-    return (
-      existingCabs.some(c => rowMatch(c.rowIndex) && start < c.fromLeft + c.width && start + w > c.fromLeft) ||
-      newCabinets.some(c => rowMatch(c.rowIndex) && start < c.fromLeft + c.width && start + w > c.fromLeft)
-    );
-  };
 
   const generateRow = (rowIdx: number): CabinetUnit[] => {
     const row: CabinetUnit[] = [];
     let rx = 0;
     let rem = zone.totalLength;
+
+    // 1. Generate standard cabinets to fill the row
     while (rem > 0) {
       let width = ISLAND_STD_WIDTHS.find(w => w <= rem) || rem;
       if (width < 200) break;
 
-      if (!isOccupied(rx, width, rowIdx)) {
-        const useDrawers = row.length % 3 === 2;
-        const cab = useDrawers
-          ? createIslandCabinet(CabinetType.BASE, width, rx, { showDoors: false, showDrawers: true, numDrawers: 3, showShelves: false, depth: rowDepth })
-          : createIslandCabinet(CabinetType.BASE, width, rx, { showDoors: true, showDrawers: false, numShelves: 2, showShelves: true, depth: rowDepth });
+      if (rx + width <= zone.totalLength) {
+        const cab = createIslandCabinet(CabinetType.BASE, width, rx, {
+          showDoors: true,
+          showDrawers: false,
+          numShelves: 2,
+          showShelves: true,
+          depth: rowDepth,
+        });
         cab.isAutoFilled = true;
         cab.rowIndex = rowIdx;
         row.push(cab);
@@ -116,21 +113,54 @@ export const autoFillIsland = (zone: Zone): Zone => {
       rx += width;
       rem -= width;
     }
+
+    // 2. Replace cabinets with special units (keep positions, swap preset/settings)
+    if (includeSink && row.length > 0) {
+      const sinkIdx = Math.floor((row.length - 1) / 2);
+      row[sinkIdx] = {
+        ...row[sinkIdx],
+        preset: PresetType.SINK_UNIT,
+        advancedSettings: {
+          showDoors: true,
+          showDrawers: false,
+          showShelves: false,
+          showBackPanel: true,
+        },
+      };
+    }
+
+    if (includeDrawers && row.length > 0) {
+      let drawerIdx = row.length - 1;
+      while (drawerIdx >= 0 && row[drawerIdx].preset === PresetType.SINK_UNIT) {
+        drawerIdx--;
+      }
+      if (drawerIdx >= 0) {
+        row[drawerIdx] = {
+          ...row[drawerIdx],
+          preset: PresetType.BASE_DRAWER_3,
+          advancedSettings: {
+            showDoors: false,
+            showDrawers: true,
+            numDrawers: 3,
+            showShelves: false,
+            showBackPanel: true,
+          },
+        };
+      }
+    }
+
     return row;
   };
 
-  const row1 = generateRow(0);
-  newCabinets.push(...row1);
+  const newCabinets: CabinetUnit[] = [...generateRow(0)];
 
   if (numRows === 2) {
-    const row2 = generateRow(1);
-    newCabinets.push(...row2);
+    newCabinets.push(...generateRow(1));
   }
 
   return {
     ...zone,
     cabinets: [...existingCabs, ...newCabinets],
-    totalLength: x + (zone.totalLength > 0 ? zone.totalLength : 0),
   };
 };
 

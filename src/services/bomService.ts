@@ -1195,6 +1195,8 @@ export const ensureProjectSettings = (project: Project): Project => {
             seatingOverhang: old.seatingOverhang ?? 300,
             numRows: old.numRows ?? 1,
             facingDirection: old.facingDirection ?? 'front',
+            includeIslandSink: old.includeIslandSink ?? false,
+            includeIslandDrawers: old.includeIslandDrawers ?? false,
           }
         };
       }
