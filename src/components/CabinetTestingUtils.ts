@@ -748,6 +748,7 @@ export const getCabinetTestingSettings = (
     exposedRight: unit.exposedRight,
     leftCoverage: unit.leftCoverage,
     rightCoverage: unit.rightCoverage,
+    enableIsland: unit.isIsland ?? false,
   };
 
   // 3. Override with global advancedTestingSettings if present

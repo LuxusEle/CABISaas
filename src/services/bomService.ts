@@ -595,7 +595,10 @@ const generateCabinetParts = (unit: CabinetUnit, settings: ProjectSettings, cabI
 
   Object.values(machiningDataMap).forEach(data => {
     const category = resolveCategory(data.name);
-    const material = resolveMaterial(category);
+    let material = resolveMaterial(category);
+    if (t.enableIsland && data.name === 'Island_Back_Panel') {
+      material = doorMaterial;
+    }
     parts.push({
       id: uuid(),
       name: data.name.replace(/_/g, ' '),
