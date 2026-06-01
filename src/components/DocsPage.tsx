@@ -452,16 +452,40 @@ export const DocsPage: React.FC<DocsPageProps> = ({
           </nav>
         </aside>
 
-        {/* Main Content */}
-        <main className="flex-1 p-4 md:p-8">
-          <div className="max-w-4xl mx-auto space-y-8">
-            {sections.map((section) => (
-              <section
-                key={section.id}
-                id={section.id}
-                className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden scroll-mt-20"
-              >
-                <div className={`px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2 transition-colors ${activeSection === section.id ? 'bg-amber-50 dark:bg-amber-900/10' : 'bg-slate-50 dark:bg-slate-800/50'
+        {/* Mobile + Content wrapper */}
+        <div className="flex-1 min-w-0">
+          {/* Mobile Section Navigation */}
+          <div className="md:hidden sticky top-14 sm:top-16 z-30 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm">
+            <nav className="flex overflow-x-auto gap-1 px-3 py-2.5">
+              {sections.map((section) => (
+                <button
+                  key={section.id}
+                  onClick={() => scrollToSection(section.id)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition-colors shrink-0 ${
+                    activeSection === section.id
+                      ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
+                      : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  <div className="w-3.5 h-3.5 flex items-center justify-center">
+                    {section.icon}
+                  </div>
+                  <span>{section.title}</span>
+                </button>
+              ))}
+            </nav>
+          </div>
+
+          {/* Main Content */}
+          <main className="p-4 md:p-8">
+            <div className="max-w-4xl mx-auto space-y-6 md:space-y-8">
+              {sections.map((section) => (
+                <section
+                  key={section.id}
+                  id={section.id}
+                  className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden scroll-mt-28 md:scroll-mt-20"
+                >
+                <div className={`px-4 md:px-6 py-3 md:py-4 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2 transition-colors ${activeSection === section.id ? 'bg-amber-50 dark:bg-amber-900/10' : 'bg-slate-50 dark:bg-slate-800/50'
                   }`}>
                   <div className={activeSection === section.id ? 'text-amber-700 dark:text-amber-400' : 'text-slate-500 dark:text-slate-400'}>
                     {section.icon}
@@ -471,7 +495,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
                     {section.title}
                   </h2>
                 </div>
-                <div className="p-6">
+                <div className="p-4 md:p-6">
                   {section.content}
                 </div>
               </section>
@@ -485,6 +509,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
             </div>
           </div>
         </main>
+        </div>
       </div>
     </div>
   );
