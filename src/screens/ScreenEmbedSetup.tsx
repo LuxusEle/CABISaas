@@ -443,7 +443,7 @@ const ScreenEmbedSetup = ({ isDark }: ScreenEmbedSetupProps) => {
   const StepSidebarItem = ({ step, index, isActive, isDone, isRequired }: { step: string, index: number, isActive: boolean, isDone: boolean, isRequired: boolean }) => {
     const getIcon = () => {
       if (isDone) return <CheckCircle2 className="text-green-500" size={18} />;
-      if (isActive) return <ArrowRight className="text-amber-500 animate-pulse" size={18} />;
+      if (isActive) return <ArrowRight className="text-indigo-600 animate-pulse" size={18} />;
       if (isRequired) return <AlertCircle className="text-amber-200" size={18} />;
       return <div className="w-4 h-4 rounded-full border-2 border-slate-200 dark:border-slate-800" />;
     };
@@ -469,17 +469,17 @@ const ScreenEmbedSetup = ({ isDark }: ScreenEmbedSetupProps) => {
         }}
         className={`w-full flex items-center gap-4 rounded-2xl p-4 transition-all border-2 text-left relative ${
           isActive 
-            ? 'bg-amber-500/10 border-amber-500/40 text-amber-600 dark:text-amber-400 shadow-xl' 
+            ? 'bg-indigo-600/10 border-indigo-500/40 text-indigo-700 dark:text-indigo-400 shadow-xl' 
             : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700'
         }`}
       >
         <div className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${
-          isActive ? 'bg-amber-500 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
+          isActive ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
         }`}>
           {getIcon()}
         </div>
         <div className="flex-1 min-w-0">
-          <p className={`text-[9px] font-black uppercase tracking-wider ${isActive ? 'text-amber-600' : 'text-slate-500'}`}>
+          <p className={`text-[9px] font-black uppercase tracking-wider ${isActive ? 'text-indigo-700' : 'text-slate-500'}`}>
             Step {index + 1}
           </p>
           <h4 className={`text-xs font-bold uppercase truncate ${isActive ? 'text-slate-900 dark:text-white' : 'text-slate-400'}`}>
@@ -558,9 +558,9 @@ const ScreenEmbedSetup = ({ isDark }: ScreenEmbedSetupProps) => {
                           <div className="h-full flex flex-col justify-center py-10">
                             <div className="max-w-4xl mx-auto w-full px-6">
                               <div className="text-center mb-10 relative">
-                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-amber-500/10 rounded-full blur-[80px] pointer-events-none" />
+                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-indigo-600/10 rounded-full blur-[80px] pointer-events-none" />
                                 <h2 className="text-4xl font-black text-slate-900 dark:text-white italic tracking-tighter uppercase mb-2 leading-tight">
-                                  Kitchen <span className="text-amber-500">Configurator</span>
+                                  Kitchen <span className="text-indigo-600">Configurator</span>
                                 </h2>
                                 <p className="text-slate-500 dark:text-slate-400 text-xs font-medium italic max-w-md mx-auto">
                                   Let's design your standard setup. Fill in your project specifications to begin.
@@ -570,11 +570,11 @@ const ScreenEmbedSetup = ({ isDark }: ScreenEmbedSetupProps) => {
                               <div className="space-y-6 relative">
                                 <div className="grid md:grid-cols-2 gap-6">
                                   <div className="group relative">
-                                    <label className="text-[9px] font-black uppercase text-amber-500 tracking-[0.2em] mb-1.5 block ml-2 italic">Customer Name</label>
+                                    <label className="text-[9px] font-black uppercase text-indigo-600 tracking-[0.2em] mb-1.5 block ml-2 italic">Customer Name</label>
                                     <div className="relative">
-                                      <FileText className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-500 transition-colors" size={18} />
+                                      <FileText className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" size={18} />
                                       <input 
-                                        className="w-full p-4 pl-14 bg-white dark:bg-slate-800/40 rounded-[1.25rem] border-2 border-slate-100 dark:border-slate-800 focus:border-amber-500 outline-none dark:text-white font-bold text-sm shadow-[0_4px_20px_rgb(0,0,0,0.03)] dark:shadow-none transition-all" 
+                                        className="w-full p-4 pl-14 bg-white dark:bg-slate-800/40 rounded-[1.25rem] border-2 border-slate-100 dark:border-slate-800 focus:border-indigo-500 outline-none dark:text-white font-bold text-sm shadow-[0_4px_20px_rgb(0,0,0,0.03)] dark:shadow-none transition-all" 
                                         placeholder="John Doe" 
                                         value={project.name} 
                                         onChange={e => setProject({ ...project, name: e.target.value })} 
@@ -656,9 +656,9 @@ const ScreenEmbedSetup = ({ isDark }: ScreenEmbedSetupProps) => {
 
                         {activeModal === 'preferences' && (
                           <div className="space-y-6 py-6">
-                            <div className="bg-amber-50/50 dark:bg-amber-900/10 p-6 rounded-[2rem] border-2 border-amber-500/10">
-                              <h4 className="text-base font-black text-amber-900 dark:text-amber-400 uppercase tracking-widest mb-1 italic">Cabinet Selection</h4>
-                              <p className="text-xs text-amber-700/70 dark:text-amber-500/50 font-medium italic">Choose which types of specialized units to include in your kitchen design.</p>
+                            <div className="bg-amber-50/50 dark:bg-amber-900/10 p-6 rounded-[2rem] border-2 border-indigo-500/10">
+                              <h4 className="text-base font-black text-amber-900 dark:text-indigo-400 uppercase tracking-widest mb-1 italic">Cabinet Selection</h4>
+                              <p className="text-xs text-indigo-700/70 dark:text-indigo-600/50 font-medium italic">Choose which types of specialized units to include in your kitchen design.</p>
                             </div>
 
                             <div className="grid sm:grid-cols-2 gap-4">
@@ -672,14 +672,14 @@ const ScreenEmbedSetup = ({ isDark }: ScreenEmbedSetupProps) => {
                                   key={item.id}
                                   className={`flex items-start gap-4 p-5 rounded-[2rem] border-2 transition-all cursor-pointer group relative ${
                                     (project.settings.layoutPreferences?.[item.id as keyof typeof project.settings.layoutPreferences] ?? true)
-                                      ? 'border-amber-500 bg-amber-500/5 shadow-md shadow-amber-500/10' 
+                                      ? 'border-indigo-500 bg-indigo-600/5 shadow-md shadow-indigo-500/10' 
                                       : 'border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-200 dark:hover:border-slate-700'
                                   }`}
                                 >
                                   <div className="pt-1">
                                     <input 
                                       type="checkbox" 
-                                      className="w-5 h-5 rounded-lg border-2 border-slate-200 dark:border-slate-700 text-amber-500 focus:ring-amber-500 accent-amber-500 cursor-pointer"
+                                      className="w-5 h-5 rounded-lg border-2 border-slate-200 dark:border-slate-700 text-indigo-600 focus:ring-amber-500 accent-amber-500 cursor-pointer"
                                       checked={project.settings.layoutPreferences?.[item.id as keyof typeof project.settings.layoutPreferences] ?? true}
                                       onChange={(e) => {
                                         const currentPrefs = project.settings.layoutPreferences || { includeTall: true, includeSink: true, includeCooker: true, includeDrawers: true };
@@ -744,7 +744,7 @@ const ScreenEmbedSetup = ({ isDark }: ScreenEmbedSetupProps) => {
                                        onClick={() => setVisualMode('iso')}
                                        className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${
                                          visualMode === 'iso'
-                                           ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20'
+                                           ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
                                            : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white'
                                        }`}
                                      >
@@ -755,7 +755,7 @@ const ScreenEmbedSetup = ({ isDark }: ScreenEmbedSetupProps) => {
                                        onClick={() => setVisualMode('studio')}
                                        className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${
                                          visualMode === 'studio'
-                                           ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20'
+                                           ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
                                            : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white'
                                        }`}
                                      >
@@ -772,7 +772,7 @@ const ScreenEmbedSetup = ({ isDark }: ScreenEmbedSetupProps) => {
                                        disabled={!canUndo} 
                                        className={`p-1.5 rounded-lg border transition-all ${
                                          canUndo 
-                                           ? 'bg-white dark:bg-slate-800 text-amber-500 border-slate-200 dark:border-slate-750 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-750' 
+                                           ? 'bg-white dark:bg-slate-800 text-indigo-600 border-slate-200 dark:border-slate-750 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-750' 
                                            : 'bg-slate-50 dark:bg-slate-905 text-slate-300 dark:text-slate-700 border-slate-100 dark:border-slate-800 opacity-50 cursor-not-allowed'
                                        }`}
                                        title="Undo"
@@ -785,7 +785,7 @@ const ScreenEmbedSetup = ({ isDark }: ScreenEmbedSetupProps) => {
                                        disabled={!canRedo} 
                                        className={`p-1.5 rounded-lg border transition-all ${
                                          canRedo 
-                                           ? 'bg-white dark:bg-slate-800 text-amber-500 border-slate-200 dark:border-slate-750 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-750' 
+                                           ? 'bg-white dark:bg-slate-800 text-indigo-600 border-slate-200 dark:border-slate-750 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-750' 
                                            : 'bg-slate-50 dark:bg-slate-905 text-slate-300 dark:text-slate-700 border-slate-100 dark:border-slate-800 opacity-50 cursor-not-allowed'
                                        }`}
                                        title="Redo"
@@ -820,7 +820,7 @@ const ScreenEmbedSetup = ({ isDark }: ScreenEmbedSetupProps) => {
                                       onClick={() => { setActiveTab(zone.id); setSelectedCabinet(null); }}
                                       className={`px-3 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${
                                         activeTab === zone.id
-                                          ? 'bg-slate-100 dark:bg-slate-800 text-amber-500 font-black'
+                                          ? 'bg-slate-100 dark:bg-slate-800 text-indigo-600 font-black'
                                           : 'text-slate-400 hover:text-slate-600 dark:hover:text-white'
                                       }`}
                                     >
@@ -890,7 +890,7 @@ const ScreenEmbedSetup = ({ isDark }: ScreenEmbedSetupProps) => {
                                             <div className="space-y-2 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
                                               <div className="flex items-center justify-between">
                                                 <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Upper Height</span>
-                                                <span className="text-xs font-mono text-amber-500 font-bold">{(cab.advancedSettings?.tallUpperSectionHeight ?? 300).toFixed(0)}mm</span>
+                                                <span className="text-xs font-mono text-indigo-600 font-bold">{(cab.advancedSettings?.tallUpperSectionHeight ?? 300).toFixed(0)}mm</span>
                                               </div>
                                               <input 
                                                 type="range" 
@@ -946,7 +946,7 @@ const ScreenEmbedSetup = ({ isDark }: ScreenEmbedSetupProps) => {
                                             <div className="space-y-2 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
                                               <div className="flex items-center justify-between">
                                                 <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Section Height</span>
-                                                <span className="text-xs font-mono text-amber-500 font-bold">{(cab.advancedSettings?.tallLowerSectionHeight ?? 800).toFixed(0)}mm</span>
+                                                <span className="text-xs font-mono text-indigo-600 font-bold">{(cab.advancedSettings?.tallLowerSectionHeight ?? 800).toFixed(0)}mm</span>
                                               </div>
                                               <input 
                                                 type="range" 
@@ -1166,7 +1166,7 @@ const ScreenEmbedSetup = ({ isDark }: ScreenEmbedSetupProps) => {
                                             <button 
                                               type="button"
                                               onClick={handleResetCabinet}
-                                              className="w-full py-2.5 bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/20 dark:hover:bg-amber-900/30 text-amber-600 dark:text-amber-400 font-bold text-xs uppercase tracking-wider rounded-xl transition-all border border-amber-200 dark:border-amber-800/50 flex items-center justify-center gap-2"
+                                              className="w-full py-2.5 bg-amber-50 hover:bg-indigo-100 dark:bg-amber-900/20 dark:hover:bg-amber-900/30 text-indigo-700 dark:text-indigo-400 font-bold text-xs uppercase tracking-wider rounded-xl transition-all border border-indigo-200 dark:border-indigo-800/50 flex items-center justify-center gap-2"
                                             >
                                               <RotateCcw size={14} /> Reset Changes
                                             </button>
@@ -1199,7 +1199,7 @@ const ScreenEmbedSetup = ({ isDark }: ScreenEmbedSetupProps) => {
                                   {/* Sidebar header */}
                                   <div className="p-4 border-b dark:border-slate-800 flex items-center justify-between shrink-0 bg-slate-50 dark:bg-slate-800/30">
                                     <h4 className="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-white flex items-center gap-1.5">
-                                      <Layout size={14} className="text-amber-500" />
+                                      <Layout size={14} className="text-indigo-600" />
                                       3D Settings
                                     </h4>
                                   </div>
@@ -1216,8 +1216,8 @@ const ScreenEmbedSetup = ({ isDark }: ScreenEmbedSetupProps) => {
                                             onClick={() => setIsoViewMode(v)}
                                             className={`py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg border transition-all ${
                                               isoViewMode === v 
-                                                ? 'bg-amber-500 text-white border-amber-600 shadow-sm' 
-                                                : 'bg-slate-50 dark:bg-slate-800/50 text-slate-500 border-slate-200 dark:border-slate-700 hover:border-amber-300'
+                                                ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' 
+                                                : 'bg-slate-50 dark:bg-slate-800/50 text-slate-500 border-slate-200 dark:border-slate-700 hover:border-indigo-300'
                                             }`}
                                           >
                                             {v}
@@ -1277,7 +1277,7 @@ const ScreenEmbedSetup = ({ isDark }: ScreenEmbedSetupProps) => {
                                             }}
                                             className="sr-only peer"
                                           />
-                                          <div className="w-8 h-4 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-amber-500 font-sans"></div>
+                                          <div className="w-8 h-4 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600 font-sans"></div>
                                         </div>
                                       </label>
                                     </div>
@@ -1286,7 +1286,7 @@ const ScreenEmbedSetup = ({ isDark }: ScreenEmbedSetupProps) => {
                                     <div className="space-y-1.5 pt-2">
                                       <div className="flex justify-between items-center">
                                         <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">Doors Open</span>
-                                        <span className="text-[10px] font-mono text-amber-500 font-bold">{isoDoorOpenAngle}°</span>
+                                        <span className="text-[10px] font-mono text-indigo-600 font-bold">{isoDoorOpenAngle}°</span>
                                       </div>
                                       <input
                                         type="range"
@@ -1314,7 +1314,7 @@ const ScreenEmbedSetup = ({ isDark }: ScreenEmbedSetupProps) => {
                                       {swapMode ? 'Exit Swap Mode' : 'Swap Cabinets'}
                                     </Button>
                                     {swapMode && (
-                                      <p className="text-[9px] font-black text-amber-500 uppercase animate-pulse text-center tracking-widest mt-2">
+                                      <p className="text-[9px] font-black text-indigo-600 uppercase animate-pulse text-center tracking-widest mt-2">
                                         {swapSelection.length === 0 ? 'Select first cabinet' : 'Select second cabinet'}
                                       </p>
                                     )}
@@ -1345,7 +1345,7 @@ const ScreenEmbedSetup = ({ isDark }: ScreenEmbedSetupProps) => {
                                             }}
                                             className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-800/80 cursor-grab active:cursor-grabbing transition-all select-none group"
                                           >
-                                            <div className="w-10 h-10 flex items-center justify-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm group-hover:border-amber-500/50 transition-colors">
+                                            <div className="w-10 h-10 flex items-center justify-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm group-hover:border-indigo-500/50 transition-colors">
                                               {proto.icon}
                                             </div>
                                             <div className="flex-1 min-w-0">
@@ -1387,7 +1387,7 @@ const ScreenEmbedSetup = ({ isDark }: ScreenEmbedSetupProps) => {
                   <Button 
                     onClick={handleSubmit} 
                     disabled={!isReadyToSubmit || isSubmitting}
-                    className="px-8 py-3 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-black uppercase tracking-[0.15em] rounded-2xl shadow-xl shadow-amber-500/30 text-[10px] transition-all flex items-center gap-2 h-12"
+                    className="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-black uppercase tracking-[0.15em] rounded-2xl shadow-xl shadow-indigo-500/30 text-[10px] transition-all flex items-center gap-2 h-12"
                   >
                     {isSubmitting ? (
                       <>
@@ -1404,7 +1404,7 @@ const ScreenEmbedSetup = ({ isDark }: ScreenEmbedSetupProps) => {
                   <Button 
                     onClick={handleNextStep} 
                     disabled={activeModal === 'project' && !isIdentityDone}
-                    className="px-8 py-3 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-black uppercase tracking-[0.15em] rounded-2xl shadow-xl shadow-amber-500/30 text-[10px] transition-all flex items-center gap-2 h-12"
+                    className="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-black uppercase tracking-[0.15em] rounded-2xl shadow-xl shadow-indigo-500/30 text-[10px] transition-all flex items-center gap-2 h-12"
                   >
                     Next Step <ArrowRight size={16} />
                   </Button>
@@ -1421,7 +1421,7 @@ const ScreenEmbedSetup = ({ isDark }: ScreenEmbedSetupProps) => {
               <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 italic mb-2">Setup Steps</h3>
               <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                 <div 
-                  className="h-full bg-amber-500 transition-all duration-500" 
+                  className="h-full bg-indigo-600 transition-all duration-500" 
                   style={{ width: `${((wizardSteps.indexOf(activeModal) + 1) / wizardSteps.length) * 100}%` }} 
                 />
               </div>

@@ -27,7 +27,7 @@ export const CutPlanVisualizer: React.FC<Props> = ({ sheet, settings, index }) =
         <span className="font-bold text-sm text-slate-700 dark:text-white print:text-black">Sheet #{index + 1} - {sheet.material}</span>
         <div className="flex gap-2 text-xs font-mono text-slate-500 print:text-black">
           <span>{sheetWidth} x {sheetHeight}mm</span>
-          <span className={sheet.waste < 10 ? 'text-green-600 font-bold' : 'text-amber-600'}>
+          <span className={sheet.waste < 10 ? 'text-green-600 font-bold' : 'text-indigo-700'}>
             Waste: {sheet.waste}%
           </span>
         </div>
@@ -476,7 +476,7 @@ export const CutPlanVisualizer: React.FC<Props> = ({ sheet, settings, index }) =
               );
             })()}
             <button 
-              className="mt-4 w-full bg-amber-500 text-white py-2 rounded-lg font-bold hover:bg-amber-600"
+              className="mt-4 w-full bg-indigo-600 text-white py-2 rounded-lg font-bold hover:bg-indigo-700"
               onClick={() => setSelectedPart(null)}
             >
               Close

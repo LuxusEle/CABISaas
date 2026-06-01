@@ -304,7 +304,7 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
   const StepSidebarItem = ({ step, index, isActive, isDone, isRequired }: { step: string, index: number, isActive: boolean, isDone: boolean, isRequired: boolean }) => {
     const getIcon = () => {
       if (isDone) return <CheckCircle2 className="text-green-500" size={18} />;
-      if (isActive) return <ArrowRight className="text-amber-500 animate-pulse" size={18} />;
+      if (isActive) return <ArrowRight className="text-indigo-600 animate-pulse" size={18} />;
       if (isRequired) return <AlertCircle className="text-amber-200" size={18} />;
       return <div className="w-4.5 h-4.5 rounded-full border-2 border-slate-200 dark:border-slate-800" />;
     };
@@ -347,31 +347,31 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
         }}
         className={`w-full flex items-center gap-5 rounded-2xl transition-all border-2 text-left group overflow-hidden relative ${
           isActive 
-            ? 'bg-amber-500/10 border-amber-500/40 text-amber-600 dark:text-amber-400 shadow-xl shadow-amber-500/10 z-10' 
+            ? 'bg-indigo-600/10 border-indigo-500/40 text-indigo-700 dark:text-indigo-400 shadow-xl shadow-indigo-500/10 z-10' 
             : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700'
         }`}
       >
         {isActive && (
           <motion.div 
             layoutId="active-bg"
-            className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent pointer-events-none"
+            className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent pointer-events-none"
           />
         )}
         <div className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
-          isActive ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
+          isActive ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
         }`}>
           {getIcon()}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex justify-between items-center mb-0.5">
-            <p className={`text-[10px] font-black uppercase tracking-[0.15em] truncate ${isActive ? 'text-amber-600' : 'text-slate-500 dark:text-slate-400'}`}>
+            <p className={`text-[10px] font-black uppercase tracking-[0.15em] truncate ${isActive ? 'text-indigo-700' : 'text-slate-500 dark:text-slate-400'}`}>
               Step {index + 1}
             </p>
             {isActive && (
               <motion.span 
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="text-[8px] font-black bg-amber-500 text-white px-2 py-0.5 rounded-full tracking-widest"
+                className="text-[8px] font-black bg-indigo-600 text-white px-2 py-0.5 rounded-full tracking-widest"
               >
                 ACTIVE
               </motion.span>
@@ -384,7 +384,7 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
             <motion.p 
               initial={{ opacity: 0, y: 5 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-[9px] font-medium text-amber-700/60 dark:text-amber-500/50 mt-1 italic leading-tight"
+              className="text-[9px] font-medium text-indigo-700/60 dark:text-indigo-600/50 mt-1 italic leading-tight"
             >
               Current phase of your design journey.
             </motion.p>
@@ -403,10 +403,10 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
             <div className="h-full w-full max-w-none transition-all duration-500 relative">
               {!activeModal ? (
                 <div className="space-y-8 animate-in fade-in zoom-in duration-500 text-center py-20">
-                  <div className="w-24 h-24 bg-amber-500/10 rounded-[2.5rem] flex items-center justify-center text-amber-500 mx-auto mb-6">
+                  <div className="w-24 h-24 bg-indigo-600/10 rounded-[2.5rem] flex items-center justify-center text-indigo-600 mx-auto mb-6">
                     <Settings size={48} className="animate-spin-slow" />
                   </div>
-                  <h1 className="text-5xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">Ready to <span className="text-amber-500">Begin?</span></h1>
+                  <h1 className="text-5xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">Ready to <span className="text-indigo-600">Begin?</span></h1>
                   <p className="text-lg text-slate-500 font-medium italic max-w-lg mx-auto">Let's guide you through the setup process to generate your perfect 3D cabinetry design.</p>
                   
                   <button onClick={() => { setDirection('forward'); setActiveModal('project'); }} className="px-8 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-full font-black uppercase tracking-[0.2em] shadow-xl hover:scale-105 transition-all flex items-center gap-3 mx-auto group text-xs">
@@ -528,9 +528,9 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
                         <div className="max-w-4xl mx-auto w-full px-6">
                           {/* Header Section */}
                           <div className="text-center mb-16 relative">
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-amber-500/10 rounded-full blur-[80px] pointer-events-none" />
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-indigo-600/10 rounded-full blur-[80px] pointer-events-none" />
                             <h2 className="text-5xl font-black text-slate-900 dark:text-white italic tracking-tighter uppercase mb-4 leading-tight">
-                              Start New <span className="text-amber-500">Journey</span>
+                              Start New <span className="text-indigo-600">Journey</span>
                             </h2>
                             <p className="text-slate-500 dark:text-slate-400 font-medium italic max-w-md mx-auto">
                               Define your project specifications to begin the precision engineering process.
@@ -539,17 +539,17 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
 
                           <div className="grid md:grid-cols-2 gap-8 relative">
                             {/* Card Decoration */}
-                            <div className="absolute -top-4 -left-4 w-24 h-24 border-t-4 border-l-4 border-amber-500/20 rounded-tl-[3rem] pointer-events-none" />
-                            <div className="absolute -bottom-4 -right-4 w-24 h-24 border-b-4 border-r-4 border-amber-500/20 rounded-br-[3rem] pointer-events-none" />
+                            <div className="absolute -top-4 -left-4 w-24 h-24 border-t-4 border-l-4 border-indigo-500/20 rounded-tl-[3rem] pointer-events-none" />
+                            <div className="absolute -bottom-4 -right-4 w-24 h-24 border-b-4 border-r-4 border-indigo-500/20 rounded-br-[3rem] pointer-events-none" />
 
                             {/* Project Name & Site Address */}
                             <div className="space-y-6">
                               <div className="group relative">
-                                <label className="text-[10px] font-black uppercase text-amber-500 tracking-[0.2em] mb-1.5 block ml-2 italic">Project Name</label>
+                                <label className="text-[10px] font-black uppercase text-indigo-600 tracking-[0.2em] mb-1.5 block ml-2 italic">Project Name</label>
                                 <div className="relative">
-                                  <FileText className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-500 transition-colors" size={18} />
+                                  <FileText className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" size={18} />
                                   <input 
-                                    className="w-full p-4 pl-14 bg-white dark:bg-slate-800/40 rounded-[1.25rem] border-2 border-slate-100 dark:border-slate-800 focus:border-amber-500 outline-none dark:text-white font-bold text-base shadow-[0_4px_20px_rgb(0,0,0,0.03)] dark:shadow-none transition-all placeholder:text-slate-300 dark:placeholder:text-slate-600" 
+                                    className="w-full p-4 pl-14 bg-white dark:bg-slate-800/40 rounded-[1.25rem] border-2 border-slate-100 dark:border-slate-800 focus:border-indigo-500 outline-none dark:text-white font-bold text-base shadow-[0_4px_20px_rgb(0,0,0,0.03)] dark:shadow-none transition-all placeholder:text-slate-300 dark:placeholder:text-slate-600" 
                                     placeholder="New Kitchen" 
                                     value={project.name} 
                                     onChange={e => setProject({ ...project, name: e.target.value })} 
@@ -588,8 +588,8 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
                                 </div>
                               </div>
 
-                              <div className="bg-slate-50 dark:bg-slate-800/20 rounded-[2rem] p-6 border-2 border-dashed border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center text-center group hover:border-amber-500/30 transition-all">
-                                <div className="w-12 h-12 bg-white dark:bg-slate-800 rounded-xl flex items-center justify-center text-amber-500 shadow-lg mb-3 rotate-3 group-hover:rotate-0 transition-transform">
+                              <div className="bg-slate-50 dark:bg-slate-800/20 rounded-[2rem] p-6 border-2 border-dashed border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center text-center group hover:border-indigo-500/30 transition-all">
+                                <div className="w-12 h-12 bg-white dark:bg-slate-800 rounded-xl flex items-center justify-center text-indigo-600 shadow-lg mb-3 rotate-3 group-hover:rotate-0 transition-transform">
                                   <Sparkles size={24} />
                                 </div>
                                 <h4 className="text-[11px] font-black text-slate-900 dark:text-white uppercase tracking-widest mb-1">Branded Experience</h4>
@@ -608,8 +608,8 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
                                     }}
                                     className={`w-full py-3.5 rounded-xl font-black uppercase text-[9px] tracking-widest transition-all border-2 flex items-center justify-center gap-2 ${
                                       project.settings.workflowMode === 'advanced'
-                                        ? 'bg-amber-500 text-white border-amber-500 shadow-md shadow-amber-500/20'
-                                        : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-amber-500'
+                                        ? 'bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-500/20'
+                                        : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-indigo-500'
                                     }`}
                                   >
                                     <Cpu size={14} />
@@ -629,29 +629,29 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
                     )}
                     {activeModal === 'advanced_entry' && (
                       <div className="space-y-8 animate-in fade-in slide-in-from-right-10 duration-500">
-                        <div className="bg-amber-50/50 dark:bg-amber-900/10 p-6 rounded-[2rem] border-2 border-amber-500/10 flex justify-between items-center shadow-sm">
+                        <div className="bg-amber-50/50 dark:bg-amber-900/10 p-6 rounded-[2rem] border-2 border-indigo-500/10 flex justify-between items-center shadow-sm">
                           <div>
-                            <h4 className="text-lg font-black text-amber-900 dark:text-amber-400 uppercase tracking-widest mb-1 italic flex items-center gap-3">
-                              <Cpu size={22} className="text-amber-500" /> Direct Unit Entry
+                            <h4 className="text-lg font-black text-amber-900 dark:text-indigo-400 uppercase tracking-widest mb-1 italic flex items-center gap-3">
+                              <Cpu size={22} className="text-indigo-600" /> Direct Unit Entry
                             </h4>
-                            <p className="text-sm text-amber-700/70 dark:text-amber-500/50 font-medium italic">Define your cabinetry boxes manually. Skip the solver, keep the technical accuracy.</p>
+                            <p className="text-sm text-indigo-700/70 dark:text-indigo-600/50 font-medium italic">Define your cabinetry boxes manually. Skip the solver, keep the technical accuracy.</p>
                           </div>
                           
                           <div className="flex items-center gap-12">
                             <div className="flex items-center gap-6">
                               <div className="flex flex-col text-right">
-                                <span className="text-[9px] font-black uppercase text-amber-500/50 tracking-widest">Total Wall length</span>
-                                <span className="text-lg font-black text-amber-900 dark:text-amber-400 italic">
+                                <span className="text-[9px] font-black uppercase text-indigo-600/50 tracking-widest">Total Wall length</span>
+                                <span className="text-lg font-black text-amber-900 dark:text-indigo-400 italic">
                                   {calculateTotalZoneLength(project.zones[0].cabinets)}
-                                  <span className="text-xs font-bold text-amber-500/50 not-italic ml-1">mm</span>
+                                  <span className="text-xs font-bold text-indigo-600/50 not-italic ml-1">mm</span>
                                 </span>
                               </div>
-                              <div className="w-[1px] h-8 bg-amber-500/10" />
+                              <div className="w-[1px] h-8 bg-indigo-600/10" />
                               <div className="flex flex-col text-right">
-                                <span className="text-[9px] font-black uppercase text-amber-500/50 tracking-widest">Unit Count</span>
-                                <span className="text-lg font-black text-amber-900 dark:text-amber-400 italic">
+                                <span className="text-[9px] font-black uppercase text-indigo-600/50 tracking-widest">Unit Count</span>
+                                <span className="text-lg font-black text-amber-900 dark:text-indigo-400 italic">
                                   {project.zones[0].cabinets.length}
-                                  <span className="text-xs font-bold text-amber-500/50 not-italic ml-1">boxes</span>
+                                  <span className="text-xs font-bold text-indigo-600/50 not-italic ml-1">boxes</span>
                                 </span>
                               </div>
                             </div>
@@ -673,7 +673,7 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
                                 setHighlightedCabId(newCab.id);
                                 setTimeout(() => setHighlightedCabId(null), 2000);
                               }}
-                              className="bg-amber-500 hover:bg-amber-600 text-white px-8 py-4 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center gap-3 transition-all shadow-xl shadow-amber-500/20 active:scale-95"
+                              className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center gap-3 transition-all shadow-xl shadow-indigo-500/20 active:scale-95"
                             >
                               <Plus size={20} /> Add Unit
                             </button>
@@ -702,7 +702,7 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
                                     key={cab.id} 
                                     className={`group transition-all duration-700 ${
                                       highlightedCabId === cab.id 
-                                        ? 'bg-amber-500/10 dark:bg-amber-500/5 ring-1 ring-amber-500/30' 
+                                        ? 'bg-indigo-600/10 dark:bg-indigo-600/5 ring-1 ring-amber-500/30' 
                                         : 'hover:bg-slate-50/50 dark:hover:bg-slate-800/30'
                                     }`}
                                   >
@@ -713,13 +713,13 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
                                           e.stopPropagation();
                                           setActiveDropdownId(activeDropdownId === cab.id ? null : cab.id);
                                         }}
-                                        className="flex items-center gap-2 font-black text-slate-900 dark:text-white uppercase text-xs tracking-widest hover:text-amber-500 transition-colors group"
+                                        className="flex items-center gap-2 font-black text-slate-900 dark:text-white uppercase text-xs tracking-widest hover:text-indigo-600 transition-colors group"
                                       >
                                         {cab.preset === PresetType.BASE_CORNER ? 'Base Corner' : 
                                          cab.preset === PresetType.WALL_CORNER ? 'Wall Corner' : 
                                          cab.type === 'Base' ? 'Base Standard' : 
                                          cab.type === 'Wall' ? 'Wall Standard' : 'Tall Utility'}
-                                        <ChevronDown size={14} className={`text-slate-400 group-hover:text-amber-500 transition-transform duration-300 ${activeDropdownId === cab.id ? 'rotate-180' : ''}`} />
+                                        <ChevronDown size={14} className={`text-slate-400 group-hover:text-indigo-600 transition-transform duration-300 ${activeDropdownId === cab.id ? 'rotate-180' : ''}`} />
                                       </button>
 
                                       <AnimatePresence>
@@ -783,11 +783,11 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
                                                   }}
                                                   className={`w-full flex items-center gap-3 p-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
                                                     isSelected
-                                                      ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20'
+                                                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
                                                       : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
                                                   }`}
                                                 >
-                                                  <span className={isSelected ? 'text-white' : 'text-amber-500'}>{opt.icon}</span>
+                                                  <span className={isSelected ? 'text-white' : 'text-indigo-600'}>{opt.icon}</span>
                                                   {opt.label}
                                                 </button>
                                               );
@@ -810,7 +810,7 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
                                         setProject({ ...project, zones: updatedZones });
                                       }}
                                       className={`w-20 bg-transparent text-right outline-none transition-colors duration-300 ${
-                                        cab.width !== 600 ? 'font-black text-amber-500' : 'font-bold text-slate-400 dark:text-slate-500'
+                                        cab.width !== 600 ? 'font-black text-indigo-600' : 'font-bold text-slate-400 dark:text-slate-500'
                                       }`}
                                     />
                                   </td>
@@ -826,7 +826,7 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
                                       }}
                                       className={`w-20 bg-transparent text-right outline-none placeholder:opacity-50 transition-colors duration-300 ${
                                         (cab.height && cab.height !== (cab.type === 'Base' ? project.settings.baseHeight : cab.type === 'Wall' ? project.settings.wallHeight : project.settings.tallHeight))
-                                          ? 'font-black text-amber-500' 
+                                          ? 'font-black text-indigo-600' 
                                           : 'font-bold text-slate-400 dark:text-slate-500'
                                       }`}
                                     />
@@ -843,7 +843,7 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
                                       }}
                                       className={`w-20 bg-transparent text-right outline-none placeholder:opacity-50 transition-colors duration-300 ${
                                         (cab.depth && cab.depth !== (cab.type === 'Base' ? project.settings.depthBase : cab.type === 'Wall' ? project.settings.depthWall : project.settings.depthTall))
-                                          ? 'font-black text-amber-500' 
+                                          ? 'font-black text-indigo-600' 
                                           : 'font-bold text-slate-400 dark:text-slate-500'
                                       }`}
                                     />
@@ -860,7 +860,7 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
                                             };
                                             setProject({ ...project, zones: updatedZones });
                                           }}
-                                          className={`flex-1 py-1 rounded-md text-[9px] font-black uppercase tracking-widest transition-all duration-300 ${cab.advancedSettings?.blindCornerSide !== 'right' ? 'bg-white dark:bg-slate-600 text-amber-500 shadow-md' : 'text-slate-400 hover:text-slate-500'}`}
+                                          className={`flex-1 py-1 rounded-md text-[9px] font-black uppercase tracking-widest transition-all duration-300 ${cab.advancedSettings?.blindCornerSide !== 'right' ? 'bg-white dark:bg-slate-600 text-indigo-600 shadow-md' : 'text-slate-400 hover:text-slate-500'}`}
                                         >
                                           Left
                                         </button>
@@ -873,7 +873,7 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
                                             };
                                             setProject({ ...project, zones: updatedZones });
                                           }}
-                                          className={`flex-1 py-1 rounded-md text-[9px] font-black uppercase tracking-widest transition-all duration-300 ${cab.advancedSettings?.blindCornerSide === 'right' ? 'bg-white dark:bg-slate-600 text-amber-500 shadow-md' : 'text-slate-400 hover:text-slate-500'}`}
+                                          className={`flex-1 py-1 rounded-md text-[9px] font-black uppercase tracking-widest transition-all duration-300 ${cab.advancedSettings?.blindCornerSide === 'right' ? 'bg-white dark:bg-slate-600 text-indigo-600 shadow-md' : 'text-slate-400 hover:text-slate-500'}`}
                                         >
                                           Right
                                         </button>
@@ -900,7 +900,7 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
                                         }}
                                         className={`w-20 bg-transparent text-right outline-none transition-colors duration-300 ${
                                           (cab.advancedSettings?.blindPanelWidth && cab.advancedSettings.blindPanelWidth !== 600)
-                                            ? 'font-black text-amber-500'
+                                            ? 'font-black text-indigo-600'
                                             : 'font-bold text-slate-400 dark:text-slate-500'
                                         }`}
                                       />
@@ -911,7 +911,7 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
                                   <td className="p-6 text-center">
                                     <input 
                                       type="checkbox"
-                                      className="w-5 h-5 rounded border-slate-300 dark:border-slate-700 text-amber-500 focus:ring-amber-500 accent-amber-500 cursor-pointer"
+                                      className="w-5 h-5 rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-amber-500 accent-amber-500 cursor-pointer"
                                       checked={cab.advancedSettings?.showDoors ?? (cab.preset !== 'Open Box')}
                                       disabled={cab.advancedSettings?.showDrawers}
                                       onChange={(e) => {
@@ -930,7 +930,7 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
                                   <td className="p-6 text-center">
                                     <input 
                                       type="checkbox"
-                                      className="w-5 h-5 rounded border-slate-300 dark:border-slate-700 text-amber-500 focus:ring-amber-500 accent-amber-500 cursor-pointer"
+                                      className="w-5 h-5 rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-amber-500 accent-amber-500 cursor-pointer"
                                       checked={cab.advancedSettings?.showShelves ?? true}
                                       disabled={cab.advancedSettings?.showDrawers}
                                       onChange={(e) => {
@@ -951,7 +951,7 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
                                     {(cab.preset !== PresetType.BASE_CORNER && cab.preset !== PresetType.WALL_CORNER) ? (
                                       <input 
                                         type="checkbox"
-                                        className="w-5 h-5 rounded border-slate-300 dark:border-slate-700 text-amber-500 focus:ring-amber-500 accent-amber-500 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                                        className="w-5 h-5 rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-amber-500 accent-amber-500 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
                                         checked={cab.advancedSettings?.showDrawers ?? (cab.preset === PresetType.BASE_DRAWER_3)}
                                         disabled={(cab.advancedSettings?.showDoors ?? (cab.preset !== PresetType.BASE_DOOR)) || (cab.advancedSettings?.showShelves ?? true)}
                                         onChange={(e) => {
@@ -1009,7 +1009,7 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
                                           updatedZones[0].totalLength = calculateTotalZoneLength(updatedZones[0].cabinets);
                                           setProject({ ...project, zones: updatedZones });
                                         }}
-                                        className="text-amber-500 font-black text-[10px] uppercase tracking-widest hover:underline"
+                                        className="text-indigo-600 font-black text-[10px] uppercase tracking-widest hover:underline"
                                       >
                                         Add your first unit
                                       </button>
@@ -1026,9 +1026,9 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
 
                     {activeModal === 'sheets' && (
                       <div className="space-y-8">
-                        <div className="bg-amber-50/50 dark:bg-amber-900/10 p-4 rounded-[2rem] border-2 border-amber-500/10 mb-8">
-                          <h4 className="text-base font-black text-amber-900 dark:text-amber-400 uppercase tracking-widest mb-1 italic">Inventory & Materials</h4>
-                          <p className="text-sm text-amber-700/70 dark:text-amber-500/50 font-medium italic">Configure the sheet dimensions and types for accurate cutting lists.</p>
+                        <div className="bg-amber-50/50 dark:bg-amber-900/10 p-4 rounded-[2rem] border-2 border-indigo-500/10 mb-8">
+                          <h4 className="text-base font-black text-amber-900 dark:text-indigo-400 uppercase tracking-widest mb-1 italic">Inventory & Materials</h4>
+                          <p className="text-sm text-indigo-700/70 dark:text-indigo-600/50 font-medium italic">Configure the sheet dimensions and types for accurate cutting lists.</p>
                         </div>
                         <SheetTypeManager 
                           currency={project.settings.currency || '$'}
@@ -1079,9 +1079,9 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
 
                     {activeModal === 'hardware' && (
                       <div className="space-y-8">
-                        <div className="bg-amber-50/50 dark:bg-amber-900/10 p-4 rounded-[2rem] border-2 border-amber-500/10 mb-8">
-                          <h4 className="text-base font-black text-amber-900 dark:text-amber-400 uppercase tracking-widest mb-1 italic">Hardware & Fittings</h4>
-                          <p className="text-sm text-amber-700/70 dark:text-amber-500/50 font-medium italic">Select hinges, handles, and runners for your project.</p>
+                        <div className="bg-amber-50/50 dark:bg-amber-900/10 p-4 rounded-[2rem] border-2 border-indigo-500/10 mb-8">
+                          <h4 className="text-base font-black text-amber-900 dark:text-indigo-400 uppercase tracking-widest mb-1 italic">Hardware & Fittings</h4>
+                          <p className="text-sm text-indigo-700/70 dark:text-indigo-600/50 font-medium italic">Select hinges, handles, and runners for your project.</p>
                         </div>
                         <SheetTypeManager 
                           currency={project.settings.currency || '$'}
@@ -1112,21 +1112,21 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
 
                     {activeModal === 'costs' && (
                       <div className="space-y-8 max-w-4xl mx-auto w-full">
-                        <div className="bg-amber-50/50 dark:bg-amber-900/10 p-8 rounded-[2.5rem] border-2 border-amber-500/10 mb-8 flex justify-between items-center">
+                        <div className="bg-amber-50/50 dark:bg-amber-900/10 p-8 rounded-[2.5rem] border-2 border-indigo-500/10 mb-8 flex justify-between items-center">
                           <div>
-                            <h4 className="text-lg font-black text-amber-900 dark:text-amber-400 uppercase tracking-widest mb-1 italic">Project Financials</h4>
-                            <p className="text-sm text-amber-700/70 dark:text-amber-500/50 font-medium italic">Manage overheads, labor, and profit margins.</p>
+                            <h4 className="text-lg font-black text-amber-900 dark:text-indigo-400 uppercase tracking-widest mb-1 italic">Project Financials</h4>
+                            <p className="text-sm text-indigo-700/70 dark:text-indigo-600/50 font-medium italic">Manage overheads, labor, and profit margins.</p>
                           </div>
                           <div className="text-right">
-                            <label className="text-[10px] font-black uppercase text-amber-500/50 tracking-widest mb-2 block">Profit Margin</label>
-                            <div className="flex items-center gap-3 bg-white dark:bg-slate-900 p-2 rounded-2xl border-2 border-amber-500/20 shadow-sm">
+                            <label className="text-[10px] font-black uppercase text-indigo-600/50 tracking-widest mb-2 block">Profit Margin</label>
+                            <div className="flex items-center gap-3 bg-white dark:bg-slate-900 p-2 rounded-2xl border-2 border-indigo-500/20 shadow-sm">
                               <input 
                                 type="number" 
                                 value={project.settings.costs?.marginPercent ?? 50} 
                                 onChange={e => setProject({ ...project, settings: { ...project.settings, costs: { ...project.settings.costs, marginPercent: Number(e.target.value) } } })}
-                                className="w-16 bg-transparent text-right font-black text-xl text-amber-500 outline-none"
+                                className="w-16 bg-transparent text-right font-black text-xl text-indigo-600 outline-none"
                               />
-                              <span className="text-amber-500/50 font-bold">%</span>
+                              <span className="text-indigo-600/50 font-bold">%</span>
                             </div>
                           </div>
                         </div>
@@ -1148,8 +1148,8 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
                                 key={expense.id}
                                 className={`grid grid-cols-[1fr_180px_60px] gap-4 items-center p-4 rounded-2xl border-2 transition-all shadow-sm group ${
                                   editingExpenseId === expense.id 
-                                    ? 'bg-white dark:bg-slate-800 border-amber-500/50 ring-2 ring-amber-500/10' 
-                                    : 'bg-white/50 dark:bg-slate-800/30 border-slate-100 dark:border-slate-800 hover:border-amber-500/30'
+                                    ? 'bg-white dark:bg-slate-800 border-indigo-500/50 ring-2 ring-amber-500/10' 
+                                    : 'bg-white/50 dark:bg-slate-800/30 border-slate-100 dark:border-slate-800 hover:border-indigo-500/30'
                                 }`}
                               >
                                 <input 
@@ -1170,7 +1170,7 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
                                     onChange={e => handleUpdateExpense(expense.id, 'amount', Number(e.target.value))}
                                     className={`w-full px-4 py-3 rounded-xl border-none outline-none text-right font-black transition-all ${
                                       editingExpenseId === expense.id 
-                                        ? 'bg-slate-50 dark:bg-slate-900/50 text-amber-500 ring-2 ring-amber-500/20' 
+                                        ? 'bg-slate-50 dark:bg-slate-900/50 text-indigo-600 ring-2 ring-amber-500/20' 
                                         : 'bg-transparent text-slate-400'
                                     }`}
                                   />
@@ -1190,7 +1190,7 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
                                   ) : (
                                     <button 
                                       onClick={() => setEditingExpenseId(expense.id)}
-                                      className="p-2 text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                                      className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-all opacity-0 group-hover:opacity-100"
                                       title="Edit expense"
                                     >
                                       <Pencil size={18} />
@@ -1210,7 +1210,7 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
 
                           <button 
                             onClick={handleAddExpense}
-                            className="w-full py-6 rounded-[2rem] border-2 border-dashed border-slate-200 dark:border-slate-800 text-slate-400 hover:text-amber-500 hover:border-amber-500/50 hover:bg-amber-50/10 transition-all flex items-center justify-center gap-3 group font-black uppercase text-[11px] tracking-widest mt-6"
+                            className="w-full py-6 rounded-[2rem] border-2 border-dashed border-slate-200 dark:border-slate-800 text-slate-400 hover:text-indigo-600 hover:border-indigo-500/50 hover:bg-amber-50/10 transition-all flex items-center justify-center gap-3 group font-black uppercase text-[11px] tracking-widest mt-6"
                           >
                             <Plus size={20} className="group-hover:scale-125 transition-transform" /> Add New Project Expense
                           </button>
@@ -1221,9 +1221,9 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
 
                     {activeModal === 'preferences' && (
                       <div className="space-y-10">
-                        <div className="bg-amber-50/50 dark:bg-amber-900/10 p-10 rounded-[3rem] border-2 border-amber-500/10">
-                          <h4 className="text-xl font-black text-amber-900 dark:text-amber-400 uppercase tracking-widest mb-3 italic">Layout Smart Selection</h4>
-                          <p className="text-base text-amber-700/70 dark:text-amber-500/50 font-medium italic">Choose which functional units to include in the automated 3D generator.</p>
+                        <div className="bg-amber-50/50 dark:bg-amber-900/10 p-10 rounded-[3rem] border-2 border-indigo-500/10">
+                          <h4 className="text-xl font-black text-amber-900 dark:text-indigo-400 uppercase tracking-widest mb-3 italic">Layout Smart Selection</h4>
+                          <p className="text-base text-indigo-700/70 dark:text-indigo-600/50 font-medium italic">Choose which functional units to include in the automated 3D generator.</p>
                         </div>
 
                         <div className="grid sm:grid-cols-2 gap-6">
@@ -1237,14 +1237,14 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
                               key={item.id}
                               className={`flex items-start gap-6 p-8 rounded-[2.5rem] border-2 transition-all cursor-pointer group relative overflow-hidden ${
                                 (project.settings.layoutPreferences?.[item.id as keyof typeof project.settings.layoutPreferences] ?? true)
-                                  ? 'border-amber-500 bg-amber-500/5 shadow-xl shadow-amber-500/10' 
+                                  ? 'border-indigo-500 bg-indigo-600/5 shadow-xl shadow-indigo-500/10' 
                                   : 'border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-200 dark:hover:border-slate-700'
                               }`}
                             >
                               <div className="pt-1 relative z-10">
                                 <input 
                                   type="checkbox" 
-                                  className="w-7 h-7 rounded-xl border-2 border-slate-200 dark:border-slate-700 text-amber-500 focus:ring-amber-500 accent-amber-500 cursor-pointer"
+                                  className="w-7 h-7 rounded-xl border-2 border-slate-200 dark:border-slate-700 text-indigo-600 focus:ring-amber-500 accent-amber-500 cursor-pointer"
                                   checked={project.settings.layoutPreferences?.[item.id as keyof typeof project.settings.layoutPreferences] ?? true}
                                   onChange={(e) => {
                                     const currentPrefs = project.settings.layoutPreferences || { includeTall: true, includeSink: true, includeCooker: true, includeDrawers: true };
@@ -1264,7 +1264,7 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
                               <div className="relative z-10">
                                 <h5 className={`font-black uppercase tracking-tight text-base mb-1 ${
                                   (project.settings.layoutPreferences?.[item.id as keyof typeof project.settings.layoutPreferences] ?? true)
-                                    ? 'text-amber-900 dark:text-amber-400'
+                                    ? 'text-amber-900 dark:text-indigo-400'
                                     : 'text-slate-900 dark:text-white'
                                 }`}>{item.label}</h5>
                                 <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed italic">{item.desc}</p>
@@ -1277,7 +1277,7 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
                           <label className="flex items-center gap-4 cursor-pointer group">
                             <input
                               type="checkbox"
-                              className="w-6 h-6 rounded-lg border-2 border-slate-300 dark:border-slate-600 text-amber-500 focus:ring-amber-500 accent-amber-500"
+                              className="w-6 h-6 rounded-lg border-2 border-slate-300 dark:border-slate-600 text-indigo-600 focus:ring-amber-500 accent-amber-500"
                               checked={project.settings.enableTopRow || false}
                               onChange={(e) => setProject({
                                 ...project,
@@ -1292,7 +1292,7 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
                           
                           {project.settings.enableTopRow && (
                             <div className="pl-10 animate-in fade-in slide-in-from-top-4 duration-300">
-                              <p className="text-xs text-amber-500 font-bold italic">Top row height is automatically calculated from wall ceiling height to fit perfectly.</p>
+                              <p className="text-xs text-indigo-600 font-bold italic">Top row height is automatically calculated from wall ceiling height to fit perfectly.</p>
                             </div>
                           )}
                         </div>
@@ -1303,7 +1303,7 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
                       <div className="space-y-10">
                         <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-800/50 p-6 rounded-[2rem] border-2 border-slate-100 dark:border-slate-800">
                           <h4 className="text-sm font-black uppercase text-slate-900 dark:text-white tracking-[0.2em] flex items-center gap-3 italic">
-                            <div className="w-5 h-1.5 bg-amber-500 rounded-full" /> Build Standards
+                            <div className="w-5 h-1.5 bg-indigo-600 rounded-full" /> Build Standards
                           </h4>
                           
                           <button 
@@ -1316,8 +1316,8 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
                             }}
                             className={`flex items-center gap-2 px-6 py-3 rounded-full text-[11px] font-black uppercase tracking-[0.15em] transition-all ${
                               showAdvancedConstruction 
-                                ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/30' 
-                                : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-2 border-slate-200 dark:border-slate-600 hover:border-amber-500'
+                                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' 
+                                : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-2 border-slate-200 dark:border-slate-600 hover:border-indigo-500'
                             }`}
                           >
                             {isPro ? (showAdvancedConstruction ? 'Close Advanced' : 'Open Pro Editor') : <><Lock size={12} /> Pro Editor</>}
@@ -1332,8 +1332,8 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
                         {showAdvancedConstruction && isPro && (
                           <div className="space-y-12 pt-8 animate-in zoom-in-98 duration-300">
                             <div className="space-y-6">
-                              <h4 className="text-[11px] font-black uppercase text-amber-500 tracking-widest flex items-center gap-3">
-                                <div className="w-4 h-1.5 bg-amber-500 rounded-full" /> Standard Depths (mm)
+                              <h4 className="text-[11px] font-black uppercase text-indigo-600 tracking-widest flex items-center gap-3">
+                                <div className="w-4 h-1.5 bg-indigo-600 rounded-full" /> Standard Depths (mm)
                               </h4>
                               <div className="grid grid-cols-3 gap-6">
                                 <NumberInput label="Base Depth" value={project.settings.depthBase} onChange={v => setProject({ ...project, settings: { ...project.settings, depthBase: v } })} />
@@ -1343,8 +1343,8 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
                             </div>
 
                             <div className="space-y-6">
-                              <h4 className="text-[11px] font-black uppercase text-amber-500 tracking-widest flex items-center gap-3">
-                                <div className="w-4 h-1.5 bg-amber-500 rounded-full" /> Standard Heights (mm)
+                              <h4 className="text-[11px] font-black uppercase text-indigo-600 tracking-widest flex items-center gap-3">
+                                <div className="w-4 h-1.5 bg-indigo-600 rounded-full" /> Standard Heights (mm)
                               </h4>
                               <div className="grid grid-cols-3 gap-6">
                                 <NumberInput label="Base Height" value={project.settings.baseHeight} onChange={v => setProject({ ...project, settings: { ...project.settings, baseHeight: v } })} />
@@ -1367,9 +1367,9 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
                         <div className="max-w-5xl mx-auto w-full px-6">
                           {/* Launchpad Header */}
                           <div className="text-center mb-6 relative">
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-amber-500/10 rounded-full blur-[100px] pointer-events-none" />
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-indigo-600/10 rounded-full blur-[100px] pointer-events-none" />
                             <h2 className="text-6xl font-black text-slate-900 dark:text-white italic tracking-tighter uppercase mb-4 leading-tight text-glow">
-                              Ready for <span className="text-amber-500">{project.settings.workflowMode === 'advanced' ? 'Output' : 'Generation'}</span>
+                              Ready for <span className="text-indigo-600">{project.settings.workflowMode === 'advanced' ? 'Output' : 'Generation'}</span>
                             </h2>
                             <p className="text-slate-500 dark:text-slate-400 font-medium italic max-w-lg mx-auto">
                               {project.settings.workflowMode === 'advanced' 
@@ -1383,11 +1383,11 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
                             <div className="lg:col-span-2 space-y-6">
                               <div className="bg-white dark:bg-slate-900/50 rounded-[3rem] p-8 border-2 border-slate-100 dark:border-slate-800 shadow-2xl relative overflow-hidden group">
                                 <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
-                                  <Cpu size={120} className="text-amber-500" />
+                                  <Cpu size={120} className="text-indigo-600" />
                                 </div>
                                 
-                                <h3 className="text-xs font-black uppercase text-amber-500 tracking-[0.3em] mb-4 italic flex items-center gap-4">
-                                  <div className="w-8 h-1 bg-amber-500 rounded-full" />
+                                <h3 className="text-xs font-black uppercase text-indigo-600 tracking-[0.3em] mb-4 italic flex items-center gap-4">
+                                  <div className="w-8 h-1 bg-indigo-600 rounded-full" />
                                   Engineering Brief
                                 </h3>
 
@@ -1406,7 +1406,7 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
                                   <div className="space-y-2">
                                     <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Main Material</span>
                                     <div className="flex items-center gap-3">
-                                      <Layers className="text-amber-500" size={18} />
+                                      <Layers className="text-indigo-600" size={18} />
                                       <span className="text-lg font-black text-slate-900 dark:text-white italic">{project.settings.materialSettings?.doorMaterial || 'Premium White'}</span>
                                     </div>
                                   </div>
@@ -1429,7 +1429,7 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
 
                               <div className="bg-slate-50 dark:bg-slate-800/20 rounded-[2.5rem] p-4 border border-slate-200 dark:border-slate-800 flex items-center justify-between px-10 group">
                                 <div className="flex items-center gap-6">
-                                  <div className="w-12 h-12 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center text-amber-500 shadow-lg group-hover:scale-110 transition-transform">
+                                  <div className="w-12 h-12 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center text-indigo-600 shadow-lg group-hover:scale-110 transition-transform">
                                     <CheckCircle2 size={24} />
                                   </div>
                                   <div>
@@ -1442,7 +1442,7 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
                                 <div className="hidden sm:flex -space-x-4">
                                   {[1, 2, 3].map(i => (
                                     <div key={i} className="w-10 h-10 rounded-full border-4 border-white dark:border-slate-900 bg-slate-200 dark:bg-slate-800 overflow-hidden shadow-md">
-                                      <div className="w-full h-full bg-gradient-to-br from-amber-400 to-orange-500 opacity-40" />
+                                      <div className="w-full h-full bg-gradient-to-br from-indigo-400 to-orange-500 opacity-40" />
                                     </div>
                                   ))}
                                 </div>
@@ -1456,8 +1456,8 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
                                 disabled={!isReadyToGenerate || (!isPro && isLayoutLocked)}
                                 className="w-full aspect-square bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-[3rem] flex flex-col items-center justify-center gap-6 group hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_30px_60px_rgba(245,158,11,0.2)] dark:shadow-[0_30px_60px_rgba(255,255,255,0.05)] relative overflow-hidden"
                               >
-                                <div className="absolute inset-0 bg-gradient-to-br from-amber-500/20 to-orange-500/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                <div className="w-24 h-24 bg-amber-500 rounded-[2rem] flex items-center justify-center text-white shadow-2xl shadow-amber-500/40 relative z-10 group-hover:rotate-12 transition-transform">
+                                <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/20 to-orange-500/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                <div className="w-24 h-24 bg-indigo-600 rounded-[2rem] flex items-center justify-center text-white shadow-2xl shadow-indigo-500/40 relative z-10 group-hover:rotate-12 transition-transform">
                                   <Wand2 size={48} />
                                 </div>
                                 <div className="text-center relative z-10">
@@ -1469,8 +1469,8 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
                                 </div>
                               </button>
 
-                              <div className="bg-amber-500/5 rounded-3xl p-4 border-2 border-amber-500/10 text-center italic">
-                                <p className="text-xs text-amber-500/80 font-bold leading-relaxed">
+                              <div className="bg-indigo-600/5 rounded-3xl p-4 border-2 border-indigo-500/10 text-center italic">
+                                <p className="text-xs text-indigo-600/80 font-bold leading-relaxed">
                                   "Precision is the soul of every design. Let the machine do the heavy lifting."
                                 </p>
                               </div>
@@ -1514,7 +1514,7 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
                         handleNextStep();
                       }
                     }} 
-                    className="px-10 py-3 bg-amber-500 hover:bg-amber-600 text-white font-black uppercase tracking-[0.15em] rounded-2xl shadow-xl shadow-amber-500/30 text-[11px] transition-all flex items-center gap-3 group hover:scale-105 active:scale-95 h-12"
+                    className="px-10 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase tracking-[0.15em] rounded-2xl shadow-xl shadow-indigo-500/30 text-[11px] transition-all flex items-center gap-3 group hover:scale-105 active:scale-95 h-12"
                   >
                     Next Step <ArrowRight size={18} className="group-hover:translate-x-2 transition-transform" />
                   </Button>
@@ -1530,7 +1530,7 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
             <h3 className="text-xs font-black uppercase tracking-[0.3em] text-slate-400 italic mb-2">Project Journey</h3>
             <div className="flex items-center justify-between mb-4">
               <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Completion Rate</span>
-              <span className="text-lg font-black text-amber-500 italic">
+              <span className="text-lg font-black text-indigo-600 italic">
                 {(() => {
                   const done = wizardSteps.filter(s => {
                     if (s === 'project') return isIdentityDone;
@@ -1550,7 +1550,7 @@ const ScreenProjectSetup = ({ onSave, onSaveProject, isDark, isUserPro }: Screen
             </div>
             <div className="w-full h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner">
                <div 
-                className="h-full bg-amber-500 transition-all duration-1000 ease-out" 
+                className="h-full bg-indigo-600 transition-all duration-1000 ease-out" 
                 style={{ width: `${(() => {
                   const done = wizardSteps.filter(s => {
                     if (s === 'project') return isIdentityDone;

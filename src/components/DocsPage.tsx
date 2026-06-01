@@ -66,7 +66,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
             <div className="p-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-              <h4 className="font-black text-xs uppercase tracking-widest text-amber-600 dark:text-amber-500 mb-2">New Here?</h4>
+              <h4 className="font-black text-xs uppercase tracking-widest text-indigo-700 dark:text-indigo-600 mb-2">New Here?</h4>
               <p className="text-sm text-slate-600 dark:text-slate-400 italic">Use the <strong>Quick Start Demo</strong> from the dashboard to instantly load a professional layout and explore all features.</p>
             </div>
             <div className="p-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
@@ -75,12 +75,12 @@ export const DocsPage: React.FC<DocsPageProps> = ({
             </div>
           </div>
 
-          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mt-4">
-            <h4 className="font-bold text-amber-800 dark:text-amber-400 flex items-center gap-2">
+          <div className="bg-amber-50 dark:bg-amber-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg p-4 mt-4">
+            <h4 className="font-bold text-amber-800 dark:text-indigo-400 flex items-center gap-2">
               <Lightbulb className="w-4 h-4" />
               Quick Tip
             </h4>
-            <p className="text-sm text-amber-700 dark:text-amber-300 mt-2">
+            <p className="text-sm text-indigo-700 dark:text-amber-300 mt-2">
               Access any project directly from the <strong>Dashboard</strong> using the Action Menu overlay to jump straight to Setup, 3D Studio, or BOM.
             </p>
           </div>
@@ -96,7 +96,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
           <h3 className="text-xl font-bold text-slate-900 dark:text-white">Step-by-Step Engineering Process</h3>
 
           <div className="space-y-6">
-            <div className="border-l-4 border-amber-500 pl-4">
+            <div className="border-l-4 border-indigo-500 pl-4">
               <h4 className="font-bold text-slate-900 dark:text-white text-lg">Step 1: Project Identity & Mode</h4>
               <p className="text-slate-600 dark:text-slate-300 mt-2">
                 Configure site address and contact info. Enable <strong>Advanced Mode</strong> if you prefer manual weaponry box entry over automatic solvers.
@@ -140,8 +140,8 @@ export const DocsPage: React.FC<DocsPageProps> = ({
           <h3 className="text-xl font-bold text-slate-900 dark:text-white">Configuration Options</h3>
 
           <div className="space-y-4">
-            <div className="bg-amber-50/50 dark:bg-amber-900/10 p-5 rounded-2xl border border-amber-200/50 dark:border-amber-800/50">
-              <h4 className="font-black text-xs uppercase tracking-widest text-amber-700 dark:text-amber-500 mb-2 flex items-center gap-2">
+            <div className="bg-amber-50/50 dark:bg-amber-900/10 p-5 rounded-2xl border border-indigo-200/50 dark:border-indigo-800/50">
+              <h4 className="font-black text-xs uppercase tracking-widest text-indigo-700 dark:text-indigo-600 mb-2 flex items-center gap-2">
                 <Settings2 className="w-4 h-4" /> Advanced Mode (Direct Entry)
               </h4>
               <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed italic">
@@ -195,7 +195,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
 
           <div className="space-y-4">
             <div className="bg-white dark:bg-slate-800 rounded-lg p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
-              <h4 className="font-black text-xs uppercase tracking-widest text-amber-600 dark:text-amber-500 mb-3">Realistic Visualization</h4>
+              <h4 className="font-black text-xs uppercase tracking-widest text-indigo-700 dark:text-indigo-600 mb-3">Realistic Visualization</h4>
               <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
                 The studio uses physically accurate rendering for professional presentations:
               </p>
@@ -282,8 +282,8 @@ export const DocsPage: React.FC<DocsPageProps> = ({
           <h3 className="text-xl font-bold text-slate-900 dark:text-white">Subscription Policies</h3>
 
           <div className="space-y-4">
-            <div className="bg-white dark:bg-slate-800 rounded-lg p-5 border-2 border-amber-500 dark:border-amber-400">
-              <h4 className="font-black text-xs uppercase tracking-widest text-amber-600 dark:text-amber-500 mb-2">New User Privilege</h4>
+            <div className="bg-white dark:bg-slate-800 rounded-lg p-5 border-2 border-indigo-500 dark:border-indigo-400">
+              <h4 className="font-black text-xs uppercase tracking-widest text-indigo-700 dark:text-indigo-600 mb-2">New User Privilege</h4>
               <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed italic">
                 Experience the full power of the platform: your <strong>first two projects</strong> are automatically granted <strong>PRO status</strong>, enabling all export formats and Advanced mode.
               </p>
@@ -409,7 +409,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
             <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
               <h4 className="font-bold text-slate-900 dark:text-white mb-2 text-sm uppercase">Technical Support</h4>
               <p className="text-slate-600 dark:text-slate-300 text-xs italic">
-                For complex engineering queries or hardware integration help, contact us at <span className="text-amber-600 font-bold">support@protradee.com</span>.
+                For complex engineering queries or hardware integration help, contact us at <span className="text-indigo-700 font-bold">support@protradee.com</span>.
               </p>
             </div>
           </div>
@@ -438,7 +438,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
                 key={section.id}
                 onClick={() => scrollToSection(section.id)}
                 className={`w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors text-left ${activeSection === section.id
-                    ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
+                    ? 'bg-indigo-100 dark:bg-amber-900/30 text-indigo-700 dark:text-indigo-400'
                     : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
                   }`}
               >
@@ -463,7 +463,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
                   onClick={() => scrollToSection(section.id)}
                   className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition-colors shrink-0 ${
                     activeSection === section.id
-                      ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
+                      ? 'bg-indigo-100 dark:bg-amber-900/30 text-indigo-700 dark:text-indigo-400'
                       : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
                   }`}
                 >
@@ -487,7 +487,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
                 >
                 <div className={`px-4 md:px-6 py-3 md:py-4 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2 transition-colors ${activeSection === section.id ? 'bg-amber-50 dark:bg-amber-900/10' : 'bg-slate-50 dark:bg-slate-800/50'
                   }`}>
-                  <div className={activeSection === section.id ? 'text-amber-700 dark:text-amber-400' : 'text-slate-500 dark:text-slate-400'}>
+                  <div className={activeSection === section.id ? 'text-indigo-700 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400'}>
                     {section.icon}
                   </div>
                   <h2 className={`text-lg font-bold transition-colors ${activeSection === section.id ? 'text-amber-900 dark:text-amber-100' : 'text-slate-900 dark:text-white'

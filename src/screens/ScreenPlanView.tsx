@@ -37,7 +37,7 @@ const ScreenPlanView = ({ project, TitleBlock }: ScreenPlanViewProps) => {
             <div className="grid md:grid-cols-2 gap-6 print:grid-cols-2 print:gap-4">
               {bomData.groups.map((group, i) => (
                 <div key={i} className="bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 p-4 rounded-xl print:border-2 print:border-black print:rounded-none print:break-inside-avoid">
-                  <div className="font-bold text-amber-600 mb-2 text-sm uppercase">{group.cabinetName}</div>
+                  <div className="font-bold text-indigo-700 mb-2 text-sm uppercase">{group.cabinetName}</div>
                   <table className="w-full text-xs italic">
                     <tbody>
                       {group.items.map((item, j) => (
@@ -59,7 +59,7 @@ const ScreenPlanView = ({ project, TitleBlock }: ScreenPlanViewProps) => {
                 {Object.entries(bomData.hardwareSummary).map(([name, qty]) => (
                   <div key={name} className="bg-slate-50 dark:bg-slate-800 px-4 py-2 rounded-lg print:border print:border-black">
                     <span className="text-xs font-bold mr-2 uppercase opacity-60">{name}</span>
-                    <span className="font-black text-amber-600 print:text-black">{qty}</span>
+                    <span className="font-black text-indigo-700 print:text-black">{qty}</span>
                   </div>
                 ))}
               </div>

@@ -207,7 +207,7 @@ export const WallEditModal = forwardRef<any, WallEditModalProps>(({
                   onClick={() => setActiveTab(zone.id)}
                   className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-all whitespace-nowrap ${
                     activeTab === zone.id 
-                      ? 'bg-white dark:bg-slate-900 text-amber-500 shadow-sm border-t-2 border-amber-500' 
+                      ? 'bg-white dark:bg-slate-900 text-indigo-600 shadow-sm border-t-2 border-indigo-500' 
                       : 'text-slate-500 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300'
                   }`}
                 >
@@ -217,7 +217,7 @@ export const WallEditModal = forwardRef<any, WallEditModalProps>(({
               {localZones.length < 4 && !readOnly && (
                 <button
                   onClick={handleAddWall}
-                  className="px-4 py-2 text-sm font-bold rounded-t-lg bg-slate-200 dark:bg-slate-800 text-slate-500 hover:text-amber-500 transition-colors"
+                  className="px-4 py-2 text-sm font-bold rounded-t-lg bg-slate-200 dark:bg-slate-800 text-slate-500 hover:text-indigo-600 transition-colors"
                 >
                   +
                 </button>
@@ -238,7 +238,7 @@ export const WallEditModal = forwardRef<any, WallEditModalProps>(({
                           handleZoneChange(idx, 'id', e.target.value);
                           setActiveTab(e.target.value);
                         }}
-                        className="font-bold text-lg text-slate-800 dark:text-white bg-transparent border-b border-transparent hover:border-slate-300 dark:hover:border-slate-600 focus:border-amber-500 outline-none pb-0.5 transition-colors"
+                        className="font-bold text-lg text-slate-800 dark:text-white bg-transparent border-b border-transparent hover:border-slate-300 dark:hover:border-slate-600 focus:border-indigo-500 outline-none pb-0.5 transition-colors"
                       />
                     </div>
                     {localZones.length > 1 && !readOnly && (
@@ -295,7 +295,7 @@ export const WallEditModal = forwardRef<any, WallEditModalProps>(({
                   <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        <AlertTriangle size={14} className="text-amber-500" />
+                        <AlertTriangle size={14} className="text-indigo-600" />
                         <span className="text-xs font-bold text-slate-600 dark:text-slate-400">Obstacles</span>
                         <span className="text-xs text-slate-400">({currentZone.obstacles.filter(o => !o.id.startsWith('corner_')).length})</span>
                       </div>
@@ -510,7 +510,7 @@ export const WallEditModal = forwardRef<any, WallEditModalProps>(({
                   </button>
                   <button
                     onClick={handleSave}
-                    className="flex items-center gap-2 px-5 sm:px-8 py-2 sm:py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-full font-black uppercase tracking-widest shadow-lg shadow-amber-500/20 hover:scale-105 transition-all group text-xs sm:text-sm"
+                    className="flex items-center gap-2 px-5 sm:px-8 py-2 sm:py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full font-black uppercase tracking-widest shadow-lg shadow-indigo-500/20 hover:scale-105 transition-all group text-xs sm:text-sm"
                   >
                     Next Step
                     <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />

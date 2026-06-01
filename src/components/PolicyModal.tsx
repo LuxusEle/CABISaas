@@ -41,8 +41,8 @@ const parseMarkdown = (content: string): React.ReactNode => {
         text = text
           .replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-slate-900 dark:text-white">$1</strong>')
           .replace(/\*(.*?)\*/g, '<em>$1</em>')
-          .replace(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '<a href="mailto:$1" class="text-amber-600 dark:text-amber-400 hover:underline">$1</a>')
-          .replace(/(www\.[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '<a href="https://$1" target="_blank" rel="noopener noreferrer" class="text-amber-600 dark:text-amber-400 hover:underline">$1</a>');
+          .replace(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '<a href="mailto:$1" class="text-indigo-700 dark:text-indigo-400 hover:underline">$1</a>')
+          .replace(/(www\.[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '<a href="https://$1" target="_blank" rel="noopener noreferrer" class="text-indigo-700 dark:text-indigo-400 hover:underline">$1</a>');
         elements.push(<p key={elements.length} className="text-slate-600 dark:text-slate-300 my-2 leading-relaxed" dangerouslySetInnerHTML={{ __html: text }} />);
       }
       currentParagraph = '';
@@ -59,8 +59,8 @@ const parseMarkdown = (content: string): React.ReactNode => {
                 __html: item
                   .replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-slate-900 dark:text-white">$1</strong>')
                   .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                  .replace(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '<a href="mailto:$1" class="text-amber-600 dark:text-amber-400 hover:underline">$1</a>')
-                  .replace(/(www\.[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '<a href="https://$1" target="_blank" rel="noopener noreferrer" class="text-amber-600 dark:text-amber-400 hover:underline">$1</a>')
+                  .replace(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '<a href="mailto:$1" class="text-indigo-700 dark:text-indigo-400 hover:underline">$1</a>')
+                  .replace(/(www\.[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '<a href="https://$1" target="_blank" rel="noopener noreferrer" class="text-indigo-700 dark:text-indigo-400 hover:underline">$1</a>')
               }} />
             ))}
           </ul>
@@ -73,8 +73,8 @@ const parseMarkdown = (content: string): React.ReactNode => {
                 __html: item
                   .replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-slate-900 dark:text-white">$1</strong>')
                   .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                  .replace(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '<a href="mailto:$1" class="text-amber-600 dark:text-amber-400 hover:underline">$1</a>')
-                  .replace(/(www\.[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '<a href="https://$1" target="_blank" rel="noopener noreferrer" class="text-amber-600 dark:text-amber-400 hover:underline">$1</a>')
+                  .replace(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '<a href="mailto:$1" class="text-indigo-700 dark:text-indigo-400 hover:underline">$1</a>')
+                  .replace(/(www\.[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '<a href="https://$1" target="_blank" rel="noopener noreferrer" class="text-indigo-700 dark:text-indigo-400 hover:underline">$1</a>')
               }} />
             ))}
           </ol>
@@ -176,7 +176,7 @@ const parseMarkdown = (content: string): React.ReactNode => {
       flushList();
       flushParagraph();
       if (line.startsWith('>')) {
-        elements.push(<blockquote key={elements.length} className="border-l-4 border-amber-500 pl-4 italic text-slate-600 dark:text-slate-300 my-4">{line.slice(1).trim()}</blockquote>);
+        elements.push(<blockquote key={elements.length} className="border-l-4 border-indigo-500 pl-4 italic text-slate-600 dark:text-slate-300 my-4">{line.slice(1).trim()}</blockquote>);
       }
       continue;
     }
@@ -598,7 +598,7 @@ These Terms, together with the Privacy Policy, Acceptable Use Policy, Cookie Pol
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700 shrink-0">
           <div className="flex items-center gap-3">
-            <Shield className="w-6 h-6 text-amber-500" />
+            <Shield className="w-6 h-6 text-indigo-600" />
             <h2 className="text-xl font-black text-slate-900 dark:text-white">Policy & Terms</h2>
           </div>
           <button
@@ -620,7 +620,7 @@ These Terms, together with the Privacy Policy, Acceptable Use Policy, Cookie Pol
                   onClick={() => scrollToSection(section.id)}
                   className={`w-full flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors text-left ${
                     activeSection === section.id
-                      ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
+                      ? 'bg-indigo-100 dark:bg-amber-900/30 text-indigo-700 dark:text-indigo-400'
                       : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
                   }`}
                 >
@@ -643,7 +643,7 @@ These Terms, together with the Privacy Policy, Acceptable Use Policy, Cookie Pol
         <div className="p-4 border-t border-slate-200 dark:border-slate-700 shrink-0 flex justify-end">
           <button
             onClick={onClose}
-            className="px-6 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold rounded-xl transition-all"
+            className="px-6 py-2 bg-gradient-to-r from-indigo-500 to-orange-500 hover:from-indigo-600 hover:to-orange-600 text-white font-bold rounded-xl transition-all"
           >
             Close
           </button>

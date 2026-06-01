@@ -349,7 +349,7 @@ export const IsometricVisualizer: React.FC<Props> = ({ project, showHardware = t
             {/* Lighting effect overlay */}
             <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent pointer-events-none" />
             
-            <div className={`absolute top-4 left-4 ${lightTheme ? 'text-amber-600' : 'text-amber-400'} font-black text-xs uppercase tracking-widest z-10`}>
+            <div className={`absolute top-4 left-4 ${lightTheme ? 'text-indigo-700' : 'text-indigo-400'} font-black text-xs uppercase tracking-widest z-10`}>
                 3D ISO VIEW
             </div>
             

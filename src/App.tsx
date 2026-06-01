@@ -43,7 +43,7 @@ const ProtectedRoute = ({ user, loading, children }: { user: User | null, loadin
     return (
       <div className="fixed inset-0 bg-slate-900 flex items-center justify-center z-50">
         <div className="text-center">
-          <div className="font-black text-3xl mb-4">CAB<span className="text-amber-500">ENGINE</span></div>
+          <div className="font-black text-3xl mb-4">CAB<span className="text-indigo-600">ENGINE</span></div>
           <div className="text-slate-400">Verifying session...</div>
         </div>
       </div>
@@ -416,14 +416,14 @@ export default function App() {
                   animate={{ opacity: 1, x: 0 }}
                   className="font-black text-lg tracking-tighter italic"
                 >
-                  CAB<span className="text-amber-500">ENGINE</span>
+                  CAB<span className="text-indigo-600">ENGINE</span>
                 </motion.div>
               )}
               <button
                 onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
-                className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-amber-500 transition-all shadow-sm"
+                className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-indigo-600 transition-all shadow-sm"
               >
-                {isSidebarExpanded ? <ChevronLeft size={20} /> : <LayoutDashboard size={24} className="text-amber-500" />}
+                {isSidebarExpanded ? <ChevronLeft size={20} /> : <LayoutDashboard size={24} className="text-indigo-600" />}
               </button>
             </div>
 
@@ -451,7 +451,7 @@ export default function App() {
               {user ? (
                 <button
                   onClick={() => setShowAuthModal(true)}
-                  className={`flex items-center gap-4 p-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-amber-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all w-full ${!isSidebarExpanded ? 'justify-center' : ''}`}
+                  className={`flex items-center gap-4 p-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-indigo-600 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all w-full ${!isSidebarExpanded ? 'justify-center' : ''}`}
                   title={user.email || ''}
                 >
                   <div className="shrink-0">
@@ -477,7 +477,7 @@ export default function App() {
               )}
               <button
                 onClick={toggleTheme}
-                className={`flex items-center gap-4 p-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-amber-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all w-full ${!isSidebarExpanded ? 'justify-center' : ''}`}
+                className={`flex items-center gap-4 p-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-indigo-600 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all w-full ${!isSidebarExpanded ? 'justify-center' : ''}`}
               >
                 <div className="shrink-0">
                   {isDark ? <Sun size={20} /> : <Moon size={20} />}
@@ -495,7 +495,7 @@ export default function App() {
             <div className="h-20 shrink-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-8 z-40 print:hidden transition-all duration-500">
               <div className="flex flex-col">
                 <div className="flex items-center gap-2 mb-1">
-                  <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                  <div className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse" />
                   <h1 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-[0.1em] leading-none">
                     {project.name || 'Untitled Kitchen'}
                   </h1>
@@ -526,7 +526,7 @@ export default function App() {
                   className={`
                     px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2
                     ${isDirty
-                      ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20 hover:scale-105 active:scale-95'
+                      ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 hover:scale-105 active:scale-95'
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-400 opacity-60 cursor-default'
                     }
                   `}
@@ -738,7 +738,7 @@ export default function App() {
       {authLoading && (
         <div className="fixed inset-0 bg-slate-900 flex items-center justify-center z-50">
           <div className="text-center">
-            <div className="font-black text-3xl mb-4">CAB<span className="text-amber-500">ENGINE</span></div>
+            <div className="font-black text-3xl mb-4">CAB<span className="text-indigo-600">ENGINE</span></div>
             <div className="text-slate-400">Loading...</div>
           </div>
         </div>
@@ -777,7 +777,7 @@ const NavButton = ({ active, onClick, icon, label, path, isDirty, canDiscard, is
     <button
       onClick={handleClick}
       className={`flex items-center gap-4 p-3 rounded-xl transition-all w-full relative group ${active
-          ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20'
+          ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
           : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
         } ${!isExpanded ? 'justify-center' : ''}`}
       title={!isExpanded ? label : ''}
@@ -832,7 +832,7 @@ const MobileNavButton = ({ active, onClick, icon, label, path, isDirty, canDisca
   return (
     <button
       onClick={handleClick}
-      className={`flex-1 flex flex-col items-center justify-center gap-1 ${active ? 'text-amber-600 dark:text-amber-500' : 'text-slate-400'}`}
+      className={`flex-1 flex flex-col items-center justify-center gap-1 ${active ? 'text-indigo-700 dark:text-indigo-600' : 'text-slate-400'}`}
     >
       {icon}
       <span className="text-[10px] font-bold">{label}</span>

@@ -166,7 +166,7 @@ const ParticleBackground: React.FC = () => {
       {particles.map((p) => (
         <div
           key={p.id}
-          className="absolute rounded-full bg-amber-500/20 animate-particle"
+          className="absolute rounded-full bg-indigo-600/20 animate-particle"
           style={{
             left: p.left,
             top: p.top,
@@ -307,9 +307,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
 
         {/* No Download Required - top left */}
         <div className="absolute top-20 left-8 sm:top-28 sm:left-20 z-20 animate-slide-up" style={{ animationDelay: '0.2s' }}>
-          <div className="inline-flex items-center gap-2 sm:gap-3 px-3 sm:px-5 py-2 sm:py-3 rounded-xl bg-gradient-to-r from-amber-500/10 via-amber-400/20 to-amber-500/10 dark:from-amber-500/20 dark:via-amber-400/30 dark:to-amber-500/20 border border-amber-300/30 dark:border-amber-400/30 animate-pulse-glow backdrop-blur-sm">
-            <Download className="w-5 h-5 sm:w-7 sm:h-7 text-amber-500 flex-shrink-0" />
-            <span className="text-base sm:text-xl md:text-2xl font-black text-amber-600 dark:text-amber-400 whitespace-nowrap">
+          <div className="inline-flex items-center gap-2 sm:gap-3 px-3 sm:px-5 py-2 sm:py-3 rounded-xl bg-gradient-to-r from-indigo-500/10 via-indigo-400/20 to-indigo-500/10 dark:from-indigo-500/20 dark:via-indigo-400/30 dark:to-indigo-500/20 border border-indigo-300/30 dark:border-indigo-400/30 animate-pulse-glow backdrop-blur-sm">
+            <Download className="w-5 h-5 sm:w-7 sm:h-7 text-indigo-600 flex-shrink-0" />
+            <span className="text-base sm:text-xl md:text-2xl font-black text-indigo-700 dark:text-indigo-400 whitespace-nowrap">
               No Download Required
             </span>
           </div>
@@ -318,9 +318,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-start md:items-center justify-end min-h-screen pt-4 md:pt-12 pb-24 md:pb-40 w-full">
           <div className="w-full max-w-2xl text-center md:text-right flex flex-col items-center md:items-end md:mr-[15%] xl:mr-[-10%]">
             {/* Animated badge */}
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-amber-100 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 mb-4 sm:mb-8 animate-slide-up">
-              <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-amber-600 dark:text-amber-500" />
-              <span className="text-xs sm:text-sm font-medium text-amber-700 dark:text-amber-400">Professional Cabinet Design Made Simple</span>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-indigo-100 dark:bg-indigo-600/10 border border-indigo-200 dark:border-indigo-500/20 mb-4 sm:mb-8 animate-slide-up">
+              <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-indigo-700 dark:text-indigo-600" />
+              <span className="text-xs sm:text-sm font-medium text-indigo-700 dark:text-indigo-400">Professional Cabinet Design Made Simple</span>
             </div>
 
             {/* Subheading and description with mobile glassmohrphism background for readability */}
@@ -393,7 +393,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
                 { value: 'Cut', label: 'Optimization' },
               ].map((stat, i) => (
                 <div key={i} className="text-center">
-                  <div className="text-xl sm:text-2xl md:text-3xl font-black text-amber-500">{stat.value}</div>
+                  <div className="text-xl sm:text-2xl md:text-3xl font-black text-indigo-600">{stat.value}</div>
                   <div className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-500 uppercase tracking-wider">{stat.label}</div>
                 </div>
               ))}
@@ -440,13 +440,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
               },
             ].map((feature, i) => (
               <FloatingElement key={i} delay={i * 200}>
-                <div className="group relative p-6 sm:p-8 rounded-xl sm:rounded-2xl bg-white/10 dark:bg-slate-900/40 backdrop-blur-sm border border-slate-200/50 dark:border-slate-800/50 hover:border-amber-500/50 transition-all duration-500 hover:transform hover:-translate-y-2 shadow-sm dark:shadow-none">
+                <div className="group relative p-6 sm:p-8 rounded-xl sm:rounded-2xl bg-white/10 dark:bg-slate-900/40 backdrop-blur-sm border border-slate-200/50 dark:border-slate-800/50 hover:border-indigo-500/50 transition-all duration-500 hover:transform hover:-translate-y-2 shadow-sm dark:shadow-none">
                   <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-${feature.color}-500/10 flex items-center justify-center text-${feature.color}-500 mb-4 sm:mb-6 group-hover:scale-110 transition-transform`}>
                     {feature.icon}
                   </div>
                   <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white mb-2 sm:mb-3">{feature.title}</h3>
                   <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400">{feature.description}</p>
-                  <div className="absolute inset-0 rounded-xl sm:rounded-2xl bg-gradient-to-r from-amber-500/0 via-amber-500/5 to-amber-500/0 opacity-0 group-hover:opacity-100 transition-opacity animate-shimmer" />
+                  <div className="absolute inset-0 rounded-xl sm:rounded-2xl bg-gradient-to-r from-indigo-500/0 via-indigo-500/5 to-indigo-500/0 opacity-0 group-hover:opacity-100 transition-opacity animate-shimmer" />
                 </div>
               </FloatingElement>
             ))}
@@ -522,15 +522,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             </div>
 
             {/* Pro Plan */}
-            <div className="relative bg-white/10 dark:bg-slate-900/40 backdrop-blur-sm rounded-2xl shadow-xl border-2 border-amber-500 overflow-hidden transform md:-translate-y-4">
-              <div className="absolute top-0 right-0 bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">
+            <div className="relative bg-white/10 dark:bg-slate-900/40 backdrop-blur-sm rounded-2xl shadow-xl border-2 border-indigo-500 overflow-hidden transform md:-translate-y-4">
+              <div className="absolute top-0 right-0 bg-indigo-600 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">
                 POPULAR
               </div>
 
               <div className="p-6 sm:p-8">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="p-3 rounded-lg bg-amber-100 dark:bg-amber-900/30">
-                    <Sparkles className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                  <div className="p-3 rounded-lg bg-indigo-100 dark:bg-indigo-900/30">
+                    <Sparkles className="w-6 h-6 text-indigo-700 dark:text-indigo-400" />
                   </div>
                   <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Pro</h3>
                 </div>
@@ -545,7 +545,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
                 <Button
                   size="lg"
                   onClick={onGetStarted}
-                  className="w-full mb-6 bg-amber-500 hover:bg-amber-600"
+                  className="w-full mb-6 bg-indigo-600 hover:bg-indigo-700"
                 >
                   Start Pro Trial
                 </Button>
@@ -604,7 +604,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             <div className="bg-white/10 dark:bg-slate-900/40 backdrop-blur-sm p-8 rounded-2xl shadow-xl border border-slate-200/50 dark:border-slate-800/50 animate-slide-up">
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-sm font-black text-amber-500 uppercase tracking-widest mb-3">Platform Details</h3>
+                  <h3 className="text-sm font-black text-indigo-600 uppercase tracking-widest mb-3">Platform Details</h3>
                   <div className="space-y-1">
                     <p className="text-slate-900 dark:text-white font-bold">Protradee</p>
                     <p className="text-sm text-slate-500 dark:text-slate-400">Legal Name: ASANKE ABEYKOON JAYALATH RATHNAYAKE</p>
@@ -612,7 +612,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
                 </div>
 
                 <div>
-                  <h3 className="text-sm font-black text-amber-500 uppercase tracking-widest mb-3">Physical Address</h3>
+                  <h3 className="text-sm font-black text-indigo-600 uppercase tracking-widest mb-3">Physical Address</h3>
                   <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed italic">
                     98/16, NUWARA WEWA WATTA,<br />
                     JAFFNA ROAD,<br />
@@ -627,15 +627,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             <div className="bg-white/10 dark:bg-slate-900/40 backdrop-blur-sm p-8 rounded-2xl shadow-xl border border-slate-200/50 dark:border-slate-800/50 animate-slide-up" style={{ animationDelay: '200ms' }}>
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-sm font-black text-amber-500 uppercase tracking-widest mb-3">Direct Contact</h3>
+                  <h3 className="text-sm font-black text-indigo-600 uppercase tracking-widest mb-3">Direct Contact</h3>
                   <div className="space-y-4">
                     <div className="flex items-center gap-3">
                       <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-700">
-                        <Menu className="w-4 h-4 text-amber-500 rotated-45" />
+                        <Menu className="w-4 h-4 text-indigo-600 rotated-45" />
                       </div>
                       <div>
                         <p className="text-[10px] font-bold text-slate-400 uppercase">Phone</p>
-                        <a href="tel:+94777163564" className="text-sm text-slate-900 dark:text-white font-bold hover:text-amber-500 transition-colors tracking-tight">
+                        <a href="tel:+94777163564" className="text-sm text-slate-900 dark:text-white font-bold hover:text-indigo-600 transition-colors tracking-tight">
                           +94 777 163 564
                         </a>
                       </div>
@@ -643,15 +643,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
 
                     <div className="flex items-start gap-3">
                       <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-700">
-                        <FileText className="w-4 h-4 text-amber-500" />
+                        <FileText className="w-4 h-4 text-indigo-600" />
                       </div>
                       <div>
                         <p className="text-[10px] font-bold text-slate-400 uppercase">Email Support</p>
                         <div className="flex flex-col">
-                          <a href="mailto:support@protradee.com" className="text-sm text-slate-900 dark:text-white font-bold hover:text-amber-500 transition-colors">
+                          <a href="mailto:support@protradee.com" className="text-sm text-slate-900 dark:text-white font-bold hover:text-indigo-600 transition-colors">
                             support@protradee.com
                           </a>
-                          <a href="mailto:asanke1@gmail.com" className="text-sm text-slate-900 dark:text-white font-bold mt-1 hover:text-amber-500 transition-colors">
+                          <a href="mailto:asanke1@gmail.com" className="text-sm text-slate-900 dark:text-white font-bold mt-1 hover:text-indigo-600 transition-colors">
                             asanke1@gmail.com
                           </a>
                         </div>
@@ -673,7 +673,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
 
       {/* CTA Section */}
       <section id="about" className="relative py-16 sm:py-24 overflow-hidden bg-white/40 dark:bg-slate-900/40 backdrop-blur-md">
-        <div className="absolute inset-0 bg-gradient-to-r from-amber-100/50 to-orange-100/50 dark:from-amber-600/30 dark:to-orange-600/30" />
+        <div className="absolute inset-0 bg-gradient-to-r from-indigo-100/50 to-orange-100/50 dark:from-indigo-600/30 dark:to-orange-600/30" />
         <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
           <h2 className="text-2xl sm:text-4xl md:text-5xl font-black mb-4 sm:mb-6">
             <span className="text-slate-900 dark:text-white">Ready to Start </span>

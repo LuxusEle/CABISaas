@@ -599,9 +599,9 @@ const ScreenWallEditor = ({
                     <button
                       key={z.id}
                       onClick={() => setActiveTab(z.id)}
-                      className={`px-6 py-3 text-xs font-black uppercase tracking-widest rounded-t-xl transition-all relative overflow-hidden group ${activeTab === z.id ? 'bg-slate-50 dark:bg-slate-950 text-amber-500' : 'text-slate-400 hover:text-slate-600'}`}
+                      className={`px-6 py-3 text-xs font-black uppercase tracking-widest rounded-t-xl transition-all relative overflow-hidden group ${activeTab === z.id ? 'bg-slate-50 dark:bg-slate-950 text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
                     >
-                      {activeTab === z.id && <div className="absolute top-0 left-0 right-0 h-1 bg-amber-500" />}
+                      {activeTab === z.id && <div className="absolute top-0 left-0 right-0 h-1 bg-indigo-600" />}
                       <span className="relative z-10">{z.id}</span>
                     </button>
                   ))}
@@ -624,16 +624,16 @@ const ScreenWallEditor = ({
 
                 <div className="flex items-center gap-4 pb-1">
                    <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl p-1 border dark:border-slate-700">
-                    <Button size="xs" variant={visualMode === 'elevation' ? 'primary' : 'secondary'} onClick={() => setVisualMode('elevation')} className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${visualMode === 'elevation' ? 'bg-white dark:bg-slate-700 text-amber-500 shadow-md' : 'bg-transparent text-slate-400 border-none shadow-none'}`}>Elevation</Button>
-                    <Button size="xs" variant={visualMode === 'iso' ? 'primary' : 'secondary'} onClick={() => setVisualMode('iso')} className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${visualMode === 'iso' ? 'bg-white dark:bg-slate-700 text-amber-500 shadow-md' : 'bg-transparent text-slate-400 border-none shadow-none'}`}>3D Design</Button>
-                    <Button size="xs" variant={visualMode === 'studio' ? 'primary' : 'secondary'} onClick={() => setVisualMode('studio')} className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${visualMode === 'studio' ? 'bg-white dark:bg-slate-700 text-amber-500 shadow-md' : 'bg-transparent text-slate-400 border-none shadow-none'}`}>Studio</Button>
+                    <Button size="xs" variant={visualMode === 'elevation' ? 'primary' : 'secondary'} onClick={() => setVisualMode('elevation')} className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${visualMode === 'elevation' ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-md' : 'bg-transparent text-slate-400 border-none shadow-none'}`}>Elevation</Button>
+                    <Button size="xs" variant={visualMode === 'iso' ? 'primary' : 'secondary'} onClick={() => setVisualMode('iso')} className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${visualMode === 'iso' ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-md' : 'bg-transparent text-slate-400 border-none shadow-none'}`}>3D Design</Button>
+                    <Button size="xs" variant={visualMode === 'studio' ? 'primary' : 'secondary'} onClick={() => setVisualMode('studio')} className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${visualMode === 'studio' ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-md' : 'bg-transparent text-slate-400 border-none shadow-none'}`}>Studio</Button>
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    <button onClick={handleUndo} disabled={!canUndo} className={`p-2 rounded-lg transition-all ${canUndo ? 'text-slate-600 dark:text-amber-400 hover:bg-slate-100 dark:hover:bg-slate-800' : 'text-slate-300 dark:text-slate-800 cursor-not-allowed'}`} title="Undo (Ctrl+Z)">
+                    <button onClick={handleUndo} disabled={!canUndo} className={`p-2 rounded-lg transition-all ${canUndo ? 'text-slate-600 dark:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800' : 'text-slate-300 dark:text-slate-800 cursor-not-allowed'}`} title="Undo (Ctrl+Z)">
                       <ArrowLeft size={18} />
                     </button>
-                    <button onClick={handleRedo} disabled={!canRedo} className={`p-2 rounded-lg transition-all ${canRedo ? 'text-slate-600 dark:text-amber-400 hover:bg-slate-100 dark:hover:bg-slate-800' : 'text-slate-300 dark:text-slate-800 cursor-not-allowed'}`} title="Redo (Ctrl+Y)">
+                    <button onClick={handleRedo} disabled={!canRedo} className={`p-2 rounded-lg transition-all ${canRedo ? 'text-slate-600 dark:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800' : 'text-slate-300 dark:text-slate-800 cursor-not-allowed'}`} title="Redo (Ctrl+Y)">
                       <ArrowRight size={18} />
                     </button>
                   </div>
@@ -659,7 +659,7 @@ const ScreenWallEditor = ({
                     disabled={isSaving || !isDirty}
                     className={`gap-2 min-w-[100px] transition-all duration-300 ${
                       isDirty 
-                        ? 'shadow-lg shadow-amber-500/20' 
+                        ? 'shadow-lg shadow-indigo-500/20' 
                         : 'opacity-50 grayscale'
                     }`}
                   >
@@ -730,7 +730,7 @@ const ScreenWallEditor = ({
                         }
                       }}
                       disabled={isCapturing}
-                      className="flex items-center gap-3 px-8 py-4 bg-amber-500 hover:bg-amber-600 text-white font-black uppercase tracking-widest text-sm rounded-full shadow-2xl transition-all transform hover:scale-105 active:scale-95 group"
+                      className="flex items-center gap-3 px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase tracking-widest text-sm rounded-full shadow-2xl transition-all transform hover:scale-105 active:scale-95 group"
                     >
                       <Maximize2 size={18} className="group-hover:rotate-12 transition-transform" />
                       Capture Design Snapshot
@@ -772,7 +772,7 @@ const ScreenWallEditor = ({
                           <>
                             <button
                               onClick={() => setIsCropping(true)}
-                              className="px-10 py-4 bg-amber-600 text-white font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-amber-700 transition-all shadow-xl flex items-center gap-2"
+                              className="px-10 py-4 bg-indigo-700 text-white font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-amber-700 transition-all shadow-xl flex items-center gap-2"
                             >
                               <Layers size={16} />
                               Crop Image
@@ -802,7 +802,7 @@ const ScreenWallEditor = ({
                                 setIsCapturing(false);
                               }}
                               disabled={isCapturing}
-                              className="px-10 py-4 bg-amber-500 text-white font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-amber-600 transition-all shadow-2xl shadow-amber-500/30"
+                              className="px-10 py-4 bg-indigo-600 text-white font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-indigo-700 transition-all shadow-2xl shadow-indigo-500/30"
                             >
                               {isCapturing ? 'Uploading...' : 'Accept & Save Snapshot'}
                             </button>
@@ -817,7 +817,7 @@ const ScreenWallEditor = ({
                             </button>
                             <button
                               onClick={handleCropConfirm}
-                              className="px-10 py-4 bg-amber-500 text-white font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-amber-600 transition-all shadow-2xl shadow-amber-500/30"
+                              className="px-10 py-4 bg-indigo-600 text-white font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-indigo-700 transition-all shadow-2xl shadow-indigo-500/30"
                             >
                               Apply Crop Box
                             </button>
@@ -835,7 +835,7 @@ const ScreenWallEditor = ({
                 <div className="flex-1 min-h-0 overflow-auto">
                   <div className="overflow-x-auto">
                     <table className="w-full min-w-[500px] text-left text-sm">
-                      <thead className="bg-slate-100 dark:bg-amber-950/40 text-slate-500 dark:text-amber-500 font-bold text-xs uppercase sticky top-0 z-20 border-b dark:border-amber-500/30">
+                      <thead className="bg-slate-100 dark:bg-amber-950/40 text-slate-500 dark:text-indigo-600 font-bold text-xs uppercase sticky top-0 z-20 border-b dark:border-indigo-500/30">
                         <tr>
                           <th className="p-3 whitespace-nowrap">#</th>
                           <th className="p-3 whitespace-nowrap">Type</th>
@@ -853,10 +853,10 @@ const ScreenWallEditor = ({
                               className="hover:bg-amber-50 dark:hover:bg-amber-900/20 cursor-pointer transition-colors"
                             >
                               <td className="p-3 text-slate-400 font-mono whitespace-nowrap">{isCab ? (item as CabinetUnit).label : i + 1}</td>
-                              <td className="p-3 text-amber-600 font-bold whitespace-nowrap">{isCab ? (item as CabinetUnit).type : 'Obstacle'}</td>
+                              <td className="p-3 text-indigo-700 font-bold whitespace-nowrap">{isCab ? (item as CabinetUnit).type : 'Obstacle'}</td>
                               <td className="p-3 font-medium dark:text-amber-100">
                                 <span className="truncate inline-block">{isCab ? (item as CabinetUnit).preset : (item as Obstacle).type}</span>
-                                <span className="text-slate-400 dark:text-amber-500/50 text-xs ml-2 whitespace-nowrap">@{item.fromLeft}mm</span>
+                                <span className="text-slate-400 dark:text-indigo-600/50 text-xs ml-2 whitespace-nowrap">@{item.fromLeft}mm</span>
                               </td>
                               <td className="p-3 text-right font-mono font-bold dark:text-white whitespace-nowrap">{item.width}</td>
                             </tr>
@@ -880,22 +880,22 @@ const ScreenWallEditor = ({
             <div className={`flex flex-col shrink-0 border-b dark:border-slate-800 bg-slate-50 dark:bg-slate-900 ${visualMode === 'studio' ? 'hidden' : ''}`}>
               <div className="flex items-center justify-between px-2 py-2 gap-1 overflow-x-auto no-scrollbar">
                 <div className="flex items-center bg-slate-200 dark:bg-slate-800 rounded-lg p-0.5 border dark:border-slate-700">
-                  <button onClick={() => setVisualMode('elevation')} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${visualMode === 'elevation' ? 'bg-white dark:bg-slate-950 text-amber-500 shadow-sm' : 'text-slate-500'}`}>Elv</button>
-                  <button onClick={() => setVisualMode('iso')} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${visualMode === 'iso' ? 'bg-white dark:bg-slate-950 text-amber-500 shadow-sm' : 'text-slate-500'}`}>3D</button>
-                  <button onClick={() => setVisualMode('studio')} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${visualMode === 'studio' ? 'bg-white dark:bg-slate-950 text-amber-500 shadow-sm' : 'text-slate-500'}`}>Studio</button>
+                  <button onClick={() => setVisualMode('elevation')} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${visualMode === 'elevation' ? 'bg-white dark:bg-slate-950 text-indigo-600 shadow-sm' : 'text-slate-500'}`}>Elv</button>
+                  <button onClick={() => setVisualMode('iso')} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${visualMode === 'iso' ? 'bg-white dark:bg-slate-950 text-indigo-600 shadow-sm' : 'text-slate-500'}`}>3D</button>
+                  <button onClick={() => setVisualMode('studio')} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${visualMode === 'studio' ? 'bg-white dark:bg-slate-950 text-indigo-600 shadow-sm' : 'text-slate-500'}`}>Studio</button>
                 </div>
 
                 <div className="flex items-center gap-1 pr-1">
-                  <button onClick={handleUndo} disabled={!canUndo} className={`p-2 rounded-lg bg-white dark:bg-slate-800 border dark:border-slate-700 ${canUndo ? 'text-amber-500 shadow-sm' : 'text-slate-300 opacity-50'}`}>
+                  <button onClick={handleUndo} disabled={!canUndo} className={`p-2 rounded-lg bg-white dark:bg-slate-800 border dark:border-slate-700 ${canUndo ? 'text-indigo-600 shadow-sm' : 'text-slate-300 opacity-50'}`}>
                     <ArrowLeft size={16} />
                   </button>
-                  <button onClick={handleRedo} disabled={!canRedo} className={`p-2 rounded-lg bg-white dark:bg-slate-800 border dark:border-slate-700 ${canRedo ? 'text-amber-500 shadow-sm' : 'text-slate-300 opacity-50'}`}>
+                  <button onClick={handleRedo} disabled={!canRedo} className={`p-2 rounded-lg bg-white dark:bg-slate-800 border dark:border-slate-700 ${canRedo ? 'text-indigo-600 shadow-sm' : 'text-slate-300 opacity-50'}`}>
                     <ArrowRight size={16} />
                   </button>
                   <button 
                     onClick={() => onSave()}
                     disabled={isSaving || !isDirty}
-                    className={`p-2 rounded-lg border transition-all ${isDirty ? 'bg-amber-500 text-white border-amber-600 shadow-md' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-200 opacity-50'}`}
+                    className={`p-2 rounded-lg border transition-all ${isDirty ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-200 opacity-50'}`}
                   >
                     <Save size={16} className={isSaving ? 'animate-spin' : ''} />
                   </button>
@@ -904,7 +904,7 @@ const ScreenWallEditor = ({
 
                   <button 
                     onClick={() => setIsTableVisible(!isTableVisible)}
-                    className={`p-2.5 rounded-lg border transition-all ${isTableVisible ? 'bg-amber-500 text-white border-amber-600 shadow-md' : 'bg-white dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700 shadow-sm'}`}
+                    className={`p-2.5 rounded-lg border transition-all ${isTableVisible ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700 shadow-sm'}`}
                     title="Toggle Parts List"
                   >
                     <Table2 size={18} />
@@ -925,7 +925,7 @@ const ScreenWallEditor = ({
                       <button 
                         key={z.id} 
                         onClick={() => setActiveTab(z.id)} 
-                        className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase transition-all whitespace-nowrap ${activeTab === z.id ? 'bg-amber-500 text-white shadow-md' : 'text-slate-500 bg-slate-100 dark:bg-slate-800'}`}
+                        className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase transition-all whitespace-nowrap ${activeTab === z.id ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 bg-slate-100 dark:bg-slate-800'}`}
                       >
                         {z.id}
                       </button>
@@ -938,9 +938,9 @@ const ScreenWallEditor = ({
               {visualMode === 'iso' && (
                 <div className="absolute top-3 left-3 z-20 flex items-center bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-1 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl animate-in fade-in slide-in-from-top-2 duration-300">
                    <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 border dark:border-slate-700">
-                     <button onClick={() => setIsoViewMode('isometric')} className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${isoViewMode === 'isometric' ? 'bg-white dark:bg-slate-700 text-amber-500 shadow-sm' : 'text-slate-400'}`}>ISO</button>
-                     <button onClick={() => setIsoViewMode('top')} className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${isoViewMode === 'top' ? 'bg-white dark:bg-slate-700 text-amber-500 shadow-sm' : 'text-slate-400'}`}>TOP</button>
-                     <button onClick={() => setIsoViewMode('front')} className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${isoViewMode === 'front' ? 'bg-white dark:bg-slate-700 text-amber-500 shadow-sm' : 'text-slate-400'}`}>FRO</button>
+                     <button onClick={() => setIsoViewMode('isometric')} className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${isoViewMode === 'isometric' ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm' : 'text-slate-400'}`}>ISO</button>
+                     <button onClick={() => setIsoViewMode('top')} className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${isoViewMode === 'top' ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm' : 'text-slate-400'}`}>TOP</button>
+                     <button onClick={() => setIsoViewMode('front')} className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${isoViewMode === 'front' ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm' : 'text-slate-400'}`}>FRO</button>
                    </div>
                 </div>
               )}
@@ -950,7 +950,7 @@ const ScreenWallEditor = ({
                 <div className="absolute top-3 left-3 z-20 flex items-center bg-white/50 dark:bg-slate-900/50 backdrop-blur-md p-1 rounded-xl border border-slate-200/30 dark:border-slate-800/30 shadow-lg animate-in fade-in slide-in-from-top-2 duration-300 hover:bg-white/90 dark:hover:bg-slate-900/90 transition-all">
                    <button 
                     onClick={() => setVisualMode('iso')} 
-                    className="flex items-center gap-2 px-3 py-1.5 text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 hover:text-amber-500 transition-colors"
+                    className="flex items-center gap-2 px-3 py-1.5 text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 hover:text-indigo-600 transition-colors"
                    >
                      <Maximize2 size={14} className="rotate-45" />
                      <span>Exit Studio</span>
@@ -969,7 +969,7 @@ const ScreenWallEditor = ({
                       }
                     }}
                     disabled={isCapturing}
-                    className="flex items-center gap-2 px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white font-black uppercase tracking-widest text-xs rounded-full shadow-2xl transition-all transform hover:scale-105 active:scale-95"
+                    className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase tracking-widest text-xs rounded-full shadow-2xl transition-all transform hover:scale-105 active:scale-95"
                   >
                     <Maximize2 size={16} />
                     Capture View
@@ -1009,7 +1009,7 @@ const ScreenWallEditor = ({
                         <>
                           <button
                             onClick={() => setIsCropping(true)}
-                            className="w-full py-4 bg-amber-500 text-white font-black uppercase tracking-widest text-xs rounded-xl flex items-center justify-center gap-2 shadow-lg mb-2"
+                            className="w-full py-4 bg-indigo-600 text-white font-black uppercase tracking-widest text-xs rounded-xl flex items-center justify-center gap-2 shadow-lg mb-2"
                           >
                             <Layers size={14} />
                             Crop Image
@@ -1040,7 +1040,7 @@ const ScreenWallEditor = ({
                                 setIsCapturing(false);
                               }}
                               disabled={isCapturing}
-                              className="flex-[2] py-3 bg-amber-500 text-white font-black uppercase tracking-widest text-[10px] rounded-xl shadow-lg shadow-amber-500/20"
+                              className="flex-[2] py-3 bg-indigo-600 text-white font-black uppercase tracking-widest text-[10px] rounded-xl shadow-lg shadow-indigo-500/20"
                             >
                               {isCapturing ? 'Saving...' : 'Accept & Save'}
                             </button>
@@ -1056,7 +1056,7 @@ const ScreenWallEditor = ({
                           </button>
                           <button
                             onClick={handleCropConfirm}
-                            className="flex-1 py-3 bg-amber-500 text-white font-black uppercase tracking-widest text-[10px] rounded-xl shadow-lg"
+                            className="flex-1 py-3 bg-indigo-600 text-white font-black uppercase tracking-widest text-[10px] rounded-xl shadow-lg"
                           >
                             Apply Crop
                           </button>
@@ -1131,7 +1131,7 @@ const ScreenWallEditor = ({
                         return (
                           <>
                             <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-tight italic">Edit {cab.label || 'Cabinet'}</h3>
-                            <p className="text-[9px] font-bold text-amber-500 uppercase tracking-widest leading-none">{cab.preset}</p>
+                            <p className="text-[9px] font-bold text-indigo-600 uppercase tracking-widest leading-none">{cab.preset}</p>
                           </>
                         );
                       })()}
@@ -1153,7 +1153,7 @@ const ScreenWallEditor = ({
                         {/* QUICK TOGGLES ROW (Doors, Shelves, Drawers) - WEIGHTED GRID */}
                         <div className="grid grid-cols-4 gap-1.5 pb-1">
                           {/* Doors - 1/4 Width */}
-                          <label className={`col-span-1 flex items-center justify-center gap-1 px-1 py-1.5 rounded-lg border transition-all ${cab.advancedSettings?.showDoors ?? (cab.preset === PresetType.SINK_UNIT ? true : true) ? 'bg-amber-500/10 border-amber-500/30 ring-1 ring-amber-500/20' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700 opacity-60'}`}>
+                          <label className={`col-span-1 flex items-center justify-center gap-1 px-1 py-1.5 rounded-lg border transition-all ${cab.advancedSettings?.showDoors ?? (cab.preset === PresetType.SINK_UNIT ? true : true) ? 'bg-indigo-600/10 border-indigo-500/30 ring-1 ring-amber-500/20' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700 opacity-60'}`}>
                             <input 
                               type="checkbox" 
                               checked={cab.advancedSettings?.showDoors ?? (cab.preset === PresetType.SINK_UNIT ? true : true)}
@@ -1169,7 +1169,7 @@ const ScreenWallEditor = ({
                           </label>
 
                           {/* Shelves - 1/2 Width if enabled, else 1/4 */}
-                          <div className={`${cab.advancedSettings?.showShelves ?? (cab.preset === PresetType.SINK_UNIT ? false : true) ? 'col-span-2' : cab.advancedSettings?.showDrawers ? 'col-span-1' : 'col-span-2'} flex items-center justify-center gap-1 px-1 py-1.5 rounded-lg border transition-all ${cab.advancedSettings?.showShelves ?? (cab.preset === PresetType.SINK_UNIT ? false : true) ? 'bg-amber-500/10 border-amber-500/30 ring-1 ring-amber-500/20' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700 opacity-60'}`}>
+                          <div className={`${cab.advancedSettings?.showShelves ?? (cab.preset === PresetType.SINK_UNIT ? false : true) ? 'col-span-2' : cab.advancedSettings?.showDrawers ? 'col-span-1' : 'col-span-2'} flex items-center justify-center gap-1 px-1 py-1.5 rounded-lg border transition-all ${cab.advancedSettings?.showShelves ?? (cab.preset === PresetType.SINK_UNIT ? false : true) ? 'bg-indigo-600/10 border-indigo-500/30 ring-1 ring-amber-500/20' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700 opacity-60'}`}>
                             <input 
                               type="checkbox" 
                               checked={cab.advancedSettings?.showShelves ?? (cab.preset === PresetType.SINK_UNIT ? false : true)}
@@ -1187,18 +1187,18 @@ const ScreenWallEditor = ({
                                 <button onClick={() => {
                                   const current = cab.advancedSettings?.numShelves ?? (cab.preset === PresetType.SINK_UNIT ? 0 : 2);
                                   updateSelectedAdvancedSetting({ numShelves: Math.max(0, current - 1) });
-                                }} className="w-4 h-4 flex items-center justify-center text-slate-400 hover:text-amber-500">-</button>
+                                }} className="w-4 h-4 flex items-center justify-center text-slate-400 hover:text-indigo-600">-</button>
                                 <span className="text-[9px] font-bold w-3 text-center dark:text-white">{cab.advancedSettings?.numShelves ?? (cab.preset === PresetType.SINK_UNIT ? 0 : 2)}</span>
                                 <button onClick={() => {
                                   const current = cab.advancedSettings?.numShelves ?? (cab.preset === PresetType.SINK_UNIT ? 0 : 2);
                                   updateSelectedAdvancedSetting({ numShelves: current + 1 });
-                                }} className="w-4 h-4 flex items-center justify-center text-slate-400 hover:text-amber-500">+</button>
+                                }} className="w-4 h-4 flex items-center justify-center text-slate-400 hover:text-indigo-600">+</button>
                               </div>
                             )}
                           </div>
 
                           {/* Drawers - 1/2 Width if enabled, else 1/4 */}
-                          <div className={`${cab.advancedSettings?.showDrawers ? 'col-span-2' : (cab.advancedSettings?.showShelves ?? (cab.preset === PresetType.SINK_UNIT ? false : true)) ? 'col-span-1' : 'col-span-1'} flex items-center justify-center gap-1 px-1 py-1.5 rounded-lg border transition-all ${cab.advancedSettings?.showDrawers ? 'bg-amber-500/10 border-amber-500/30 ring-1 ring-amber-500/20' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700 opacity-60'}`}>
+                          <div className={`${cab.advancedSettings?.showDrawers ? 'col-span-2' : (cab.advancedSettings?.showShelves ?? (cab.preset === PresetType.SINK_UNIT ? false : true)) ? 'col-span-1' : 'col-span-1'} flex items-center justify-center gap-1 px-1 py-1.5 rounded-lg border transition-all ${cab.advancedSettings?.showDrawers ? 'bg-indigo-600/10 border-indigo-500/30 ring-1 ring-amber-500/20' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700 opacity-60'}`}>
                             <input 
                               type="checkbox" 
                               checked={cab.advancedSettings?.showDrawers ?? false}
@@ -1219,12 +1219,12 @@ const ScreenWallEditor = ({
                                 <button onClick={() => {
                                   const current = cab.advancedSettings?.numDrawers ?? (cab.preset === PresetType.SINK_UNIT ? 0 : 3);
                                   updateSelectedAdvancedSetting({ numDrawers: Math.max(0, current - 1) });
-                                }} className="w-4 h-4 flex items-center justify-center text-slate-400 hover:text-amber-500">-</button>
+                                }} className="w-4 h-4 flex items-center justify-center text-slate-400 hover:text-indigo-600">-</button>
                                 <span className="text-[9px] font-bold w-3 text-center dark:text-white">{cab.advancedSettings?.numDrawers ?? (cab.preset === PresetType.SINK_UNIT ? 0 : 3)}</span>
                                 <button onClick={() => {
                                   const current = cab.advancedSettings?.numDrawers ?? (cab.preset === PresetType.SINK_UNIT ? 0 : 3);
                                   updateSelectedAdvancedSetting({ numDrawers: current + 1 });
-                                }} className="w-4 h-4 flex items-center justify-center text-slate-400 hover:text-amber-500">+</button>
+                                }} className="w-4 h-4 flex items-center justify-center text-slate-400 hover:text-indigo-600">+</button>
                               </div>
                             )}
                           </div>
@@ -1308,13 +1308,13 @@ const ScreenWallEditor = ({
                 {visualMode === 'iso' && (
                   <div className="flex items-center gap-4">
                     <div className="flex-1 flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-xl border border-slate-100 dark:border-slate-700">
-                      <DoorOpen size={16} className="text-amber-500 shrink-0" />
+                      <DoorOpen size={16} className="text-indigo-600 shrink-0" />
                       <input
                         type="range" min="0" max="45" value={isoDoorOpenAngle}
                         onChange={(e) => setIsoDoorOpenAngle(parseInt(e.target.value))}
                         className="flex-1 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-500"
                       />
-                      <span className="text-[10px] font-mono font-bold text-amber-500 min-w-[24px] text-right">{isoDoorOpenAngle}°</span>
+                      <span className="text-[10px] font-mono font-bold text-indigo-600 min-w-[24px] text-right">{isoDoorOpenAngle}°</span>
                     </div>
                     
                     <div className="flex items-center gap-1">
@@ -1340,7 +1340,7 @@ const ScreenWallEditor = ({
                 <div className="flex-1 overflow-auto">
                   <div className="overflow-x-auto">
                     <table className="w-full min-w-[400px] text-left text-sm">
-                      <thead className="bg-slate-100 dark:bg-amber-950/40 text-slate-500 dark:text-amber-500 font-bold text-xs uppercase sticky top-0 z-20 border-b dark:border-amber-500/30">
+                      <thead className="bg-slate-100 dark:bg-amber-950/40 text-slate-500 dark:text-indigo-600 font-bold text-xs uppercase sticky top-0 z-20 border-b dark:border-indigo-500/30">
                         <tr>
                           <th className="p-2 whitespace-nowrap">#</th>
                           <th className="p-2 whitespace-nowrap">Type</th>
@@ -1358,7 +1358,7 @@ const ScreenWallEditor = ({
                               className="hover:bg-amber-50 dark:hover:bg-amber-900/20 cursor-pointer transition-colors"
                             >
                               <td className="p-2 text-slate-400 font-mono whitespace-nowrap">{isCab ? (item as CabinetUnit).label : i + 1}</td>
-                              <td className="p-2 text-amber-600 font-bold whitespace-nowrap text-xs">{isCab ? (item as CabinetUnit).type : 'Obs'}</td>
+                              <td className="p-2 text-indigo-700 font-bold whitespace-nowrap text-xs">{isCab ? (item as CabinetUnit).type : 'Obs'}</td>
                               <td className="p-2 font-medium dark:text-amber-100 text-xs">
                                 <span className="truncate max-w-[100px] inline-block">{isCab ? (item as CabinetUnit).preset : (item as Obstacle).type}</span>
                               </td>
@@ -1436,7 +1436,7 @@ const ScreenWallEditor = ({
                           <div className="space-y-2 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
                             <div className="flex items-center justify-between">
                               <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Upper Height</span>
-                              <span className="text-xs font-mono text-amber-500 font-bold">{(cab.advancedSettings?.tallUpperSectionHeight ?? 300).toFixed(0)}mm</span>
+                              <span className="text-xs font-mono text-indigo-600 font-bold">{(cab.advancedSettings?.tallUpperSectionHeight ?? 300).toFixed(0)}mm</span>
                             </div>
                             <input 
                               type="range" 
@@ -1495,7 +1495,7 @@ const ScreenWallEditor = ({
                           <div className="space-y-2 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
                             <div className="flex items-center justify-between">
                               <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Section Height</span>
-                              <span className="text-xs font-mono text-amber-500 font-bold">{(cab.advancedSettings?.tallLowerSectionHeight ?? 800).toFixed(0)}mm</span>
+                              <span className="text-xs font-mono text-indigo-600 font-bold">{(cab.advancedSettings?.tallLowerSectionHeight ?? 800).toFixed(0)}mm</span>
                             </div>
                             <input 
                               type="range" 
@@ -1700,15 +1700,15 @@ const ScreenWallEditor = ({
                         }}
                         className={`w-full py-2.5 ${isUserPro ? 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700' : 'bg-slate-700 hover:bg-slate-600 opacity-90'} text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg flex items-center justify-center gap-2`}
                       >
-                        {isUserPro ? <Settings2 size={14} /> : <Lock size={14} className="text-amber-400" />}
-                        Advanced 3D Editor {!isUserPro && <span className="ml-1 text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded">PRO</span>}
+                        {isUserPro ? <Settings2 size={14} /> : <Lock size={14} className="text-indigo-400" />}
+                        Advanced 3D Editor {!isUserPro && <span className="ml-1 text-[10px] bg-indigo-600/20 text-indigo-400 px-1.5 py-0.5 rounded">PRO</span>}
                       </button>
                     </div>
 
                     {isCabinetChanged && (
                       <button 
                         onClick={handleResetCabinet}
-                        className="w-full py-2.5 bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/20 dark:hover:bg-amber-900/30 text-amber-600 dark:text-amber-400 font-bold text-xs uppercase tracking-wider rounded-xl transition-all border border-amber-200 dark:border-amber-800/50 flex items-center justify-center gap-2"
+                        className="w-full py-2.5 bg-amber-50 hover:bg-indigo-100 dark:bg-amber-900/20 dark:hover:bg-amber-900/30 text-indigo-700 dark:text-indigo-400 font-bold text-xs uppercase tracking-wider rounded-xl transition-all border border-indigo-200 dark:border-indigo-800/50 flex items-center justify-center gap-2"
                       >
                         <RotateCcw size={14} /> Reset Changes
                       </button>
@@ -1763,7 +1763,7 @@ const ScreenWallEditor = ({
                         setIsoViewMode('');
                         setTimeout(() => setIsoViewMode(current), 10);
                       }}
-                      className="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-amber-500 shadow-sm transition-all"
+                      className="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-indigo-600 shadow-sm transition-all"
                       title="Reset View"
                     >
                       <RotateCcw size={14} />
@@ -1778,8 +1778,8 @@ const ScreenWallEditor = ({
                         onClick={() => setIsoViewMode(v)}
                         className={`py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-lg border transition-all ${
                           isoViewMode === v 
-                            ? 'bg-amber-500 text-white border-amber-600 shadow-sm' 
-                            : 'bg-white dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700 hover:border-amber-300'
+                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' 
+                            : 'bg-white dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700 hover:border-indigo-300'
                         }`}
                       >
                         {v}
@@ -1845,7 +1845,7 @@ const ScreenWallEditor = ({
                           }}
                           className="sr-only peer"
                         />
-                        <div className="w-8 h-4 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-amber-500"></div>
+                        <div className="w-8 h-4 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
                       </div>
                     </label>
                   </div>
@@ -1854,7 +1854,7 @@ const ScreenWallEditor = ({
                   <div className="space-y-1.5">
                     <div className="flex justify-between items-center">
                       <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Doors Open</span>
-                      <span className="text-[10px] font-mono text-amber-500">{isoDoorOpenAngle}°</span>
+                      <span className="text-[10px] font-mono text-indigo-600">{isoDoorOpenAngle}°</span>
                     </div>
                     <input
                       type="range"
@@ -1883,7 +1883,7 @@ const ScreenWallEditor = ({
                   {swapMode ? 'Exit Swap Mode' : 'Swap Cabinets'}
                 </Button>
                 {swapMode && (
-                  <p className="text-[9px] font-black text-amber-500 uppercase animate-pulse text-center tracking-widest">
+                  <p className="text-[9px] font-black text-indigo-600 uppercase animate-pulse text-center tracking-widest">
                     {swapSelection.length === 0 ? 'Select first cabinet' : 'Select second cabinet'}
                   </p>
                 )}
@@ -1910,9 +1910,9 @@ const ScreenWallEditor = ({
                       const { icon, ...protoData } = proto;
                       handleDropCabinet(activeTab, 0, protoData as CabinetUnit);
                     }}
-                    className="group bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl p-4 cursor-grab active:cursor-grabbing hover:border-amber-500 dark:hover:border-amber-500 hover:shadow-lg transition-all flex items-center gap-3 select-none active:scale-95 touch-none"
+                    className="group bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl p-4 cursor-grab active:cursor-grabbing hover:border-indigo-500 dark:hover:border-indigo-500 hover:shadow-lg transition-all flex items-center gap-3 select-none active:scale-95 touch-none"
                   >
-                    <div className="w-10 h-10 rounded-lg bg-white dark:bg-slate-900 flex items-center justify-center text-slate-400 group-hover:text-amber-500 border dark:border-slate-700 shadow-sm transition-colors">
+                    <div className="w-10 h-10 rounded-lg bg-white dark:bg-slate-900 flex items-center justify-center text-slate-400 group-hover:text-indigo-600 border dark:border-slate-700 shadow-sm transition-colors">
                       {proto.icon}
                     </div>
                     <div>
@@ -1951,13 +1951,13 @@ const ScreenWallEditor = ({
             width: '120px'
           }}
         >
-          <div className="bg-amber-500/20 border-2 border-amber-500 rounded-xl p-4 flex items-center gap-3 shadow-2xl backdrop-blur-sm">
-            <div className="w-10 h-10 rounded-lg bg-white dark:bg-slate-900 flex items-center justify-center text-amber-500 border border-amber-500/30">
+          <div className="bg-indigo-600/20 border-2 border-indigo-500 rounded-xl p-4 flex items-center gap-3 shadow-2xl backdrop-blur-sm">
+            <div className="w-10 h-10 rounded-lg bg-white dark:bg-slate-900 flex items-center justify-center text-indigo-600 border border-indigo-500/30">
               <Box size={24} />
             </div>
             <div>
               <div className="text-xs font-bold text-amber-900 dark:text-amber-100">{draggingCabinet.label || draggingCabinet.preset}</div>
-              <div className="text-[8px] text-amber-600 uppercase font-black">Dragging...</div>
+              <div className="text-[8px] text-indigo-700 uppercase font-black">Dragging...</div>
             </div>
           </div>
         </div>

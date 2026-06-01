@@ -405,7 +405,7 @@ const ScreenBOMReport = ({ isUserPro }: ScreenBOMReportProps) => {
             }} 
             className="h-9 text-[10px] sm:text-xs px-3 gap-1.5"
           >
-            {isUserPro ? <FileSpreadsheet size={14} /> : <Lock size={12} className="text-amber-500" />}
+            {isUserPro ? <FileSpreadsheet size={14} /> : <Lock size={12} className="text-indigo-600" />}
             Excel
           </Button>
           <Button 
@@ -431,7 +431,7 @@ const ScreenBOMReport = ({ isUserPro }: ScreenBOMReportProps) => {
             }} 
             className="h-9 text-[10px] sm:text-xs px-3 gap-1.5"
           >
-            {isUserPro ? <Wrench size={14} /> : <Lock size={12} className="text-amber-500" />}
+            {isUserPro ? <Wrench size={14} /> : <Lock size={12} className="text-indigo-600" />}
             <span>Drilling</span>
           </Button>
           <Button variant="secondary" size="sm" onClick={() => setActiveView('quotation')} className="h-9 text-[10px] sm:text-xs px-3 gap-1.5">
@@ -446,7 +446,7 @@ const ScreenBOMReport = ({ isUserPro }: ScreenBOMReportProps) => {
 
           {/* COSTING CARD */}
           <div className={`${activeView === 'list' ? 'block' : 'hidden print:block'} bg-white dark:bg-slate-900 text-slate-900 dark:text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl print:bg-white print:text-black print:border-2 print:border-black print:break-inside-avoid shadow-xl print:shadow-none`}>
-            <h3 className="text-amber-600 dark:text-amber-500 font-bold mb-3 sm:mb-4 flex items-center gap-2 print:text-black text-base sm:text-lg"><DollarSign size={18} /> Cost Estimate</h3>
+            <h3 className="text-indigo-700 dark:text-indigo-600 font-bold mb-3 sm:mb-4 flex items-center gap-2 print:text-black text-base sm:text-lg"><DollarSign size={18} /> Cost Estimate</h3>
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-6">
               <div><div className="text-slate-500 dark:text-slate-400 text-xs uppercase print:text-black">Material</div><div className="text-lg sm:text-xl font-bold">{formatCurrency(baseCosts.materialCost)}</div></div>
               <div><div className="text-slate-500 dark:text-slate-400 text-xs uppercase print:text-black">Hardware</div><div className="text-lg sm:text-xl font-bold">{formatCurrency(baseCosts.hardwareCost)}</div></div>
@@ -460,7 +460,7 @@ const ScreenBOMReport = ({ isUserPro }: ScreenBOMReportProps) => {
                 <div className="text-xl sm:text-2xl font-bold">{formatCurrency(baseCosts.subtotal)}</div>
               </div>
               <div className="text-right">
-                <div className="text-amber-600 dark:text-amber-500 text-xs uppercase print:text-black">Sub Total ({(project.settings.costs?.marginPercent ?? 50)}% margin)</div>
+                <div className="text-indigo-700 dark:text-indigo-600 text-xs uppercase print:text-black">Sub Total ({(project.settings.costs?.marginPercent ?? 50)}% margin)</div>
                 <div className="text-2xl sm:text-3xl font-black">{formatCurrency(costs.totalPrice)}</div>
               </div>
             </div>
@@ -488,7 +488,7 @@ const ScreenBOMReport = ({ isUserPro }: ScreenBOMReportProps) => {
                     {hingeQuantity > 0 && (
                       <tr className="hover:bg-slate-50/50 transition-colors">
                         <td className="p-3 font-bold text-slate-900 dark:text-white print:text-black">Soft-Close Hinges</td>
-                        <td className="p-3 text-center font-black text-amber-600">{hingeQuantity}</td>
+                        <td className="p-3 text-center font-black text-indigo-700">{hingeQuantity}</td>
                         <td className="p-3 text-right font-medium">{formatCurrency(hingeTotalCost)}</td>
                       </tr>
                     )}
@@ -496,7 +496,7 @@ const ScreenBOMReport = ({ isUserPro }: ScreenBOMReportProps) => {
                     {handleQuantity > 0 && (
                       <tr className="hover:bg-slate-50/50 transition-colors">
                         <td className="p-3 font-bold text-slate-900 dark:text-white print:text-black">Handle/Knob Set</td>
-                        <td className="p-3 text-center font-black text-amber-600">{handleQuantity}</td>
+                        <td className="p-3 text-center font-black text-indigo-700">{handleQuantity}</td>
                         <td className="p-3 text-right font-medium">{formatCurrency(handleTotalCost)}</td>
                       </tr>
                     )}
@@ -504,7 +504,7 @@ const ScreenBOMReport = ({ isUserPro }: ScreenBOMReportProps) => {
                     {drawerSlideQuantity > 0 && (
                       <tr className="hover:bg-slate-50/50 transition-colors">
                         <td className="p-3 font-bold text-slate-900 dark:text-white print:text-black">Drawer Slides (Pairs)</td>
-                        <td className="p-3 text-center font-black text-amber-600">{drawerSlideQuantity}</td>
+                        <td className="p-3 text-center font-black text-indigo-700">{drawerSlideQuantity}</td>
                         <td className="p-3 text-right font-medium">{formatCurrency(drawerSlideTotalCost)}</td>
                       </tr>
                     )}
@@ -512,7 +512,7 @@ const ScreenBOMReport = ({ isUserPro }: ScreenBOMReportProps) => {
                     {totalGraniteSqft > 0 && (
                       <tr className="hover:bg-slate-50/50 transition-colors">
                         <td className="p-3 font-bold text-slate-900 dark:text-white print:text-black">Granite Countertop (Sqft)</td>
-                        <td className="p-3 text-center font-black text-amber-600">{totalGraniteSqft.toFixed(2)}</td>
+                        <td className="p-3 text-center font-black text-indigo-700">{totalGraniteSqft.toFixed(2)}</td>
                         <td className="p-3 text-right font-medium">{formatCurrency(graniteTotalCost)}</td>
                       </tr>
                     )}
@@ -520,7 +520,7 @@ const ScreenBOMReport = ({ isUserPro }: ScreenBOMReportProps) => {
                     {totalTileCount > 0 && (
                       <tr className="hover:bg-slate-50/50 transition-colors">
                         <td className="p-3 font-bold text-slate-900 dark:text-white print:text-black">Tile Backsplash (Pcs)</td>
-                        <td className="p-3 text-center font-black text-amber-600">{totalTileCount}</td>
+                        <td className="p-3 text-center font-black text-indigo-700">{totalTileCount}</td>
                         <td className="p-3 text-right font-medium">{formatCurrency(tileTotalCost)}</td>
                       </tr>
                     )}
@@ -528,7 +528,7 @@ const ScreenBOMReport = ({ isUserPro }: ScreenBOMReportProps) => {
                     {totalLegs > 0 && (
                       <tr className="hover:bg-slate-50/50 transition-colors">
                         <td className="p-3 font-bold text-slate-900 dark:text-white print:text-black">Adjustable Legs</td>
-                        <td className="p-3 text-center font-black text-amber-600">{totalLegs}</td>
+                        <td className="p-3 text-center font-black text-indigo-700">{totalLegs}</td>
                         <td className="p-3 text-right font-medium">{formatCurrency(totalLegs * (accessories.find(a => a.name.toLowerCase().includes('adjustable leg'))?.default_amount || 2))}</td>
                       </tr>
                     )}
@@ -555,7 +555,7 @@ const ScreenBOMReport = ({ isUserPro }: ScreenBOMReportProps) => {
                         return (
                           <tr key={name} className="hover:bg-slate-50/50 transition-colors">
                             <td className="p-3 font-bold text-slate-900 dark:text-white print:text-black">{name}</td>
-                            <td className="p-3 text-center font-black text-amber-600">{qty}</td>
+                            <td className="p-3 text-center font-black text-indigo-700">{qty}</td>
                             <td className="p-3 text-right font-medium">{formatCurrency(qty * unitCost)}</td>
                           </tr>
                         );
@@ -566,11 +566,11 @@ const ScreenBOMReport = ({ isUserPro }: ScreenBOMReportProps) => {
                       return !lower.includes('labor') && !lower.includes('labour') && !lower.includes('transport') && !lower.includes('logistics');
                     }).map(exp => (
                       <tr key={exp.id} className="hover:bg-slate-50/50 transition-colors bg-amber-50/10">
-                        <td className="p-3 font-bold text-amber-900 dark:text-amber-400 print:text-black flex items-center gap-2">
-                          <div className="w-1 h-4 bg-amber-500 rounded-full" /> {exp.name}
+                        <td className="p-3 font-bold text-amber-900 dark:text-indigo-400 print:text-black flex items-center gap-2">
+                          <div className="w-1 h-4 bg-indigo-600 rounded-full" /> {exp.name}
                         </td>
-                        <td className="p-3 text-center font-black text-amber-600">1</td>
-                        <td className="p-3 text-right font-bold text-amber-600">{formatCurrency(exp.amount)}</td>
+                        <td className="p-3 text-center font-black text-indigo-700">1</td>
+                        <td className="p-3 text-right font-bold text-indigo-700">{formatCurrency(exp.amount)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -598,7 +598,7 @@ const ScreenBOMReport = ({ isUserPro }: ScreenBOMReportProps) => {
                       <tr key={m.material} className="hover:bg-slate-50/50 transition-colors">
                         <td className="p-3 font-bold text-slate-900 dark:text-white print:text-black">{m.material}</td>
                         <td className="p-3 text-center font-mono text-slate-500">{m.dims}</td>
-                        <td className="p-3 text-center font-black text-lg text-amber-600">{m.sheets}</td>
+                        <td className="p-3 text-center font-black text-lg text-indigo-700">{m.sheets}</td>
                         <td className="p-3 text-right font-medium">{formatCurrency(m.cost)}</td>
                       </tr>
                     ))}
@@ -636,7 +636,7 @@ const ScreenBOMReport = ({ isUserPro }: ScreenBOMReportProps) => {
                 }}
                 className="min-h-[40px] gap-2"
               >
-                {isUserPro ? <FileCode size={16} /> : <Lock size={14} className="text-amber-500" />}
+                {isUserPro ? <FileCode size={16} /> : <Lock size={14} className="text-indigo-600" />}
                 Export All DXF (ZIP)
               </Button>
             </div>
@@ -651,7 +651,7 @@ const ScreenBOMReport = ({ isUserPro }: ScreenBOMReportProps) => {
                     onClick={() => isUserPro ? exportSingleSheetToDXF(sheet, project.settings, i, project.name) : navigate('/pricing')}
                     className="absolute top-2 right-2 print:hidden gap-1"
                   >
-                    {isUserPro ? <FileCode size={14} /> : <Lock size={12} className="text-amber-500" />}
+                    {isUserPro ? <FileCode size={14} /> : <Lock size={12} className="text-indigo-600" />}
                     DXF
                   </Button>
                 </div>
@@ -698,7 +698,7 @@ const ScreenBOMReport = ({ isUserPro }: ScreenBOMReportProps) => {
                             <tbody className="divide-y divide-black/10">
                               {[...zone.cabinets].sort((a, b) => (a.label || '').localeCompare(b.label || '')).map((cab, idx) => (
                                 <tr key={idx}>
-                                  <td className="py-3 text-amber-600 font-black italic">{cab.label}</td>
+                                  <td className="py-3 text-indigo-700 font-black italic">{cab.label}</td>
                                   <td className="py-3 font-black tracking-tight">{cab.preset}</td>
                                   <td className="py-3 text-right font-mono">{cab.width}mm</td>
                                   <td className="py-3 text-right text-xs opacity-60">{cab.type}</td>
@@ -729,7 +729,7 @@ const ScreenBOMReport = ({ isUserPro }: ScreenBOMReportProps) => {
                       <div className="px-10 py-6 flex justify-between items-start z-10">
                         <div>
                           <h3 className="text-xl font-serif font-black text-slate-800 uppercase tracking-widest">{zone.id}</h3>
-                          <div className="h-0.5 w-12 bg-amber-500 mt-1" />
+                          <div className="h-0.5 w-12 bg-indigo-600 mt-1" />
                           <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2">{zone.zoneType === 'island' ? 'PLAN VIEW / ARCHITECTURAL DRAWING' : 'ELEVATION PLAN / ARCHITECTURAL DRAWING'}</p>
                         </div>
                         <div className="text-right">
@@ -780,7 +780,7 @@ const ScreenBOMReport = ({ isUserPro }: ScreenBOMReportProps) => {
               <div className="text-[10px] sm:text-xs space-y-1 opacity-70 uppercase tracking-wide">
                 <div>Katuwawala Road, Borelesgamuwa,</div>
                 <div>Western Province, Sri Lanka</div>
-                <div className="font-bold text-amber-500">0777163564 | luxuselemente@gmail.com</div>
+                <div className="font-bold text-indigo-600">0777163564 | luxuselemente@gmail.com</div>
               </div>
             </div>
           </div>
@@ -835,7 +835,7 @@ const ScreenBOMReport = ({ isUserPro }: ScreenBOMReportProps) => {
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1 text-[10px] text-slate-500 font-medium">
                         {quotationSpecifications.map((spec, idx) => (
                           <div key={idx} className="flex gap-2">
-                            <span className="text-amber-500">{(idx + 1).toString().padStart(2, '0')}.</span>
+                            <span className="text-indigo-600">{(idx + 1).toString().padStart(2, '0')}.</span>
                             <span>{spec}</span>
                           </div>
                         ))}
@@ -848,7 +848,7 @@ const ScreenBOMReport = ({ isUserPro }: ScreenBOMReportProps) => {
             </div>
 
             {/* Note */}
-            <div className="bg-amber-50/50 p-4 border-l-4 border-amber-200 text-[10px] text-amber-800 rounded-r-lg font-medium">
+            <div className="bg-amber-50/50 p-4 border-l-4 border-indigo-200 text-[10px] text-amber-800 rounded-r-lg font-medium">
               <span className="font-black uppercase mr-2">Note:</span>
               Sink, tap, cooker, and hood to be provided by the customer unless mentioned above.
             </div>
@@ -957,7 +957,7 @@ const ScreenBOMReport = ({ isUserPro }: ScreenBOMReportProps) => {
                   <Check size={20} /> Invoice Approved on {new Date(project.settings.quotationApprovedDate || '').toLocaleDateString('en-GB')}
                 </div>
               )}
-              <Button variant="primary" size="lg" onClick={handlePrintQuotation} className="gap-3 px-12 py-6 rounded-full shadow-2xl shadow-amber-500/20 hover:scale-105 transition-transform">
+              <Button variant="primary" size="lg" onClick={handlePrintQuotation} className="gap-3 px-12 py-6 rounded-full shadow-2xl shadow-indigo-500/20 hover:scale-105 transition-transform">
                 <Download size={24} /> {project.settings.quotationStatus === 'invoice' ? 'Download Invoice PDF' : 'Download Quotation PDF'}
               </Button>
               <button onClick={() => setActiveView('list')} className="text-slate-400 hover:text-slate-600 text-xs font-bold uppercase tracking-widest">Back to Report</button>

@@ -147,7 +147,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onBack, onProfil
   if (loading) {
     return (
       <div className="flex-1 bg-slate-50 dark:bg-[#020617] flex items-center justify-center transition-colors duration-500">
-        <Loader2 className="text-amber-500 animate-spin" size={40} />
+        <Loader2 className="text-indigo-600 animate-spin" size={40} />
       </div>
     );
   }
@@ -161,13 +161,13 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onBack, onProfil
           <div className="space-y-1">
             <button 
               onClick={onBack}
-              className="flex items-center gap-2 text-slate-500 hover:text-amber-500 font-bold text-xs uppercase tracking-widest transition-colors mb-2 group"
+              className="flex items-center gap-2 text-slate-500 hover:text-indigo-600 font-bold text-xs uppercase tracking-widest transition-colors mb-2 group"
             >
               <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
               Back to Dashboard
             </button>
             <h1 className="text-4xl font-black text-slate-900 dark:text-white italic tracking-tighter uppercase leading-none">
-              Business <span className="text-amber-500">Profile</span>
+              Business <span className="text-indigo-600">Profile</span>
             </h1>
             <p className="text-slate-500 dark:text-slate-400 font-medium text-sm">Manage your branding, catalog and financial settings.</p>
           </div>
@@ -183,7 +183,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onBack, onProfil
               <button
                 onClick={handleSaveProfile}
                 disabled={saving}
-                className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white px-6 py-3 rounded-xl font-black uppercase tracking-widest text-[10px] transition-all shadow-xl shadow-amber-500/10 active:scale-95"
+                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white px-6 py-3 rounded-xl font-black uppercase tracking-widest text-[10px] transition-all shadow-xl shadow-indigo-500/10 active:scale-95"
               >
                 {saving ? <Loader2 className="animate-spin" size={14} /> : <Save size={14} />}
                 SAVE
@@ -194,7 +194,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onBack, onProfil
               {/* Branding Row */}
               <div className="flex flex-col md:flex-row gap-10 items-center md:items-start">
                 <div className="relative group/logo flex-shrink-0">
-                  <div className="w-40 h-40 rounded-[2rem] bg-slate-50 dark:bg-slate-950 border-2 border-dashed border-slate-200 dark:border-slate-800 overflow-hidden flex items-center justify-center transition-all group-hover/logo:border-amber-500/50">
+                  <div className="w-40 h-40 rounded-[2rem] bg-slate-50 dark:bg-slate-950 border-2 border-dashed border-slate-200 dark:border-slate-800 overflow-hidden flex items-center justify-center transition-all group-hover/logo:border-indigo-500/50">
                     {logoPreview || logoUrl ? (
                       <img src={logoPreview || logoUrl} alt="Company Logo" className="w-full h-full object-contain p-6" />
                     ) : (
@@ -210,18 +210,18 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onBack, onProfil
                 <div className="flex-1 space-y-6 w-full">
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Company Name</label>
-                    <input type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="Luxus Elements" className="w-full bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-2xl py-4 px-6 text-slate-900 dark:text-white font-bold text-lg focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 outline-none transition-all" />
+                    <input type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="Luxus Elements" className="w-full bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-2xl py-4 px-6 text-slate-900 dark:text-white font-bold text-lg focus:ring-4 focus:ring-amber-500/10 focus:border-indigo-500 outline-none transition-all" />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone Number</label>
                       <div className="phone-input-container">
-                        <PhoneInput international defaultCountry={getVisitorCountry() as any} value={phone} onChange={(val) => setPhone(val || '')} className="w-full bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-xl py-3.5 px-4 text-slate-900 dark:text-white font-bold text-sm focus-within:ring-4 focus-within:ring-amber-500/10 focus-within:border-amber-500 transition-all" />
+                        <PhoneInput international defaultCountry={getVisitorCountry() as any} value={phone} onChange={(val) => setPhone(val || '')} className="w-full bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-xl py-3.5 px-4 text-slate-900 dark:text-white font-bold text-sm focus-within:ring-4 focus-within:ring-amber-500/10 focus-within:border-indigo-500 transition-all" />
                       </div>
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Website URL</label>
-                      <input type="text" value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://..." className="w-full bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-xl py-3.5 px-6 text-slate-900 dark:text-white font-bold text-sm focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 outline-none transition-all" />
+                      <input type="text" value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://..." className="w-full bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-xl py-3.5 px-6 text-slate-900 dark:text-white font-bold text-sm focus:ring-4 focus:ring-amber-500/10 focus:border-indigo-500 outline-none transition-all" />
                     </div>
                   </div>
                 </div>
@@ -231,16 +231,16 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onBack, onProfil
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-6 border-t border-slate-100 dark:border-slate-800/50">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Business Address</label>
-                  <textarea value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Full physical address..." rows={3} className="w-full bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-2xl py-4 px-6 text-slate-900 dark:text-white font-medium text-sm focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 outline-none transition-all resize-none" />
+                  <textarea value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Full physical address..." rows={3} className="w-full bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-2xl py-4 px-6 text-slate-900 dark:text-white font-medium text-sm focus:ring-4 focus:ring-amber-500/10 focus:border-indigo-500 outline-none transition-all resize-none" />
                 </div>
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Tax ID / Registration</label>
-                    <input type="text" value={taxId} onChange={(e) => setTaxId(e.target.value)} placeholder="Registration Number" className="w-full bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-xl py-3 pl-5 pr-6 text-slate-900 dark:text-white font-bold text-sm focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 outline-none transition-all" />
+                    <input type="text" value={taxId} onChange={(e) => setTaxId(e.target.value)} placeholder="Registration Number" className="w-full bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-xl py-3 pl-5 pr-6 text-slate-900 dark:text-white font-bold text-sm focus:ring-4 focus:ring-amber-500/10 focus:border-indigo-500 outline-none transition-all" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Default Currency</label>
-                    <select value={currency} onChange={(e) => setCurrency(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-xl py-3 px-5 text-slate-900 dark:text-white font-bold text-sm focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 outline-none transition-all appearance-none">
+                    <select value={currency} onChange={(e) => setCurrency(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-xl py-3 px-5 text-slate-900 dark:text-white font-bold text-sm focus:ring-4 focus:ring-amber-500/10 focus:border-indigo-500 outline-none transition-all appearance-none">
                       <option value="$">USD ($)</option>
                       <option value="€">EUR (€)</option>
                       <option value="£">GBP (£)</option>
@@ -297,11 +297,11 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onBack, onProfil
 
               {loadingKey ? (
                 <div className="flex items-center justify-center py-6">
-                  <Loader2 className="animate-spin text-amber-500" size={24} />
+                  <Loader2 className="animate-spin text-indigo-600" size={24} />
                 </div>
               ) : !apiKey ? (
                 <div className="bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800/60 rounded-[2rem] p-8 text-center space-y-4">
-                  <div className="w-12 h-12 bg-amber-500/10 rounded-xl flex items-center justify-center text-amber-500 mx-auto">
+                  <div className="w-12 h-12 bg-indigo-600/10 rounded-xl flex items-center justify-center text-indigo-600 mx-auto">
                     <Key size={24} />
                   </div>
                   <div>
@@ -310,7 +310,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onBack, onProfil
                   </div>
                   <button
                     onClick={handleGenerateKey}
-                    className="bg-amber-500 hover:bg-amber-400 text-white px-6 py-3 rounded-xl font-black uppercase tracking-widest text-[9px] transition-all shadow-xl shadow-amber-500/10 active:scale-95"
+                    className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-xl font-black uppercase tracking-widest text-[9px] transition-all shadow-xl shadow-indigo-500/10 active:scale-95"
                   >
                     GENERATE EMBED KEY
                   </button>
@@ -328,7 +328,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onBack, onProfil
                       />
                       <button
                         onClick={() => handleCopyCode(apiKey)}
-                        className="bg-slate-100 dark:bg-slate-800 hover:bg-amber-500 hover:text-white px-5 rounded-xl text-xs font-bold transition-all border border-slate-200 dark:border-slate-700 hover:border-amber-500"
+                        className="bg-slate-100 dark:bg-slate-800 hover:bg-indigo-600 hover:text-white px-5 rounded-xl text-xs font-bold transition-all border border-slate-200 dark:border-slate-700 hover:border-indigo-500"
                       >
                         Copy Key
                       </button>
@@ -366,7 +366,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onBack, onProfil
   });
 </script>
 <!-- End Cabinet Widget Button -->`)}
-                        className="text-[10px] text-amber-500 font-bold hover:underline"
+                        className="text-[10px] text-indigo-600 font-bold hover:underline"
                       >
                         {copySuccess ? 'Copied!' : 'Copy Code Snippet'}
                       </button>
@@ -393,7 +393,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onBack, onProfil
         {/* Footer Info */}
         <div className="pb-20 pt-10 text-center space-y-4">
            <div className="inline-flex items-center gap-3 px-6 py-3 bg-slate-900 dark:bg-white rounded-full">
-              <ShieldCheck className="text-amber-500" size={16} />
+              <ShieldCheck className="text-indigo-600" size={16} />
               <span className="text-[10px] font-black uppercase tracking-widest text-white dark:text-slate-900">Enterprise Database Encryption Active</span>
            </div>
            <p className="text-[10px] text-slate-400 uppercase tracking-[0.2em] font-bold">Cabinet SaaS © 2026 • Secure Infrastructure</p>

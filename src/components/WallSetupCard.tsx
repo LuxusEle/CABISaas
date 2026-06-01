@@ -15,10 +15,10 @@ export const WallSetupCard: React.FC<WallSetupCardProps> = ({ project, onClick }
   return (
     <div
       onClick={onClick}
-      className="bg-white dark:bg-slate-800 rounded-2xl border-2 border-slate-200 dark:border-slate-700 p-4 cursor-pointer hover:border-amber-500 hover:shadow-lg transition-all group mb-4"
+      className="bg-white dark:bg-slate-800 rounded-2xl border-2 border-slate-200 dark:border-slate-700 p-4 cursor-pointer hover:border-indigo-500 hover:shadow-lg transition-all group mb-4"
     >
       <div className="flex items-center gap-3 mb-3">
-        <div className="p-2 rounded-lg bg-amber-500 text-white">
+        <div className="p-2 rounded-lg bg-indigo-600 text-white">
           <AreaChart size={20} />
         </div>
         <div>

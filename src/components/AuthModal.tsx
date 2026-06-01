@@ -211,7 +211,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
     return (
       <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade-in">
         <div className="bg-slate-900 border border-slate-800 rounded-[2.5rem] shadow-2xl max-w-md w-full p-10 relative animate-modal-pop overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-500 to-orange-500" />
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-orange-500" />
           <button
             onClick={onClose}
             className="absolute top-6 right-6 text-slate-500 hover:text-white p-2 rounded-full hover:bg-slate-800 transition-all"
@@ -220,7 +220,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
           </button>
 
           <div className="text-center">
-            <div className="w-24 h-24 bg-gradient-to-br from-amber-500 to-orange-600 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-amber-500/20 rotate-3">
+            <div className="w-24 h-24 bg-gradient-to-br from-indigo-500 to-orange-600 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-indigo-500/20 rotate-3">
               <UserIcon size={48} className="text-white -rotate-3" />
             </div>
             <h2 className="text-4xl font-black text-white mb-2 italic tracking-tighter uppercase">Profile</h2>
@@ -296,23 +296,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
         {/* LEFT PANEL: Branding & Features */}
         <div className="hidden lg:flex w-2/5 bg-slate-900 p-12 flex-col justify-between relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-full opacity-10">
-            <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-amber-500 rounded-full blur-[120px]" />
+            <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-indigo-600 rounded-full blur-[120px]" />
             <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-500 rounded-full blur-[120px]" />
           </div>
 
           <div className="relative z-10">
             <div className="flex items-center gap-3 mb-16">
-              <div className="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-amber-500/30">
+              <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/30">
                 <Sparkles size={24} />
               </div>
               <span className="text-xl font-black text-white italic tracking-tighter uppercase">
-                CAB<span className="text-amber-500">ENGINE</span>
+                CAB<span className="text-indigo-600">ENGINE</span>
               </span>
             </div>
 
             <h1 className="text-5xl font-black text-white mb-6 italic leading-[0.95] uppercase">
               Precision <br />
-              <span className="text-amber-500">Engineering</span> <br />
+              <span className="text-indigo-600">Engineering</span> <br />
               Simplified.
             </h1>
             <p className="text-slate-400 font-medium max-w-xs leading-relaxed">
@@ -322,22 +322,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
 
           <div className="relative z-10 space-y-6">
             <div className="flex items-center gap-4 group">
-              <div className="w-6 h-6 rounded-full border-2 border-amber-500 flex items-center justify-center">
-                <CheckCircle2 size={12} className="text-amber-500" />
+              <div className="w-6 h-6 rounded-full border-2 border-indigo-500 flex items-center justify-center">
+                <CheckCircle2 size={12} className="text-indigo-600" />
               </div>
-              <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest group-hover:text-amber-500 transition-colors">Automated Cut Lists & Nesting</span>
+              <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest group-hover:text-indigo-600 transition-colors">Automated Cut Lists & Nesting</span>
             </div>
             <div className="flex items-center gap-4 group">
-              <div className="w-6 h-6 rounded-full border-2 border-amber-500 flex items-center justify-center">
-                <CheckCircle2 size={12} className="text-amber-500" />
+              <div className="w-6 h-6 rounded-full border-2 border-indigo-500 flex items-center justify-center">
+                <CheckCircle2 size={12} className="text-indigo-600" />
               </div>
-              <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest group-hover:text-amber-500 transition-colors">Instant 3D Visualization</span>
+              <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest group-hover:text-indigo-600 transition-colors">Instant 3D Visualization</span>
             </div>
             <div className="flex items-center gap-4 group">
-              <div className="w-6 h-6 rounded-full border-2 border-amber-500 flex items-center justify-center">
-                <CheckCircle2 size={12} className="text-amber-500" />
+              <div className="w-6 h-6 rounded-full border-2 border-indigo-500 flex items-center justify-center">
+                <CheckCircle2 size={12} className="text-indigo-600" />
               </div>
-              <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest group-hover:text-amber-500 transition-colors">Direct Manufacturing DXF Output</span>
+              <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest group-hover:text-indigo-600 transition-colors">Direct Manufacturing DXF Output</span>
             </div>
           </div>
         </div>
@@ -349,7 +349,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
               <div className="animate-fade-in">
                 <div className="mb-8">
                   <h2 className="text-4xl font-black text-white italic tracking-tighter uppercase mb-2">
-                    Verify <span className="text-amber-500">Identity</span>
+                    Verify <span className="text-indigo-600">Identity</span>
                   </h2>
                   <p className="text-slate-500 font-medium text-sm">
                     We've sent a 6-digit code to <span className="text-white">{email}</span>. Please enter it below to confirm your account.
@@ -364,7 +364,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
                       onChange={(e) => setOtpToken(e.target.value.replace(/\D/g, '').slice(0, 6))}
                       required
                       placeholder="Enter 6-digit code"
-                      className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-5 px-6 text-center text-3xl font-black tracking-[0.5em] text-amber-500 focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all placeholder:text-slate-800 placeholder:tracking-normal placeholder:text-sm"
+                      className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-5 px-6 text-center text-3xl font-black tracking-[0.5em] text-indigo-600 focus:ring-2 focus:ring-amber-500/20 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-800 placeholder:tracking-normal placeholder:text-sm"
                     />
                   </div>
 
@@ -378,7 +378,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
                   <button
                     type="submit"
                     disabled={loading || otpToken.length < 6}
-                    className="w-full bg-amber-500 hover:bg-amber-400 text-white font-black py-5 rounded-2xl transition-all disabled:opacity-30 flex items-center justify-center gap-3 uppercase tracking-widest text-xs shadow-xl shadow-amber-500/20 active:scale-[0.98]"
+                    className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-5 rounded-2xl transition-all disabled:opacity-30 flex items-center justify-center gap-3 uppercase tracking-widest text-xs shadow-xl shadow-indigo-500/20 active:scale-[0.98]"
                   >
                     {loading ? <Loader className="animate-spin" size={20} /> : (
                       <>
@@ -393,7 +393,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
                       type="button"
                       onClick={handleResendOtp}
                       disabled={resending}
-                      className="text-[10px] font-black text-slate-500 hover:text-amber-500 uppercase tracking-widest transition-all"
+                      className="text-[10px] font-black text-slate-500 hover:text-indigo-600 uppercase tracking-widest transition-all"
                     >
                       {resending ? 'Sending...' : "Didn't receive a code? Resend"}
                     </button>
@@ -404,7 +404,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
               <>
                 <div className="mb-12">
                   <h2 className="text-5xl font-black text-white italic tracking-tighter uppercase mb-2">
-                    {mode === 'login' ? 'Welcome' : 'Get'} <span className="text-amber-500">{mode === 'login' ? 'Back' : 'Started'}</span>
+                    {mode === 'login' ? 'Welcome' : 'Get'} <span className="text-indigo-600">{mode === 'login' ? 'Back' : 'Started'}</span>
                   </h2>
                   <p className="text-slate-500 font-medium">
                     {mode === 'login' ? 'Sign in to access your projects.' : 'Create your pro account today.'}
@@ -438,19 +438,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
                       <>
                         {/* 1. Email Address */}
                         <div className="relative group">
-                          <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-amber-500 transition-colors" size={20} />
+                          <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-600 transition-colors" size={20} />
                           <input
                             type="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
                             placeholder="Email Address"
-                            className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-14 pr-6 text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all placeholder:text-slate-600"
+                            className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-14 pr-6 text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-600"
                           />
                         </div>
  
                         {/* 2. Phone (Optional) */}
-                        <div className="relative group phone-input-container flex items-center bg-slate-900/50 border border-slate-800 rounded-2xl focus-within:ring-2 focus-within:ring-amber-500/20 focus-within:border-amber-500 transition-all px-4">
+                        <div className="relative group phone-input-container flex items-center bg-slate-900/50 border border-slate-800 rounded-2xl focus-within:ring-2 focus-within:ring-amber-500/20 focus-within:border-indigo-500 transition-all px-4">
                           <PhoneInput
                             international
                             defaultCountry={getVisitorCountry() as any}
@@ -465,7 +465,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
                         {/* 5. Password & Confirm */}
                         <div className="grid grid-cols-2 gap-4">
                           <div className="relative group">
-                            <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-amber-500 transition-colors" size={20} />
+                            <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-600 transition-colors" size={20} />
                             <input
                               type={showPassword ? "text" : "password"}
                               value={password}
@@ -473,12 +473,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
                               required
                               minLength={6}
                               placeholder="Password"
-                              className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-14 pr-12 text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all placeholder:text-slate-600"
+                              className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-14 pr-12 text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-600"
                             />
                             <button
                               type="button"
                               onClick={() => setShowPassword(!showPassword)}
-                              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 hover:text-amber-500 transition-colors"
+                              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 hover:text-indigo-600 transition-colors"
                             >
                               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                             </button>
@@ -491,12 +491,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
                               required
                               minLength={6}
                               placeholder="Confirm"
-                              className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 px-12 text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all placeholder:text-slate-600"
+                              className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 px-12 text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-600"
                             />
                             <button
                               type="button"
                               onClick={() => setShowPassword(!showPassword)}
-                              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 hover:text-amber-500 transition-colors"
+                              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 hover:text-indigo-600 transition-colors"
                             >
                               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                             </button>
@@ -509,30 +509,30 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
                       <>
                         {/* Login Mode */}
                         <div className="relative group">
-                          <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-amber-500 transition-colors" size={20} />
+                          <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-600 transition-colors" size={20} />
                           <input
                             type="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
                             placeholder="Email Address"
-                            className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-14 pr-6 text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all placeholder:text-slate-600"
+                            className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-14 pr-6 text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-600"
                           />
                         </div>
                         <div className="relative group">
-                          <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-amber-500 transition-colors" size={20} />
+                          <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-600 transition-colors" size={20} />
                           <input
                             type={showPassword ? "text" : "password"}
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
                             placeholder="Password"
-                            className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-14 pr-12 text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all placeholder:text-slate-600"
+                            className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-14 pr-12 text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-600"
                           />
                           <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 hover:text-amber-500 transition-colors"
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 hover:text-indigo-600 transition-colors"
                           >
                             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                           </button>
@@ -545,7 +545,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
                               setError('');
                               setMessage('');
                             }}
-                            className="text-[10px] font-black text-slate-500 hover:text-amber-500 uppercase tracking-widest transition-all"
+                            className="text-[10px] font-black text-slate-500 hover:text-indigo-600 uppercase tracking-widest transition-all"
                           >
                             Forgot Password?
                           </button>
@@ -555,14 +555,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
 
                     {mode === 'forgot-password' && (
                       <div className="relative group">
-                        <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-amber-500 transition-colors" size={20} />
+                        <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-600 transition-colors" size={20} />
                         <input
                           type="email"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
                           required
                           placeholder="Email Address"
-                          className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-14 pr-6 text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all placeholder:text-slate-600"
+                          className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-14 pr-6 text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-600"
                         />
                       </div>
                     )}
@@ -570,7 +570,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
                     {mode === 'update-password' && (
                       <>
                         <div className="relative group">
-                          <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-amber-500 transition-colors" size={20} />
+                          <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-600 transition-colors" size={20} />
                           <input
                             type={showPassword ? "text" : "password"}
                             value={password}
@@ -578,18 +578,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
                             required
                             minLength={6}
                             placeholder="New Password"
-                            className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-14 pr-12 text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all placeholder:text-slate-600"
+                            className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-14 pr-12 text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-600"
                           />
                           <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 hover:text-amber-500 transition-colors"
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 hover:text-indigo-600 transition-colors"
                           >
                             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                           </button>
                         </div>
                         <div className="relative group">
-                          <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-amber-500 transition-colors" size={20} />
+                          <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-600 transition-colors" size={20} />
                           <input
                             type={showPassword ? "text" : "password"}
                             value={confirmPassword}
@@ -597,12 +597,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
                             required
                             minLength={6}
                             placeholder="Confirm New Password"
-                            className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-14 pr-12 text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all placeholder:text-slate-600"
+                            className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-14 pr-12 text-white font-medium focus:ring-2 focus:ring-amber-500/20 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-600"
                           />
                           <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 hover:text-amber-500 transition-colors"
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 hover:text-indigo-600 transition-colors"
                           >
                             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                           </button>
@@ -621,7 +621,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
                           className="w-5 h-5 rounded-lg accent-amber-500"
                         />
                         <label htmlFor="terms-check" className="text-[11px] font-medium text-slate-500">
-                          I agree to the <button type="button" onClick={onNavigateToPolicy} className="text-amber-500 font-bold hover:underline">TERMS & CONDITIONS</button> and privacy policy.
+                          I agree to the <button type="button" onClick={onNavigateToPolicy} className="text-indigo-600 font-bold hover:underline">TERMS & CONDITIONS</button> and privacy policy.
                         </label>
                       </div>
                     )}
@@ -663,7 +663,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
                         setError('');
                         setMessage('');
                       }}
-                      className="text-[11px] font-black text-slate-500 hover:text-amber-500 uppercase tracking-[0.2em] transition-colors"
+                      className="text-[11px] font-black text-slate-500 hover:text-indigo-600 uppercase tracking-[0.2em] transition-colors"
                     >
                       {mode === 'login' ? 'Need an account? Sign Up' : mode === 'signup' ? 'Back to Sign In' : 'Back to Login'}
                     </button>

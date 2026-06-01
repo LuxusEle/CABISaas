@@ -13,7 +13,7 @@ const ROTATING_PHRASES = [
 ];
 
 const FEEDBACK_TYPES = [
-  { id: 'suggestion', label: 'Suggestion', icon: Lightbulb, color: 'text-amber-500' },
+  { id: 'suggestion', label: 'Suggestion', icon: Lightbulb, color: 'text-indigo-600' },
   { id: 'feature_request', label: 'Feature Request', icon: MessageSquare, color: 'text-blue-500' },
   { id: 'bug_report', label: 'Bug Report', icon: Bug, color: 'text-red-500' },
   { id: 'complaint', label: 'Complaint', icon: AlertCircle, color: 'text-orange-500' },
@@ -438,7 +438,7 @@ export const HelpButton: React.FC<HelpButtonProps> = ({ disablePhrases = false, 
                 exit={{ opacity: 0, x: 20, scale: 0.8 }}
                 className="absolute right-full mr-3 whitespace-nowrap bg-white dark:bg-slate-800 px-4 py-2 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 pointer-events-none"
               >
-                <span className="text-xs font-black text-amber-500 uppercase tracking-widest italic">
+                <span className="text-xs font-black text-indigo-600 uppercase tracking-widest italic">
                   {ROTATING_PHRASES[currentPhraseIndex]}
                 </span>
                 {/* Tooltip Arrow */}
@@ -455,7 +455,7 @@ export const HelpButton: React.FC<HelpButtonProps> = ({ disablePhrases = false, 
               setAnnotations([]);
               setIsOpen(true);
             }}
-            className="w-12 h-12 md:w-14 md:h-14 bg-amber-500 hover:bg-amber-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center group relative"
+            className="w-12 h-12 md:w-14 md:h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center group relative"
             aria-label="Help & Feedback"
           >
             <HelpCircle className="w-6 h-6 md:w-7 md:h-7 group-hover:scale-110 transition-transform" />
@@ -500,12 +500,12 @@ export const HelpButton: React.FC<HelpButtonProps> = ({ disablePhrases = false, 
 
             {/* Notification Banner for Replies */}
             {hasUnreadReply && (
-              <div className="mx-6 mt-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center gap-4 animate-pulse">
-                <div className="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center text-white shadow-lg shadow-amber-500/20 shrink-0">
+              <div className="mx-6 mt-6 p-4 bg-indigo-600/10 border border-indigo-500/20 rounded-2xl flex items-center gap-4 animate-pulse">
+                <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20 shrink-0">
                   <AlertCircle size={20} />
                 </div>
                 <div className="flex-1">
-                  <p className="text-[10px] font-black text-amber-500 uppercase tracking-[0.2em]">Our Team Responded!</p>
+                  <p className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em]">Our Team Responded!</p>
                   <p className="text-xs font-bold text-slate-900 dark:text-white mt-0.5">We've sent a detailed reply to your email address.</p>
                 </div>
                 <button 
@@ -513,7 +513,7 @@ export const HelpButton: React.FC<HelpButtonProps> = ({ disablePhrases = false, 
                     // Mark local status as read for this session
                     setHasUnreadReply(false);
                   }}
-                  className="px-4 py-2 bg-amber-500 text-white text-[10px] font-black uppercase tracking-widest rounded-lg shadow-sm hover:shadow-md transition-all"
+                  className="px-4 py-2 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-lg shadow-sm hover:shadow-md transition-all"
                 >
                   Got it
                 </button>
@@ -543,7 +543,7 @@ export const HelpButton: React.FC<HelpButtonProps> = ({ disablePhrases = false, 
                   <button
                     onClick={() => setCurrentTool('rectangle')}
                     className={`p-2 rounded-lg transition-colors ${currentTool === 'rectangle'
-                      ? 'bg-amber-500 text-white'
+                      ? 'bg-indigo-600 text-white'
                       : 'hover:bg-slate-200 dark:hover:bg-slate-700'
                       }`}
                     title="Rectangle"
@@ -553,7 +553,7 @@ export const HelpButton: React.FC<HelpButtonProps> = ({ disablePhrases = false, 
                   <button
                     onClick={() => setCurrentTool('text')}
                     className={`p-2 rounded-lg transition-colors ${currentTool === 'text'
-                      ? 'bg-amber-500 text-white'
+                      ? 'bg-indigo-600 text-white'
                       : 'hover:bg-slate-200 dark:hover:bg-slate-700'
                       }`}
                     title="Add Text"
@@ -628,7 +628,7 @@ export const HelpButton: React.FC<HelpButtonProps> = ({ disablePhrases = false, 
                     />
                     <button
                       onClick={addTextAnnotation}
-                      className="p-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg"
+                      className="p-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg"
                     >
                       <Check className="w-4 h-4" />
                     </button>
@@ -639,7 +639,7 @@ export const HelpButton: React.FC<HelpButtonProps> = ({ disablePhrases = false, 
                 <div className="flex justify-end">
                   <button
                     onClick={() => finalizeScreenshot()}
-                    className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg flex items-center gap-2"
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg flex items-center gap-2"
                   >
                     Continue to Feedback
                     <ArrowRight className="w-4 h-4" />
@@ -662,7 +662,7 @@ export const HelpButton: React.FC<HelpButtonProps> = ({ disablePhrases = false, 
                           type="button"
                           onClick={() => setSelectedType(type.id)}
                           className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all ${selectedType === type.id
-                            ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20'
+                            ? 'border-indigo-500 bg-amber-50 dark:bg-amber-900/20'
                             : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
                             }`}
                         >
@@ -686,7 +686,7 @@ export const HelpButton: React.FC<HelpButtonProps> = ({ disablePhrases = false, 
                       <button
                         type="button"
                         onClick={() => setIsAnnotating(true)}
-                        className="text-sm text-amber-600 hover:text-amber-700 font-medium"
+                        className="text-sm text-indigo-700 hover:text-indigo-700 font-medium"
                       >
                         Edit Annotation
                       </button>
@@ -706,12 +706,12 @@ export const HelpButton: React.FC<HelpButtonProps> = ({ disablePhrases = false, 
                   </label>
                   
                   {attachedFile ? (
-                    <div className="flex items-center gap-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
-                      <div className="p-2 bg-amber-100 dark:bg-amber-800/50 rounded-lg">
+                    <div className="flex items-center gap-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl">
+                      <div className="p-2 bg-indigo-100 dark:bg-amber-800/50 rounded-lg">
                         {attachedFile.type.startsWith('image/') ? (
-                          <Image className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                          <Image className="w-5 h-5 text-indigo-700 dark:text-indigo-400" />
                         ) : (
-                          <FileText className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                          <FileText className="w-5 h-5 text-indigo-700 dark:text-indigo-400" />
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -734,7 +734,7 @@ export const HelpButton: React.FC<HelpButtonProps> = ({ disablePhrases = false, 
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl hover:border-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-all duration-200"
+                      className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl hover:border-indigo-500 hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-all duration-200"
                     >
                       <Paperclip className="w-5 h-5 text-slate-400" />
                       <span className="text-sm text-slate-600 dark:text-slate-400">
@@ -773,7 +773,7 @@ export const HelpButton: React.FC<HelpButtonProps> = ({ disablePhrases = false, 
                     placeholder="Tell us what's on your mind..."
                     required={!screenshot && !attachedFile}
                     rows={4}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 outline-none resize-none"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-amber-500/20 outline-none resize-none"
                   />
                 </div>
 
@@ -787,7 +787,7 @@ export const HelpButton: React.FC<HelpButtonProps> = ({ disablePhrases = false, 
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="your@email.com"
-                    className="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 outline-none"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-amber-500/20 outline-none"
                   />
                   <p className="text-xs text-slate-500 mt-1">
                     We'll only use this to follow up on your feedback
@@ -798,7 +798,7 @@ export const HelpButton: React.FC<HelpButtonProps> = ({ disablePhrases = false, 
                 <button
                   type="submit"
                   disabled={isSubmitting || (!message.trim() && !screenshot && !attachedFile)}
-                  className="w-full py-3 px-4 bg-amber-500 hover:bg-amber-600 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2"
+                  className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2"
                 >
                   {isSubmitting ? (
                     <>

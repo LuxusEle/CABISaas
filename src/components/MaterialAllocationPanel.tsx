@@ -191,7 +191,7 @@ export const MaterialAllocationPanel: React.FC<MaterialAllocationPanelProps> = (
                 <tr className="group hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
                   <td className="px-2 sm:px-3 py-4">
                     <div className="flex items-center gap-2">
-                      <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 shrink-0" />
+                      <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-600 shrink-0" />
                       <span className="text-slate-900 dark:text-white font-bold text-xs sm:text-sm">Drawer Boxes</span>
                     </div>
                   </td>
@@ -221,7 +221,7 @@ export const MaterialAllocationPanel: React.FC<MaterialAllocationPanelProps> = (
                             if (file) handleFileUpload(file, 'drawer');
                           }}
                         />
-                        {isUploading === 'drawer' ? <Loader2 className="w-4 h-4 animate-spin text-amber-500" /> : <Layers className="w-4 h-4 text-slate-400" />}
+                        {isUploading === 'drawer' ? <Loader2 className="w-4 h-4 animate-spin text-indigo-600" /> : <Layers className="w-4 h-4 text-slate-400" />}
                       </label>
                     </div>
                   </td>

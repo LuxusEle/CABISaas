@@ -123,17 +123,17 @@ export const PricingPage: React.FC<PricingPageProps> = ({
       {/* Launch Promo Overlay */}
       <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
         <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-500" />
-        <div className="relative bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl p-8 sm:p-12 max-w-xl w-full text-center border-4 border-amber-500/30 animate-in zoom-in-95 duration-500 overflow-hidden">
+        <div className="relative bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl p-8 sm:p-12 max-w-xl w-full text-center border-4 border-indigo-500/30 animate-in zoom-in-95 duration-500 overflow-hidden">
           {/* Decorative Background */}
-          <div className="absolute -top-24 -right-24 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -top-24 -right-24 w-48 h-48 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
           
-          <div className="w-24 h-24 bg-gradient-to-br from-amber-400 to-amber-600 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-xl shadow-amber-500/40 rotate-3 animate-pulse">
+          <div className="w-24 h-24 bg-gradient-to-br from-indigo-400 to-indigo-600 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-xl shadow-indigo-500/40 rotate-3 animate-pulse">
             <Sparkles size={48} className="text-white" />
           </div>
           
           <h2 className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-white mb-4 tracking-tighter uppercase italic">
-            It's <span className="text-amber-500">Free</span> Now!
+            It's <span className="text-indigo-600">Free</span> Now!
           </h2>
           
           <div className="space-y-4 mb-10">
@@ -175,9 +175,9 @@ export const PricingPage: React.FC<PricingPageProps> = ({
 
           {/* Current Subscription Status */}
           {isPro && (
-            <div className="mb-8 p-6 bg-amber-50 dark:bg-amber-900/10 border-2 border-amber-500/20 rounded-2xl">
+            <div className="mb-8 p-6 bg-amber-50 dark:bg-amber-900/10 border-2 border-indigo-500/20 rounded-2xl">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-amber-500 rounded-full flex items-center justify-center shadow-lg shadow-amber-500/20">
+                <div className="w-12 h-12 bg-indigo-600 rounded-full flex items-center justify-center shadow-lg shadow-indigo-500/20">
                   <Sparkles className="text-white" size={24} />
                 </div>
                 <div>
@@ -209,13 +209,13 @@ export const PricingPage: React.FC<PricingPageProps> = ({
                 <div
                   key={plan.id}
                   className={`relative bg-white dark:bg-slate-900 rounded-2xl shadow-lg border-2 overflow-hidden ${isCurrentPlan && plan.id !== 'free'
-                    ? 'border-amber-500 ring-2 ring-amber-500/20'
+                    ? 'border-indigo-500 ring-2 ring-amber-500/20'
                     : 'border-slate-200 dark:border-slate-800'
                     }`}
                 >
                   {/* Popular Badge */}
                   {plan.id === 'pro' && (
-                    <div className="absolute top-0 right-0 bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">
+                    <div className="absolute top-0 right-0 bg-indigo-600 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">
                       POPULAR
                     </div>
                   )}
@@ -223,10 +223,10 @@ export const PricingPage: React.FC<PricingPageProps> = ({
                   <div className="p-8">
                     {/* Plan Icon & Name */}
                     <div className="flex items-center gap-3 mb-4">
-                      <div className={`p-3 rounded-lg ${plan.id === 'free' ? 'bg-slate-100 dark:bg-slate-800' : 'bg-amber-100 dark:bg-amber-900/30'
+                      <div className={`p-3 rounded-lg ${plan.id === 'free' ? 'bg-slate-100 dark:bg-slate-800' : 'bg-indigo-100 dark:bg-amber-900/30'
                         }`}>
                         <Icon size={24} className={
-                          plan.id === 'free' ? 'text-slate-600 dark:text-slate-400' : 'text-amber-600 dark:text-amber-400'
+                          plan.id === 'free' ? 'text-slate-600 dark:text-slate-400' : 'text-indigo-700 dark:text-indigo-400'
                         } />
                       </div>
                       <h3 className="text-2xl font-bold text-slate-900 dark:text-white">
@@ -258,7 +258,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({
                           ? 'bg-green-100 text-green-600 cursor-not-allowed'
                           : plan.id === 'free'
                             ? 'bg-slate-200 text-slate-600 cursor-default'
-                            : 'bg-amber-500 text-white hover:bg-amber-600'
+                            : 'bg-indigo-600 text-white hover:bg-indigo-700'
                           }`}
                       >
                         {isCurrentPlan && plan.id !== 'free'
@@ -344,7 +344,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({
             </p>
             <a
               href="mailto:support@cabengine.com"
-              className="text-amber-500 hover:text-amber-600 font-semibold"
+              className="text-indigo-600 hover:text-indigo-700 font-semibold"
             >
               Contact Support
             </a>
