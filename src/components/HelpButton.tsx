@@ -31,9 +31,10 @@ interface Annotation {
 
 interface HelpButtonProps {
   disablePhrases?: boolean;
+  hasBottomNav?: boolean;
 }
 
-export const HelpButton: React.FC<HelpButtonProps> = ({ disablePhrases = false }) => {
+export const HelpButton: React.FC<HelpButtonProps> = ({ disablePhrases = false, hasBottomNav = false }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedType, setSelectedType] = useState('suggestion');
   const [message, setMessage] = useState('');
@@ -411,7 +412,7 @@ export const HelpButton: React.FC<HelpButtonProps> = ({ disablePhrases = false }
 
   return (
     <>
-      <div className="help-button-container fixed bottom-6 right-6 z-50 flex items-center gap-3 print:hidden">
+      <div className={`help-button-container fixed right-6 z-50 flex items-center gap-3 print:hidden ${hasBottomNav ? 'bottom-20 md:bottom-6' : 'bottom-6'}`}>
         {/* Camera Button */}
         <button
           onClick={captureScreenshot}

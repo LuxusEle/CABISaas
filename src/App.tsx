@@ -745,7 +745,7 @@ export default function App() {
       )}
 
       {/* Help Button - Available on all screens */}
-      {!location.pathname.startsWith('/embed') && <HelpButton disablePhrases={screen === Screen.WALL_EDITOR} />}
+      {!location.pathname.startsWith('/embed') && <HelpButton disablePhrases={screen === Screen.WALL_EDITOR} hasBottomNav={location.pathname !== '/' && location.pathname !== '/terms' && location.pathname !== '/testing'} />}
 
       {/* Vercel Analytics & Speed Insights */}
       <Analytics />
