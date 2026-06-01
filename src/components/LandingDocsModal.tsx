@@ -28,15 +28,15 @@ export const LandingDocsModal: React.FC<DocsModalProps> = ({ isOpen, onClose, on
         <div className="relative w-full max-w-5xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 max-h-[90vh] overflow-y-auto">
           {/* Gradient Header */}
           <div className="relative bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 p-8">
-            <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 to-transparent" />
             <div className="relative flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="p-3 bg-indigo-600 rounded-2xl shadow-lg shadow-indigo-500/20">
+                <div className="p-3 bg-orange-600 rounded-2xl shadow-lg shadow-orange-500/20">
                   <FileText className="w-7 h-7 text-white" />
                 </div>
                 <div>
                   <h2 className="text-3xl font-black text-white tracking-tight">
-                    CabEngine <span className="text-indigo-600">Pro</span>
+                    CabEngine <span className="text-orange-600">Pro</span>
                   </h2>
                   <p className="text-slate-400 text-sm mt-1">Profit-Protection Engine</p>
                 </div>
@@ -56,7 +56,7 @@ export const LandingDocsModal: React.FC<DocsModalProps> = ({ isOpen, onClose, on
             <div className="text-center space-y-4">
               <h3 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white leading-tight">
                 The profit-protection engine for modern{' '}
-                <span className="text-indigo-600">cabinet manufacturers</span>
+                <span className="text-orange-600">cabinet manufacturers</span>
               </h3>
               <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed">
                 A precision-first measurement, BOM, and quoting engine built to eliminate cost overruns 
@@ -65,11 +65,11 @@ export const LandingDocsModal: React.FC<DocsModalProps> = ({ isOpen, onClose, on
             </div>
 
             {/* Core Principle Card */}
-            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500 to-orange-600 p-1">
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 p-1">
               <div className="bg-white dark:bg-slate-800 rounded-xl p-6 md:p-8">
                 <div className="flex flex-col md:flex-row items-center gap-4 text-center md:text-left">
                   <div className="p-4 bg-indigo-100 dark:bg-amber-900/30 rounded-full">
-                    <Shield className="w-8 h-8 text-indigo-700 dark:text-indigo-400" />
+                    <Shield className="w-8 h-8 text-indigo-700 dark:text-orange-400" />
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
@@ -77,7 +77,7 @@ export const LandingDocsModal: React.FC<DocsModalProps> = ({ isOpen, onClose, on
                     </p>
                     <p className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white">
                       Accurate Measurements ={' '}
-                      <span className="text-indigo-600">Safe Profits</span>
+                      <span className="text-orange-600">Safe Profits</span>
                     </p>
                   </div>
                 </div>
@@ -87,7 +87,7 @@ export const LandingDocsModal: React.FC<DocsModalProps> = ({ isOpen, onClose, on
             {/* Features Grid */}
             <div>
               <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-                <Zap className="w-5 h-5 text-indigo-600" />
+                <Zap className="w-5 h-5 text-orange-600" />
                 Why CabEngine Pro?
               </h4>
               <div className="grid md:grid-cols-3 gap-4">
@@ -113,7 +113,7 @@ export const LandingDocsModal: React.FC<DocsModalProps> = ({ isOpen, onClose, on
                 ].map((feature, idx) => (
                   <div 
                     key={idx}
-                    className="group p-6 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 hover:border-indigo-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-indigo-500/10"
+                    className="group p-6 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 hover:border-orange-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-orange-500/10"
                   >
                     <div className={`w-12 h-12 rounded-xl bg-${feature.color}-100 dark:bg-${feature.color}-900/30 flex items-center justify-center text-${feature.color}-600 dark:text-${feature.color}-400 mb-4 group-hover:scale-110 transition-transform duration-300`}>
                       {feature.icon}
@@ -132,12 +132,12 @@ export const LandingDocsModal: React.FC<DocsModalProps> = ({ isOpen, onClose, on
             {/* Workflow Timeline */}
             <div>
               <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-indigo-600" />
+                <TrendingUp className="w-5 h-5 text-orange-600" />
                 Your Workflow
               </h4>
               <div className="relative">
                 {/* Connection Line */}
-                <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-gradient-to-r from-indigo-500/20 via-indigo-500 to-indigo-500/20 -translate-y-1/2 hidden md:block" />
+                <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-gradient-to-r from-orange-500/20 via-orange-500 to-orange-500/20 -translate-y-1/2 hidden md:block" />
                 
                 <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
                   {[
@@ -151,7 +151,7 @@ export const LandingDocsModal: React.FC<DocsModalProps> = ({ isOpen, onClose, on
                     <div key={idx} className="relative flex flex-col items-center text-center">
                       <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm mb-2 z-10 transition-all duration-300 ${
                         item.highlight 
-                          ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30 scale-110' 
+                          ? 'bg-orange-600 text-white shadow-lg shadow-orange-500/30 scale-110' 
                           : item.active 
                             ? 'bg-slate-900 dark:bg-slate-700 text-white' 
                             : 'bg-slate-200 dark:bg-slate-700 text-slate-500'
@@ -160,7 +160,7 @@ export const LandingDocsModal: React.FC<DocsModalProps> = ({ isOpen, onClose, on
                       </div>
                       <span className={`text-sm font-medium ${
                         item.highlight 
-                          ? 'text-indigo-600' 
+                          ? 'text-orange-600' 
                           : 'text-slate-700 dark:text-slate-300'
                       }`}>
                         {item.label}
@@ -174,7 +174,7 @@ export const LandingDocsModal: React.FC<DocsModalProps> = ({ isOpen, onClose, on
             {/* Pricing / Beta Invitation Section */}
             <div className="space-y-6">
               <div className="flex items-center gap-2">
-                <Gift className="w-5 h-5 text-indigo-600" />
+                <Gift className="w-5 h-5 text-orange-600" />
                 <h4 className="text-lg font-bold text-slate-900 dark:text-white">
                   Join Our Beta Program
                 </h4>
@@ -182,14 +182,14 @@ export const LandingDocsModal: React.FC<DocsModalProps> = ({ isOpen, onClose, on
 
               <div className="grid md:grid-cols-2 gap-6">
                 {/* Free Beta Card */}
-                <div className="group relative rounded-2xl bg-gradient-to-r from-indigo-500 via-orange-500 to-indigo-500 p-[3px] animate-gradient-x hover:shadow-2xl hover:shadow-indigo-500/30 transition-all duration-500 hover:-translate-y-2">
+                <div className="group relative rounded-2xl bg-gradient-to-r from-orange-500 via-orange-500 to-orange-500 p-[3px] animate-gradient-x hover:shadow-2xl hover:shadow-orange-500/30 transition-all duration-500 hover:-translate-y-2">
                   {/* Inner content */}
                   <div className="relative rounded-2xl bg-white dark:bg-slate-800 p-8 text-center h-full overflow-hidden">
                     {/* Shimmer overlay */}
-                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-indigo-500/0 via-indigo-500/5 to-indigo-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-orange-500/0 via-orange-500/5 to-orange-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                     <div className="relative z-10">
                       <div className="w-16 h-16 mx-auto mb-4 bg-indigo-100 dark:bg-amber-900/30 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:bg-amber-200 dark:group-hover:bg-amber-800/50 transition-all duration-500">
-                        <Rocket className="w-8 h-8 text-indigo-700 dark:text-indigo-400" />
+                        <Rocket className="w-8 h-8 text-indigo-700 dark:text-orange-400" />
                       </div>
                     <h5 className="text-2xl font-black text-slate-900 dark:text-white mb-2">Free Beta Access</h5>
                     <p className="text-slate-600 dark:text-slate-400 mb-6">
@@ -197,25 +197,25 @@ export const LandingDocsModal: React.FC<DocsModalProps> = ({ isOpen, onClose, on
                     </p>
                     <div className="space-y-2 text-left bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4 mb-6">
                       <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
-                        <span className="text-indigo-600 font-bold">✓</span>
+                        <span className="text-orange-600 font-bold">✓</span>
                         <span>All Pro features included</span>
                       </div>
                       <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
-                        <span className="text-indigo-600 font-bold">✓</span>
+                        <span className="text-orange-600 font-bold">✓</span>
                         <span>Unlimited projects</span>
                       </div>
                       <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
-                        <span className="text-indigo-600 font-bold">✓</span>
+                        <span className="text-orange-600 font-bold">✓</span>
                         <span>Priority support</span>
                       </div>
                       <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
-                        <span className="text-indigo-600 font-bold">✓</span>
+                        <span className="text-orange-600 font-bold">✓</span>
                         <span>Direct feedback channel</span>
                       </div>
                     </div>
                      <button 
                        onClick={() => { onClose(); onGetStarted(); }}
-                       className="flex items-center justify-center gap-2 text-indigo-700 dark:text-indigo-400 font-bold text-lg hover:gap-4 transition-all duration-200"
+                       className="flex items-center justify-center gap-2 text-indigo-700 dark:text-orange-400 font-bold text-lg hover:gap-4 transition-all duration-200"
                      >
                        <span>Join Free Beta</span>
                        <ArrowRight className="w-5 h-5" />
@@ -228,7 +228,7 @@ export const LandingDocsModal: React.FC<DocsModalProps> = ({ isOpen, onClose, on
                 <div className="flex flex-col justify-center p-8 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="p-3 bg-indigo-100 dark:bg-amber-900/30 rounded-xl">
-                      <Users className="w-6 h-6 text-indigo-700 dark:text-indigo-400" />
+                      <Users className="w-6 h-6 text-indigo-700 dark:text-orange-400" />
                     </div>
                     <h5 className="font-bold text-slate-900 dark:text-white text-lg">Build Together</h5>
                   </div>
@@ -237,21 +237,21 @@ export const LandingDocsModal: React.FC<DocsModalProps> = ({ isOpen, onClose, on
                   </p>
                   <div className="space-y-3">
                     <div className="flex items-start gap-3">
-                      <div className="w-2 h-2 rounded-full bg-indigo-600 mt-2 flex-shrink-0" />
+                      <div className="w-2 h-2 rounded-full bg-orange-600 mt-2 flex-shrink-0" />
                       <p className="text-sm text-slate-600 dark:text-slate-400">
                         <span className="font-semibold text-slate-900 dark:text-white">Shape the Product:</span>{' '}
                         Your suggestions directly influence our roadmap
                       </p>
                     </div>
                     <div className="flex items-start gap-3">
-                      <div className="w-2 h-2 rounded-full bg-indigo-600 mt-2 flex-shrink-0" />
+                      <div className="w-2 h-2 rounded-full bg-orange-600 mt-2 flex-shrink-0" />
                       <p className="text-sm text-slate-600 dark:text-slate-400">
                         <span className="font-semibold text-slate-900 dark:text-white">Early Access:</span>{' '}
                         Be the first to try new features
                       </p>
                     </div>
                     <div className="flex items-start gap-3">
-                      <div className="w-2 h-2 rounded-full bg-indigo-600 mt-2 flex-shrink-0" />
+                      <div className="w-2 h-2 rounded-full bg-orange-600 mt-2 flex-shrink-0" />
                       <p className="text-sm text-slate-600 dark:text-slate-400">
                         <span className="font-semibold text-slate-900 dark:text-white">Locked-in Pricing:</span>{' '}
                         Beta users get special rates when we launch
@@ -261,9 +261,9 @@ export const LandingDocsModal: React.FC<DocsModalProps> = ({ isOpen, onClose, on
                 </div>
               </div>
 
-              <div className="text-center p-6 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-indigo-200 dark:border-indigo-800">
+              <div className="text-center p-6 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-orange-200 dark:border-orange-800">
                 <p className="text-slate-700 dark:text-slate-300 font-medium">
-                  <span className="text-indigo-700 dark:text-indigo-400 font-bold">Limited spots available.</span>{' '}
+                  <span className="text-indigo-700 dark:text-orange-400 font-bold">Limited spots available.</span>{' '}
                   Join now and let's build the ultimate cabinet management tool together!
                 </p>
               </div>
@@ -271,7 +271,7 @@ export const LandingDocsModal: React.FC<DocsModalProps> = ({ isOpen, onClose, on
 
             {/* CTA Section */}
             <div className="relative overflow-hidden rounded-2xl bg-slate-900 dark:bg-slate-800 p-8 text-center">
-              <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/20 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-br from-orange-500/20 to-transparent" />
               <div className="relative">
                 <p className="text-xl font-bold text-white mb-2">
                   Ready to protect your profits?
@@ -281,7 +281,7 @@ export const LandingDocsModal: React.FC<DocsModalProps> = ({ isOpen, onClose, on
                 </p>
                 <button 
                   onClick={() => { onClose(); onGetStarted(); }}
-                  className="flex items-center justify-center gap-2 text-indigo-600 font-semibold hover:gap-4 transition-all duration-200"
+                  className="flex items-center justify-center gap-2 text-orange-600 font-semibold hover:gap-4 transition-all duration-200"
                 >
                   <span>Get Started Free</span>
                   <ArrowRight className="w-5 h-5" />

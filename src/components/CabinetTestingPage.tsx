@@ -33,7 +33,7 @@ const SettingRow: React.FC<{ label: string; value: number; onChange: (v: number)
         type="number"
         value={value}
         onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
-        className="w-14 px-1 py-0.5 text-[11px] bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-600 rounded text-indigo-700 dark:text-indigo-600 font-mono text-center"
+        className="w-14 px-1 py-0.5 text-[11px] bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-600 rounded text-indigo-700 dark:text-orange-600 font-mono text-center"
       />
     </div>
   </div>
@@ -49,7 +49,7 @@ const CheckboxRow: React.FC<{ label: string; checked: boolean; onChange: (v: boo
         checked={checked} 
         onChange={(e) => onChange(e.target.checked)} 
       />
-      <div className="w-7 h-4 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
+      <div className="w-7 h-4 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-orange-600"></div>
     </div>
   </label>
 );
@@ -151,7 +151,7 @@ export const CabinetTestingPage: React.FC<{ isDark?: boolean }> = ({ isDark = tr
     <div className={`flex h-full ${isDark ? 'bg-slate-950 text-white' : 'bg-slate-50 text-slate-900'} font-sans overflow-hidden`}>
       <div className={`w-96 shrink-0 overflow-y-auto p-4 border-r ${isDark ? 'border-slate-700 bg-slate-900' : 'border-slate-200 bg-white'} scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent`}>
         <div className="flex items-center gap-2 mb-6">
-          <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/20">
+          <div className="w-8 h-8 bg-orange-600 rounded-lg flex items-center justify-center shadow-lg shadow-orange-500/20">
             <span className="font-bold text-white text-lg">C</span>
           </div>
           <div>
@@ -162,7 +162,7 @@ export const CabinetTestingPage: React.FC<{ isDark?: boolean }> = ({ isDark = tr
         
         <div className="space-y-4">
           <Section>
-            <h3 className="text-[11px] font-bold text-indigo-600 uppercase tracking-wider mb-3">Cabinet Type</h3>
+            <h3 className="text-[11px] font-bold text-orange-600 uppercase tracking-wider mb-3">Cabinet Type</h3>
             <div className="grid grid-cols-2 gap-2">
               {(['base', 'sink', 'wall', 'tall', 'corner', 'wall_corner'] as const).map(type => (
                 <button
@@ -170,7 +170,7 @@ export const CabinetTestingPage: React.FC<{ isDark?: boolean }> = ({ isDark = tr
                   onClick={() => setActiveType(type)}
                   className={`px-3 py-2 text-[10px] font-bold rounded-md transition-all duration-200 ${
                     activeType === type 
-                      ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' 
+                      ? 'bg-orange-600 text-white shadow-lg shadow-orange-500/20' 
                       : 'bg-slate-600 text-slate-300 hover:bg-slate-500'
                   }`}
                 >
@@ -182,7 +182,7 @@ export const CabinetTestingPage: React.FC<{ isDark?: boolean }> = ({ isDark = tr
 
           {(settings.cabinetType === 'base' || settings.cabinetType === 'sink' || settings.cabinetType === 'tall' || settings.cabinetType === 'corner' || settings.cabinetType === 'wall_corner') && (
             <Section>
-              <h3 className="text-[11px] font-bold text-indigo-600 uppercase tracking-wider mb-3">{settings.cabinetType.toUpperCase().replace('_', ' ')} Options</h3>
+              <h3 className="text-[11px] font-bold text-orange-600 uppercase tracking-wider mb-3">{settings.cabinetType.toUpperCase().replace('_', ' ')} Options</h3>
               {(settings.cabinetType === 'base' || settings.cabinetType === 'sink' || settings.cabinetType === 'tall' || settings.cabinetType === 'corner') && (
                 <SettingRow label="Toe Kick Height" value={settings.toeKickHeight} onChange={v => updateSetting('toeKickHeight', v)} step={5} min={0} max={200} />
               )}
@@ -198,7 +198,7 @@ export const CabinetTestingPage: React.FC<{ isDark?: boolean }> = ({ isDark = tr
                           onClick={() => updateSetting('blindCornerSide', side)}
                           className={`px-3 py-1 text-[10px] font-bold rounded transition-all duration-200 ${
                             settings.blindCornerSide === side
-                              ? 'bg-indigo-600 text-white shadow-sm'
+                              ? 'bg-orange-600 text-white shadow-sm'
                               : 'text-slate-400 hover:text-slate-200'
                           }`}
                         >
@@ -220,14 +220,14 @@ export const CabinetTestingPage: React.FC<{ isDark?: boolean }> = ({ isDark = tr
           )}
 
           <Section>
-            <h3 className="text-[11px] font-bold text-indigo-600 uppercase tracking-wider mb-3">Dimensions</h3>
+            <h3 className="text-[11px] font-bold text-orange-600 uppercase tracking-wider mb-3">Dimensions</h3>
             <SettingRow label="Width" value={settings.width} onChange={v => updateSetting('width', v)} step={10} min={200} max={1200} />
             <SettingRow label="Height" value={settings.height} onChange={v => updateSetting('height', v)} step={10} min={300} max={2400} />
             <SettingRow label="Depth" value={settings.depth} onChange={v => updateSetting('depth', v)} step={10} min={200} max={800} />
           </Section>
 
           <Section>
-            <h3 className="text-[11px] font-bold text-indigo-600 uppercase tracking-wider mb-3">Panels & Materials</h3>
+            <h3 className="text-[11px] font-bold text-orange-600 uppercase tracking-wider mb-3">Panels & Materials</h3>
             <SettingRow label="Main Panel (mm)" value={settings.panelThickness} onChange={v => updateSetting('panelThickness', v)} step={1} min={12} max={25} />
             <SettingRow label="Back Panel (mm)" value={settings.backPanelThickness} onChange={v => updateSetting('backPanelThickness', v)} step={1} min={3} max={18} />
             <SettingRow label="Door Thk (mm)" value={settings.doorMaterialThickness} onChange={v => updateSetting('doorMaterialThickness', v)} step={1} min={12} max={25} />
@@ -235,7 +235,7 @@ export const CabinetTestingPage: React.FC<{ isDark?: boolean }> = ({ isDark = tr
           </Section>
 
           <Section>
-            <h3 className="text-[11px] font-bold text-indigo-600 uppercase tracking-wider mb-3">Gaps & Clearances</h3>
+            <h3 className="text-[11px] font-bold text-orange-600 uppercase tracking-wider mb-3">Gaps & Clearances</h3>
             <SettingRow label="Door to Door" value={settings.doorToDoorGap} onChange={v => updateSetting('doorToDoorGap', v)} step={0.5} min={0} max={10} />
             <SettingRow label="Door to Panel" value={settings.doorToPanelGap} onChange={v => updateSetting('doorToPanelGap', v)} step={0.5} min={0} max={10} />
             {activeType !== 'wall' && activeType !== 'corner' && activeType !== 'wall_corner' && <SettingRow label="Drawer to Drawer" value={settings.drawerToDrawerGap} onChange={v => updateSetting('drawerToDrawerGap', v)} step={0.5} min={0} max={10} />}
@@ -246,7 +246,7 @@ export const CabinetTestingPage: React.FC<{ isDark?: boolean }> = ({ isDark = tr
 
           {(settings.enableGola || settings.enableTallUpperGola) && (
             <Section>
-              <h3 className="text-[11px] font-bold text-indigo-600 uppercase tracking-wider mb-3">Gola System</h3>
+              <h3 className="text-[11px] font-bold text-orange-600 uppercase tracking-wider mb-3">Gola System</h3>
               <SettingRow label="Door Override" value={settings.doorOverride} onChange={v => updateSetting('doorOverride', v)} step={1} min={10} max={60} />
               <SettingRow label="L-Gola Height" value={settings.golaLCutoutHeight} onChange={v => updateSetting('golaLCutoutHeight', v)} step={1} min={20} max={100} />
               <SettingRow label="L-Gola Depth" value={settings.golaLCutoutDepth} onChange={v => updateSetting('golaLCutoutDepth', v)} step={1} min={10} max={60} />
@@ -257,7 +257,7 @@ export const CabinetTestingPage: React.FC<{ isDark?: boolean }> = ({ isDark = tr
           )}
 
           <Section>
-            <h3 className="text-[11px] font-bold text-indigo-600 uppercase tracking-wider mb-3">Front Options</h3>
+            <h3 className="text-[11px] font-bold text-orange-600 uppercase tracking-wider mb-3">Front Options</h3>
             {activeType === 'tall' ? (
               <div className="space-y-6 mt-4">
                 {/* Upper Section Settings */}
@@ -311,7 +311,7 @@ export const CabinetTestingPage: React.FC<{ isDark?: boolean }> = ({ isDark = tr
                 {/* Lower Section Settings */}
                 <div className="p-3 bg-slate-800/40 rounded-lg border border-slate-700/50 space-y-3">
                   <h3 className="text-[10px] font-bold text-indigo-400 uppercase tracking-[0.1em] mb-2 flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full"></span>
+                    <span className="w-1.5 h-1.5 bg-orange-600 rounded-full"></span>
                     Lower Section
                   </h3>
                   <SettingRow 
@@ -374,7 +374,7 @@ export const CabinetTestingPage: React.FC<{ isDark?: boolean }> = ({ isDark = tr
                   )}
 
                   {settings.showDrawers && (
-                    <div className="ml-4 p-2 bg-slate-900/50 rounded-md border-l-2 border-indigo-500/50 space-y-2">
+                    <div className="ml-4 p-2 bg-slate-900/50 rounded-md border-l-2 border-orange-500/50 space-y-2">
                       <SettingRow label="Drawer Stack H" value={settings.lowerSectionDrawerStackHeight} onChange={v => updateSetting('lowerSectionDrawerStackHeight', v)} step={10} min={50} max={settings.tallLowerSectionHeight} />
                       <SettingRow label="Num Drawers" value={settings.numDrawers} onChange={v => updateSetting('numDrawers', v)} step={1} min={1} max={6} />
                       <div className="flex flex-col gap-2 mt-2">
@@ -404,7 +404,7 @@ export const CabinetTestingPage: React.FC<{ isDark?: boolean }> = ({ isDark = tr
                   )}
 
                   {settings.showLowerShelves && (
-                    <div className="ml-4 p-2 bg-slate-900/50 rounded-md border-l-2 border-indigo-500/50">
+                    <div className="ml-4 p-2 bg-slate-900/50 rounded-md border-l-2 border-orange-500/50">
                       <SettingRow label="Num Shelves" value={settings.numLowerShelves} onChange={v => updateSetting('numLowerShelves', v)} step={1} min={0} max={10} />
                     </div>
                   )}
@@ -476,7 +476,7 @@ export const CabinetTestingPage: React.FC<{ isDark?: boolean }> = ({ isDark = tr
                 />
                 <CheckboxRow label="Show Hinges" checked={settings.showHinges} onChange={v => updateSetting('showHinges', v)} />
                 {settings.showHinges && (
-                  <div className="mt-2 pl-2 border-l-2 border-indigo-500/30 space-y-2">
+                  <div className="mt-2 pl-2 border-l-2 border-orange-500/30 space-y-2">
                     <SettingRow label="Hinge Diameter" value={settings.hingeDiameter} onChange={v => updateSetting('hingeDiameter', v)} step={1} min={10} max={50} />
                     <SettingRow label="Hinge Depth" value={settings.hingeDepth} onChange={v => updateSetting('hingeDepth', v)} step={1} min={2} max={20} />
                     <SettingRow label="Hinge H Offset" value={settings.hingeHorizontalOffset} onChange={v => updateSetting('hingeHorizontalOffset', v)} step={1} min={20} max={100} />
@@ -485,7 +485,7 @@ export const CabinetTestingPage: React.FC<{ isDark?: boolean }> = ({ isDark = tr
                 )}
                 {activeType !== 'wall' && activeType !== 'corner' && activeType !== 'sink' && activeType !== 'wall_corner' && <CheckboxRow label="Show Drawers" checked={settings.showDrawers} onChange={v => updateSetting('showDrawers', v)} />}
                 {settings.showDrawers && activeType !== 'wall' && activeType !== 'corner' && activeType !== 'wall_corner' && (
-                  <div className="mt-2 pl-2 border-l-2 border-indigo-500/30 space-y-2">
+                  <div className="mt-2 pl-2 border-l-2 border-orange-500/30 space-y-2">
                     <SettingRow label="Num Drawers" value={settings.numDrawers} onChange={v => updateSetting('numDrawers', v)} step={1} min={1} max={6} />
                     <SettingRow label="Side Clearance" value={settings.drawerSideClearance} onChange={v => updateSetting('drawerSideClearance', v)} step={1} min={0} max={50} />
                     <SettingRow label="Box Bottom Thk" value={settings.drawerBottomThickness} onChange={v => updateSetting('drawerBottomThickness', v)} step={1} min={3} max={20} />
@@ -496,7 +496,7 @@ export const CabinetTestingPage: React.FC<{ isDark?: boolean }> = ({ isDark = tr
                 )}
                 {activeType !== 'sink' && <CheckboxRow label="Show Shelves" checked={settings.showShelves} onChange={v => updateSetting('showShelves', v)} />}
                 {settings.showShelves && (
-                  <div className="mt-2 pl-2 border-l-2 border-indigo-500/30 space-y-2">
+                  <div className="mt-2 pl-2 border-l-2 border-orange-500/30 space-y-2">
                     <SettingRow label="Num Shelves" value={settings.numShelves} onChange={v => updateSetting('numShelves', v)} step={1} min={0} max={10} />
                   </div>
                 )}
@@ -505,10 +505,10 @@ export const CabinetTestingPage: React.FC<{ isDark?: boolean }> = ({ isDark = tr
           </Section>
 
           <Section>
-            <h3 className="text-[11px] font-bold text-indigo-600 uppercase tracking-wider mb-3">Construction</h3>
+            <h3 className="text-[11px] font-bold text-orange-600 uppercase tracking-wider mb-3">Construction</h3>
             <CheckboxRow label="Show Nail Holes" checked={settings.showNailHoles} onChange={v => updateSetting('showNailHoles', v)} />
             {settings.showNailHoles && (
-              <div className="mt-2 pl-2 border-l-2 border-indigo-500/30 space-y-2">
+              <div className="mt-2 pl-2 border-l-2 border-orange-500/30 space-y-2">
                 <SettingRow label="Stretcher Hole Dia" value={settings.nailHoleDiameter} onChange={v => updateSetting('nailHoleDiameter', v)} step={1} min={2} max={10} />
                 <SettingRow label="Shelf Hole Dia" value={settings.shelfHoleDiameter} onChange={v => updateSetting('shelfHoleDiameter', v)} step={1} min={2} max={10} />
                 <SettingRow label="Shelf Depth" value={settings.shelfDepth} onChange={v => updateSetting('shelfDepth', v)} step={10} min={100} max={1000} />
@@ -519,7 +519,7 @@ export const CabinetTestingPage: React.FC<{ isDark?: boolean }> = ({ isDark = tr
             <CheckboxRow label="Show Back Panel" checked={settings.showBackPanel} onChange={v => updateSetting('showBackPanel', v)} />
             <CheckboxRow label="Show Back Stretchers" checked={settings.showBackStretchers} onChange={v => updateSetting('showBackStretchers', v)} />
             {settings.showBackStretchers && (
-              <div className="mt-2 pl-2 border-l-2 border-indigo-500/30 space-y-2">
+              <div className="mt-2 pl-2 border-l-2 border-orange-500/30 space-y-2">
                 <SettingRow label="Stretcher H" value={settings.backStretcherHeight} onChange={v => updateSetting('backStretcherHeight', v)} step={10} min={50} max={200} />
                 <SettingRow label="Top Stretcher W" value={settings.topStretcherWidth} onChange={v => updateSetting('topStretcherWidth', v)} step={10} min={50} max={200} />
               </div>
@@ -529,10 +529,10 @@ export const CabinetTestingPage: React.FC<{ isDark?: boolean }> = ({ isDark = tr
 
           {(settings.cabinetType === 'base' || settings.cabinetType === 'sink' || settings.cabinetType === 'wall' || settings.cabinetType === 'wall_corner' || settings.cabinetType === 'corner') && (settings.showDoors || settings.showDrawers) && (
            <Section>
-             <h3 className="text-[11px] font-bold text-indigo-600 uppercase tracking-wider mb-3">Gola System</h3>
+             <h3 className="text-[11px] font-bold text-orange-600 uppercase tracking-wider mb-3">Gola System</h3>
              <CheckboxRow label="Enable Gola" checked={settings.enableGola} onChange={v => updateSetting('enableGola', v)} />
              {settings.enableGola && (
-               <div className="mt-2 pl-2 border-l-2 border-indigo-500/30 space-y-2">
+               <div className="mt-2 pl-2 border-l-2 border-orange-500/30 space-y-2">
                  <SettingRow label="Door Drop" value={settings.doorOverride} onChange={v => updateSetting('doorOverride', v)} step={1} min={0} max={50} />
                  <SettingRow label="L-Cut Height" value={settings.golaLCutoutHeight} onChange={v => updateSetting('golaLCutoutHeight', v)} step={1} min={20} max={100} />
                  <SettingRow label="L-Cut Depth" value={settings.golaLCutoutDepth} onChange={v => updateSetting('golaLCutoutDepth', v)} step={1} min={10} max={50} />
@@ -546,7 +546,7 @@ export const CabinetTestingPage: React.FC<{ isDark?: boolean }> = ({ isDark = tr
           )}
 
           <Section>
-            <h3 className="text-[11px] font-bold text-indigo-600 uppercase tracking-wider mb-3">View Options</h3>
+            <h3 className="text-[11px] font-bold text-orange-600 uppercase tracking-wider mb-3">View Options</h3>
             <CheckboxRow label="Skeleton View" checked={settings.skeletonView} onChange={v => updateSetting('skeletonView', v)} />
             <CheckboxRow label="Different Panel Colors" checked={settings.showDifferentPanelColors} onChange={v => updateSetting('showDifferentPanelColors', v)} />
             <CheckboxRow label="Parts Separated View" checked={settings.partsSeparatedView} onChange={v => updateSetting('partsSeparatedView', v)} />
@@ -555,7 +555,7 @@ export const CabinetTestingPage: React.FC<{ isDark?: boolean }> = ({ isDark = tr
                 <select 
                   value={settings.selectedPart} 
                   onChange={(e) => updateSetting('selectedPart', e.target.value)}
-                  className={`w-full ${isDark ? 'bg-slate-950 border-slate-600' : 'bg-white border-slate-300'} border rounded px-2 py-1.5 text-[11px] text-indigo-600 font-medium`}
+                  className={`w-full ${isDark ? 'bg-slate-950 border-slate-600' : 'bg-white border-slate-300'} border rounded px-2 py-1.5 text-[11px] text-orange-600 font-medium`}
                 >
                   <option value="all">View All Parts</option>
                   <option value="leftPanel">Left Panel</option>
@@ -633,7 +633,7 @@ export const CabinetTestingPage: React.FC<{ isDark?: boolean }> = ({ isDark = tr
 
         <div className="absolute top-6 left-6 flex flex-col gap-2">
           <div className={`${isDark ? 'bg-slate-800/80 border-slate-700/50' : 'bg-white/80 border-slate-200'} backdrop-blur-md px-3 py-2 rounded-lg border shadow-xl`}>
-             <div className="text-[10px] uppercase tracking-wider text-indigo-600 font-bold mb-1">Live Stats</div>
+             <div className="text-[10px] uppercase tracking-wider text-orange-600 font-bold mb-1">Live Stats</div>
              <div className="text-[11px] text-slate-300 font-mono">
                DIM: {settings.width}x{settings.height}x{settings.depth}<br/>
                DOORS: {CalculatedStats.actualNumDoors} units<br/>
@@ -644,7 +644,7 @@ export const CabinetTestingPage: React.FC<{ isDark?: boolean }> = ({ isDark = tr
 
         <div className="absolute bottom-6 right-6 flex gap-2">
           <div className={`${isDark ? 'bg-slate-800/80 border-slate-700/50 text-slate-400' : 'bg-white/80 border-slate-200 text-slate-500'} backdrop-blur-md px-3 py-2 rounded-lg border text-[10px]`}>
-            <span className="text-indigo-600 font-bold uppercase">Pro Tip:</span> Hold SHIFT + Right Click to PAN
+            <span className="text-orange-600 font-bold uppercase">Pro Tip:</span> Hold SHIFT + Right Click to PAN
           </div>
         </div>
       </div>

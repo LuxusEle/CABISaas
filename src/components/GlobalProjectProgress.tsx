@@ -82,7 +82,7 @@ export const GlobalProjectProgress: React.FC<GlobalProjectProgressProps> = ({
                 ${node.status === 'complete' 
                   ? 'bg-emerald-500/10 border-2 border-emerald-500/20 text-emerald-600' 
                   : node.status === 'in_progress'
-                  ? 'bg-indigo-600/10 border-2 border-indigo-500/20 text-indigo-700'
+                  ? 'bg-orange-600/10 border-2 border-orange-500/20 text-indigo-700'
                   : 'bg-slate-100 dark:bg-slate-800/50 border-2 border-transparent text-slate-500'
                 }
                 ${hoveredNode === node.id ? 'scale-105 shadow-lg' : ''}
@@ -93,7 +93,7 @@ export const GlobalProjectProgress: React.FC<GlobalProjectProgressProps> = ({
                 ${node.status === 'complete' 
                   ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' 
                   : node.status === 'in_progress'
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
+                  ? 'bg-orange-600 text-white shadow-lg shadow-orange-500/30'
                   : 'bg-slate-200 dark:bg-slate-700 text-slate-400'
                 }
               `}>
@@ -105,7 +105,7 @@ export const GlobalProjectProgress: React.FC<GlobalProjectProgressProps> = ({
                 <div className="text-xs font-black flex items-center gap-1.5 leading-none">
                   {node.count}
                   {node.status === 'complete' && <CheckCircle2 size={12} className="text-emerald-500" />}
-                  {node.status === 'in_progress' && <AlertCircle size={12} className="text-indigo-600" />}
+                  {node.status === 'in_progress' && <AlertCircle size={12} className="text-orange-600" />}
                 </div>
               </div>
 
@@ -119,11 +119,11 @@ export const GlobalProjectProgress: React.FC<GlobalProjectProgressProps> = ({
                     className="absolute top-full mt-4 left-0 w-72 bg-white dark:bg-slate-900 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] border-2 border-slate-100 dark:border-slate-800 p-5 z-[100] overflow-hidden"
                   >
                     {/* Header Decoration */}
-                    <div className={`absolute top-0 left-0 w-full h-1 ${node.status === 'complete' ? 'bg-emerald-500' : node.status === 'in_progress' ? 'bg-indigo-600' : 'bg-slate-300'}`} />
+                    <div className={`absolute top-0 left-0 w-full h-1 ${node.status === 'complete' ? 'bg-emerald-500' : node.status === 'in_progress' ? 'bg-orange-600' : 'bg-slate-300'}`} />
                     
                     <div className="flex items-center justify-between mb-4">
                       <h4 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white">{node.label} Checklist</h4>
-                      <span className={`text-[10px] font-black px-2 py-1 rounded-lg ${node.status === 'complete' ? 'bg-emerald-500/10 text-emerald-500' : node.status === 'in_progress' ? 'bg-indigo-600/10 text-indigo-600' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>
+                      <span className={`text-[10px] font-black px-2 py-1 rounded-lg ${node.status === 'complete' ? 'bg-emerald-500/10 text-emerald-500' : node.status === 'in_progress' ? 'bg-orange-600/10 text-orange-600' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>
                         {Math.round((node.tasks.filter(t => t.done).length / node.tasks.length) * 100)}%
                       </span>
                     </div>
@@ -145,7 +145,7 @@ export const GlobalProjectProgress: React.FC<GlobalProjectProgressProps> = ({
                                 e.stopPropagation();
                                 onNavigate(node.screen);
                               }}
-                              className="opacity-0 group-hover/task:opacity-100 transition-opacity text-indigo-600"
+                              className="opacity-0 group-hover/task:opacity-100 transition-opacity text-orange-600"
                             >
                               <ChevronRight size={14} />
                             </button>
@@ -170,7 +170,7 @@ export const GlobalProjectProgress: React.FC<GlobalProjectProgressProps> = ({
           {index < nodes.length - 1 && (
             <div className="w-8 lg:w-16 h-0.5 bg-slate-100 dark:bg-slate-800 mx-1 relative overflow-hidden">
                <motion.div 
-                className={`absolute inset-0 ${node.status === 'complete' ? 'bg-emerald-500' : node.status === 'in_progress' ? 'bg-indigo-600/50' : 'bg-slate-200'}`}
+                className={`absolute inset-0 ${node.status === 'complete' ? 'bg-emerald-500' : node.status === 'in_progress' ? 'bg-orange-600/50' : 'bg-slate-200'}`}
                 initial={{ x: '-100%' }}
                 animate={{ x: node.status === 'complete' ? '0%' : node.status === 'in_progress' ? '-30%' : '-100%' }}
                 transition={{ duration: 0.8, ease: "easeInOut" }}

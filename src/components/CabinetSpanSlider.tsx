@@ -78,7 +78,7 @@ const NudgeInput = ({ label, value, onNudge, colorClass, subtitle }: any) => {
       <label className={`text-[8px] font-black uppercase tracking-widest block ${colorClass}`}>{label}</label>
       <div 
         ref={scrollRef}
-        className="flex items-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden focus-within:border-indigo-500 transition-colors"
+        className="flex items-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden focus-within:border-orange-500 transition-colors"
       >
         <button 
           onMouseDown={() => startNudging(-1)}
@@ -86,7 +86,7 @@ const NudgeInput = ({ label, value, onNudge, colorClass, subtitle }: any) => {
           onMouseLeave={stopNudging}
           onTouchStart={() => startNudging(-1)}
           onTouchEnd={stopNudging}
-          className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-indigo-600 transition-colors border-r dark:border-slate-700 select-none"
+          className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-orange-600 transition-colors border-r dark:border-slate-700 select-none"
         >
           <Minus size={12} />
         </button>
@@ -106,7 +106,7 @@ const NudgeInput = ({ label, value, onNudge, colorClass, subtitle }: any) => {
           onMouseLeave={stopNudging}
           onTouchStart={() => startNudging(1)}
           onTouchEnd={stopNudging}
-          className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-indigo-600 transition-colors border-l dark:border-slate-700 select-none"
+          className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-orange-600 transition-colors border-l dark:border-slate-700 select-none"
         >
           <Plus size={12} />
         </button>
@@ -225,7 +225,7 @@ export const CabinetSpanSlider: React.FC<CabinetSpanSliderProps> = ({
     <div className="space-y-2 py-4 px-1">
       <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest">
         <span>0mm</span>
-        <span className="text-indigo-600 font-mono">{width}mm wide</span>
+        <span className="text-orange-600 font-mono">{width}mm wide</span>
         <span>{totalLength}mm</span>
       </div>
       
@@ -238,13 +238,13 @@ export const CabinetSpanSlider: React.FC<CabinetSpanSliderProps> = ({
 
         {activeHandle && (
           <div className="absolute inset-x-0 top-1 flex justify-center pointer-events-none animate-bounce">
-            <span className="text-[7px] font-black bg-indigo-600 text-white px-1.5 py-0.5 rounded-full uppercase tracking-tighter">Precision Mode 3x</span>
+            <span className="text-[7px] font-black bg-orange-600 text-white px-1.5 py-0.5 rounded-full uppercase tracking-tighter">Precision Mode 3x</span>
           </div>
         )}
  
         {/* Selected Area */}
         <div 
-          className={`absolute top-0 bottom-0 bg-indigo-600/10 border-x-2 border-indigo-500 transition-colors cursor-grab active:cursor-grabbing ${activeHandle === 'middle' ? 'bg-indigo-600/20' : ''}`}
+          className={`absolute top-0 bottom-0 bg-orange-600/10 border-x-2 border-orange-500 transition-colors cursor-grab active:cursor-grabbing ${activeHandle === 'middle' ? 'bg-orange-600/20' : ''}`}
           style={{ left: `${leftPercent}%`, width: `${widthPercent}%` }}
           onMouseDown={(e) => handleMouseDown(e, 'middle')}
           onTouchStart={(e) => handleTouchStart(e, 'middle')}
@@ -252,7 +252,7 @@ export const CabinetSpanSlider: React.FC<CabinetSpanSliderProps> = ({
           {/* Middle Pattern */}
           <div className="absolute inset-0 opacity-20 pointer-events-none flex items-center justify-center">
             <div className="flex gap-1">
-              {[1, 2, 3].map(i => <div key={i} className={`w-1 bg-indigo-600 rounded-full transition-all ${activeHandle ? 'h-6' : 'h-4'}`}></div>)}
+              {[1, 2, 3].map(i => <div key={i} className={`w-1 bg-orange-600 rounded-full transition-all ${activeHandle ? 'h-6' : 'h-4'}`}></div>)}
             </div>
           </div>
         </div>
@@ -264,7 +264,7 @@ export const CabinetSpanSlider: React.FC<CabinetSpanSliderProps> = ({
           onMouseDown={(e) => handleMouseDown(e, 'left')}
           onTouchStart={(e) => handleTouchStart(e, 'left')}
         >
-          <div className={`w-2.5 rounded-full bg-indigo-600 shadow-lg shadow-indigo-500/30 transition-all ${activeHandle === 'left' ? 'h-12 w-3' : 'h-8 group-hover:scale-y-110'}`}></div>
+          <div className={`w-2.5 rounded-full bg-orange-600 shadow-lg shadow-orange-500/30 transition-all ${activeHandle === 'left' ? 'h-12 w-3' : 'h-8 group-hover:scale-y-110'}`}></div>
         </div>
  
         {/* Right Handle */}
@@ -274,7 +274,7 @@ export const CabinetSpanSlider: React.FC<CabinetSpanSliderProps> = ({
           onMouseDown={(e) => handleMouseDown(e, 'right')}
           onTouchStart={(e) => handleTouchStart(e, 'right')}
         >
-          <div className={`w-2.5 rounded-full bg-indigo-600 shadow-lg shadow-indigo-500/30 transition-all ${activeHandle === 'right' ? 'h-12 w-3' : 'h-8 group-hover:scale-y-110'}`}></div>
+          <div className={`w-2.5 rounded-full bg-orange-600 shadow-lg shadow-orange-500/30 transition-all ${activeHandle === 'right' ? 'h-12 w-3' : 'h-8 group-hover:scale-y-110'}`}></div>
         </div>
       </div>
 
@@ -289,7 +289,7 @@ export const CabinetSpanSlider: React.FC<CabinetSpanSliderProps> = ({
                 onClick={() => setAnchor(side)}
                 className={`py-2 px-1 text-[9px] font-bold uppercase rounded-lg transition-all ${
                   anchor === side 
-                    ? 'bg-indigo-600 text-white shadow-md' 
+                    ? 'bg-orange-600 text-white shadow-md' 
                     : 'text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700'
                 }`}
               >
@@ -303,7 +303,7 @@ export const CabinetSpanSlider: React.FC<CabinetSpanSliderProps> = ({
         <NudgeInput 
           label="Adjust Width (mm)" 
           value={width} 
-          colorClass="text-indigo-600"
+          colorClass="text-orange-600"
           subtitle={anchor === 'left' ? 'Moves left edge' : anchor === 'right' ? 'Moves right edge' : 'Moves both edges'}
           onNudge={(delta: number) => {
             const newWidth = Math.max(10, Math.min(totalLength, width + delta));
@@ -328,7 +328,7 @@ export const CabinetSpanSlider: React.FC<CabinetSpanSliderProps> = ({
 
       <div className="flex justify-between text-[9px] font-mono text-slate-400 pt-2 border-t dark:border-slate-800 mt-4">
         <span>Wall: 0</span>
-        <span className="text-indigo-600 font-black italic">Precision Control</span>
+        <span className="text-orange-600 font-black italic">Precision Control</span>
         <span>End: {totalLength}</span>
       </div>
     </div>

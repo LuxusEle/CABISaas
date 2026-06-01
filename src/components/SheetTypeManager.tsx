@@ -376,7 +376,7 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
         <>
           <div className="flex justify-between items-center mb-6 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
             <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2 uppercase tracking-tight">
-              <Settings2 className="text-indigo-600" /> Core Sheet Materials
+              <Settings2 className="text-orange-600" /> Core Sheet Materials
             </h3>
             {!isProjectLayer && (
               <button
@@ -384,7 +384,7 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
                   e.stopPropagation();
                   setShowAddForm(showAddForm === 'sheet' ? null : 'sheet');
                 }}
-                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-xs font-bold rounded-full hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/20"
+                className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white text-xs font-bold rounded-full hover:bg-orange-700 transition-all shadow-lg shadow-orange-500/20"
               >
                 <Plus size={14} /> Add Sheet Material
               </button>
@@ -393,7 +393,7 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
 
           <div className="p-0">
             {showAddForm === 'sheet' && (
-              <div className="mb-4 p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border-2 border-dashed border-indigo-200 dark:border-indigo-900/50 animate-in slide-in-from-top-4">
+              <div className="mb-4 p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border-2 border-dashed border-orange-200 dark:border-orange-900/50 animate-in slide-in-from-top-4">
                 <h4 className="text-xs font-black mb-4 text-indigo-700 uppercase tracking-widest">Register New Material</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
                   <div className="space-y-1">
@@ -464,10 +464,10 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
                           <td className="px-3 py-4 text-slate-900 dark:text-white font-bold">{sheetType.name}</td>
                           <td className="px-3 py-4 text-slate-500 font-mono text-xs">{sheetType.thickness}mm</td>
                           <td className="px-3 py-4 text-slate-500 font-mono text-xs">{sheetType.width || 1220} x {sheetType.length || 2440}mm</td>
-                          <td className="px-3 py-4 text-slate-900 dark:text-indigo-400 font-black">{currency} {sheetType.price_per_sheet.toFixed(2)}</td>
+                          <td className="px-3 py-4 text-slate-900 dark:text-orange-400 font-black">{currency} {sheetType.price_per_sheet.toFixed(2)}</td>
                           <td className="px-3 py-4 text-right">
                             <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button onClick={() => startEditingSheet(sheetType)} className="p-2 text-indigo-600 hover:bg-amber-50 rounded-lg"><Edit2 size={16} /></button>
+                              <button onClick={() => startEditingSheet(sheetType)} className="p-2 text-orange-600 hover:bg-amber-50 rounded-lg"><Edit2 size={16} /></button>
                               {!sheetType.is_default && !isProjectLayer && <button onClick={() => handleDeleteSheet(sheetType.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={16} /></button>}
                             </div>
                           </td>
@@ -482,9 +482,9 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
             {/* Tile Materials Subsection */}
             {tileAccessories.length > 0 && (
               <div className="mt-10 border-t border-slate-100 dark:border-slate-800 pt-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                <div className="flex justify-between items-center mb-6 bg-amber-50/50 dark:bg-amber-900/10 p-4 rounded-2xl border border-indigo-200/50 dark:border-indigo-900/50">
+                <div className="flex justify-between items-center mb-6 bg-amber-50/50 dark:bg-amber-900/10 p-4 rounded-2xl border border-orange-200/50 dark:border-orange-900/50">
                   <h4 className="text-xs font-black text-indigo-700 uppercase tracking-widest flex items-center gap-2">
-                    <Package size={14} className="text-indigo-600" /> Tiling & Surface Materials
+                    <Package size={14} className="text-orange-600" /> Tiling & Surface Materials
                   </h4>
                   {!isProjectLayer && (
                     <button
@@ -493,7 +493,7 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
                         setNewAccessory({ ...newAccessory, name: 'Tile ', unit: 'sqft' });
                         setShowAddForm(showAddForm === 'accessory' ? null : 'accessory');
                       }}
-                      className="flex items-center gap-2 px-4 py-2 bg-indigo-700 text-white text-xs font-bold rounded-full hover:bg-amber-700 transition-all shadow-lg shadow-indigo-600/20"
+                      className="flex items-center gap-2 px-4 py-2 bg-orange-700 text-white text-xs font-bold rounded-full hover:bg-amber-700 transition-all shadow-lg shadow-orange-600/20"
                     >
                       <Plus size={14} /> Add Tiling/Surface
                     </button>
@@ -501,7 +501,7 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
                 </div>
                 
                 {showAddForm === 'accessory' && (
-                  <div className="mb-6 p-6 bg-amber-50/30 dark:bg-amber-900/10 rounded-2xl border-2 border-dashed border-indigo-200 dark:border-indigo-800 animate-in slide-in-from-top-4">
+                  <div className="mb-6 p-6 bg-amber-50/30 dark:bg-amber-900/10 rounded-2xl border-2 border-dashed border-orange-200 dark:border-orange-800 animate-in slide-in-from-top-4">
                     <h4 className="text-xs font-black mb-4 text-indigo-700 uppercase tracking-widest">Register Surface Material</h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                       <div className="space-y-1">
@@ -591,10 +591,10 @@ export const SheetTypeManager: React.FC<SheetTypeManagerProps> = ({
                                 {acc.width || (acc.unit === 'sqft' ? 2 : 600)} x {acc.length || (acc.unit === 'sqft' ? 2 : 600)}
                                 {acc.unit === 'sqft' ? 'ft' : 'mm'}
                               </td>
-                              <td className="px-3 py-4 text-slate-900 dark:text-indigo-400 font-black">{currency} {acc.default_amount.toFixed(2)}</td>
+                              <td className="px-3 py-4 text-slate-900 dark:text-orange-400 font-black">{currency} {acc.default_amount.toFixed(2)}</td>
                               <td className="px-3 py-4 text-right">
                                 <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <button onClick={() => startEditingAccessory(acc)} className="p-2 text-indigo-600 hover:bg-amber-50 rounded-lg"><Edit2 size={16} /></button>
+                                  <button onClick={() => startEditingAccessory(acc)} className="p-2 text-orange-600 hover:bg-amber-50 rounded-lg"><Edit2 size={16} /></button>
                                   {!isProjectLayer && <button onClick={() => handleDeleteAccessory(acc.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={16} /></button>}
                                 </div>
                               </td>

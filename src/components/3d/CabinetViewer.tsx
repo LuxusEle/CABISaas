@@ -1504,8 +1504,8 @@ export const CabinetViewer = forwardRef<CabinetViewerHandle, Props>((props, ref)
     <div className={`w-full h-full relative overflow-hidden touch-none ${lightTheme ? 'bg-gradient-to-br from-slate-100 to-slate-200' : ''}`}>
         {isInitialLoading && (
           <div className="absolute inset-0 z-[100] flex flex-col items-center justify-center bg-slate-900">
-            <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-            <div className="text-indigo-600 font-bold animate-pulse uppercase tracking-widest text-sm">Building 3D Scene...</div>
+            <div className="w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+            <div className="text-orange-600 font-bold animate-pulse uppercase tracking-widest text-sm">Building 3D Scene...</div>
           </div>
         )}
         <>
@@ -1548,7 +1548,7 @@ export const CabinetViewer = forwardRef<CabinetViewerHandle, Props>((props, ref)
                 : 'bg-slate-800/80 text-white border-slate-700/50 hover:bg-slate-700'
             }`}
           >
-            <Box className="w-4 h-4 text-indigo-600" />
+            <Box className="w-4 h-4 text-orange-600" />
             Export to SketchUp
           </button>
 

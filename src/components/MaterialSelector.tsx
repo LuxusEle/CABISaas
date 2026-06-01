@@ -49,7 +49,7 @@ export const MaterialSelector: React.FC<MaterialSelectorProps> = ({ materials = 
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
       >
-        <Layers size={16} className="text-indigo-600" />
+        <Layers size={16} className="text-orange-600" />
         <span className="hidden sm:inline">Materials</span>
         <ChevronDown size={16} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
@@ -59,7 +59,7 @@ export const MaterialSelector: React.FC<MaterialSelectorProps> = ({ materials = 
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
           <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 z-50 p-4">
             <h4 className="text-sm font-bold mb-3 text-slate-900 dark:text-white flex items-center gap-2">
-              <Layers size={16} className="text-indigo-600" />
+              <Layers size={16} className="text-orange-600" />
               Select Materials
             </h4>
 
@@ -154,7 +154,7 @@ export const MaterialSelector: React.FC<MaterialSelectorProps> = ({ materials = 
             <div className="pt-3 border-t border-slate-200 dark:border-slate-700">
               <button
                 onClick={() => setIsOpen(false)}
-                className="w-full px-4 py-2 bg-indigo-600 text-white text-sm font-bold rounded-lg hover:bg-indigo-700"
+                className="w-full px-4 py-2 bg-orange-600 text-white text-sm font-bold rounded-lg hover:bg-orange-700"
               >
                 Done
               </button>

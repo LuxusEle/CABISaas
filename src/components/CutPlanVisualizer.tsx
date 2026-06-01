@@ -476,7 +476,7 @@ export const CutPlanVisualizer: React.FC<Props> = ({ sheet, settings, index }) =
               );
             })()}
             <button 
-              className="mt-4 w-full bg-indigo-600 text-white py-2 rounded-lg font-bold hover:bg-indigo-700"
+              className="mt-4 w-full bg-orange-600 text-white py-2 rounded-lg font-bold hover:bg-orange-700"
               onClick={() => setSelectedPart(null)}
             >
               Close

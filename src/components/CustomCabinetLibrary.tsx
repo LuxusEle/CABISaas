@@ -61,7 +61,7 @@ export const CustomCabinetLibrary: React.FC<CustomCabinetLibraryProps> = ({
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <Loader className="animate-spin text-indigo-600" size={24} />
+        <Loader className="animate-spin text-orange-600" size={24} />
       </div>
     );
   }
@@ -100,7 +100,7 @@ export const CustomCabinetLibrary: React.FC<CustomCabinetLibraryProps> = ({
             key={preset.id}
             onClick={() => onSelectPreset(preset)}
             className={`p-3 text-left rounded-lg border transition-all group ${selectedPresetId === preset.id
-              ? 'border-indigo-500 bg-amber-50 dark:bg-amber-900/30 ring-1 ring-amber-500'
+              ? 'border-orange-500 bg-amber-50 dark:bg-amber-900/30 ring-1 ring-amber-500'
               : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
               }`}
           >

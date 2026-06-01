@@ -74,26 +74,26 @@ export const LandingHeader: React.FC<LandingHeaderProps> = ({
               <button
                 key={link.id}
                 onClick={() => scrollToSection(link.id)}
-                className="text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors text-sm font-medium"
+                className="text-slate-600 dark:text-slate-300 hover:text-orange-600 dark:hover:text-orange-400 transition-colors text-sm font-medium"
               >
                 {link.label}
               </button>
             ))}
             <Link
               to="/docs"
-              className="text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors text-sm font-medium flex items-center gap-1"
+              className="text-slate-600 dark:text-slate-300 hover:text-orange-600 dark:hover:text-orange-400 transition-colors text-sm font-medium flex items-center gap-1"
             >
               Docs
             </Link>
             <Link
               to="/terms"
-              className="text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors text-sm font-medium flex items-center gap-1"
+              className="text-slate-600 dark:text-slate-300 hover:text-orange-600 dark:hover:text-orange-400 transition-colors text-sm font-medium flex items-center gap-1"
             >
               Terms
             </Link>
             <button
               onClick={() => setIsDark(!isDark)}
-              className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-indigo-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+              className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-orange-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
               aria-label="Toggle theme"
             >
               {isDark ? <Sun size={20} /> : <Moon size={20} />}
@@ -104,7 +104,7 @@ export const LandingHeader: React.FC<LandingHeaderProps> = ({
           <div className="flex md:hidden items-center gap-2">
             <button
               onClick={() => setIsDark(!isDark)}
-              className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-indigo-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+              className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-orange-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
               aria-label="Toggle theme"
             >
               {isDark ? <Sun size={20} /> : <Moon size={20} />}
@@ -128,7 +128,7 @@ export const LandingHeader: React.FC<LandingHeaderProps> = ({
               <button
                 key={link.id}
                 onClick={() => scrollToSection(link.id)}
-                className="w-full text-left px-4 py-3 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors text-base font-medium min-h-[48px]"
+                className="w-full text-left px-4 py-3 text-slate-600 dark:text-slate-300 hover:text-orange-600 dark:hover:text-orange-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors text-base font-medium min-h-[48px]"
               >
                 {link.label}
               </button>
@@ -136,7 +136,7 @@ export const LandingHeader: React.FC<LandingHeaderProps> = ({
             <Link
               to="/docs"
               onClick={() => setMobileMenuOpen(false)}
-              className="w-full text-left px-4 py-3 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors text-base font-medium min-h-[48px] flex items-center gap-2"
+              className="w-full text-left px-4 py-3 text-slate-600 dark:text-slate-300 hover:text-orange-600 dark:hover:text-orange-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors text-base font-medium min-h-[48px] flex items-center gap-2"
             >
               <FileText size={18} />
               Docs
@@ -144,7 +144,7 @@ export const LandingHeader: React.FC<LandingHeaderProps> = ({
             <Link
               to="/terms"
               onClick={() => setMobileMenuOpen(false)}
-              className="w-full text-left px-4 py-3 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors text-base font-medium min-h-[48px] flex items-center gap-2"
+              className="w-full text-left px-4 py-3 text-slate-600 dark:text-slate-300 hover:text-orange-600 dark:hover:text-orange-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors text-base font-medium min-h-[48px] flex items-center gap-2"
             >
               <Shield size={18} />
               Terms
@@ -152,13 +152,13 @@ export const LandingHeader: React.FC<LandingHeaderProps> = ({
             <div className="border-t border-slate-200 dark:border-slate-700 my-2 pt-2 space-y-2">
               <button
                 onClick={() => { onSignIn(); setMobileMenuOpen(false); }}
-                className="w-full text-left px-4 py-3 text-slate-600 dark:text-slate-300 hover:text-indigo-700 dark:hover:text-indigo-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors text-base font-medium min-h-[48px]"
+                className="w-full text-left px-4 py-3 text-slate-600 dark:text-slate-300 hover:text-orange-700 dark:hover:text-orange-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors text-base font-medium min-h-[48px]"
               >
                 Sign In
               </button>
               <button
                 onClick={() => { onGetStarted(); setMobileMenuOpen(false); }}
-                className="w-full text-left px-4 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors text-base font-bold min-h-[48px] text-center"
+                className="w-full text-left px-4 py-3 bg-orange-600 hover:bg-orange-500 text-white rounded-lg transition-colors text-base font-bold min-h-[48px] text-center"
               >
                 Get Started Free
               </button>

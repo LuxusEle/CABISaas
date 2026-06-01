@@ -167,8 +167,8 @@ export const WallLimitsModal = forwardRef<any, WallLimitsModalProps>(({
                     }}
                       className={`flex-1 py-2 rounded-lg text-[13px] font-black uppercase transition-all ${
                         isl.numRows === 1
-                          ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
-                          : 'bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-600'
+                          ? 'bg-orange-600 text-white shadow-md shadow-orange-500/20'
+                          : 'bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 hover:border-orange-300 dark:hover:border-orange-600'
                       }`}>1</button>
                     <button onClick={() => {
                       setLocalIsland(prev => ({
@@ -183,8 +183,8 @@ export const WallLimitsModal = forwardRef<any, WallLimitsModalProps>(({
                     }}
                       className={`flex-1 py-2 rounded-lg text-[13px] font-black uppercase transition-all ${
                         isl.numRows === 2
-                          ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
-                          : 'bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-600'
+                          ? 'bg-orange-600 text-white shadow-md shadow-orange-500/20'
+                          : 'bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 hover:border-orange-300 dark:hover:border-orange-600'
                       }`}>2</button>
                   </div>
                 </div>
@@ -196,8 +196,8 @@ export const WallLimitsModal = forwardRef<any, WallLimitsModalProps>(({
                         <button key={dir} onClick={() => handleUpdateIslandSetting('facingDirection', dir)}
                           className={`py-2 rounded-lg text-[10px] font-black uppercase tracking-wide transition-all ${
                             isl.facingDirection === dir
-                              ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/20'
-                              : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-600'
+                              ? 'bg-orange-600 text-white shadow-sm shadow-orange-500/20'
+                              : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:border-orange-300 dark:hover:border-orange-600'
                           }`}>{dir}</button>
                       ))}
                     </div>
@@ -207,8 +207,8 @@ export const WallLimitsModal = forwardRef<any, WallLimitsModalProps>(({
                   <div className="rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-700 p-3 flex flex-col items-center gap-1.5">
                     <span className="text-[11px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-widest">Layout</span>
                     <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-600 dark:text-slate-300">
-                      <span className="w-3 h-3 rounded-sm border-2 border-indigo-400 bg-indigo-100/50" />
-                      <span className="text-indigo-700 dark:text-indigo-400">Back-to-back</span>
+                      <span className="w-3 h-3 rounded-sm border-2 border-orange-400 bg-indigo-100/50" />
+                      <span className="text-indigo-700 dark:text-orange-400">Back-to-back</span>
                     </div>
                   </div>
                 )}
@@ -416,8 +416,8 @@ export const WallLimitsModal = forwardRef<any, WallLimitsModalProps>(({
                   onChange={(e) => setDirtyInputs(prev => ({ ...prev, posZ: e.target.value }))}
                   onBlur={(e) => commitDirtyInput('posZ', e.target.value, posZMin, posZMax)}
                   onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
-                  className="w-12 bg-transparent text-sm font-black text-indigo-600 font-mono text-right outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-b border-transparent focus:border-indigo-500 transition-all" />
-                <span className="text-[10px] font-black text-indigo-600 font-mono">mm</span>
+                  className="w-12 bg-transparent text-sm font-black text-orange-600 font-mono text-right outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-b border-transparent focus:border-orange-500 transition-all" />
+                <span className="text-[10px] font-black text-orange-600 font-mono">mm</span>
               </div>
             </div>
           </div>
@@ -432,8 +432,8 @@ export const WallLimitsModal = forwardRef<any, WallLimitsModalProps>(({
                     onChange={(e) => setDirtyInputs(prev => ({ ...prev, posX: e.target.value }))}
                     onBlur={(e) => commitDirtyInput('posX', e.target.value, posXMin, posXMax)}
                     onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
-                    className="w-16 bg-transparent text-sm font-black text-indigo-600 font-mono text-right outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-b border-transparent focus:border-indigo-500 transition-all" />
-                  <span className="text-xs font-black text-indigo-600 font-mono">mm</span>
+                    className="w-16 bg-transparent text-sm font-black text-orange-600 font-mono text-right outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-b border-transparent focus:border-orange-500 transition-all" />
+                  <span className="text-xs font-black text-orange-600 font-mono">mm</span>
                 </div>
               </div>
               <input type="range" min={posXMin} max={posXMax} step="10"
@@ -516,7 +516,7 @@ export const WallLimitsModal = forwardRef<any, WallLimitsModalProps>(({
                 key={zone.id}
                 onClick={() => setActiveTab(zone.id)}
                 className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${activeTab === zone.id
-                    ? 'bg-white dark:bg-slate-900 text-indigo-600 shadow-sm'
+                    ? 'bg-white dark:bg-slate-900 text-orange-600 shadow-sm'
                     : 'text-slate-400 hover:text-slate-600'
                   }`}
               >
@@ -527,7 +527,7 @@ export const WallLimitsModal = forwardRef<any, WallLimitsModalProps>(({
               <button
                 onClick={() => setActiveTab('Island')}
                 className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${activeTab === 'Island'
-                    ? 'bg-white dark:bg-slate-900 text-indigo-600 shadow-sm'
+                    ? 'bg-white dark:bg-slate-900 text-orange-600 shadow-sm'
                     : 'text-slate-400 hover:text-slate-600'
                   }`}
               >
@@ -576,9 +576,9 @@ export const WallLimitsModal = forwardRef<any, WallLimitsModalProps>(({
                             type="number"
                             value={currentZone.startLimit || 0}
                             onChange={(e) => handleUpdateLimit('start', parseInt(e.target.value) || 0)}
-                            className="w-24 bg-transparent text-xl font-black text-indigo-600 font-mono text-right outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-b-2 border-transparent focus:border-indigo-500 transition-all"
+                            className="w-24 bg-transparent text-xl font-black text-orange-600 font-mono text-right outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-b-2 border-transparent focus:border-orange-500 transition-all"
                           />
-                          <span className="text-xl font-black text-indigo-600 font-mono">mm</span>
+                          <span className="text-xl font-black text-orange-600 font-mono">mm</span>
                         </div>
                       </div>
                       <input
@@ -599,9 +599,9 @@ export const WallLimitsModal = forwardRef<any, WallLimitsModalProps>(({
                               const val = parseInt(e.target.value) || 0;
                               handleUpdateLimit('end', currentZone.totalLength - val);
                             }}
-                            className="w-24 bg-transparent text-xl font-black text-indigo-600 font-mono text-right outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-b-2 border-transparent focus:border-indigo-500 transition-all"
+                            className="w-24 bg-transparent text-xl font-black text-orange-600 font-mono text-right outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-b-2 border-transparent focus:border-orange-500 transition-all"
                           />
-                          <span className="text-xl font-black text-indigo-600 font-mono">mm</span>
+                          <span className="text-xl font-black text-orange-600 font-mono">mm</span>
                         </div>
                       </div>
                       <input
@@ -630,7 +630,7 @@ export const WallLimitsModal = forwardRef<any, WallLimitsModalProps>(({
             <div className="h-10 w-px bg-slate-200 dark:bg-slate-700" />
             <div className="flex flex-col">
               <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Usable Area</span>
-              <span className="text-lg font-black text-indigo-600 font-mono">
+              <span className="text-lg font-black text-orange-600 font-mono">
                 {currentZone ? (currentZone.endLimit || currentZone.totalLength) - (currentZone.startLimit || 0) : 0}mm
               </span>
             </div>
@@ -645,7 +645,7 @@ export const WallLimitsModal = forwardRef<any, WallLimitsModalProps>(({
             </button>
             <button
               onClick={handleSave}
-              className="px-12 py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase tracking-widest rounded-full shadow-2xl shadow-indigo-500/40 text-xs transition-all flex items-center gap-2 group"
+              className="px-12 py-4 bg-orange-600 hover:bg-orange-700 text-white font-black uppercase tracking-widest rounded-full shadow-2xl shadow-orange-500/40 text-xs transition-all flex items-center gap-2 group"
             >
               Confirm Limits <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
             </button>

@@ -171,12 +171,12 @@ const ScreenAdminDashboard = ({ onLoadProject }: ScreenAdminDashboardProps) => {
         <div className="w-80 lg:w-96 shrink-0 p-6 lg:p-8 flex items-center gap-4 border-r border-slate-200 dark:border-slate-800">
           <button 
             onClick={() => navigate('/dashboard')}
-            className="p-3 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-indigo-600 transition-all border border-slate-200 dark:border-slate-700 shadow-sm"
+            className="p-3 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-orange-600 transition-all border border-slate-200 dark:border-slate-700 shadow-sm"
           >
             <ArrowLeft size={16} />
           </button>
           <div className="truncate">
-            <h1 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tighter italic truncate leading-tight">Admin <span className="text-indigo-600">Analytics</span></h1>
+            <h1 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tighter italic truncate leading-tight">Admin <span className="text-orange-600">Analytics</span></h1>
             <p className="text-[7px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-1.5 mt-0.5">
               <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" /> Live System
             </p>
@@ -192,7 +192,7 @@ const ScreenAdminDashboard = ({ onLoadProject }: ScreenAdminDashboardProps) => {
                   setActiveView('projects');
                   setSelectedProfile(null);
                 }}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${activeView === 'projects' && !selectedProfile ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${activeView === 'projects' && !selectedProfile ? 'bg-white dark:bg-slate-700 text-orange-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
               >
                 <LayoutGrid size={14} /> Projects
               </button>
@@ -201,7 +201,7 @@ const ScreenAdminDashboard = ({ onLoadProject }: ScreenAdminDashboardProps) => {
                   setActiveView('users');
                   setSelectedProfile(null);
                 }}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${activeView === 'users' && !selectedProfile ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${activeView === 'users' && !selectedProfile ? 'bg-white dark:bg-slate-700 text-orange-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
               >
                 <Users size={14} /> Users
                 {feedback.some(f => f.status === 'new') && (
@@ -257,7 +257,7 @@ const ScreenAdminDashboard = ({ onLoadProject }: ScreenAdminDashboardProps) => {
               >
                 <div className="flex items-center justify-between mb-6 shrink-0">
                   <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic">System Intelligence</h2>
-                  <Activity size={14} className="text-indigo-600" />
+                  <Activity size={14} className="text-orange-600" />
                 </div>
                 
                 <div className="flex-1 flex flex-col gap-4 min-h-0">
@@ -293,7 +293,7 @@ const ScreenAdminDashboard = ({ onLoadProject }: ScreenAdminDashboardProps) => {
 
                 <div className="mt-6 p-5 rounded-[2rem] bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shrink-0">
                   <div className="flex items-center gap-2 mb-2">
-                    <AlertCircle size={14} className="text-indigo-600" />
+                    <AlertCircle size={14} className="text-orange-600" />
                     <h3 className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-widest">Growth Tip</h3>
                   </div>
                   <p className="text-[10px] leading-relaxed text-slate-500 dark:text-slate-400 font-medium">
@@ -312,14 +312,14 @@ const ScreenAdminDashboard = ({ onLoadProject }: ScreenAdminDashboardProps) => {
                 <div className="flex items-center justify-between mb-6 shrink-0">
                   <button 
                     onClick={() => setSelectedProfile(null)}
-                    className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] flex items-center gap-2 hover:translate-x-[-4px] transition-transform"
+                    className="text-[10px] font-black text-orange-600 uppercase tracking-[0.2em] flex items-center gap-2 hover:translate-x-[-4px] transition-transform"
                   >
                     <ArrowLeft size={14} /> Back to Stats
                   </button>
-                  <Activity size={14} className="text-indigo-600" />
+                  <Activity size={14} className="text-orange-600" />
                 </div>
 
-                <h2 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tighter mb-4 italic">Support <span className="text-indigo-600">Inbox</span></h2>
+                <h2 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tighter mb-4 italic">Support <span className="text-orange-600">Inbox</span></h2>
                 
                 <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar pr-2">
                   {userData.map(u => (
@@ -331,18 +331,18 @@ const ScreenAdminDashboard = ({ onLoadProject }: ScreenAdminDashboardProps) => {
                       }}
                       className={`w-full p-4 rounded-2xl border transition-all text-left group relative flex items-center gap-4 ${
                         selectedProfile.id === u.id 
-                          ? 'bg-indigo-600/10 border-indigo-500/30' 
-                          : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-indigo-500/50'
+                          ? 'bg-orange-600/10 border-orange-500/30' 
+                          : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-orange-500/50'
                       }`}
                     >
                       {/* Selection Indicator Bar */}
                       {selectedProfile.id === u.id && (
-                        <div className="absolute left-0 top-4 bottom-4 w-1 bg-indigo-600 rounded-r-full shadow-[0_0_10px_rgba(245,158,11,0.5)]" />
+                        <div className="absolute left-0 top-4 bottom-4 w-1 bg-orange-600 rounded-r-full shadow-[0_0_10px_rgba(245,158,11,0.5)]" />
                       )}
 
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shrink-0 transition-colors ${
                         selectedProfile.id === u.id 
-                          ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' 
+                          ? 'bg-orange-600 text-white shadow-lg shadow-orange-500/20' 
                           : 'bg-slate-100 dark:bg-slate-900 text-slate-500'
                       }`}>
                         {u.company_name?.substring(0, 1).toUpperCase() || '?'}
@@ -350,7 +350,7 @@ const ScreenAdminDashboard = ({ onLoadProject }: ScreenAdminDashboardProps) => {
 
                       <div className="flex-1 min-w-0">
                         <div className={`text-[10px] font-black uppercase tracking-tight truncate transition-colors ${
-                          selectedProfile.id === u.id ? 'text-indigo-600' : 'text-slate-900 dark:text-white'
+                          selectedProfile.id === u.id ? 'text-orange-600' : 'text-slate-900 dark:text-white'
                         }`}>
                           {u.company_name || 'Individual'}
                         </div>
@@ -487,7 +487,7 @@ const ScreenAdminDashboard = ({ onLoadProject }: ScreenAdminDashboardProps) => {
                                 {u.logo_url ? (
                                   <img src={u.logo_url} className="w-12 h-12 rounded-2xl object-cover border border-slate-200 dark:border-slate-700 shadow-sm" alt="Logo" />
                                 ) : (
-                                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-orange-600 text-white flex items-center justify-center font-black text-sm italic shadow-lg shadow-indigo-500/20">
+                                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 text-white flex items-center justify-center font-black text-sm italic shadow-lg shadow-orange-500/20">
                                     {u.company_name?.substring(0, 1).toUpperCase() || '?'}
                                   </div>
                                 )}
@@ -536,7 +536,7 @@ const ScreenAdminDashboard = ({ onLoadProject }: ScreenAdminDashboardProps) => {
                           </td>
                           <td className="px-8 py-5 text-right">
                             <div className="flex flex-col items-end gap-1">
-                              <a href={`tel:${u.phone}`} className="flex items-center gap-2 text-xs font-black text-indigo-600 hover:text-indigo-700 transition-colors uppercase tracking-widest">
+                              <a href={`tel:${u.phone}`} className="flex items-center gap-2 text-xs font-black text-orange-600 hover:text-orange-700 transition-colors uppercase tracking-widest">
                                 <Phone size={12} /> {u.phone || 'NO PHONE'}
                               </a>
                               <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
@@ -566,7 +566,7 @@ const ScreenAdminDashboard = ({ onLoadProject }: ScreenAdminDashboardProps) => {
             <div className="max-w-4xl mx-auto">
               <div className="flex items-center justify-between mb-12">
                 <div className="flex items-center gap-6">
-                  <div className="w-16 h-16 rounded-[2rem] bg-indigo-600 flex items-center justify-center text-white font-black italic shadow-2xl shadow-indigo-500/20 text-2xl">
+                  <div className="w-16 h-16 rounded-[2rem] bg-orange-600 flex items-center justify-center text-white font-black italic shadow-2xl shadow-orange-500/20 text-2xl">
                     {selectedProfile.company_name?.substring(0, 1).toUpperCase() || '?'}
                   </div>
                   <div>
@@ -574,13 +574,13 @@ const ScreenAdminDashboard = ({ onLoadProject }: ScreenAdminDashboardProps) => {
                     <div className="flex items-center gap-3 mt-2">
                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">User ID: {selectedProfile.id}</span>
                       <div className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700" />
-                      <a href={`tel:${selectedProfile.phone}`} className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] hover:underline">Contact: {selectedProfile.phone}</a>
+                      <a href={`tel:${selectedProfile.phone}`} className="text-[10px] font-black text-orange-600 uppercase tracking-[0.2em] hover:underline">Contact: {selectedProfile.phone}</a>
                     </div>
                   </div>
                 </div>
                 <button 
                   onClick={() => setSelectedProfile(null)}
-                  className="p-4 rounded-3xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-indigo-600 transition-all border border-slate-200 dark:border-slate-700"
+                  className="p-4 rounded-3xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-orange-600 transition-all border border-slate-200 dark:border-slate-700"
                 >
                   <RefreshCw className="rotate-45" size={24} />
                 </button>
@@ -648,9 +648,9 @@ const ScreenAdminDashboard = ({ onLoadProject }: ScreenAdminDashboardProps) => {
                                   href={item.attachment_url} 
                                   target="_blank" 
                                   rel="noopener noreferrer"
-                                  className="flex flex-col items-center justify-center h-full aspect-video bg-white dark:bg-slate-900 rounded-[2rem] border-4 border-dashed border-slate-200 dark:border-slate-800 hover:border-indigo-500 transition-all group/file p-8 text-center"
+                                  className="flex flex-col items-center justify-center h-full aspect-video bg-white dark:bg-slate-900 rounded-[2rem] border-4 border-dashed border-slate-200 dark:border-slate-800 hover:border-orange-500 transition-all group/file p-8 text-center"
                                 >
-                                  <div className="w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-500 group-hover/file:bg-indigo-600 group-hover/file:text-white transition-all mb-4">
+                                  <div className="w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-500 group-hover/file:bg-orange-600 group-hover/file:text-white transition-all mb-4">
                                     <Download size={28} />
                                   </div>
                                   <span className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white mb-1">Attached File</span>
@@ -664,7 +664,7 @@ const ScreenAdminDashboard = ({ onLoadProject }: ScreenAdminDashboardProps) => {
                       {/* Individual Message Reply Section */}
                       <div className="mt-8 pt-8 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <div className={`w-2 h-2 rounded-full ${item.status === 'replied' ? 'bg-emerald-500' : 'bg-indigo-600 animate-pulse'}`} />
+                          <div className={`w-2 h-2 rounded-full ${item.status === 'replied' ? 'bg-emerald-500' : 'bg-orange-600 animate-pulse'}`} />
                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">
                             {item.status === 'replied' ? 'Conversation Responded' : 'Awaiting Administrative Action'}
                           </span>
@@ -705,7 +705,7 @@ const ScreenAdminDashboard = ({ onLoadProject }: ScreenAdminDashboardProps) => {
                                 value={replyText}
                                 onChange={(e) => setReplyText(e.target.value)}
                                 placeholder={`Write your response for this specific #${item.type.replace('_', ' ')}...`}
-                                className="w-full h-32 p-6 bg-white dark:bg-slate-900 rounded-[2rem] border-2 border-indigo-500/20 focus:border-indigo-500 outline-none text-sm font-medium transition-all shadow-inner resize-none custom-scrollbar"
+                                className="w-full h-32 p-6 bg-white dark:bg-slate-900 rounded-[2rem] border-2 border-orange-500/20 focus:border-orange-500 outline-none text-sm font-medium transition-all shadow-inner resize-none custom-scrollbar"
                                 autoFocus
                               />
                               <div className="absolute bottom-4 right-4 flex items-center gap-2">
@@ -720,7 +720,7 @@ const ScreenAdminDashboard = ({ onLoadProject }: ScreenAdminDashboardProps) => {
                               </div>
                             </div>
                             <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-3 ml-4">
-                              Sending to: <span className="text-indigo-600">{selectedProfile.email}</span>
+                              Sending to: <span className="text-orange-600">{selectedProfile.email}</span>
                             </p>
                           </motion.div>
                         )}
@@ -768,14 +768,14 @@ const NoResults = () => (
 const StatCard = ({ icon, label, value, trend, subtext, color }: any) => {
   const themes: any = {
     amber: {
-      bg: 'bg-indigo-600/10',
-      text: 'text-indigo-600',
-      glow: 'from-indigo-500 to-orange-600'
+      bg: 'bg-orange-600/10',
+      text: 'text-orange-600',
+      glow: 'from-orange-500 to-orange-600'
     },
     blue: {
       bg: 'bg-blue-500/10',
       text: 'text-blue-500',
-      glow: 'from-blue-500 to-indigo-600'
+      glow: 'from-blue-500 to-orange-600'
     },
     emerald: {
       bg: 'bg-emerald-500/10',
@@ -836,13 +836,13 @@ const UserDropdown = ({ profiles, selectedUserId, onSelect }: { profiles: UserPr
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-3 pl-5 pr-6 py-3 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-300 hover:border-indigo-500/50 transition-all min-w-[180px] justify-between group"
+        className="flex items-center gap-3 pl-5 pr-6 py-3 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-300 hover:border-orange-500/50 transition-all min-w-[180px] justify-between group"
       >
         <div className="flex items-center gap-2">
-          <Filter size={14} className={isOpen ? 'text-indigo-600' : 'text-slate-400'} />
+          <Filter size={14} className={isOpen ? 'text-orange-600' : 'text-slate-400'} />
           <span className="truncate max-w-[120px]">{label}</span>
         </div>
-        <ArrowRight size={14} className={`text-slate-500 transition-transform ${isOpen ? 'rotate-90 text-indigo-600' : ''}`} />
+        <ArrowRight size={14} className={`text-slate-500 transition-transform ${isOpen ? 'rotate-90 text-orange-600' : ''}`} />
       </button>
 
       <AnimatePresence>
@@ -856,7 +856,7 @@ const UserDropdown = ({ profiles, selectedUserId, onSelect }: { profiles: UserPr
             <div className="max-h-64 overflow-y-auto custom-scrollbar p-1">
               <button
                 onClick={() => { onSelect('all'); setIsOpen(false); }}
-                className={`w-full text-left px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all mb-1 flex items-center justify-between ${selectedUserId === 'all' ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'}`}
+                className={`w-full text-left px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all mb-1 flex items-center justify-between ${selectedUserId === 'all' ? 'bg-orange-600 text-white' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'}`}
               >
                 All Users
                 {selectedUserId === 'all' && <CheckCircle2 size={12} />}
@@ -868,7 +868,7 @@ const UserDropdown = ({ profiles, selectedUserId, onSelect }: { profiles: UserPr
                 <button
                   key={u.id}
                   onClick={() => { onSelect(u.id); setIsOpen(false); }}
-                  className={`w-full text-left px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all mb-1 flex items-center justify-between ${selectedUserId === u.id ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'}`}
+                  className={`w-full text-left px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all mb-1 flex items-center justify-between ${selectedUserId === u.id ? 'bg-orange-600 text-white' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'}`}
                 >
                   <span className="truncate mr-2">{u.company_name || u.phone || 'Anonymous'}</span>
                   {selectedUserId === u.id && <CheckCircle2 size={12} />}
@@ -888,7 +888,7 @@ const StatusDropdown = ({ value, onChange }: { value: string, onChange: (status:
 
   const options = [
     { value: 'new', label: 'New Entry', color: 'text-red-500', bg: 'bg-red-500' },
-    { value: 'in_progress', label: 'Investigation', color: 'text-indigo-600', bg: 'bg-indigo-600' },
+    { value: 'in_progress', label: 'Investigation', color: 'text-orange-600', bg: 'bg-orange-600' },
     { value: 'replied', label: 'Replied', color: 'text-emerald-500', bg: 'bg-emerald-500' },
     { value: 'resolved', label: 'Resolved', color: 'text-emerald-500', bg: 'bg-emerald-500' },
     { value: 'closed', label: 'Closed / Archive', color: 'text-slate-500', bg: 'bg-slate-500' },
@@ -910,13 +910,13 @@ const StatusDropdown = ({ value, onChange }: { value: string, onChange: (status:
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-3 pl-5 pr-6 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:border-indigo-500/50 transition-all min-w-[180px] justify-between group shadow-sm"
+        className="flex items-center gap-3 pl-5 pr-6 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:border-orange-500/50 transition-all min-w-[180px] justify-between group shadow-sm"
       >
         <div className="flex items-center gap-2">
           <div className={`w-2 h-2 rounded-full ${selectedOption.bg} ${value === 'new' ? 'animate-pulse' : ''}`} />
           <span className={selectedOption.color}>{selectedOption.label}</span>
         </div>
-        <ArrowRight size={14} className={`text-slate-400 transition-transform ${isOpen ? 'rotate-90 text-indigo-600' : ''}`} />
+        <ArrowRight size={14} className={`text-slate-400 transition-transform ${isOpen ? 'rotate-90 text-orange-600' : ''}`} />
       </button>
 
       <AnimatePresence>
@@ -932,13 +932,13 @@ const StatusDropdown = ({ value, onChange }: { value: string, onChange: (status:
                 <button
                   key={opt.value}
                   onClick={() => { onChange(opt.value); setIsOpen(false); }}
-                  className={`w-full text-left px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-between ${value === opt.value ? 'bg-slate-100 dark:bg-slate-800 text-indigo-600' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'}`}
+                  className={`w-full text-left px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-between ${value === opt.value ? 'bg-slate-100 dark:bg-slate-800 text-orange-600' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'}`}
                 >
                   <div className="flex items-center gap-3">
                     <div className={`w-1.5 h-1.5 rounded-full ${opt.bg}`} />
                     {opt.label}
                   </div>
-                  {value === opt.value && <CheckCircle2 size={12} className="text-indigo-600" />}
+                  {value === opt.value && <CheckCircle2 size={12} className="text-orange-600" />}
                 </button>
               ))}
             </div>
@@ -951,7 +951,7 @@ const StatusDropdown = ({ value, onChange }: { value: string, onChange: (status:
 
 const ProgressDot = ({ label, active, complete }: { label: string, active: boolean, complete: boolean }) => (
   <div className="flex flex-col items-center gap-1.5 group relative">
-    <div className={`w-2.5 h-2.5 rounded-full transition-all duration-500 ${complete ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : active ? 'bg-indigo-600 shadow-[0_0_10px_rgba(245,158,11,0.5)] animate-pulse' : 'bg-slate-200 dark:bg-slate-800'}`} />
+    <div className={`w-2.5 h-2.5 rounded-full transition-all duration-500 ${complete ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : active ? 'bg-orange-600 shadow-[0_0_10px_rgba(245,158,11,0.5)] animate-pulse' : 'bg-slate-200 dark:bg-slate-800'}`} />
     <span className="text-[7px] font-black uppercase tracking-tighter text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors">{label}</span>
     
     {/* Tooltip on hover */}
@@ -984,7 +984,7 @@ const FeedbackViewer = ({ profile, feedback, isOpen, onClose, onUpdateStatus }: 
             {/* Modal Header */}
             <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-white font-black italic shadow-lg shadow-indigo-500/20 text-lg">
+                <div className="w-12 h-12 rounded-2xl bg-orange-600 flex items-center justify-center text-white font-black italic shadow-lg shadow-orange-500/20 text-lg">
                   {profile.company_name?.substring(0, 1).toUpperCase() || '?'}
                 </div>
                 <div>
@@ -1022,7 +1022,7 @@ const FeedbackViewer = ({ profile, feedback, isOpen, onClose, onUpdateStatus }: 
                       onChange={(e) => onUpdateStatus(item.id, e.target.value)}
                       className={`text-[9px] font-black uppercase tracking-widest bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-1 outline-none focus:ring-1 ring-amber-500 cursor-pointer ${
                         item.status === 'new' ? 'text-red-500' :
-                        item.status === 'in_progress' ? 'text-indigo-600' :
+                        item.status === 'in_progress' ? 'text-orange-600' :
                         'text-emerald-500'
                       }`}
                     >
@@ -1056,9 +1056,9 @@ const FeedbackViewer = ({ profile, feedback, isOpen, onClose, onUpdateStatus }: 
                         href={item.attachment_url} 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="flex items-center gap-3 px-4 py-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-500/50 transition-all group/file"
+                        className="flex items-center gap-3 px-4 py-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-orange-500/50 transition-all group/file"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 group-hover/file:text-indigo-600">
+                        <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 group-hover/file:text-orange-600">
                           <Download size={14} />
                         </div>
                         <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">View File</span>

@@ -39,7 +39,7 @@ const SettingRow: React.FC<{ label: string; value: number; onChange: (v: number)
       <input
         type="number" value={value}
         onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
-        className="w-14 px-1 py-0.5 text-[11px] bg-slate-900 border border-slate-600 rounded text-indigo-600 font-mono text-center"
+        className="w-14 px-1 py-0.5 text-[11px] bg-slate-900 border border-slate-600 rounded text-orange-600 font-mono text-center"
       />
     </div>
   </div>
@@ -50,7 +50,7 @@ const CheckboxRow: React.FC<{ label: string; checked: boolean; onChange: (v: boo
     <span className="text-[11px] text-slate-400 group-hover:text-slate-300 transition-colors whitespace-nowrap">{label}</span>
     <div className="relative inline-flex items-center cursor-pointer">
       <input type="checkbox" className="sr-only peer" checked={checked} onChange={(e) => onChange(e.target.checked)} />
-      <div className="w-7 h-4 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
+      <div className="w-7 h-4 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-orange-600"></div>
     </div>
   </label>
 );
@@ -161,7 +161,7 @@ export const SingleCabinetEditorModal: React.FC<Props> = ({ isOpen, cabinet, glo
         {/* Header */}
         <div className={`flex justify-between items-center px-4 sm:px-6 py-3 sm:py-4 border-b ${isDark ? 'border-slate-700 bg-slate-800/50' : 'border-slate-100 bg-slate-50/50'}`}>
           <div className="flex items-center gap-2 sm:gap-3">
-            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/20 shrink-0">
+            <div className="w-8 h-8 bg-orange-600 rounded-lg flex items-center justify-center shadow-lg shadow-orange-500/20 shrink-0">
               <span className="font-bold text-white text-lg">E</span>
             </div>
             <div className="min-w-0">
@@ -206,7 +206,7 @@ export const SingleCabinetEditorModal: React.FC<Props> = ({ isOpen, cabinet, glo
           <div className={`flex-1 md:flex-none md:w-96 overflow-y-auto p-4 border-t md:border-t-0 md:border-r ${isDark ? 'border-slate-700 bg-slate-800' : 'border-slate-100 bg-white'} scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent order-2 md:order-1`}>
             {(activeType === 'base' || activeType === 'tall') && (
               <Section>
-                <h3 className="text-[11px] font-bold text-indigo-600 uppercase tracking-wider mb-3">
+                <h3 className="text-[11px] font-bold text-orange-600 uppercase tracking-wider mb-3">
                   {activeType === 'base' ? 'Base Cabinet' : 'Tall Cabinet'} Plinth
                 </h3>
                 <SettingRow label="Toe Kick Height" value={settings.toeKickHeight} onChange={v => updateSetting('toeKickHeight', v)} step={5} min={0} max={200} />
@@ -214,14 +214,14 @@ export const SingleCabinetEditorModal: React.FC<Props> = ({ isOpen, cabinet, glo
             )}
 
             <Section>
-              <h3 className="text-[11px] font-bold text-indigo-600 uppercase tracking-wider mb-3">Placement & Dimensions</h3>
+              <h3 className="text-[11px] font-bold text-orange-600 uppercase tracking-wider mb-3">Placement & Dimensions</h3>
               <div className="flex items-center justify-between gap-4 mb-2">
                 <span className="text-[11px] text-slate-400 font-medium whitespace-nowrap">Position (From Left)</span>
                 <input
                   type="number" 
                   value={cabinet.fromLeft}
                   onChange={(e) => onSave({ ...cabinet, fromLeft: parseInt(e.target.value) || 0 })}
-                  className="w-20 px-2 py-1 text-[11px] bg-slate-900 border border-slate-600 rounded text-indigo-600 font-mono text-center outline-none focus:border-indigo-500"
+                  className="w-20 px-2 py-1 text-[11px] bg-slate-900 border border-slate-600 rounded text-orange-600 font-mono text-center outline-none focus:border-orange-500"
                 />
               </div>
               <SettingRow label="Width" value={settings.width} onChange={v => updateSetting('width', v)} step={10} min={150} max={1800} />
@@ -230,7 +230,7 @@ export const SingleCabinetEditorModal: React.FC<Props> = ({ isOpen, cabinet, glo
             </Section>
 
             <Section>
-              <h3 className="text-[11px] font-bold text-indigo-600 uppercase tracking-wider mb-3">Panels & Materials</h3>
+              <h3 className="text-[11px] font-bold text-orange-600 uppercase tracking-wider mb-3">Panels & Materials</h3>
               <SettingRow label="Main Panel (mm)" value={settings.panelThickness} onChange={v => updateSetting('panelThickness', v)} step={1} min={12} max={25} />
               <SettingRow label="Back Panel (mm)" value={settings.backPanelThickness} onChange={v => updateSetting('backPanelThickness', v)} step={1} min={3} max={18} />
               <SettingRow label="Door Thk (mm)" value={settings.doorMaterialThickness} onChange={v => updateSetting('doorMaterialThickness', v)} step={1} min={12} max={25} />
@@ -239,13 +239,13 @@ export const SingleCabinetEditorModal: React.FC<Props> = ({ isOpen, cabinet, glo
 
             {/* View Options */}
             <Section>
-              <h3 className="text-[11px] font-bold text-indigo-600 uppercase tracking-wider mb-3">View Options</h3>
+              <h3 className="text-[11px] font-bold text-orange-600 uppercase tracking-wider mb-3">View Options</h3>
               <CheckboxRow label="Skeleton View" checked={settings.skeletonView} onChange={v => updateSetting('skeletonView', v)} />
               <CheckboxRow label="Parts Separated View" checked={settings.partsSeparatedView} onChange={v => updateSetting('partsSeparatedView', v)} />
             </Section>
 
             <Section>
-              <h3 className="text-[11px] font-bold text-indigo-600 uppercase tracking-wider mb-3">Gaps & Clearances</h3>
+              <h3 className="text-[11px] font-bold text-orange-600 uppercase tracking-wider mb-3">Gaps & Clearances</h3>
               <SettingRow label="Door to Door" value={settings.doorToDoorGap} onChange={v => updateSetting('doorToDoorGap', v)} step={0.5} min={0} max={10} />
               <SettingRow label="Door to Panel" value={settings.doorToPanelGap} onChange={v => updateSetting('doorToPanelGap', v)} step={0.5} min={0} max={10} />
               {activeType !== 'wall' && <SettingRow label="Drawer to Drawer" value={settings.drawerToDrawerGap} onChange={v => updateSetting('drawerToDrawerGap', v)} step={0.5} min={0} max={10} />}
@@ -256,10 +256,10 @@ export const SingleCabinetEditorModal: React.FC<Props> = ({ isOpen, cabinet, glo
 
             {(settings.cabinetType === 'base' || settings.cabinetType === 'wall') && (settings.showDoors || settings.showDrawers) && (
               <Section>
-                <h3 className="text-[11px] font-bold text-indigo-600 uppercase tracking-wider mb-3">Gola System</h3>
+                <h3 className="text-[11px] font-bold text-orange-600 uppercase tracking-wider mb-3">Gola System</h3>
                 <CheckboxRow label="Enable Gola" checked={settings.enableGola} onChange={v => updateSetting('enableGola', v)} />
                 {settings.enableGola && (
-                  <div className="mt-2 pl-2 border-l-2 border-indigo-500/30 space-y-2">
+                  <div className="mt-2 pl-2 border-l-2 border-orange-500/30 space-y-2">
                     <SettingRow label="Door Drop" value={settings.doorOverride} onChange={v => updateSetting('doorOverride', v)} step={1} min={0} max={50} />
                     <SettingRow label="L-Cut Height" value={settings.golaLCutoutHeight} onChange={v => updateSetting('golaLCutoutHeight', v)} step={1} min={20} max={100} />
                     <SettingRow label="L-Cut Depth" value={settings.golaLCutoutDepth} onChange={v => updateSetting('golaLCutoutDepth', v)} step={1} min={10} max={50} />
@@ -273,7 +273,7 @@ export const SingleCabinetEditorModal: React.FC<Props> = ({ isOpen, cabinet, glo
             )}
 
             <Section>
-              <h3 className="text-[11px] font-bold text-indigo-600 uppercase tracking-wider mb-3">Front Options</h3>
+              <h3 className="text-[11px] font-bold text-orange-600 uppercase tracking-wider mb-3">Front Options</h3>
               {activeType === 'tall' ? (
                 <div className="space-y-6 mt-4">
                   {/* Upper Section Settings */}
@@ -306,7 +306,7 @@ export const SingleCabinetEditorModal: React.FC<Props> = ({ isOpen, cabinet, glo
                   {/* Lower Section Settings */}
                   <div className="p-3 bg-slate-800/40 rounded-lg border border-slate-700/50 space-y-3">
                     <h3 className="text-[10px] font-bold text-indigo-400 uppercase tracking-[0.1em] mb-2 flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full"></span>
+                      <span className="w-1.5 h-1.5 bg-orange-600 rounded-full"></span>
                       Lower Section
                     </h3>
                     <SettingRow 
@@ -343,13 +343,13 @@ export const SingleCabinetEditorModal: React.FC<Props> = ({ isOpen, cabinet, glo
                     <CheckboxRow label="Show Lower Shelves" checked={settings.showLowerShelves} onChange={v => updateSetting('showLowerShelves', v)} />
                     
                     {settings.showDrawers && (
-                      <div className="ml-4 p-2 bg-slate-900/50 rounded-md border-l-2 border-indigo-500/50 space-y-2">
+                      <div className="ml-4 p-2 bg-slate-900/50 rounded-md border-l-2 border-orange-500/50 space-y-2">
                         <SettingRow label="Drawer Stack H" value={settings.lowerSectionDrawerStackHeight} onChange={v => updateSetting('lowerSectionDrawerStackHeight', v)} step={10} min={50} max={settings.tallLowerSectionHeight} />
                         <SettingRow label="Num Drawers" value={settings.numDrawers} onChange={v => updateSetting('numDrawers', v)} step={1} min={1} max={6} />
                       </div>
                     )}
                     {settings.showLowerShelves && (
-                      <div className="ml-4 p-2 bg-slate-900/50 rounded-md border-l-2 border-indigo-500/50">
+                      <div className="ml-4 p-2 bg-slate-900/50 rounded-md border-l-2 border-orange-500/50">
                         <SettingRow label="Num Shelves" value={settings.numLowerShelves} onChange={v => updateSetting('numLowerShelves', v)} step={1} min={0} max={10} />
                       </div>
                     )}
@@ -361,14 +361,14 @@ export const SingleCabinetEditorModal: React.FC<Props> = ({ isOpen, cabinet, glo
                     <CheckboxRow label="Show Drawers" checked={settings.showDrawers} onChange={v => updateSetting('showDrawers', v)} />
                   )}
                   {settings.showDrawers && (
-                    <div className="mt-2 pl-2 border-l-2 border-indigo-500/30 space-y-2 mb-3">
+                    <div className="mt-2 pl-2 border-l-2 border-orange-500/30 space-y-2 mb-3">
                       <SettingRow label="Num Drawers" value={settings.numDrawers} onChange={v => updateSetting('numDrawers', v)} step={1} min={1} max={6} />
                     </div>
                   )}
                   <CheckboxRow label="Show Doors" checked={settings.showDoors} onChange={v => updateSetting('showDoors', v)} />
                   <CheckboxRow label="Show Shelves" checked={settings.showShelves} onChange={v => updateSetting('showShelves', v)} />
                   {settings.showShelves && (
-                    <div className="mt-2 pl-2 border-l-2 border-indigo-500/30 space-y-2">
+                    <div className="mt-2 pl-2 border-l-2 border-orange-500/30 space-y-2">
                       <SettingRow label="Num Shelves" value={settings.numShelves} onChange={v => updateSetting('numShelves', v)} step={1} min={0} max={10} />
                     </div>
                   )}
@@ -389,7 +389,7 @@ export const SingleCabinetEditorModal: React.FC<Props> = ({ isOpen, cabinet, glo
           </button>
           <button 
             onClick={handleSave}
-            className="px-6 py-2 bg-indigo-700 hover:bg-indigo-600 text-white font-bold rounded-lg transition-colors flex items-center gap-2 shadow-lg shadow-indigo-600/20"
+            className="px-6 py-2 bg-orange-700 hover:bg-orange-600 text-white font-bold rounded-lg transition-colors flex items-center gap-2 shadow-lg shadow-orange-600/20"
           >
             <Save size={18} />
             Save Advanced Settings

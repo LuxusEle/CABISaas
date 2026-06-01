@@ -116,7 +116,7 @@ const ScreenHome = ({ onNewProject, onQuickStart, onLoadProject, isUserPro, isDa
     <div className="flex flex-col h-full bg-slate-50 dark:bg-[#050a14] text-slate-900 dark:text-white p-6 sm:p-12 overflow-y-auto transition-colors duration-500">
       {/* Dynamic Background Elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-indigo-600/[0.03] dark:bg-indigo-600/5 blur-[120px] rounded-full" />
+        <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-orange-600/[0.03] dark:bg-orange-600/5 blur-[120px] rounded-full" />
         <div className="absolute top-[20%] -right-[10%] w-[30%] h-[30%] bg-blue-500/[0.03] dark:bg-blue-500/5 blur-[120px] rounded-full" />
       </div>
 
@@ -126,7 +126,7 @@ const ScreenHome = ({ onNewProject, onQuickStart, onLoadProject, isUserPro, isDa
           <div className="flex flex-col items-center md:items-start gap-2">
             <img src="/landing.png" alt="CabEngine Logo" className={`h-12 w-auto object-contain transition-all ${isDark ? 'brightness-0 invert' : 'brightness-100'}`} />
             <div className="flex items-center gap-3 mt-2">
-              <span className="px-3 py-1 bg-indigo-600/10 border border-indigo-500/20 rounded-full text-[10px] font-black uppercase tracking-[0.2em] text-indigo-700 dark:text-indigo-600">
+              <span className="px-3 py-1 bg-orange-600/10 border border-orange-500/20 rounded-full text-[10px] font-black uppercase tracking-[0.2em] text-orange-700 dark:text-orange-600">
                 Engineering Suite
               </span>
               <span className="text-slate-500 dark:text-slate-400 text-xs font-medium italic">v2.4.0 • Enterprise Edition</span>
@@ -141,7 +141,7 @@ const ScreenHome = ({ onNewProject, onQuickStart, onLoadProject, isUserPro, isDa
             )}
             <div className="text-right hidden sm:block">
               <p className="text-sm font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Welcome Back</p>
-              <p className="text-xs text-indigo-700 dark:text-indigo-600 font-bold italic">Active Session</p>
+              <p className="text-xs text-orange-700 dark:text-orange-600 font-bold italic">Active Session</p>
             </div>
           </div>
         </div>
@@ -151,23 +151,23 @@ const ScreenHome = ({ onNewProject, onQuickStart, onLoadProject, isUserPro, isDa
           <div className="lg:col-span-4 space-y-6">
             {/* Onboarding / Quick Start Card */}
             <div className="relative group cursor-pointer" onClick={onQuickStart}>
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-[2.5rem] blur opacity-10 dark:opacity-20 group-hover:opacity-30 dark:group-hover:opacity-40 transition duration-1000 group-hover:duration-200 animate-pulse"></div>
-              <div className="relative bg-white dark:bg-slate-900 border border-indigo-500/20 dark:border-indigo-500/30 rounded-[2.5rem] p-8 overflow-hidden shadow-xl shadow-indigo-500/5 dark:shadow-none">
-                <div className="absolute -top-4 -right-4 w-24 h-24 bg-indigo-600/5 dark:bg-indigo-600/10 rounded-full blur-2xl group-hover:bg-indigo-600/10 dark:group-hover:bg-indigo-600/20 transition-all" />
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-orange-500 to-orange-600 rounded-[2.5rem] blur opacity-10 dark:opacity-20 group-hover:opacity-30 dark:group-hover:opacity-40 transition duration-1000 group-hover:duration-200 animate-pulse"></div>
+              <div className="relative bg-white dark:bg-slate-900 border border-orange-500/20 dark:border-orange-500/30 rounded-[2.5rem] p-8 overflow-hidden shadow-xl shadow-orange-500/5 dark:shadow-none">
+                <div className="absolute -top-4 -right-4 w-24 h-24 bg-orange-600/5 dark:bg-orange-600/10 rounded-full blur-2xl group-hover:bg-orange-600/10 dark:group-hover:bg-orange-600/20 transition-all" />
                 
                 <div className="flex items-center gap-2 mb-4">
-                  <span className="px-2 py-0.5 bg-indigo-600 text-white dark:text-[#050a14] text-[8px] font-black uppercase tracking-widest rounded-md shadow-lg shadow-indigo-500/20">New Here?</span>
-                  <div className="flex-1 h-[1px] bg-indigo-600/10 dark:bg-indigo-600/20" />
+                  <span className="px-2 py-0.5 bg-orange-600 text-white dark:text-[#050a14] text-[8px] font-black uppercase tracking-widest rounded-md shadow-lg shadow-orange-500/20">New Here?</span>
+                  <div className="flex-1 h-[1px] bg-orange-600/10 dark:bg-orange-600/20" />
                 </div>
 
-                <h3 className="text-xl font-black uppercase tracking-tighter mb-2 italic text-slate-900 dark:text-white">Quick <span className="text-indigo-700 dark:text-indigo-600">Demo</span></h3>
+                <h3 className="text-xl font-black uppercase tracking-tighter mb-2 italic text-slate-900 dark:text-white">Quick <span className="text-orange-700 dark:text-orange-600">Demo</span></h3>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium italic mb-6 leading-relaxed">Instantly load a professional kitchen layout and explore all engineering features.</p>
                 
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-700 dark:text-indigo-600 group-hover:translate-x-2 transition-transform flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-700 dark:text-orange-600 group-hover:translate-x-2 transition-transform flex items-center gap-2">
                     Launch Studio <ArrowUpRight size={14} />
                   </span>
-                  <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/40 group-hover:scale-110 transition-all">
+                  <div className="w-10 h-10 rounded-full bg-orange-600 flex items-center justify-center text-white shadow-lg shadow-orange-500/40 group-hover:scale-110 transition-all">
                     <Zap size={18} fill="currentColor" />
                   </div>
                 </div>
@@ -186,11 +186,11 @@ const ScreenHome = ({ onNewProject, onQuickStart, onLoadProject, isUserPro, isDa
                 onClick={handleStartNew}
                 className={`w-full py-5 rounded-2xl font-black uppercase text-xs tracking-[0.2em] flex items-center justify-center gap-3 transition-all active:scale-95 ${
                   canCreate 
-                    ? 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 hover:border-indigo-500/50 dark:hover:border-indigo-500/50' 
+                    ? 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 hover:border-orange-500/50 dark:hover:border-orange-500/50' 
                     : 'bg-slate-100/50 dark:bg-slate-800/50 text-slate-400 dark:text-slate-600 cursor-not-allowed'
                 }`}
               >
-                {canCreate ? <Plus size={20} className="text-indigo-700 dark:text-indigo-600" /> : <Lock size={18} />}
+                {canCreate ? <Plus size={20} className="text-orange-700 dark:text-orange-600" /> : <Lock size={18} />}
                 {canCreate ? 'Start New Project' : 'Limit Reached'}
               </button>
             </div>
@@ -219,13 +219,13 @@ const ScreenHome = ({ onNewProject, onQuickStart, onLoadProject, isUserPro, isDa
             </div>
             <div className="flex items-center justify-between mb-10">
               <h2 className="text-2xl font-black uppercase tracking-tight flex items-center gap-4 italic text-slate-900 dark:text-white">
-                <div className="w-10 h-10 bg-indigo-600/10 rounded-xl flex items-center justify-center text-indigo-700 dark:text-indigo-600 border border-indigo-500/20">
+                <div className="w-10 h-10 bg-orange-600/10 rounded-xl flex items-center justify-center text-orange-700 dark:text-orange-600 border border-orange-500/20">
                   <Clock size={20} />
                 </div>
                 Project Repository
               </h2>
               <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 flex items-center gap-2">
-                Total Files: <span className="text-indigo-700 dark:text-indigo-600">{projects.length}</span>
+                Total Files: <span className="text-orange-700 dark:text-orange-600">{projects.length}</span>
               </div>
             </div>
 
@@ -245,8 +245,8 @@ const ScreenHome = ({ onNewProject, onQuickStart, onLoadProject, isUserPro, isDa
                       className={`
                         group relative flex flex-col w-full p-6 rounded-3xl border transition-all text-left overflow-hidden active:scale-[0.98]
                         ${activeMenuId === p.id 
-                          ? 'border-indigo-500 bg-indigo-600/[0.05] shadow-lg shadow-indigo-500/10' 
-                          : 'border-slate-100 dark:border-slate-800 bg-white/40 dark:bg-transparent hover:border-indigo-500/50 hover:bg-indigo-600/[0.03] dark:hover:bg-indigo-600/5'
+                          ? 'border-orange-500 bg-orange-600/[0.05] shadow-lg shadow-orange-500/10' 
+                          : 'border-slate-100 dark:border-slate-800 bg-white/40 dark:bg-transparent hover:border-orange-500/50 hover:bg-orange-600/[0.03] dark:hover:bg-orange-600/5'
                         }
                       `}
                     >
@@ -255,25 +255,25 @@ const ScreenHome = ({ onNewProject, onQuickStart, onLoadProject, isUserPro, isDa
                           <div className={`
                             w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors
                             ${activeMenuId === p.id 
-                              ? 'bg-indigo-600 text-white' 
-                              : 'bg-slate-100 dark:bg-slate-800 group-hover:bg-indigo-600 group-hover:text-white text-slate-400 dark:text-slate-500'
+                              ? 'bg-orange-600 text-white' 
+                              : 'bg-slate-100 dark:bg-slate-800 group-hover:bg-orange-600 group-hover:text-white text-slate-400 dark:text-slate-500'
                             }
                           `}>
                             <Box size={16} />
                           </div>
                           <div className="flex flex-col min-w-0">
-                            <h4 className={`font-black uppercase text-sm tracking-widest transition-colors truncate ${activeMenuId === p.id ? 'text-indigo-700 dark:text-indigo-400' : 'text-slate-800 dark:text-white group-hover:text-indigo-700 dark:group-hover:text-indigo-400'}`}>
+                            <h4 className={`font-black uppercase text-sm tracking-widest transition-colors truncate ${activeMenuId === p.id ? 'text-orange-700 dark:text-orange-400' : 'text-slate-800 dark:text-white group-hover:text-orange-700 dark:group-hover:text-orange-400'}`}>
                               {p.name}
                             </h4>
                             <div className="flex items-center gap-1.5 mt-0.5">
-                              <Clock size={10} className="text-indigo-600/60 dark:text-indigo-600/40" />
+                              <Clock size={10} className="text-orange-600/60 dark:text-orange-600/40" />
                               <span className="text-[9px] text-slate-500 dark:text-slate-400 uppercase font-black tracking-widest">
                                 {new Date(p.updated_at).toLocaleDateString()}
                               </span>
                             </div>
                           </div>
                         </div>
-                        <MousePointer2 size={16} className={`shrink-0 transition-colors ${activeMenuId === p.id ? 'text-indigo-600' : 'text-slate-300 dark:text-slate-600 group-hover:text-indigo-700 dark:group-hover:text-indigo-600'}`} />
+                        <MousePointer2 size={16} className={`shrink-0 transition-colors ${activeMenuId === p.id ? 'text-orange-600' : 'text-slate-300 dark:text-slate-600 group-hover:text-orange-700 dark:group-hover:text-orange-600'}`} />
                       </div>
 
                       {/* Progress Summary */}
@@ -289,13 +289,13 @@ const ScreenHome = ({ onNewProject, onQuickStart, onLoadProject, isUserPro, isDa
                               <div key={i} className="flex flex-col gap-1.5 flex-1">
                                 <div className="flex items-center justify-between px-0.5">
                                   <span className="text-[7px] font-black uppercase tracking-tighter opacity-40">{phase.label}</span>
-                                  <span className={`text-[8px] font-black ${phase.stats.status === 'complete' ? 'text-emerald-500' : phase.stats.status === 'in_progress' ? 'text-indigo-600' : 'text-slate-300'}`}>
+                                  <span className={`text-[8px] font-black ${phase.stats.status === 'complete' ? 'text-emerald-500' : phase.stats.status === 'in_progress' ? 'text-orange-600' : 'text-slate-300'}`}>
                                     {phase.stats.done}/{phase.stats.total}
                                   </span>
                                 </div>
                                 <div className="h-1 bg-slate-100 dark:bg-slate-800/50 rounded-full overflow-hidden">
                                   <div 
-                                    className={`h-full transition-all duration-500 ${phase.stats.status === 'complete' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : phase.stats.status === 'in_progress' ? 'bg-indigo-600 shadow-[0_0_8px_rgba(245,158,11,0.4)]' : 'bg-transparent'}`}
+                                    className={`h-full transition-all duration-500 ${phase.stats.status === 'complete' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : phase.stats.status === 'in_progress' ? 'bg-orange-600 shadow-[0_0_8px_rgba(245,158,11,0.4)]' : 'bg-transparent'}`}
                                     style={{ width: `${(phase.stats.done / phase.stats.total) * 100}%` }}
                                   />
                                 </div>
@@ -314,7 +314,7 @@ const ScreenHome = ({ onNewProject, onQuickStart, onLoadProject, isUserPro, isDa
                             initial={{ opacity: 0, y: -10, scale: 0.95 }}
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                            className="bg-white dark:bg-slate-900 border border-indigo-500/30 rounded-2xl shadow-2xl overflow-hidden backdrop-blur-xl"
+                            className="bg-white dark:bg-slate-900 border border-orange-500/30 rounded-2xl shadow-2xl overflow-hidden backdrop-blur-xl"
                           >
                             <div className="p-2 space-y-1">
                               <button 
@@ -338,7 +338,7 @@ const ScreenHome = ({ onNewProject, onQuickStart, onLoadProject, isUserPro, isDa
                                 className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group/item"
                               >
                                 <div className="flex items-center gap-3">
-                                  <div className="w-8 h-8 bg-indigo-600/10 rounded-lg flex items-center justify-center text-indigo-600">
+                                  <div className="w-8 h-8 bg-orange-600/10 rounded-lg flex items-center justify-center text-orange-600">
                                     <Box size={16} />
                                   </div>
                                   <div className="text-left">
@@ -399,7 +399,7 @@ const ScreenHome = ({ onNewProject, onQuickStart, onLoadProject, isUserPro, isDa
                 </div>
                 <h3 className="text-lg font-black uppercase text-slate-900 dark:text-white mb-2">No Projects Detected</h3>
                 <p className="text-sm text-slate-500 dark:text-slate-500 font-medium italic mb-8">Your engineering repository is currently empty.</p>
-                <button onClick={handleStartNew} className="text-indigo-700 dark:text-indigo-600 font-black uppercase text-[10px] tracking-[0.2em] flex items-center gap-2 hover:gap-4 transition-all">
+                <button onClick={handleStartNew} className="text-orange-700 dark:text-orange-600 font-black uppercase text-[10px] tracking-[0.2em] flex items-center gap-2 hover:gap-4 transition-all">
                   Create First Project <ArrowUpRight size={14} />
                 </button>
               </div>

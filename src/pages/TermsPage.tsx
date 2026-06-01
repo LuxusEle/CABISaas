@@ -37,8 +37,8 @@ const parseMarkdown = (content: string): React.ReactNode => {
         text = text
           .replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-slate-900 dark:text-white">$1</strong>')
           .replace(/\*(.*?)\*/g, '<em>$1</em>')
-          .replace(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '<a href="mailto:$1" class="text-indigo-700 dark:text-indigo-400 hover:underline">$1</a>')
-          .replace(/(www\.[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '<a href="https://$1" target="_blank" rel="noopener noreferrer" class="text-indigo-700 dark:text-indigo-400 hover:underline">$1</a>');
+          .replace(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '<a href="mailto:$1" class="text-indigo-700 dark:text-orange-400 hover:underline">$1</a>')
+          .replace(/(www\.[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '<a href="https://$1" target="_blank" rel="noopener noreferrer" class="text-indigo-700 dark:text-orange-400 hover:underline">$1</a>');
         elements.push(<p key={elements.length} className="text-slate-600 dark:text-slate-300 my-2 leading-relaxed" dangerouslySetInnerHTML={{ __html: text }} />);
       }
       currentParagraph = '';
@@ -55,8 +55,8 @@ const parseMarkdown = (content: string): React.ReactNode => {
                 __html: item
                   .replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-slate-900 dark:text-white">$1</strong>')
                   .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                  .replace(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '<a href="mailto:$1" class="text-indigo-700 dark:text-indigo-400 hover:underline">$1</a>')
-                  .replace(/(www\.[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '<a href="https://$1" target="_blank" rel="noopener noreferrer" class="text-indigo-700 dark:text-indigo-400 hover:underline">$1</a>')
+                  .replace(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '<a href="mailto:$1" class="text-indigo-700 dark:text-orange-400 hover:underline">$1</a>')
+                  .replace(/(www\.[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '<a href="https://$1" target="_blank" rel="noopener noreferrer" class="text-indigo-700 dark:text-orange-400 hover:underline">$1</a>')
               }} />
             ))}
           </ul>
@@ -69,8 +69,8 @@ const parseMarkdown = (content: string): React.ReactNode => {
                 __html: item
                   .replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-slate-900 dark:text-white">$1</strong>')
                   .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                  .replace(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '<a href="mailto:$1" class="text-indigo-700 dark:text-indigo-400 hover:underline">$1</a>')
-                  .replace(/(www\.[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '<a href="https://$1" target="_blank" rel="noopener noreferrer" class="text-indigo-700 dark:text-indigo-400 hover:underline">$1</a>')
+                  .replace(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '<a href="mailto:$1" class="text-indigo-700 dark:text-orange-400 hover:underline">$1</a>')
+                  .replace(/(www\.[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '<a href="https://$1" target="_blank" rel="noopener noreferrer" class="text-indigo-700 dark:text-orange-400 hover:underline">$1</a>')
               }} />
             ))}
           </ol>
@@ -173,7 +173,7 @@ const parseMarkdown = (content: string): React.ReactNode => {
       flushList();
       const quoteContent = line.slice(2);
       elements.push(
-        <blockquote key={elements.length} className="border-l-4 border-indigo-500 pl-4 py-2 my-4 bg-amber-50 dark:bg-amber-900/20 text-slate-700 dark:text-slate-300 italic">
+        <blockquote key={elements.length} className="border-l-4 border-orange-500 pl-4 py-2 my-4 bg-amber-50 dark:bg-amber-900/20 text-slate-700 dark:text-slate-300 italic">
           {quoteContent}
         </blockquote>
       );
@@ -642,7 +642,7 @@ export const TermsPage: React.FC<TermsPageProps> = ({
                 key={section.id}
                 onClick={() => scrollToSection(section.id)}
                 className={`w-full flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors text-left ${activeSection === section.id
-                  ? 'bg-indigo-100 dark:bg-amber-900/30 text-indigo-700 dark:text-indigo-400'
+                  ? 'bg-indigo-100 dark:bg-amber-900/30 text-indigo-700 dark:text-orange-400'
                   : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
                   }`}
               >

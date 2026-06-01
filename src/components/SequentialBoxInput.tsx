@@ -143,9 +143,9 @@ export const SequentialBoxInput: React.FC<SequentialBoxInputProps> = ({ zone, on
     };
 
     return (
-        <div className="bg-white dark:bg-slate-900 rounded-xl p-4 space-y-4 border border-indigo-500/30">
+        <div className="bg-white dark:bg-slate-900 rounded-xl p-4 space-y-4 border border-orange-500/30">
             <div className="flex items-center justify-between">
-                <h3 className="text-indigo-700 dark:text-indigo-600 font-bold text-sm flex items-center gap-2">
+                <h3 className="text-indigo-700 dark:text-orange-600 font-bold text-sm flex items-center gap-2">
                     <Zap size={16} /> Sequential Builder
                 </h3>
                 <span className="text-slate-500 dark:text-slate-500 text-xs">Left → Right</span>
@@ -155,7 +155,7 @@ export const SequentialBoxInput: React.FC<SequentialBoxInputProps> = ({ zone, on
             <div className="space-y-2">
                 <div className="flex justify-between items-center">
                     <span className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase">Top (Wall)</span>
-                    <span className="text-xs text-indigo-700 dark:text-indigo-600 font-mono">{wallInfo.remaining}mm left</span>
+                    <span className="text-xs text-indigo-700 dark:text-orange-600 font-mono">{wallInfo.remaining}mm left</span>
                 </div>
                 <div className="flex gap-1 flex-wrap">
                     {WALL_PRESETS.map((p, i) => (
@@ -167,7 +167,7 @@ export const SequentialBoxInput: React.FC<SequentialBoxInputProps> = ({ zone, on
                                 ? 'border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-600 cursor-not-allowed'
                                 : p.pairedPreset
                                     ? 'border-purple-500 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/30'
-                                    : 'border-slate-400 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-indigo-500'
+                                    : 'border-slate-400 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-orange-500'
                                 }`}
                         >
                             {p.label}
@@ -177,7 +177,7 @@ export const SequentialBoxInput: React.FC<SequentialBoxInputProps> = ({ zone, on
                     <button
                         onClick={() => handleFillRemainder(CabinetType.WALL)}
                         disabled={wallInfo.remaining < 150}
-                        className="px-3 py-1.5 text-[10px] font-bold rounded bg-indigo-700 text-white hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-3 py-1.5 text-[10px] font-bold rounded bg-orange-700 text-white hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         Fill Rest
                     </button>
@@ -188,7 +188,7 @@ export const SequentialBoxInput: React.FC<SequentialBoxInputProps> = ({ zone, on
             <div className="space-y-2 border-t border-slate-200 dark:border-slate-800 pt-3">
                 <div className="flex justify-between items-center">
                     <span className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase">Bottom (Base)</span>
-                    <span className="text-xs text-indigo-700 dark:text-indigo-600 font-mono">{baseInfo.remaining}mm left</span>
+                    <span className="text-xs text-indigo-700 dark:text-orange-600 font-mono">{baseInfo.remaining}mm left</span>
                 </div>
                 <div className="flex gap-1 flex-wrap">
                     {BASE_PRESETS.map((p, i) => (
@@ -200,7 +200,7 @@ export const SequentialBoxInput: React.FC<SequentialBoxInputProps> = ({ zone, on
                                 ? 'border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-600 cursor-not-allowed'
                                 : p.pairedPreset
                                     ? 'border-purple-500 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/30'
-                                    : 'border-slate-400 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-indigo-500'
+                                    : 'border-slate-400 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-orange-500'
                                 }`}
                         >
                             {p.label}
@@ -210,7 +210,7 @@ export const SequentialBoxInput: React.FC<SequentialBoxInputProps> = ({ zone, on
                     <button
                         onClick={() => handleFillRemainder(CabinetType.BASE)}
                         disabled={baseInfo.remaining < 150}
-                        className="px-3 py-1.5 text-[10px] font-bold rounded bg-indigo-700 text-white hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-3 py-1.5 text-[10px] font-bold rounded bg-orange-700 text-white hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         Fill Rest
                     </button>
