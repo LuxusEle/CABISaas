@@ -157,7 +157,7 @@ export const LandingHeader: React.FC<LandingHeaderProps> = ({
                 Sign In
               </button>
               <button
-                onClick={() { onGetStarted(); setMobileMenuOpen(false); }}
+                onClick={() => { onGetStarted(); setMobileMenuOpen(false); }}
                 className="w-full text-left px-4 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors text-base font-bold min-h-[48px] text-center"
               >
                 Get Started Free
