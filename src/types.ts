@@ -377,7 +377,6 @@ export interface SubscriptionPlan {
   features: string[];
   maxProjects: number;
   maxUsers?: number;
-  paddlePriceId: string | null;
 }
 
 export interface UserSubscription {
@@ -388,8 +387,11 @@ export interface UserSubscription {
   current_period_start: string;
   current_period_end: string;
   cancel_at_period_end: boolean;
-  paddle_subscription_id?: string;
-  paddle_customer_id?: string;
+  mpgs_card_token?: string;
+  mpgs_agreement_id?: string;
+  mpgs_order_id?: string;
+  mpgs_session_id?: string;
+  mpgs_transaction_id?: string;
   created_at?: string;
   updated_at?: string;
 }

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head><title>MPGS Test</title>
+<style>
+  body { font-family: sans-serif; padding: 40px; background: #0F172A; color: #fff; }
+  .card-box { background: #1e293b; padding: 24px; border-radius: 12px; max-width: 400px; margin-top: 12px; height: 220px; }
+  .field { margin-bottom: 16px; display: flex; flex-direction: column; }
+  .field > div { padding: 10px; border: 1px solid #334155; border-radius: 6px; height: 20px; }
+  .field > div:focus-within { border-color: #3b82f6; }
+  .row { display: flex; gap: 12px; }
+  .row .field { flex: 1; }
+  .row .field > div { width: auto; }
+  pre { background: #1e293b; padding: 12px; border-radius: 8px; font-size: 12px; overflow: auto; max-height: 500px; margin-top: 20px; }
+  button { background: #3b82f6; color: white; border: none; border-radius: 8px; padding: 12px 24px; font-size: 16px; cursor: pointer; margin-top: 12px; }
+  button:hover { background: #2563eb; }
+</style></head>
+<body>
+  <h2>MPGS Test</h2>
+  <pre id="out">Running...</pre>
+  <div class="card-box">
+    <div id="MerchantSessionId" data-merchant="TESTSEYLAN148">
+      <div data-paymentmethod="card">
+          <div class="field">
+            <label>Card Number</label>
+            <div id="card-number" data-card="number" placeholder="1234 5678 9012 3456" readonly></div>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label>Expiry Month</label>
+              <div id="card-expiry-month" data-card="expiryMonth" placeholder="MM" readonly></div>
+            </div>
+            <div class="field">
+              <label>Expiry Year</label>
+              <div id="card-expiry-year" data-card="expiryYear" placeholder="YY" readonly></div>
+            </div>
+            <div class="field" style="flex:0.6">
+              <label>CVV</label>
+              <div id="card-cvv" data-card="securityCode" placeholder="CVV" readonly></div>
+            </div>
+          </div>
+      </div>
+    </div>
+  </div>
+  <button id="payBtn" disabled style="opacity:0.5">Loading...</button>
+
+  <script>
+    var out = document.getElementById('out');
+    function log(m) { out.innerHTML += m + '\n'; }
+
+    window.onerror = function(msg, url, line) {
+      log('ERROR: ' + msg + ' L' + line);
+    };
+
+    fetch('https://fejzgyzzqszsvjzvkois.supabase.co/functions/v1/mpgs-payment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json',
+        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZlanpneXp6cXN6c3ZqenZrb2lzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0NDkxMDAsImV4cCI6MjA4NjAyNTEwMH0.hjknWbi981ooo544oU1bHCwedRgLXnK5aR_Vz8lZ0jk'
+      },
+      body: JSON.stringify({ action: 'create_session', userId: 'test', planId: 'pro', amount: 29, currency: 'USD' })
+    })
+    .then(r => r.json())
+    .then(data => {
+      log('Session: ' + data.sessionId);
+
+      var s = document.createElement('script');
+      s.src = 'https://test-seylan.mtf.gateway.mastercard.com/form/version/100/merchant/TESTSEYLAN148/session.js';
+      s.onload = function() {
+        log('SDK loaded');
+
+        // Configure the SDK with field selectors - let SDK create session
+        PaymentSession.configure({
+          fields: {
+            card: {
+              number: '#card-number',
+              expiryMonth: '#card-expiry-month',
+              expiryYear: '#card-expiry-year',
+              securityCode: '#card-cvv',
+            },
+          },
+          callbacks: {
+            initialized: function(response) {
+              log('Initialized: ' + JSON.stringify(response));
+              if (response.status === 'ok') {
+                log('response.session: ' + JSON.stringify(response.session));
+                var el = document.getElementById('MerchantSessionId');
+                log('iframes: ' + el.querySelectorAll('iframe').length);
+                log('children: ' + el.children.length);
+                document.getElementById('payBtn').disabled = false;
+                document.getElementById('payBtn').style.opacity = '1';
+                document.getElementById('payBtn').textContent = 'Pay $29';
+              }
+            },
+            formSessionUpdate: function(response) {
+              log('formSessionUpdate: ' + JSON.stringify(response));
+              if (response.status === 'ok') {
+                log('Session ID from callback: ' + (response.session ? response.session.id : 'N/A'));
+              }
+            }
+          },
+          frameEmbeddingMitigation: ['csp'],
+          interaction: {
+            merchantName: 'CABISaas'
+          }
+        });
+      };
+      s.onerror = function() { log('SDK load FAILED'); };
+      document.head.appendChild(s);
+    })
+    .catch(function(e) { log('Error: ' + e.message); });
+
+    document.getElementById('payBtn').addEventListener('click', function() {
+      log('Submitting payment...');
+      PaymentSession.updateSessionFromForm('card');
+    });
+  </script>
+</body>
+</html>

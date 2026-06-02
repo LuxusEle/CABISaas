@@ -14,7 +14,6 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       'Community support'
     ],
     maxProjects: 3,
-    paddlePriceId: null
   },
   {
     id: 'pro',
@@ -31,7 +30,6 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       'Material management'
     ],
     maxProjects: -1,
-    paddlePriceId: import.meta.env.VITE_PADDLE_PRO_PRICE_ID || null
   }
 ];
 
@@ -80,8 +78,7 @@ export const subscriptionService = {
       .single();
 
     if (error) {
-      if (error.code === '23505') { // Unique constraint violation
-        // Row already exists, just fetch it
+      if (error.code === '23505') {
         const { data: existing } = await supabase
           .from('subscriptions')
           .select('*')
@@ -96,58 +93,42 @@ export const subscriptionService = {
     return data;
   },
 
-  async initiatePaddleSubscription(planId: string): Promise<void> {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) throw new Error('User not logged in');
-
-    const plan = SUBSCRIPTION_PLANS.find(p => p.id === planId);
-    if (!plan || !plan.paddlePriceId) throw new Error('Invalid plan or missing Paddle Price ID');
-
-    const { openPaddleCheckout } = await import('./paddle');
-
-    openPaddleCheckout({
-      priceId: plan.paddlePriceId,
-      userId: userData.user.id,
-      userEmail: userData.user.email,
-    });
-  },
-
   async cancelSubscription(): Promise<boolean> {
-    // In Paddle, we usually prefer directing users to the Customer Portal
-    return this.manageSubscription();
-  },
-
-  async manageSubscription(): Promise<boolean> {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) return false;
 
-    const { data: sub } = await supabase
+    const { error } = await supabase
       .from('subscriptions')
-      .select('paddle_customer_id')
-      .eq('user_id', userData.user.id)
-      .single();
+      .update({
+        status: 'cancelled',
+        cancel_at_period_end: true,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', userData.user.id);
 
-    if (!sub?.paddle_customer_id) {
-      alert('Could not find your customer record. Please contact support.');
-      return false;
-    }
+    return !error;
+  },
 
-    const { openPaddleCheckout } = await import('./paddle');
-    
-    openPaddleCheckout({
-      customerId: sub.paddle_customer_id,
-      userId: userData.user.id,
-      // In Paddle v2, opening with a customer ID allows them to see their billing
-      onClose: () => {
-        window.location.reload();
-      }
-    });
-    
-    return true;
+  async manageSubscription(): Promise<boolean> {
+    alert('To manage your subscription, please contact support.');
+    return false;
   },
 
   async resumeSubscription(): Promise<boolean> {
-    return this.manageSubscription();
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) return false;
+
+    const { error } = await supabase
+      .from('subscriptions')
+      .update({
+        status: 'active',
+        cancel_at_period_end: false,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', userData.user.id)
+      .eq('plan_id', 'pro');
+
+    return !error;
   },
 
   async canCreateProject(): Promise<boolean> {
@@ -157,7 +138,6 @@ export const subscriptionService = {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) return false;
 
-    // Fetch the persistent counter from the profile
     const { data: profile } = await supabase
       .from('user_profiles')
       .select('projects_count')
@@ -168,11 +148,6 @@ export const subscriptionService = {
   },
 
   async isPro(): Promise<boolean> {
-    // TEMPORARY: Grant all users Pro features for app launch. Comment/remove the line below to re-enable limits.
-    return true;
-
-    // Uncomment below section to use real pro status
-    /*
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) return false;
 
@@ -183,7 +158,6 @@ export const subscriptionService = {
       .single();
 
     return sub?.plan_id === 'pro' && sub?.status === 'active';
-    */
   },
 
   async getCurrentPlan(): Promise<SubscriptionPlan | null> {

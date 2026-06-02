@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabaseClient';
 import { subscriptionService, SUBSCRIPTION_PLANS } from '../services/subscriptionService';
 import type { UserSubscription } from '../types';
-import { Check, X, Sparkles, User, Loader2, PartyPopper } from 'lucide-react';
+import type { MpgsPaymentResult } from '../services/mpgsService';
+import { Check, X, Sparkles, User, Loader2 } from 'lucide-react';
 import { LandingHeader } from './LandingHeader';
+import { MpgsCheckoutForm } from './MpgsCheckoutForm';
 import { useNavigate } from 'react-router-dom';
 
 interface PricingPageProps {
@@ -22,9 +24,9 @@ export const PricingPage: React.FC<PricingPageProps> = ({
   const navigate = useNavigate();
   const [currentSubscription, setCurrentSubscription] = useState<UserSubscription | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [subscriptionError, setSubscriptionError] = useState<string | null>(null);
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   useEffect(() => {
@@ -32,7 +34,6 @@ export const PricingPage: React.FC<PricingPageProps> = ({
   }, []);
 
   const loadSubscription = async () => {
-    // Only set loading if we actually have a user to check for
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
@@ -42,49 +43,30 @@ export const PricingPage: React.FC<PricingPageProps> = ({
     setIsLoading(false);
   };
 
-  const handlePaddleSubscribe = async (planId: string) => {
+  const handleSubscribe = async (planId: string) => {
     if (planId === 'free') return;
 
-    setSelectedPlan(planId);
     setSubscriptionError(null);
-    setIsProcessing(true);
 
-    try {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) {
-        onSignIn();
-        return;
-      }
-
-      const plan = SUBSCRIPTION_PLANS.find(p => p.id === planId);
-      if (!plan || !plan.paddlePriceId) throw new Error('Invalid plan');
-
-      const { openPaddleCheckout, closePaddleCheckout } = await import('../services/paddle');
-
-      openPaddleCheckout({
-        priceId: plan.paddlePriceId,
-        userId: userData.user.id,
-        userEmail: userData.user.email,
-        onSuccess: async (data) => {
-          // Database update is now handled securely by the Edge Function (Webhook)
-          console.log('Payment success received. Waiting for webhook sync...');
-          
-          // Wait 1 second for user to see Paddle success screen, then auto-close
-          setTimeout(() => {
-            closePaddleCheckout();
-            setShowSuccessModal(true);
-            setIsProcessing(false);
-          }, 1000);
-        },
-        onClose: () => {
-          setIsProcessing(false);
-        }
-      });
-    } catch (error: any) {
-      console.error('Paddle error:', error);
-      setSubscriptionError(error.message || 'An error occurred with Paddle.');
-      setIsProcessing(false);
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) {
+      onSignIn();
+      return;
     }
+
+    setShowCheckoutModal(true);
+  };
+
+  const handleMpgsSuccess = async (result: MpgsPaymentResult) => {
+    setShowCheckoutModal(false);
+    setIsProcessing(false);
+    setShowSuccessModal(true);
+    await loadSubscription();
+  };
+
+  const handleMpgsError = (error: string) => {
+    setSubscriptionError(error);
+    setIsProcessing(false);
   };
 
   const handleCancel = async () => {
@@ -119,51 +101,9 @@ export const PricingPage: React.FC<PricingPageProps> = ({
         isDark={isDark}
         setIsDark={setIsDark}
       />
-      
-      {/* Launch Promo Overlay */}
-      <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
-        <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-500" />
-        <div className="relative bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl p-8 sm:p-12 max-w-xl w-full text-center border-4 border-amber-500/30 animate-in zoom-in-95 duration-500 overflow-hidden">
-          {/* Decorative Background */}
-          <div className="absolute -top-24 -right-24 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-          
-          <div className="w-24 h-24 bg-gradient-to-br from-amber-400 to-amber-600 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-xl shadow-amber-500/40 rotate-3 animate-pulse">
-            <Sparkles size={48} className="text-white" />
-          </div>
-          
-          <h2 className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-white mb-4 tracking-tighter uppercase italic">
-            It's <span className="text-amber-500">Free</span> Now!
-          </h2>
-          
-          <div className="space-y-4 mb-10">
-            <p className="text-xl font-bold text-slate-700 dark:text-slate-200">
-              Enjoy full Pro features for free during our launch phase.
-            </p>
-            <p className="text-slate-500 dark:text-slate-400 font-medium italic">
-              No subscription needed. No credit cards. Just start building your dream kitchen today.
-            </p>
-          </div>
-          
-          <div className="space-y-4 relative z-10">
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="w-full py-5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black rounded-2xl hover:scale-[1.02] transition-all shadow-xl shadow-slate-900/20 dark:shadow-white/10 flex items-center justify-center gap-3 group text-lg uppercase tracking-widest"
-            >
-              Start Building Now
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="group-hover:translate-x-1 transition-transform"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-            </button>
-            
-            <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em]">
-              Limited Time Launch Offer
-            </p>
-          </div>
-        </div>
-      </div>
 
       <div className="py-12 px-4 pt-14 sm:pt-16">
         <div className="max-w-6xl mx-auto">
-          {/* Header */}
           <div className="text-center mb-12">
             <h1 className="text-4xl font-black text-slate-900 dark:text-white mb-4">
               Choose Your Plan
@@ -173,7 +113,6 @@ export const PricingPage: React.FC<PricingPageProps> = ({
             </p>
           </div>
 
-          {/* Current Subscription Status */}
           {isPro && (
             <div className="mb-8 p-6 bg-amber-50 dark:bg-amber-900/10 border-2 border-amber-500/20 rounded-2xl">
               <div className="flex items-center gap-4">
@@ -199,7 +138,6 @@ export const PricingPage: React.FC<PricingPageProps> = ({
             </div>
           )}
 
-          {/* Pricing Cards */}
           <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {SUBSCRIPTION_PLANS.map((plan) => {
               const isCurrentPlan = currentPlanId === plan.id;
@@ -213,7 +151,6 @@ export const PricingPage: React.FC<PricingPageProps> = ({
                     : 'border-slate-200 dark:border-slate-800'
                     }`}
                 >
-                  {/* Popular Badge */}
                   {plan.id === 'pro' && (
                     <div className="absolute top-0 right-0 bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">
                       POPULAR
@@ -221,7 +158,6 @@ export const PricingPage: React.FC<PricingPageProps> = ({
                   )}
 
                   <div className="p-8">
-                    {/* Plan Icon & Name */}
                     <div className="flex items-center gap-3 mb-4">
                       <div className={`p-3 rounded-lg ${plan.id === 'free' ? 'bg-slate-100 dark:bg-slate-800' : 'bg-amber-100 dark:bg-amber-900/30'
                         }`}>
@@ -234,7 +170,6 @@ export const PricingPage: React.FC<PricingPageProps> = ({
                       </h3>
                     </div>
 
-                    {/* Price */}
                     <div className="mb-4">
                       <span className="text-4xl font-black text-slate-900 dark:text-white">
                         ${plan.price}
@@ -244,15 +179,13 @@ export const PricingPage: React.FC<PricingPageProps> = ({
                       </span>
                     </div>
 
-                    {/* Description */}
                     <p className="text-slate-600 dark:text-slate-400 mb-6">
                       {plan.description}
                     </p>
 
-                    {/* CTA Button */}
                     <div className="space-y-3">
                       <button
-                        onClick={() => handlePaddleSubscribe(plan.id)}
+                        onClick={() => handleSubscribe(plan.id)}
                         disabled={isCurrentPlan || isProcessing || plan.id === 'free'}
                         className={`w-full py-3 px-4 rounded-lg font-bold transition-all ${isCurrentPlan && plan.id !== 'free'
                           ? 'bg-green-100 text-green-600 cursor-not-allowed'
@@ -265,7 +198,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({
                           ? 'Current Plan'
                           : plan.id === 'free'
                             ? 'Free Forever'
-                            : isProcessing && selectedPlan === plan.id
+                            : isProcessing
                               ? (
                                 <div className="flex items-center justify-center gap-2">
                                   <Loader2 className="animate-spin" size={20} />
@@ -274,15 +207,14 @@ export const PricingPage: React.FC<PricingPageProps> = ({
                               )
                               : 'Subscribe'}
                       </button>
-                      
+
                       {plan.id !== 'free' && !isCurrentPlan && (
                         <p className="text-xs text-slate-500 dark:text-slate-400 text-center">
-                          Secure payment via Paddle. Cancel anytime.
+                          Secure payment via Mastercard Gateway. Cancel anytime.
                         </p>
                       )}
                     </div>
 
-                    {/* Features */}
                     <div className="mt-8 space-y-3">
                       <p className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider">
                         Features
@@ -297,7 +229,6 @@ export const PricingPage: React.FC<PricingPageProps> = ({
                       ))}
                     </div>
 
-                    {/* Limitations for free plan */}
                     {plan.id === 'free' && (
                       <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-700">
                         <p className="text-sm font-semibold text-slate-900 dark:text-white mb-3">
@@ -337,7 +268,6 @@ export const PricingPage: React.FC<PricingPageProps> = ({
             })}
           </div>
 
-          {/* FAQ or Additional Info */}
           <div className="mt-16 text-center">
             <p className="text-slate-500 dark:text-slate-400 mb-4">
               Questions about our plans?
@@ -351,6 +281,60 @@ export const PricingPage: React.FC<PricingPageProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Checkout Modal */}
+      {showCheckoutModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowCheckoutModal(false)} />
+          <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-6 sm:p-8 max-w-md w-full border border-slate-200 dark:border-slate-700">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+                Complete Payment
+              </h3>
+              <button
+                onClick={() => setShowCheckoutModal(false)}
+                className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <X size={20} className="text-slate-500" />
+              </button>
+            </div>
+            <MpgsCheckoutForm
+              planId="pro"
+              amount={29}
+              onSuccess={handleMpgsSuccess}
+              onError={handleMpgsError}
+              onCancel={() => {
+                setShowCheckoutModal(false);
+                setIsProcessing(false);
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+          <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-8 max-w-md w-full text-center border border-slate-200 dark:border-slate-700">
+            <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Check size={32} className="text-white" />
+            </div>
+            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+              Welcome to Pro!
+            </h3>
+            <p className="text-slate-600 dark:text-slate-400 mb-6">
+              Your subscription is now active. Start building unlimited projects.
+            </p>
+            <button
+              onClick={handleCloseSuccessModal}
+              className="w-full py-3 px-4 rounded-lg bg-amber-500 text-white font-bold hover:bg-amber-600 transition-colors"
+            >
+              Go to Dashboard
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
