@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MPGS Hosted Checkout Test</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 40px 20px; }
+    .card { background: #1e293b; border-radius: 16px; padding: 32px; max-width: 540px; width: 100%; border: 1px solid #334155; }
+    h1 { font-size: 20px; margin-bottom: 24px; text-align: center; }
+    .btn { width: 100%; padding: 14px; border: none; border-radius: 10px; font-size: 16px; font-weight: 700; cursor: pointer; transition: all .2s; }
+    .btn-primary { background: #f59e0b; color: #0f172a; }
+    .btn-primary:hover { background: #d97706; transform: scale(1.02); }
+    .btn-primary:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+    .btn-secondary { background: #334155; color: #94a3b8; }
+    #log { margin-top: 20px; max-height: 300px; overflow-y: auto; font-family: monospace; font-size: 12px; line-height: 1.6; }
+    .log-entry { padding: 4px 8px; border-radius: 4px; margin-bottom: 2px; }
+    .log-ok { background: #065f46; color: #6ee7b7; }
+    .log-error { background: #7f1d1d; color: #fca5a5; }
+    .log-info { background: #1e3a5f; color: #93c5fd; }
+    .status-box { margin-top: 16px; padding: 16px; border-radius: 10px; text-align: center; }
+    .status-success { background: #065f46; border: 1px solid #10b981; }
+    .status-error { background: #7f1d1d; border: 1px solid #ef4444; }
+    .step { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; margin: 4px; }
+    .step.wait { background: #334155; color: #94a3b8; }
+    .step.done { background: #065f46; color: #6ee7b7; }
+    .step.active { background: #f59e0b; color: #0f172a; }
+    .step.fail { background: #7f1d1d; color: #fca5a5; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>MPGS Hosted Checkout Test</h1>
+    <div style="text-align:center;margin-bottom:20px">
+      <span class="step wait" id="s1">1. Initiate</span>
+      <span class="step wait" id="s2">2. Pay</span>
+      <span class="step wait" id="s3">3. Verify</span>
+    </div>
+
+    <div id="startView">
+      <p style="text-align:center;margin-bottom:16px;color:#94a3b8;font-size:14px">
+        Test the Hosted Checkout Payment Page flow.<br>
+        After paying, you'll be redirected back.
+      </p>
+      <button id="payBtn" class="btn btn-primary">Pay $29</button>
+    </div>
+
+    <div id="processingView" style="display:none;text-align:center">
+      <p style="margin-bottom:12px">Redirecting to payment page...</p>
+      <div style="font-size:12px;color:#64748b">If not redirected, <a href="#" id="manualRedirect" style="color:#f59e0b">click here</a></div>
+    </div>
+
+    <div id="resultView" style="display:none"></div>
+
+    <div id="log"><div class="log-entry log-info">Ready.</div></div>
+  </div>
+
+  <script>
+    const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZlanpneXp6cXN6c3ZqenZrb2lzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0NDkxMDAsImV4cCI6MjA4NjAyNTEwMH0.hjknWbi981ooo544oU1bHCwedRgLXnK5aR_Vz8lZ0jk'
+    const EDGE_FN_URL = 'https://fejzgyzzqszsvjzvkois.supabase.co/functions/v1/mpgs-payment'
+
+    const logEl = document.getElementById('log')
+    const s1 = document.getElementById('s1')
+    const s2 = document.getElementById('s2')
+    const s3 = document.getElementById('s3')
+
+    function log(msg, type = 'info') {
+      const entry = document.createElement('div')
+      entry.className = `log-entry log-${type}`
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`
+      logEl.appendChild(entry)
+      logEl.scrollTop = logEl.scrollHeight
+    }
+
+    function setStep(n, state) {
+      document.getElementById(`s${n}`).className = `step ${state}`
+    }
+
+    function callEdge(action, body) {
+      return fetch(EDGE_FN_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON_KEY}` },
+        body: JSON.stringify({ action, ...body }),
+      }).then(r => r.json())
+    }
+
+    // Check for return from payment page
+    const urlParams = new URLSearchParams(window.location.search)
+    const isReturn = urlParams.get('checkout') === 'complete'
+    const resultIndicator = urlParams.get('resultIndicator')
+
+    if (isReturn && resultIndicator) {
+      handleReturn(resultIndicator)
+    } else if (isReturn && !resultIndicator) {
+      log('Returned from payment page but no resultIndicator found', 'error')
+      document.getElementById('startView').style.display = 'block'
+    }
+
+    async function handleReturn(resultIndicator) {
+      document.getElementById('startView').style.display = 'none'
+      document.getElementById('processingView').style.display = 'none'
+      document.getElementById('resultView').style.display = 'block'
+      setStep(3, 'active')
+
+      log('Returned from payment page', 'ok')
+      log(`Result indicator: ${resultIndicator}`, 'info')
+
+      const sessionId = sessionStorage.getItem('hco_sessionId')
+      const successIndicator = sessionStorage.getItem('hco_successIndicator')
+
+      // Verify by comparing indicators (per MPGS docs)
+      const indicatorsMatch = resultIndicator === successIndicator
+      log(`Success indicator (saved): ${successIndicator}`, 'info')
+      log(`Indicators match: ${indicatorsMatch}`, indicatorsMatch ? 'ok' : 'error')
+
+      // Optionally try to retrieve order details for display (non-critical)
+      let txnId = '', gatewayCode = ''
+      if (sessionId) {
+        const orderRes = await callEdge('retrieve_order', { sessionId }).catch(() => ({}))
+        if (orderRes && !orderRes.error) {
+          txnId = orderRes.transaction?.id || orderRes.order?.id || ''
+          gatewayCode = orderRes.response?.gatewayCode || ''
+        } else {
+          log('Order details unavailable (session consumed) — using indicator match only', 'info')
+        }
+      }
+
+      if (indicatorsMatch) {
+        showResult(true, `Payment successful!${txnId ? `<br>TX: ${txnId}` : ''}${gatewayCode ? `<br>Code: ${gatewayCode}` : ''}`)
+      } else {
+        showResult(false, `Payment verification failed. Indicator mismatch.`)
+      }
+
+      sessionStorage.removeItem('hco_sessionId')
+      sessionStorage.removeItem('hco_successIndicator')
+    }
+
+    function showResult(success, message) {
+      const box = document.getElementById('resultView')
+      box.className = `status-box ${success ? 'status-success' : 'status-error'}`
+      box.innerHTML = `<strong>${success ? 'SUCCESS' : 'FAILED'}</strong><br><br>${message}`
+      setStep(3, success ? 'done' : 'fail')
+    }
+
+    // ---- MAIN FLOW ----
+
+    document.getElementById('payBtn').addEventListener('click', async () => {
+      const btn = document.getElementById('payBtn')
+      btn.disabled = true
+      btn.textContent = 'Initiating...'
+      log('Step 1: Initiating checkout...', 'info')
+      setStep(1, 'active')
+
+      try {
+        const returnUrl = window.location.origin + window.location.pathname + '?checkout=complete'
+        log(`Return URL: ${returnUrl}`, 'info')
+
+        const res = await callEdge('initiate_checkout', {
+          amount: 29,
+          currency: 'USD',
+          returnUrl,
+        })
+
+        if (!res.success) {
+          throw new Error(res.error || 'INITIATE_CHECKOUT failed')
+        }
+
+        log(`Session: ${res.sessionId}`, 'ok')
+        log(`Success indicator: ${res.successIndicator}`, 'info')
+        setStep(1, 'done')
+        setStep(2, 'active')
+
+        // Save for verification on return
+        sessionStorage.setItem('hco_sessionId', res.sessionId)
+        sessionStorage.setItem('hco_successIndicator', res.successIndicator)
+
+        // Show processing view
+        document.getElementById('startView').style.display = 'none'
+        document.getElementById('processingView').style.display = 'block'
+        document.getElementById('manualRedirect').addEventListener('click', (e) => {
+          e.preventDefault()
+          showPaymentPage(res.sessionId)
+        })
+
+        // Load checkout.min.js and show payment page
+        showPaymentPage(res.sessionId)
+      } catch (err) {
+        log(`Error: ${err.message}`, 'error')
+        setStep(1, 'fail')
+        btn.disabled = false
+        btn.textContent = 'Pay $29'
+      }
+    })
+
+    function showPaymentPage(sessionId) {
+      const existing = document.querySelector('script[src*="checkout.min.js"]')
+      if (existing && window.Checkout) {
+        log('Checkout SDK already loaded', 'info')
+        doRedirect(sessionId)
+        return
+      }
+
+      log('Loading checkout.min.js...', 'info')
+      const script = document.createElement('script')
+      script.src = 'https://test-seylan.mtf.gateway.mastercard.com/static/checkout/checkout.min.js'
+      script.onload = () => {
+        log('Checkout SDK loaded', 'ok')
+        doRedirect(sessionId)
+      }
+      script.onerror = () => log('Failed to load checkout.min.js', 'error')
+      document.head.appendChild(script)
+    }
+
+    function doRedirect(sessionId) {
+      Checkout.configure({ session: { id: sessionId } })
+      log('Calling Checkout.showPaymentPage()...', 'info')
+      Checkout.showPaymentPage()
+    }
+  </script>
+</body>
+</html>

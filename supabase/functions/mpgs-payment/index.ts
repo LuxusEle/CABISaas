@@ -66,6 +66,10 @@ serve(async (req) => {
         return await handleInitiateAuth(params)
       case "authenticate_payer":
         return await handleAuthenticatePayer(params)
+      case "initiate_checkout":
+        return await handleInitiateCheckout(params)
+      case "retrieve_order":
+        return await handleRetrieveOrder(params)
       case "get_order":
         return await handleGetOrder(params)
       default:
@@ -358,6 +362,75 @@ async function handleGetOrder(params: { sessionId: string }) {
         status: 502,
         headers: { ...corsHeaders(), "Content-Type": "application/json" },
       }
+    )
+  }
+
+  return new Response(JSON.stringify(result), {
+    status: 200,
+    headers: { ...corsHeaders(), "Content-Type": "application/json" },
+  })
+}
+
+async function handleInitiateCheckout(params: { amount: number; currency?: string; returnUrl: string }) {
+  const { amount, currency, returnUrl } = params
+
+  const payload = {
+    apiOperation: "INITIATE_CHECKOUT",
+    interaction: {
+      operation: "PURCHASE",
+      merchant: { name: "CABISaas" },
+      returnUrl,
+    },
+    order: {
+      id: `order_${Date.now()}`,
+      amount,
+      currency: currency || "USD",
+      description: "CABEngine Pro Subscription",
+    },
+  }
+
+  console.log(`INITIATE_CHECKOUT: amount=${amount} returnUrl=${returnUrl}`)
+
+  const response = await mpgsPost("/session", payload)
+  const result = await response.json()
+
+  console.log(`INITIATE_CHECKOUT response:`, JSON.stringify(result))
+
+  if (!response.ok) {
+    return new Response(
+      JSON.stringify({ error: "INITIATE_CHECKOUT failed", details: result }),
+      { status: 502, headers: { ...corsHeaders(), "Content-Type": "application/json" } }
+    )
+  }
+
+  return new Response(
+    JSON.stringify({
+      success: result.result === "SUCCESS",
+      sessionId: result.session?.id,
+      successIndicator: result.successIndicator,
+      version: result.session?.version,
+      checkoutMode: result.checkoutMode,
+    }),
+    { status: 200, headers: { ...corsHeaders(), "Content-Type": "application/json" } }
+  )
+}
+
+async function handleRetrieveOrder(params: { sessionId: string }) {
+  const { sessionId } = params
+
+  console.log(`RETRIEVE_ORDER for session: ${sessionId}`)
+
+  const response = await mpgsPost(`/session/${sessionId}`, {
+    apiOperation: "RETRIEVE_ORDER",
+  })
+  const result = await response.json()
+
+  console.log(`RETRIEVE_ORDER response:`, JSON.stringify(result))
+
+  if (!response.ok) {
+    return new Response(
+      JSON.stringify({ error: "RETRIEVE_ORDER failed", details: result }),
+      { status: 502, headers: { ...corsHeaders(), "Content-Type": "application/json" } }
     )
   }
 
