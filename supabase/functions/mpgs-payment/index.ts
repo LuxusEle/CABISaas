@@ -60,6 +60,12 @@ serve(async (req) => {
         return await handleProcessPayment(params)
       case "create_session":
         return await handleCreateSession(params)
+      case "update_session":
+        return await handleUpdateSession(params)
+      case "initiate_auth":
+        return await handleInitiateAuth(params)
+      case "authenticate_payer":
+        return await handleAuthenticatePayer(params)
       case "get_order":
         return await handleGetOrder(params)
       default:
@@ -89,15 +95,17 @@ async function handleProcessPayment(params: {
   sessionId: string
   amount: number
   currency?: string
+  authenticationTransactionId?: string
+  orderId?: string
 }) {
-  const { userId, planId, sessionId, amount, currency } = params
+  const { userId, planId, sessionId, amount, currency, authenticationTransactionId, orderId: existingOrderId } = params
 
   console.log(`Processing payment for user=${userId.substring(0, 8)}... plan=${planId} amount=${amount} session=${sessionId}`)
 
-  const orderId = `order_${Date.now()}_${userId.substring(0, 8)}`
+  const orderId = existingOrderId || `order_${Date.now()}_${userId.substring(0, 8)}`
   const transactionId = `txn_${Date.now()}_${userId.substring(0, 8)}`
 
-  const payPayload = {
+  const payPayload: Record<string, unknown> = {
     apiOperation: "PAY",
     session: { id: sessionId },
     sourceOfFunds: { type: "CARD" },
@@ -110,6 +118,10 @@ async function handleProcessPayment(params: {
       reference: transactionId,
       source: "INTERNET",
     },
+  }
+
+  if (authenticationTransactionId) {
+    payPayload.authentication = { transactionId: authenticationTransactionId }
   }
 
   console.log("Calling PAY:", orderId, transactionId)
@@ -198,17 +210,9 @@ async function handleProcessPayment(params: {
   )
 }
 
-async function handleCreateSession(params: { amount: number; currency?: string }) {
-  const { amount, currency } = params
-
+async function handleCreateSession(_params: Record<string, unknown>) {
   const sessionResponse = await mpgsPost("/session", {
-    apiOperation: "INITIATE_CHECKOUT",
-    interaction: { operation: "PURCHASE" },
-    order: {
-      amount,
-      currency: currency || "USD",
-      id: `order_${Date.now()}`,
-    },
+    session: { authenticationLimit: 25 },
   })
   const sessionResult = await sessionResponse.json()
 
@@ -223,8 +227,118 @@ async function handleCreateSession(params: { amount: number; currency?: string }
     JSON.stringify({
       sessionId: sessionResult.session.id,
       version: sessionResult.session.version,
-      successIndicator: sessionResult.successIndicator,
     }),
+    { status: 200, headers: { ...corsHeaders(), "Content-Type": "application/json" } }
+  )
+}
+
+async function handleUpdateSession(params: { sessionId: string; amount: number; currency?: string }) {
+  const { sessionId, amount, currency } = params
+
+  const updateResponse = await mpgsPost(`/session/${sessionId}`, {
+    order: {
+      amount,
+      currency: currency || "USD",
+    },
+  }, "PUT")
+  const updateResult = await updateResponse.json()
+
+  if (!updateResponse.ok) {
+    return new Response(
+      JSON.stringify({ error: "Failed to update session", details: updateResult }),
+      { status: 502, headers: { ...corsHeaders(), "Content-Type": "application/json" } }
+    )
+  }
+
+  return new Response(
+    JSON.stringify({
+      success: true,
+      version: updateResult.session?.version,
+    }),
+    { status: 200, headers: { ...corsHeaders(), "Content-Type": "application/json" } }
+  )
+}
+
+async function handleInitiateAuth(params: { sessionId: string; orderId: string; transactionId: string }) {
+  const { sessionId, orderId, transactionId } = params
+
+  const authPayload = {
+    apiOperation: "INITIATE_AUTHENTICATION",
+    authentication: {
+      acceptVersions: "3DS2",
+      channel: "PAYER_BROWSER",
+      purpose: "PAYMENT_TRANSACTION",
+    },
+    order: { reference: orderId },
+    session: { id: sessionId },
+    transaction: { reference: transactionId },
+  }
+
+  console.log(`INITIATE_AUTH: order=${orderId} txn=${transactionId} session=${sessionId}`)
+
+  const response = await mpgsPost(`/order/${orderId}/transaction/${transactionId}`, authPayload, "PUT")
+  const result = await response.json()
+
+  console.log(`INITIATE_AUTH response:`, JSON.stringify(result))
+
+  if (!response.ok) {
+    return new Response(
+      JSON.stringify({ error: "INITIATE_AUTHENTICATION failed", details: result }),
+      { status: 502, headers: { ...corsHeaders(), "Content-Type": "application/json" } }
+    )
+  }
+
+  return new Response(
+    JSON.stringify({
+      result: result.result,
+      gatewayRecommendation: result.response?.gatewayRecommendation,
+      authenticationStatus: result.authentication?.status,
+      authenticationVersion: result.authentication?.version,
+      error: result.error,
+    }),
+    { status: 200, headers: { ...corsHeaders(), "Content-Type": "application/json" } }
+  )
+}
+
+async function handleAuthenticatePayer(params: {
+  sessionId: string
+  orderId: string
+  transactionId: string
+  redirectResponseUrl: string
+  device?: {
+    browser?: string
+    browserDetails?: Record<string, unknown>
+    ipAddress?: string
+  }
+}) {
+  const { sessionId, orderId, transactionId, redirectResponseUrl, device } = params
+
+  const authPayload: Record<string, unknown> = {
+    apiOperation: "AUTHENTICATE_PAYER",
+    authentication: {
+      redirectResponseUrl,
+    },
+    session: { id: sessionId },
+  }
+
+  if (device) {
+    authPayload.device = device
+  }
+
+  const response = await mpgsPost(`/order/${orderId}/transaction/${transactionId}`, authPayload, "PUT")
+  const result = await response.json()
+
+  console.log(`AUTHENTICATE_PAYER response:`, JSON.stringify(result))
+
+  if (!response.ok) {
+    return new Response(
+      JSON.stringify({ error: "AUTHENTICATE_PAYER failed", details: result }),
+      { status: 502, headers: { ...corsHeaders(), "Content-Type": "application/json" } }
+    )
+  }
+
+  return new Response(
+    JSON.stringify(result),
     { status: 200, headers: { ...corsHeaders(), "Content-Type": "application/json" } }
   )
 }

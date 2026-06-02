@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MPGS Test 5 — 3DS (REST API)</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 40px auto; padding: 0 20px; background: #f8fafc; color: #1e293b; }
+    h1 { font-size: 20px; margin-bottom: 2px; }
+    .subtitle { color: #64748b; font-size: 14px; margin-top: 0; margin-bottom: 20px; }
+    #log { font-family: monospace; font-size: 12px; background: #1e293b; color: #e2e8f0; padding: 16px; border-radius: 8px; max-height: 300px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; margin-top: 16px; }
+    .log-entry { margin-bottom: 4px; }
+    .log-ok { color: #22c55e; }
+    .log-error { color: #ef4444; }
+    .log-info { color: #f59e0b; }
+    .btn { display: block; width: 100%; padding: 14px; background: linear-gradient(135deg, #f59e0b, #ea580c); color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 12px; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-secondary { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+    .field-container { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin: 16px 0; }
+    .field-label { font-size: 12px; font-weight: 600; color: #64748b; margin-bottom: 6px; display: block; }
+    .mpgs-field { height: 44px; border-radius: 8px; border: 1px solid #e2e8f0; padding: 10px 12px; transition: border-color 0.2s ease; margin-bottom: 14px; }
+    .expiry-row { display: flex; gap: 10px; align-items: center; }
+    .expiry-row > div { flex: 1; }
+    .expiry-row .mpgs-field { margin-bottom: 0; }
+    .mpgs-field.cvv { max-width: 140px; }
+    .step-indicator { display: flex; gap: 8px; margin-bottom: 16px; }
+    .step { flex: 1; text-align: center; padding: 8px; border-radius: 6px; font-size: 11px; font-weight: 600; background: #e2e8f0; color: #94a3b8; }
+    .step.active { background: #3b82f6; color: white; }
+    .step.done { background: #22c55e; color: white; }
+    .step.fail { background: #ef4444; color: white; }
+    .card-hint { font-size: 12px; color: #64748b; background: #f1f5f9; padding: 10px 14px; border-radius: 8px; margin-top: 12px; }
+    .card-hint strong { color: #334155; }
+  </style>
+</head>
+<body>
+  <h1>MPGS Test 5</h1>
+  <p class="subtitle">3DS via REST API: Create Session → SDK → Initiate Auth → Authenticate → PAY</p>
+
+  <div class="step-indicator">
+    <div class="step" id="step1">1. Session</div>
+    <div class="step" id="step2">2. Card Entry</div>
+    <div class="step" id="step3">3. 3DS Auth</div>
+    <div class="step" id="step4">4. PAY</div>
+  </div>
+
+  <button id="createBtn" class="btn btn-secondary">1. Create & Update Session</button>
+
+  <div class="field-container" id="cardFields" style="display:none;">
+    <div id="MerchantSessionId" data-merchant="TESTSEYLAN148">
+      <div data-paymentmethod="card">
+        <label class="field-label">Card Number</label>
+        <div id="mpgs-card-number" data-card="number" data-placeholder="1234 5678 9012 3456" class="mpgs-field" readonly></div>
+        <div class="expiry-row">
+          <div>
+            <label class="field-label">Expiry Month</label>
+            <div id="mpgs-card-expiry-month" data-card="expiryMonth" data-placeholder="MM" class="mpgs-field" readonly></div>
+          </div>
+          <span style="font-size:18px;color:#94a3b8;font-weight:bold;margin-top:-6px">/</span>
+          <div>
+            <label class="field-label">Expiry Year</label>
+            <div id="mpgs-card-expiry-year" data-card="expiryYear" data-placeholder="YY" class="mpgs-field" readonly></div>
+          </div>
+        </div>
+        <label class="field-label">Security Code</label>
+        <div id="mpgs-card-cvv" data-card="securityCode" data-placeholder="CVV" class="mpgs-field cvv" readonly></div>
+      </div>
+    </div>
+
+    <div class="card-hint">
+      <strong>Test cards:</strong><br>
+      • <strong>Frictionless:</strong> 5123456789012346 (exp 01/39, CVV 100)<br>
+      • <strong>Challenge:</strong> 5123450000000008 (exp 01/39, CVV 100)<br>
+    </div>
+
+    <button id="payBtn" class="btn" disabled>2. Pay $29</button>
+  </div>
+
+  <div id="log"><div class="log-entry log-info">Waiting...</div></div>
+
+  <script>
+    const MERCHANT_ID = 'TESTSEYLAN148'
+    const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZlanpneXp6cXN6c3ZqenZrb2lzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0NDkxMDAsImV4cCI6MjA4NjAyNTEwMH0.hjknWbi981ooo544oU1bHCwedRgLXnK5aR_Vz8lZ0jk'
+    const EDGE_FN_URL = 'https://fejzgyzzqszsvjzvkois.supabase.co/functions/v1/mpgs-payment'
+
+    const logEl = document.getElementById('log')
+    const createBtn = document.getElementById('createBtn')
+    const payBtn = document.getElementById('payBtn')
+    const cardFields = document.getElementById('cardFields')
+
+    let currentSessionId = null
+    let currentOrderId = null
+    let currentTxnId = null
+
+    function log(msg, type = 'info') {
+      const entry = document.createElement('div')
+      entry.className = `log-entry log-${type}`
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`
+      logEl.appendChild(entry)
+      logEl.scrollTop = logEl.scrollHeight
+    }
+
+    function setStep(n, state) {
+      document.getElementById(`step${n}`).className = `step ${state}`
+    }
+
+    function callEdge(action, body) {
+      return fetch(EDGE_FN_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON_KEY}` },
+        body: JSON.stringify({ action, ...body }),
+      }).then(r => r.json())
+    }
+
+    function getBrowserDetails() {
+      return {
+        browser: navigator.userAgent,
+        browserDetails: {
+          '3DSecureChallengeWindowSize': 'FULL_SCREEN',
+          acceptHeaders: 'application/json',
+          colorDepth: screen.colorDepth,
+          javaEnabled: navigator.javaEnabled(),
+          language: navigator.language,
+          screenHeight: screen.height,
+          screenWidth: screen.width,
+          timeZone: new Date().getTimezoneOffset(),
+        },
+        ipAddress: '127.0.0.1',
+      }
+    }
+
+    // ---- CHECK FOR 3DS RETURN ----
+
+    function checkAuthReturn() {
+      if (window.self !== window.top) return false  // Don't process in iframe
+      if (window.location.search.includes('3ds_cb=1')) {
+        log('Returned from 3DS challenge!', 'ok')
+        setStep(3, 'done')
+        setStep(4, 'active')
+
+        currentSessionId = sessionStorage.getItem('mpgs5_sid')
+        currentOrderId = sessionStorage.getItem('mpgs5_oid')
+        currentTxnId = sessionStorage.getItem('mpgs5_tid')
+        const authTxnId = sessionStorage.getItem('mpgs5_atid')
+
+        if (currentSessionId) {
+          log(`Session: ${currentSessionId.substring(0, 20)}...`, 'info')
+          log(`Order: ${currentOrderId}`, 'info')
+          log(`Auth txnId: ${authTxnId}`, 'info')
+          doPay(currentOrderId, authTxnId)
+        } else {
+          log('No saved session state — start over', 'error')
+        }
+        return true
+      }
+      return false
+    }
+
+    // ---- CREATE & UPDATE SESSION ----
+
+    createBtn.addEventListener('click', async () => {
+      createBtn.disabled = true
+      createBtn.textContent = 'Creating...'
+      log('Creating bare session...', 'info')
+
+      try {
+        const createRes = await callEdge('create_session', {})
+        log(`Create session: ${JSON.stringify(createRes)}`, createRes.sessionId ? 'ok' : 'error')
+        if (!createRes.sessionId) throw new Error('No session ID')
+
+        currentSessionId = createRes.sessionId
+        setStep(1, 'done')
+
+        log('Updating session with order (29 USD)...', 'info')
+        const updateRes = await callEdge('update_session', { sessionId: currentSessionId, amount: 29, currency: 'USD' })
+        log(`Update session: ${JSON.stringify(updateRes)}`, updateRes.success ? 'ok' : 'error')
+        if (!updateRes.success) throw new Error('Update failed')
+
+        createBtn.textContent = `Session: ${currentSessionId.substring(0, 20)}...`
+        log('Loading session.js...', 'info')
+        loadSessionJs(currentSessionId)
+      } catch (err) {
+        log(`Error: ${err.message}`, 'error')
+        createBtn.disabled = false
+        createBtn.textContent = '1. Create & Update Session'
+      }
+    })
+
+    // ---- LOAD SESSION.JS ----
+
+    function loadSessionJs(sessionId) {
+      document.querySelectorAll('script[src*="session.js"]').forEach(s => s.remove())
+
+      const s = document.createElement('script')
+      s.src = `https://test-seylan.mtf.gateway.mastercard.com/form/version/100/merchant/TESTSEYLAN148/session.js`
+      s.async = false
+      s.onload = () => {
+        log('Session.js loaded', 'ok')
+        configureSession(sessionId)
+      }
+      s.onerror = () => log('Failed to load session.js', 'error')
+      document.head.appendChild(s)
+    }
+
+    // ---- CONFIGURE PAYMENT SESSION ----
+
+    function configureSession(sessionId) {
+      PaymentSession.configure({
+        session: sessionId,
+        fields: {
+          card: {
+            number: '#mpgs-card-number',
+            expiryMonth: '#mpgs-card-expiry-month',
+            expiryYear: '#mpgs-card-expiry-year',
+            securityCode: '#mpgs-card-cvv',
+          },
+        },
+        frameEmbeddingMitigation: ['csp'],
+        callbacks: {
+          initialized: (response) => {
+            log(`Initialized: ${response.status}`, response.status === 'ok' ? 'ok' : 'error')
+            if (response.status === 'ok') {
+              cardFields.style.display = 'block'
+              payBtn.disabled = false
+              payBtn.textContent = 'Pay $29'
+              log('Card fields ready — enter test card & click Pay', 'info')
+            }
+          },
+          formSessionUpdate: async (response) => {
+            log(`formSessionUpdate: ${response.status}`, response.status === 'ok' ? 'ok' : 'error')
+
+            if (response.status === 'ok') {
+              payBtn.disabled = true
+              payBtn.textContent = 'Processing...'
+              setStep(2, 'done')
+              setStep(3, 'active')
+
+              log(`Card: ${response.sourceOfFunds?.provided?.card?.number}`, 'info')
+              log(`Scheme: ${response.sourceOfFunds?.provided?.card?.scheme}`, 'info')
+
+              await new Promise(r => setTimeout(r, 500))
+              await doServerSideAuth()
+            } else if (response.status === 'fields_in_error') {
+              log(`Field errors: ${JSON.stringify(response.errors)}`, 'error')
+              payBtn.disabled = false
+              payBtn.textContent = 'Pay $29'
+            } else {
+              log(`formSessionUpdate error: ${response.errors?.message || response.status}`, 'error')
+              payBtn.disabled = false
+              payBtn.textContent = 'Pay $29'
+            }
+          },
+        },
+      })
+    }
+
+    // ---- SERVER-SIDE 3DS AUTH ----
+
+    async function doServerSideAuth() {
+      currentOrderId = `ord_${Date.now()}`
+      currentTxnId = `txn_${Date.now()}`
+
+      log(`Order: ${currentOrderId}`, 'info')
+      log(`Txn: ${currentTxnId}`, 'info')
+      log('Step 1: INITIATE_AUTHENTICATION via edge function...', 'info')
+
+      try {
+        const initiateRes = await callEdge('initiate_auth', {
+          sessionId: currentSessionId,
+          orderId: currentOrderId,
+          transactionId: currentTxnId,
+        })
+        log(`Initiate auth: ${JSON.stringify(initiateRes)}`, initiateRes.result === 'SUCCESS' ? 'ok' : 'error')
+
+        if (initiateRes.result !== 'SUCCESS') {
+          throw new Error(initiateRes.error || initiateRes.details?.error?.explanation || 'INITIATE_AUTHENTICATION failed')
+        }
+
+        log(`Gateway recommendation: ${initiateRes.gatewayRecommendation}`, 'info')
+        log(`Auth version: ${initiateRes.authenticationVersion}`, 'info')
+
+        if (initiateRes.gatewayRecommendation === 'RESUBMIT_WITH_ALTERNATIVE_PAYMENT_DETAILS') {
+          throw new Error('Card does not support 3DS')
+        }
+
+        log('Step 2: AUTHENTICATE_PAYER via edge function...', 'info')
+
+        const redirectUrl = window.location.origin + window.location.pathname.replace(/\/+$/, '') + '?3ds_cb=1'
+        const device = getBrowserDetails()
+
+        const authRes = await callEdge('authenticate_payer', {
+          sessionId: currentSessionId,
+          orderId: currentOrderId,
+          transactionId: currentTxnId,
+          redirectResponseUrl: redirectUrl,
+          device,
+        })
+
+        log(`Auth response: result=${authRes.result} status=${authRes.authentication?.status || 'unknown'}`, authRes.result === 'SUCCESS' ? 'ok' : 'error')
+        log(`Full: ${JSON.stringify(authRes)}`, 'info')
+
+        const authStatus = authRes.authentication?.status || authRes.order?.authenticationStatus
+        const authTransactionId = authRes.transaction?.id
+        const redirectHtml = authRes.authentication?.redirect?.html
+
+        if (redirectHtml && authStatus === 'AUTHENTICATION_PENDING') {
+          // Challenge required — save state and do full-page redirect to ACS
+          sessionStorage.setItem('mpgs5_sid', currentSessionId)
+          sessionStorage.setItem('mpgs5_oid', currentOrderId)
+          sessionStorage.setItem('mpgs5_tid', currentTxnId)
+          if (authTransactionId) sessionStorage.setItem('mpgs5_atid', authTransactionId)
+
+          log('Challenge required — redirecting to 3DS emulator...', 'info')
+          log('After completing the challenge, you will be redirected back automatically.', 'info')
+          setStep(3, 'active')
+
+          // Parse the ACS URL and creq from the redirect HTML, do a full-page POST
+          const parser = new DOMParser()
+          const doc = parser.parseFromString(redirectHtml, 'text/html')
+          const formEl = doc.getElementById('threedsChallengeRedirectForm') || doc.querySelector('form')
+          if (formEl) {
+            const acsUrl = formEl.getAttribute('action')
+            const creq = formEl.querySelector('input[name="creq"]')?.getAttribute('value')
+            if (acsUrl && creq) {
+              const f = document.createElement('form')
+              f.method = 'POST'
+              f.action = acsUrl
+              f.target = '_top'
+              const i = document.createElement('input')
+              i.type = 'hidden'
+              i.name = 'creq'
+              i.value = creq
+              f.appendChild(i)
+              document.body.appendChild(f)
+              f.submit()
+              return
+            }
+          }
+          // Fallback: insert HTML as-is
+          document.body.insertAdjacentHTML('beforeend', redirectHtml)
+        } else if (authStatus === 'AUTHENTICATION_SUCCESSFUL' || authRes.result === 'SUCCESS') {
+          log(`Auth successful! txnId: ${authTransactionId}`, 'ok')
+          setStep(3, 'done')
+          setStep(4, 'active')
+          await doPay(currentOrderId, authTransactionId || undefined)
+        } else if (authStatus === 'AUTHENTICATION_FAILED' || authRes.result === 'FAILURE') {
+          throw new Error(`Authentication failed: ${authRes.authentication?.statusReason || 'unknown'}`)
+        } else {
+          log(`Unknown auth status: ${authStatus} — full response: ${JSON.stringify(authRes)}`, 'error')
+        }
+      } catch (err) {
+        log(`Error: ${err.message}`, 'error')
+        setStep(3, 'fail')
+        payBtn.disabled = false
+        payBtn.textContent = 'Pay $29 (Retry)'
+      }
+    }
+
+    // ---- PAY ----
+
+    async function doPay(orderId, authTransactionId) {
+      log(`Calling PAY (order: ${orderId})...`, 'info')
+      if (authTransactionId) log(`Auth txnId: ${authTransactionId}`, 'info')
+
+      try {
+        const result = await callEdge('process_payment', {
+          userId: 'a8f9b8af-e3cc-4cbd-a98a-5b76eff69849',
+          planId: 'pro',
+          sessionId: currentSessionId,
+          orderId: orderId,
+          amount: 29,
+          currency: 'USD',
+          authenticationTransactionId: authTransactionId || undefined,
+        })
+
+        log(`PAY result: ${JSON.stringify(result, null, 2)}`, result.success ? 'ok' : 'error')
+
+        if (result.success) {
+          setStep(4, 'done')
+          log('=== PAYMENT SUCCESSFUL ===', 'ok')
+          log(`Txn: ${result.transactionId} Code: ${result.gatewayCode}`, 'ok')
+          log(`Token: ${result.cardToken || 'N/A'}`, 'ok')
+          payBtn.textContent = 'Payment Complete ✓'
+          sessionStorage.removeItem('mpgs5_sid')
+          sessionStorage.removeItem('mpgs5_oid')
+          sessionStorage.removeItem('mpgs5_tid')
+          sessionStorage.removeItem('mpgs5_atid')
+        } else {
+          throw new Error(result.gatewayCode || result.error || 'PAY failed')
+        }
+      } catch (err) {
+        log(`PAY error: ${err.message}`, 'error')
+        payBtn.disabled = false
+        payBtn.textContent = 'Pay $29 (Retry)'
+      }
+    }
+
+    // ---- PAY BUTTON ----
+
+    payBtn.addEventListener('click', () => {
+      log('Submitting card data...', 'info')
+      PaymentSession.updateSessionFromForm('card')
+    })
+
+    // ---- ON LOAD ----
+
+    if (!checkAuthReturn()) {
+      log('Ready. Click "Create & Update Session" to begin.', 'info')
+    }
+  </script>
+</body>
+</html>

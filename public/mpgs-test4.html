@@ -31,7 +31,7 @@
   <button id="createSessionBtn" class="btn btn-secondary">1. Create Session via REST API</button>
 
   <div class="field-container" id="cardFields" style="display:none;">
-    <div id="MerchantSessionId" data-merchant="SEYLAN148">
+    <div id="MerchantSessionId" data-merchant="TESTSEYLAN148">
       <div data-paymentmethod="card">
         <label class="field-label">Card Number</label>
         <div id="mpgs-card-number" data-card="number" data-placeholder="1234 5678 9012 3456" class="mpgs-field" readonly></div>
@@ -112,7 +112,7 @@
       document.querySelectorAll('script[src*="session.js"]').forEach(s => s.remove());
 
       const script = document.createElement('script');
-      script.src = 'https://test-seylan.mtf.gateway.mastercard.com/form/version/100/merchant/SEYLAN148/session.js';
+      script.src = 'https://test-seylan.mtf.gateway.mastercard.com/form/version/100/merchant/TESTSEYLAN148/session.js';
       script.async = false;
       script.onload = () => {
         log('SDK loaded', 'ok');
