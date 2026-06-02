@@ -94,6 +94,7 @@ export const MpgsCheckoutForm: React.FC<MpgsCheckoutFormProps> = ({
                 const paymentResult = await mpgsService.processPayment(
                   response.session.id,
                   planRef.current,
+                  amountRef.current,
                 )
                 if (cancelled) return
                 onSuccess(paymentResult)

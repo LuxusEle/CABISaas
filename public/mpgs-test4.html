@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MPGS Test 4 — REST API Session → SDK → PAY</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 40px auto; padding: 0 20px; background: #f8fafc; color: #1e293b; }
+    h1 { font-size: 20px; margin-bottom: 4px; }
+    p { color: #64748b; font-size: 14px; margin-top: 0; margin-bottom: 24px; }
+    #log { font-family: monospace; font-size: 12px; background: #1e293b; color: #e2e8f0; padding: 16px; border-radius: 8px; max-height: 400px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; }
+    .log-entry { margin-bottom: 6px; }
+    .log-ok { color: #22c55e; }
+    .log-error { color: #ef4444; }
+    .log-info { color: #f59e0b; }
+    .btn { display: block; width: 100%; padding: 14px; background: linear-gradient(135deg, #f59e0b, #ea580c); color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 16px; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-secondary { background: linear-gradient(135deg, #3b82f6, #1d4ed8); margin-top: 8px; font-size: 14px; }
+    .field-container { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 16px; }
+    .field-label { font-size: 12px; font-weight: 600; color: #64748b; margin-bottom: 6px; display: block; }
+    .mpgs-field { height: 44px; border-radius: 8px; border: 1px solid #e2e8f0; padding: 10px 12px; transition: border-color 0.2s ease; margin-bottom: 16px; }
+    .expiry-row { display: flex; gap: 10px; align-items: center; }
+    .expiry-row .mpgs-field { flex: 1; }
+    .mpgs-field.cvv { max-width: 140px; }
+  </style>
+</head>
+<body>
+  <h1>MPGS Test 4</h1>
+  <p>REST API session → SDK → PAY</p>
+
+  <button id="createSessionBtn" class="btn btn-secondary">1. Create Session via REST API</button>
+
+  <div class="field-container" id="cardFields" style="display:none;">
+    <div id="MerchantSessionId" data-merchant="SEYLAN148">
+      <div data-paymentmethod="card">
+        <label class="field-label">Card Number</label>
+        <div id="mpgs-card-number" data-card="number" data-placeholder="1234 5678 9012 3456" class="mpgs-field" readonly></div>
+        <label class="field-label">Expiry Date</label>
+        <div class="expiry-row">
+          <div id="mpgs-card-expiry-month" data-card="expiryMonth" data-placeholder="MM" class="mpgs-field" readonly></div>
+          <span style="font-size:18px;color:#94a3b8;font-weight:bold">/</span>
+          <div id="mpgs-card-expiry-year" data-card="expiryYear" data-placeholder="YY" class="mpgs-field" readonly></div>
+        </div>
+        <label class="field-label">Security Code</label>
+        <div id="mpgs-card-cvv" data-card="securityCode" data-placeholder="CVV" class="mpgs-field cvv" readonly></div>
+      </div>
+    </div>
+    <button id="payBtn" class="btn" disabled>2. Enter card & Pay $29</button>
+  </div>
+
+  <div id="log"><div class="log-entry log-info">Waiting...</div></div>
+
+  <script>
+    const logEl = document.getElementById('log');
+    const payBtn = document.getElementById('payBtn');
+    const createBtn = document.getElementById('createSessionBtn');
+    const cardFields = document.getElementById('cardFields');
+    const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZlanpneXp6cXN6c3ZqenZrb2lzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0NDkxMDAsImV4cCI6MjA4NjAyNTEwMH0.hjknWbi981ooo544oU1bHCwedRgLXnK5aR_Vz8lZ0jk';
+    let currentSessionId = null;
+
+    function log(msg, type = 'info') {
+      const entry = document.createElement('div');
+      entry.className = `log-entry log-${type}`;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      logEl.appendChild(entry);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    createBtn.addEventListener('click', async () => {
+      createBtn.disabled = true;
+      createBtn.textContent = 'Creating...';
+      log('Creating session via edge function...', 'info');
+
+      try {
+        const res = await fetch(
+          'https://fejzgyzzqszsvjzvkois.supabase.co/functions/v1/mpgs-payment',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${ANON_KEY}`,
+            },
+            body: JSON.stringify({
+              action: 'create_session',
+              amount: 29,
+              currency: 'USD',
+            }),
+          }
+        );
+        const data = await res.json();
+        log(`Create session response (${res.status}): ${JSON.stringify(data)}`, res.ok ? 'ok' : 'error');
+        
+        if (res.ok && data.sessionId) {
+          currentSessionId = data.sessionId;
+          cardFields.style.display = 'block';
+          createBtn.textContent = `Session: ${data.sessionId.substring(0, 20)}...`;
+          log('Now load SDK and configure with this session. Reloading page SDK...', 'info');
+          loadSdk(data.sessionId);
+        } else {
+          createBtn.disabled = false;
+          createBtn.textContent = '1. Create Session via REST API';
+        }
+      } catch (err) {
+        log(`Error: ${err.message}`, 'error');
+        createBtn.disabled = false;
+        createBtn.textContent = '1. Create Session via REST API';
+      }
+    });
+
+    function loadSdk(sessionId) {
+      // Remove any existing session.js scripts
+      document.querySelectorAll('script[src*="session.js"]').forEach(s => s.remove());
+
+      const script = document.createElement('script');
+      script.src = 'https://test-seylan.mtf.gateway.mastercard.com/form/version/100/merchant/SEYLAN148/session.js';
+      script.async = false;
+      script.onload = () => {
+        log('SDK loaded', 'ok');
+        log(`Configuring SDK with session: ${sessionId}`, 'info');
+
+        PaymentSession.configure({
+          session: sessionId,
+          fields: {
+            card: {
+              number: '#mpgs-card-number',
+              expiryMonth: '#mpgs-card-expiry-month',
+              expiryYear: '#mpgs-card-expiry-year',
+              securityCode: '#mpgs-card-cvv',
+            },
+          },
+          frameEmbeddingMitigation: ['csp'],
+          callbacks: {
+            initialized: (response) => {
+              log(`Initialized: ${JSON.stringify(response)}`, response.status === 'ok' ? 'ok' : 'error');
+              if (response.status === 'ok') {
+                payBtn.disabled = false;
+                payBtn.textContent = 'Pay $29 (Test)';
+              }
+            },
+            formSessionUpdate: async (response) => {
+              log(`formSessionUpdate status: ${response.status}`, response.status === 'ok' ? 'ok' : 'error');
+              log(`Session ID: ${response.session?.id}`, 'info');
+              log(`Card: ${response.sourceOfFunds?.provided?.card?.number || 'none'}`, 'info');
+
+              if (response.status === 'ok') {
+                payBtn.disabled = true;
+                payBtn.textContent = 'Processing...';
+
+                const sessionId = response.session.id;
+
+                log(`Calling edge function PAY with session: ${sessionId}...`, 'info');
+
+                try {
+                  const edgeRes = await fetch(
+                    'https://fejzgyzzqszsvjzvkois.supabase.co/functions/v1/mpgs-payment',
+                    {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${ANON_KEY}`,
+                      },
+                      body: JSON.stringify({
+                        action: 'process_payment',
+                        userId: 'a8f9b8af-e3cc-4cbd-a98a-5b76eff69849',
+                        planId: 'pro',
+                        sessionId,
+                        amount: 29,
+                        currency: 'USD',
+                      }),
+                    }
+                  );
+
+                  const edgeData = await edgeRes.json();
+                  log(`Edge function response (${edgeRes.status}): ${JSON.stringify(edgeData, null, 2)}`,
+                      edgeRes.ok ? 'ok' : 'error');
+                } catch (err) {
+                  log(`Edge function error: ${err.message}`, 'error');
+                }
+
+                payBtn.disabled = false;
+                payBtn.textContent = 'Pay $29 (Test)';
+              }
+            },
+          },
+        });
+      };
+      script.onerror = () => log('Failed to load session.js', 'error');
+      document.head.appendChild(script);
+    }
+
+    payBtn.addEventListener('click', () => {
+      log('Submitting payment...', 'info');
+      PaymentSession.updateSessionFromForm('card');
+    });
+  </script>
+</body>
+</html>

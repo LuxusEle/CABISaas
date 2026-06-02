@@ -23,14 +23,13 @@ function basicAuth(): string {
   return `Basic ${base64encode(credentials)}`
 }
 
-async function mpgsPost(path: string, body: unknown): Promise<Response> {
+async function mpgsPost(path: string, body: unknown, method = "POST"): Promise<Response> {
   const url = apiUrl(path)
   const auth = basicAuth()
-  console.log(`Calling MPGS: POST ${url}`)
-  console.log(`Auth: ${auth.substring(0, 20)}...`)
+  console.log(`Calling MPGS: ${method} ${url}`)
 
   return fetch(url, {
-    method: "POST",
+    method,
     headers: {
       "Content-Type": "application/json",
       "Authorization": auth,
@@ -59,6 +58,8 @@ serve(async (req) => {
     switch (action) {
       case "process_payment":
         return await handleProcessPayment(params)
+      case "create_session":
+        return await handleCreateSession(params)
       case "get_order":
         return await handleGetOrder(params)
       default:
@@ -86,13 +87,60 @@ async function handleProcessPayment(params: {
   userId: string
   planId: string
   sessionId: string
+  amount: number
+  currency?: string
 }) {
-  const { userId, planId, sessionId } = params
+  const { userId, planId, sessionId, amount, currency } = params
 
-  console.log(`Processing payment for user=${userId.substring(0, 8)}... plan=${planId} session=${sessionId}`)
+  console.log(`Processing payment for user=${userId.substring(0, 8)}... plan=${planId} amount=${amount} session=${sessionId}`)
 
-  let transactionId: string | undefined
-  let orderId: string | undefined
+  const orderId = `order_${Date.now()}_${userId.substring(0, 8)}`
+  const transactionId = `txn_${Date.now()}_${userId.substring(0, 8)}`
+
+  const payPayload = {
+    apiOperation: "PAY",
+    session: { id: sessionId },
+    sourceOfFunds: { type: "CARD" },
+    order: {
+      amount,
+      currency: currency || "USD",
+      reference: orderId,
+    },
+    transaction: {
+      reference: transactionId,
+      source: "INTERNET",
+    },
+  }
+
+  console.log("Calling PAY:", orderId, transactionId)
+
+  const payResponse = await mpgsPost(`/order/${orderId}/transaction/${transactionId}`, payPayload, "PUT")
+  const payResult = await payResponse.json()
+
+  console.log("PAY response:", JSON.stringify(payResult))
+
+  const payOk = payResult?.result === "SUCCESS"
+  const gatewayCode = payResult?.response?.gatewayCode
+
+  if (!payOk) {
+    console.error("PAY failed:", gatewayCode, JSON.stringify(payResult))
+    return new Response(
+      JSON.stringify({
+        error: "Payment failed",
+        gatewayCode,
+        result: payResult?.result,
+        details: payResult?.error?.explanation || payResult?.response?.gatewayRecommendation || "Unknown error",
+      }),
+      { status: 502, headers: { ...corsHeaders(), "Content-Type": "application/json" } }
+    )
+  }
+
+  const payTransactionId = payResult?.transaction?.id
+
+  console.log(`PAY successful: transaction=${payTransactionId} order=${orderId} gatewayCode=${gatewayCode}`)
+
+  let cardToken: string | undefined
+  let tokenError: string | undefined
 
   const tokenPayload = {
     apiOperation: "CREATE_TOKEN_FROM_SESSION",
@@ -102,8 +150,6 @@ async function handleProcessPayment(params: {
   const tokenResponse = await mpgsPost("/token", tokenPayload)
   const tokenResult = await tokenResponse.json()
 
-  let cardToken: string | undefined
-  let tokenError: string | undefined
   if (!tokenResponse.ok) {
     tokenError = tokenResult?.error?.explanation || tokenResult?.result || "Token creation failed"
     console.warn("Token creation failed:", JSON.stringify(tokenResult))
@@ -144,8 +190,40 @@ async function handleProcessPayment(params: {
       success: true,
       transactionId,
       orderId: orderId || sessionId,
+      gatewayCode,
       cardToken,
       tokenError,
+    }),
+    { status: 200, headers: { ...corsHeaders(), "Content-Type": "application/json" } }
+  )
+}
+
+async function handleCreateSession(params: { amount: number; currency?: string }) {
+  const { amount, currency } = params
+
+  const sessionResponse = await mpgsPost("/session", {
+    apiOperation: "INITIATE_CHECKOUT",
+    interaction: { operation: "PURCHASE" },
+    order: {
+      amount,
+      currency: currency || "USD",
+      id: `order_${Date.now()}`,
+    },
+  })
+  const sessionResult = await sessionResponse.json()
+
+  if (!sessionResponse.ok) {
+    return new Response(
+      JSON.stringify({ error: "Failed to create session", details: sessionResult }),
+      { status: 502, headers: { ...corsHeaders(), "Content-Type": "application/json" } }
+    )
+  }
+
+  return new Response(
+    JSON.stringify({
+      sessionId: sessionResult.session.id,
+      version: sessionResult.session.version,
+      successIndicator: sessionResult.successIndicator,
     }),
     { status: 200, headers: { ...corsHeaders(), "Content-Type": "application/json" } }
   )

@@ -8,7 +8,7 @@ export interface MpgsPaymentResult {
 }
 
 export const mpgsService = {
-  async processPayment(sessionId: string, planId: string): Promise<MpgsPaymentResult> {
+  async processPayment(sessionId: string, planId: string, amount: number): Promise<MpgsPaymentResult> {
     const { data: userData } = await supabase.auth.getUser()
     if (!userData.user) throw new Error('User not logged in')
 
@@ -18,6 +18,8 @@ export const mpgsService = {
         userId: userData.user.id,
         planId,
         sessionId,
+        amount,
+        currency: 'USD',
       },
     })
 
