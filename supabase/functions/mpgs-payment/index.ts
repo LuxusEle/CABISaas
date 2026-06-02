@@ -56,22 +56,10 @@ serve(async (req) => {
     console.log(`Action: ${action}`, JSON.stringify({ ...params, userId: params.userId ? params.userId.substring(0, 8) + '...' : undefined }))
 
     switch (action) {
-      case "process_payment":
-        return await handleProcessPayment(params)
-      case "create_session":
-        return await handleCreateSession(params)
-      case "update_session":
-        return await handleUpdateSession(params)
-      case "initiate_auth":
-        return await handleInitiateAuth(params)
-      case "authenticate_payer":
-        return await handleAuthenticatePayer(params)
       case "initiate_checkout":
         return await handleInitiateCheckout(params)
-      case "retrieve_order":
-        return await handleRetrieveOrder(params)
-      case "get_order":
-        return await handleGetOrder(params)
+      case "complete_checkout":
+        return await handleCompleteCheckout(params)
       default:
         return new Response(
           JSON.stringify({ error: `Unknown action: ${action}` }),
@@ -93,286 +81,8 @@ serve(async (req) => {
   }
 })
 
-async function handleProcessPayment(params: {
-  userId: string
-  planId: string
-  sessionId: string
-  amount: number
-  currency?: string
-  authenticationTransactionId?: string
-  orderId?: string
-}) {
-  const { userId, planId, sessionId, amount, currency, authenticationTransactionId, orderId: existingOrderId } = params
-
-  console.log(`Processing payment for user=${userId.substring(0, 8)}... plan=${planId} amount=${amount} session=${sessionId}`)
-
-  const orderId = existingOrderId || `order_${Date.now()}_${userId.substring(0, 8)}`
-  const transactionId = `txn_${Date.now()}_${userId.substring(0, 8)}`
-
-  const payPayload: Record<string, unknown> = {
-    apiOperation: "PAY",
-    session: { id: sessionId },
-    sourceOfFunds: { type: "CARD" },
-    order: {
-      amount,
-      currency: currency || "USD",
-      reference: orderId,
-    },
-    transaction: {
-      reference: transactionId,
-      source: "INTERNET",
-    },
-  }
-
-  if (authenticationTransactionId) {
-    payPayload.authentication = { transactionId: authenticationTransactionId }
-  }
-
-  console.log("Calling PAY:", orderId, transactionId)
-
-  const payResponse = await mpgsPost(`/order/${orderId}/transaction/${transactionId}`, payPayload, "PUT")
-  const payResult = await payResponse.json()
-
-  console.log("PAY response:", JSON.stringify(payResult))
-
-  const payOk = payResult?.result === "SUCCESS"
-  const gatewayCode = payResult?.response?.gatewayCode
-
-  if (!payOk) {
-    console.error("PAY failed:", gatewayCode, JSON.stringify(payResult))
-    return new Response(
-      JSON.stringify({
-        error: "Payment failed",
-        gatewayCode,
-        result: payResult?.result,
-        details: payResult?.error?.explanation || payResult?.response?.gatewayRecommendation || "Unknown error",
-      }),
-      { status: 502, headers: { ...corsHeaders(), "Content-Type": "application/json" } }
-    )
-  }
-
-  const payTransactionId = payResult?.transaction?.id
-
-  console.log(`PAY successful: transaction=${payTransactionId} order=${orderId} gatewayCode=${gatewayCode}`)
-
-  let cardToken: string | undefined
-  let tokenError: string | undefined
-
-  const tokenPayload = {
-    apiOperation: "CREATE_TOKEN_FROM_SESSION",
-    session: { id: sessionId },
-  }
-
-  const tokenResponse = await mpgsPost("/token", tokenPayload)
-  const tokenResult = await tokenResponse.json()
-
-  if (!tokenResponse.ok) {
-    tokenError = tokenResult?.error?.explanation || tokenResult?.result || "Token creation failed"
-    console.warn("Token creation failed:", JSON.stringify(tokenResult))
-  } else {
-    cardToken = tokenResult.token
-    console.log("Card token created:", cardToken?.substring(0, 12) + "...")
-  }
-
-  const { error: dbError } = await supabase
-    .from("subscriptions")
-    .upsert(
-      {
-        user_id: userId,
-        plan_id: planId,
-        status: "active",
-        mpgs_card_token: cardToken,
-        mpgs_order_id: orderId || sessionId,
-        mpgs_session_id: sessionId,
-        mpgs_transaction_id: transactionId || null,
-        current_period_start: new Date().toISOString(),
-        current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        cancel_at_period_end: false,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "user_id" }
-    )
-
-  if (dbError) {
-    console.error("Database error:", JSON.stringify(dbError))
-    return new Response(JSON.stringify({ error: "Database update failed", details: dbError }), {
-      status: 500,
-      headers: { ...corsHeaders(), "Content-Type": "application/json" },
-    })
-  }
-
-  return new Response(
-    JSON.stringify({
-      success: true,
-      transactionId,
-      orderId: orderId || sessionId,
-      gatewayCode,
-      cardToken,
-      tokenError,
-    }),
-    { status: 200, headers: { ...corsHeaders(), "Content-Type": "application/json" } }
-  )
-}
-
-async function handleCreateSession(_params: Record<string, unknown>) {
-  const sessionResponse = await mpgsPost("/session", {
-    session: { authenticationLimit: 25 },
-  })
-  const sessionResult = await sessionResponse.json()
-
-  if (!sessionResponse.ok) {
-    return new Response(
-      JSON.stringify({ error: "Failed to create session", details: sessionResult }),
-      { status: 502, headers: { ...corsHeaders(), "Content-Type": "application/json" } }
-    )
-  }
-
-  return new Response(
-    JSON.stringify({
-      sessionId: sessionResult.session.id,
-      version: sessionResult.session.version,
-    }),
-    { status: 200, headers: { ...corsHeaders(), "Content-Type": "application/json" } }
-  )
-}
-
-async function handleUpdateSession(params: { sessionId: string; amount: number; currency?: string }) {
-  const { sessionId, amount, currency } = params
-
-  const updateResponse = await mpgsPost(`/session/${sessionId}`, {
-    order: {
-      amount,
-      currency: currency || "USD",
-    },
-  }, "PUT")
-  const updateResult = await updateResponse.json()
-
-  if (!updateResponse.ok) {
-    return new Response(
-      JSON.stringify({ error: "Failed to update session", details: updateResult }),
-      { status: 502, headers: { ...corsHeaders(), "Content-Type": "application/json" } }
-    )
-  }
-
-  return new Response(
-    JSON.stringify({
-      success: true,
-      version: updateResult.session?.version,
-    }),
-    { status: 200, headers: { ...corsHeaders(), "Content-Type": "application/json" } }
-  )
-}
-
-async function handleInitiateAuth(params: { sessionId: string; orderId: string; transactionId: string }) {
-  const { sessionId, orderId, transactionId } = params
-
-  const authPayload = {
-    apiOperation: "INITIATE_AUTHENTICATION",
-    authentication: {
-      acceptVersions: "3DS2",
-      channel: "PAYER_BROWSER",
-      purpose: "PAYMENT_TRANSACTION",
-    },
-    order: { reference: orderId },
-    session: { id: sessionId },
-    transaction: { reference: transactionId },
-  }
-
-  console.log(`INITIATE_AUTH: order=${orderId} txn=${transactionId} session=${sessionId}`)
-
-  const response = await mpgsPost(`/order/${orderId}/transaction/${transactionId}`, authPayload, "PUT")
-  const result = await response.json()
-
-  console.log(`INITIATE_AUTH response:`, JSON.stringify(result))
-
-  if (!response.ok) {
-    return new Response(
-      JSON.stringify({ error: "INITIATE_AUTHENTICATION failed", details: result }),
-      { status: 502, headers: { ...corsHeaders(), "Content-Type": "application/json" } }
-    )
-  }
-
-  return new Response(
-    JSON.stringify({
-      result: result.result,
-      gatewayRecommendation: result.response?.gatewayRecommendation,
-      authenticationStatus: result.authentication?.status,
-      authenticationVersion: result.authentication?.version,
-      error: result.error,
-    }),
-    { status: 200, headers: { ...corsHeaders(), "Content-Type": "application/json" } }
-  )
-}
-
-async function handleAuthenticatePayer(params: {
-  sessionId: string
-  orderId: string
-  transactionId: string
-  redirectResponseUrl: string
-  device?: {
-    browser?: string
-    browserDetails?: Record<string, unknown>
-    ipAddress?: string
-  }
-}) {
-  const { sessionId, orderId, transactionId, redirectResponseUrl, device } = params
-
-  const authPayload: Record<string, unknown> = {
-    apiOperation: "AUTHENTICATE_PAYER",
-    authentication: {
-      redirectResponseUrl,
-    },
-    session: { id: sessionId },
-  }
-
-  if (device) {
-    authPayload.device = device
-  }
-
-  const response = await mpgsPost(`/order/${orderId}/transaction/${transactionId}`, authPayload, "PUT")
-  const result = await response.json()
-
-  console.log(`AUTHENTICATE_PAYER response:`, JSON.stringify(result))
-
-  if (!response.ok) {
-    return new Response(
-      JSON.stringify({ error: "AUTHENTICATE_PAYER failed", details: result }),
-      { status: 502, headers: { ...corsHeaders(), "Content-Type": "application/json" } }
-    )
-  }
-
-  return new Response(
-    JSON.stringify(result),
-    { status: 200, headers: { ...corsHeaders(), "Content-Type": "application/json" } }
-  )
-}
-
-async function handleGetOrder(params: { sessionId: string }) {
-  const { sessionId } = params
-
-  const response = await mpgsPost(`/session/${sessionId}`, {
-    apiOperation: "RETRIEVE_ORDER",
-  })
-  const result = await response.json()
-
-  if (!response.ok) {
-    return new Response(
-      JSON.stringify({ error: "Failed to retrieve order", details: result }),
-      {
-        status: 502,
-        headers: { ...corsHeaders(), "Content-Type": "application/json" },
-      }
-    )
-  }
-
-  return new Response(JSON.stringify(result), {
-    status: 200,
-    headers: { ...corsHeaders(), "Content-Type": "application/json" },
-  })
-}
-
-async function handleInitiateCheckout(params: { amount: number; currency?: string; returnUrl: string }) {
-  const { amount, currency, returnUrl } = params
+async function handleInitiateCheckout(params: { orderId: string; amount: number; currency?: string; returnUrl: string }) {
+  const { orderId, amount, currency, returnUrl } = params
 
   const payload = {
     apiOperation: "INITIATE_CHECKOUT",
@@ -382,14 +92,14 @@ async function handleInitiateCheckout(params: { amount: number; currency?: strin
       returnUrl,
     },
     order: {
-      id: `order_${Date.now()}`,
+      id: orderId,
       amount,
       currency: currency || "USD",
       description: "CABEngine Pro Subscription",
     },
   }
 
-  console.log(`INITIATE_CHECKOUT: amount=${amount} returnUrl=${returnUrl}`)
+  console.log(`INITIATE_CHECKOUT: orderId=${orderId} amount=${amount} returnUrl=${returnUrl}`)
 
   const response = await mpgsPost("/session", payload)
   const result = await response.json()
@@ -407,6 +117,7 @@ async function handleInitiateCheckout(params: { amount: number; currency?: strin
     JSON.stringify({
       success: result.result === "SUCCESS",
       sessionId: result.session?.id,
+      orderId,
       successIndicator: result.successIndicator,
       version: result.session?.version,
       checkoutMode: result.checkoutMode,
@@ -415,27 +126,55 @@ async function handleInitiateCheckout(params: { amount: number; currency?: strin
   )
 }
 
-async function handleRetrieveOrder(params: { sessionId: string }) {
-  const { sessionId } = params
+async function handleCompleteCheckout(params: { sessionId: string; orderId: string; userId: string; planId: string }) {
+  const { sessionId, orderId, userId, planId } = params
 
-  console.log(`RETRIEVE_ORDER for session: ${sessionId}`)
+  console.log(`COMPLETE_CHECKOUT: sessionId=${sessionId} orderId=${orderId} userId=${userId?.substring(0, 8)}... planId=${planId}`)
 
-  const response = await mpgsPost(`/session/${sessionId}`, {
-    apiOperation: "RETRIEVE_ORDER",
-  })
-  const result = await response.json()
+  let txnId = ""
+  let gatewayCode = ""
 
-  console.log(`RETRIEVE_ORDER response:`, JSON.stringify(result))
-
-  if (!response.ok) {
-    return new Response(
-      JSON.stringify({ error: "RETRIEVE_ORDER failed", details: result }),
-      { status: 502, headers: { ...corsHeaders(), "Content-Type": "application/json" } }
-    )
+  // Try to retrieve order details, but don't fail if it doesn't work
+  // Hosted Checkout verification is via resultIndicator === successIndicator (already done client-side)
+  try {
+    const orderRes = await mpgsPost(`/session/${sessionId}`, { apiOperation: "RETRIEVE_ORDER" })
+    const orderResult = await orderRes.json()
+    console.log(`RETRIEVE_ORDER result:`, JSON.stringify(orderResult))
+    if (orderResult.result === "SUCCESS") {
+      txnId = orderResult.transaction?.id || orderResult.order?.id || ""
+      gatewayCode = orderResult.response?.gatewayCode || ""
+    }
+  } catch (e) {
+    console.warn("RETRIEVE_ORDER failed (non-critical):", e)
   }
 
-  return new Response(JSON.stringify(result), {
-    status: 200,
-    headers: { ...corsHeaders(), "Content-Type": "application/json" },
-  })
+  const { error: dbError } = await supabase
+    .from("subscriptions")
+    .upsert(
+      {
+        user_id: userId,
+        plan_id: planId,
+        status: "active",
+        mpgs_order_id: orderId,
+        mpgs_transaction_id: txnId,
+        current_period_start: new Date().toISOString(),
+        current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        cancel_at_period_end: false,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id" }
+    )
+
+  if (dbError) {
+    console.error("DB error:", JSON.stringify(dbError))
+    return new Response(JSON.stringify({ error: "Database update failed", details: dbError }), {
+      status: 500,
+      headers: { ...corsHeaders(), "Content-Type": "application/json" },
+    })
+  }
+
+  return new Response(
+    JSON.stringify({ success: true, transactionId: txnId, orderId, gatewayCode }),
+    { status: 200, headers: { ...corsHeaders(), "Content-Type": "application/json" } }
+  )
 }

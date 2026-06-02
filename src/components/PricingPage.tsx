@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabaseClient';
 import { subscriptionService, SUBSCRIPTION_PLANS } from '../services/subscriptionService';
 import type { UserSubscription } from '../types';
-import type { MpgsPaymentResult } from '../services/mpgsService';
+import { mpgsService } from '../services/mpgsService';
+import { MPGS_GATEWAY_URL } from '../services/mpgs';
 import { Check, X, Sparkles, User, Loader2 } from 'lucide-react';
 import { LandingHeader } from './LandingHeader';
-import { MpgsCheckoutForm } from './MpgsCheckoutForm';
 import { useNavigate } from 'react-router-dom';
 
 interface PricingPageProps {
@@ -26,8 +26,42 @@ export const PricingPage: React.FC<PricingPageProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [subscriptionError, setSubscriptionError] = useState<string | null>(null);
-  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [isCheckoutReturn, setIsCheckoutReturn] = useState(false);
+
+  // Hosted Checkout return callback
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('checkout') === 'complete') {
+      const resultIndicator = params.get('resultIndicator')
+      const sessionId = sessionStorage.getItem('hco_sessionId')
+      const orderId = sessionStorage.getItem('hco_orderId')
+      const planId = sessionStorage.getItem('hco_planId')
+      const successIndicator = sessionStorage.getItem('hco_successIndicator')
+
+      window.history.replaceState({}, '', window.location.pathname)
+
+      const indicatorsMatch = resultIndicator === successIndicator
+      if (!indicatorsMatch || !sessionId || !orderId || !planId) {
+        setSubscriptionError('Payment verification failed. Please contact support.')
+        return
+      }
+
+      setIsCheckoutReturn(true)
+
+      mpgsService.completeCheckout(sessionId, orderId, planId)
+        .then((result) => {
+          setIsCheckoutReturn(false)
+          ;['hco_sessionId', 'hco_orderId', 'hco_successIndicator', 'hco_planId'].forEach(k => sessionStorage.removeItem(k))
+          setShowSuccessModal(true)
+          loadSubscription()
+        })
+        .catch((err) => {
+          setIsCheckoutReturn(false)
+          setSubscriptionError(err.message || 'Failed to activate subscription')
+        })
+    }
+  }, []);
 
   useEffect(() => {
     loadSubscription();
@@ -46,27 +80,49 @@ export const PricingPage: React.FC<PricingPageProps> = ({
   const handleSubscribe = async (planId: string) => {
     if (planId === 'free') return;
 
-    setSubscriptionError(null);
-
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) {
       onSignIn();
       return;
     }
 
-    setShowCheckoutModal(true);
-  };
+    const plan = SUBSCRIPTION_PLANS.find(p => p.id === planId);
+    if (!plan) return;
 
-  const handleMpgsSuccess = async (result: MpgsPaymentResult) => {
-    setShowCheckoutModal(false);
-    setIsProcessing(false);
-    setShowSuccessModal(true);
-    await loadSubscription();
-  };
+    setIsProcessing(true);
+    setSubscriptionError(null);
 
-  const handleMpgsError = (error: string) => {
-    setSubscriptionError(error);
-    setIsProcessing(false);
+    try {
+      const returnUrl = window.location.origin + window.location.pathname + '?checkout=complete'
+      const result = await mpgsService.initiateCheckout(planId, plan.price, returnUrl)
+
+      sessionStorage.setItem('hco_sessionId', result.sessionId)
+      sessionStorage.setItem('hco_orderId', result.orderId)
+      sessionStorage.setItem('hco_successIndicator', result.successIndicator)
+      sessionStorage.setItem('hco_planId', planId)
+
+      const existing = document.querySelector('script[src*="checkout.min.js"]')
+      if (existing && window.Checkout) {
+        window.Checkout.configure({ session: { id: result.sessionId } })
+        window.Checkout.showPaymentPage()
+        return
+      }
+
+      const script = document.createElement('script')
+      script.src = `${MPGS_GATEWAY_URL}/static/checkout/checkout.min.js`
+      script.onload = () => {
+        window.Checkout.configure({ session: { id: result.sessionId } })
+        window.Checkout.showPaymentPage()
+      }
+      script.onerror = () => {
+        setIsProcessing(false)
+        setSubscriptionError('Failed to load payment page. Please try again.')
+      }
+      document.head.appendChild(script)
+    } catch (err: any) {
+      setIsProcessing(false)
+      setSubscriptionError(err.message || 'Failed to initiate payment')
+    }
   };
 
   const handleCancel = async () => {
@@ -202,7 +258,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({
                               ? (
                                 <div className="flex items-center justify-center gap-2">
                                   <Loader2 className="animate-spin" size={20} />
-                                  Processing...
+                                  Redirecting...
                                 </div>
                               )
                               : 'Subscribe'}
@@ -282,32 +338,18 @@ export const PricingPage: React.FC<PricingPageProps> = ({
         </div>
       </div>
 
-      {/* Checkout Modal */}
-      {showCheckoutModal && (
+      {/* Processing Overlay for Checkout Return */}
+      {isCheckoutReturn && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowCheckoutModal(false)} />
-          <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-6 sm:p-8 max-w-md w-full border border-slate-200 dark:border-slate-700">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white">
-                Complete Payment
-              </h3>
-              <button
-                onClick={() => setShowCheckoutModal(false)}
-                className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-              >
-                <X size={20} className="text-slate-500" />
-              </button>
-            </div>
-            <MpgsCheckoutForm
-              planId="pro"
-              amount={29}
-              onSuccess={handleMpgsSuccess}
-              onError={handleMpgsError}
-              onCancel={() => {
-                setShowCheckoutModal(false);
-                setIsProcessing(false);
-              }}
-            />
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+          <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-8 max-w-md w-full text-center border border-slate-200 dark:border-slate-700">
+            <Loader2 className="animate-spin mx-auto mb-4" size={48} />
+            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+              Processing Payment
+            </h3>
+            <p className="text-slate-600 dark:text-slate-400">
+              Please wait while we activate your subscription...
+            </p>
           </div>
         </div>
       )}

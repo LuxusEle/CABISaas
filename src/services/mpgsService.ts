@@ -5,27 +5,62 @@ export interface MpgsPaymentResult {
   transactionId?: string
   orderId?: string
   cardToken?: string
+  gatewayCode?: string
+}
+
+export interface MpgsInitiateCheckoutResult {
+  sessionId: string
+  orderId: string
+  successIndicator: string
+  version: string
 }
 
 export const mpgsService = {
-  async processPayment(sessionId: string, planId: string, amount: number): Promise<MpgsPaymentResult> {
+  async initiateCheckout(planId: string, amount: number, returnUrl: string): Promise<MpgsInitiateCheckoutResult> {
+    const { data: userData } = await supabase.auth.getUser()
+    if (!userData.user) throw new Error('User not logged in')
+
+    const orderId = `ord_${Date.now()}_${userData.user.id.substring(0, 8)}`
+
+    const { data, error } = await supabase.functions.invoke('mpgs-payment', {
+      body: {
+        action: 'initiate_checkout',
+        orderId,
+        amount,
+        currency: 'USD',
+        returnUrl,
+      },
+    })
+
+    if (error || !data?.success) {
+      throw new Error(error?.message || data?.error || 'Failed to initiate checkout')
+    }
+
+    return {
+      sessionId: data.sessionId,
+      orderId: data.orderId,
+      successIndicator: data.successIndicator,
+      version: data.version,
+    }
+  },
+
+  async completeCheckout(sessionId: string, orderId: string, planId: string): Promise<MpgsPaymentResult> {
     const { data: userData } = await supabase.auth.getUser()
     if (!userData.user) throw new Error('User not logged in')
 
     const { data, error } = await supabase.functions.invoke('mpgs-payment', {
       body: {
-        action: 'process_payment',
+        action: 'complete_checkout',
+        sessionId,
+        orderId,
         userId: userData.user.id,
         planId,
-        sessionId,
-        amount,
-        currency: 'USD',
       },
     })
 
     if (error) {
-      console.error('MPGS process payment error:', error)
-      throw new Error(error.message || 'Failed to process payment')
+      const detail = data?.error || data?.details?.error?.explanation || ''
+      throw new Error(detail || error.message || 'Failed to complete checkout')
     }
 
     return data as MpgsPaymentResult
