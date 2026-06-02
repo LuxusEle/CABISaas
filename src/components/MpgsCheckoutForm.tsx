@@ -62,6 +62,7 @@ export const MpgsCheckoutForm: React.FC<MpgsCheckoutFormProps> = ({
           operation: 'PURCHASE',
           merchant: { name: 'CABISaas' },
         },
+        frameEmbeddingMitigation: ['csp'],
         callbacks: {
           initialized: (response: any) => {
             if (cancelled) return

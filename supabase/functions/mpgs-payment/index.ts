@@ -103,8 +103,10 @@ async function handleProcessPayment(params: {
   const tokenResult = await tokenResponse.json()
 
   let cardToken: string | undefined
+  let tokenError: string | undefined
   if (!tokenResponse.ok) {
-    console.warn("Token creation failed (merchant may not have tokenization enabled):", JSON.stringify(tokenResult))
+    tokenError = tokenResult?.error?.explanation || tokenResult?.result || "Token creation failed"
+    console.warn("Token creation failed:", JSON.stringify(tokenResult))
   } else {
     cardToken = tokenResult.token
     console.log("Card token created:", cardToken?.substring(0, 12) + "...")
@@ -143,6 +145,7 @@ async function handleProcessPayment(params: {
       transactionId,
       orderId: orderId || sessionId,
       cardToken,
+      tokenError,
     }),
     { status: 200, headers: { ...corsHeaders(), "Content-Type": "application/json" } }
   )

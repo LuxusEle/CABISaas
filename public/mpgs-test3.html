@@ -81,7 +81,7 @@
   <p>SDK auto-creates session → Edge function calls <code>CREATE_TOKEN_FROM_SESSION</code></p>
 
   <div class="field-container">
-    <div id="MerchantSessionId" data-merchant="TESTSEYLAN148">
+    <div id="MerchantSessionId" data-merchant="SEYLAN148">
       <div data-paymentmethod="card">
         <label class="field-label">Card Number</label>
         <div id="mpgs-card-number"
@@ -139,7 +139,7 @@
     }
 
     const script = document.createElement('script');
-    script.src = 'https://test-seylan.mtf.gateway.mastercard.com/form/version/100/merchant/TESTSEYLAN148/session.js';
+    script.src = 'https://test-seylan.mtf.gateway.mastercard.com/form/version/100/merchant/SEYLAN148/session.js';
     script.async = false;
     script.onload = () => {
       log('SDK loaded', 'ok');
@@ -153,6 +153,7 @@
             securityCode: '#mpgs-card-cvv',
           },
         },
+        frameEmbeddingMitigation: ['csp'],
         callbacks: {
           initialized: (response) => {
             log(`Initialized: ${JSON.stringify(response)}`, response.status === 'ok' ? 'ok' : 'error');
@@ -185,7 +186,7 @@
                     },
                     body: JSON.stringify({
                       action: 'process_payment',
-                      userId: 'test-user-123',
+                      userId: 'a8f9b8af-e3cc-4cbd-a98a-5b76eff69849',
                       planId: 'pro',
                       sessionId,
                     }),
