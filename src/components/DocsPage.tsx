@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { Book, ChevronRight, Settings, Settings2, Box, Table2, CreditCard, Lightbulb, HelpCircle, CheckCircle, Share2 } from 'lucide-react';
 import { LandingHeader } from './LandingHeader';
 
@@ -54,7 +55,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
         <div className="space-y-4">
           <h3 className="text-xl font-bold text-slate-900 dark:text-white">Welcome to CabEngine Pro</h3>
           <p className="text-slate-600 dark:text-slate-300">
-            CabEngine Pro is an advanced engineering suite for high-fidelity cabinet design and manufacturing. It enables you to:
+            CabEngine Pro is an advanced cabinet software integration suite for high-fidelity 3D cabinet design and manufacturing. Use the cabinet configurator API and embeddable 3D planner to streamline your workflow. It enables you to:
           </p>
           <ul className="list-disc list-inside space-y-2 text-slate-600 dark:text-slate-300 ml-4">
             <li>Design complex kitchen layouts with multiple wall zones</li>
@@ -315,13 +316,13 @@ export const DocsPage: React.FC<DocsPageProps> = ({
     },
     {
       id: 'embed',
-      title: 'Embed Configurator API',
+      title: 'Cabinet Configurator API & Embeddable 3D Planner',
       icon: <Share2 className="w-5 h-5" />,
       content: (
         <div className="space-y-6">
-          <h3 className="text-xl font-bold text-slate-900 dark:text-white">Embedding the 3D Planner</h3>
+          <h3 className="text-xl font-bold text-slate-900 dark:text-white">Cabinet Configurator API — Embeddable 3D Planner</h3>
           <p className="text-slate-600 dark:text-slate-300 text-sm">
-            You can embed the kitchen setup wizard and 3D designer directly into your own website or client portals. This allows your customers to configure their cabinetry layout and submit specifications without leaving your site.
+            Our cabinet configurator API lets you embed the 3D kitchen planner directly into your own website or client portals. This cabinet software integration allows your customers to configure their cabinetry layout and submit specifications without leaving your site.
           </p>
 
           <div className="space-y-4">
@@ -420,6 +421,12 @@ export const DocsPage: React.FC<DocsPageProps> = ({
 
 
   return (
+    <>
+      <Helmet>
+        <title>Cabinet Software Integration Docs — CabEngine Pro | Cabinet Configurator API &amp; Embeddable 3D Planner</title>
+        <link rel="canonical" href="https://www.protradee.com/docs" />
+        <meta name="description" content="Complete CabEngine Pro documentation covering cabinet software integration, the cabinet configurator API, embeddable 3D planner setup, project workflows, and BOM generation." />
+      </Helmet>
     <div className="h-full overflow-y-auto bg-slate-50 dark:bg-slate-950">
       <LandingHeader
         onSignIn={onSignIn}
@@ -512,6 +519,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
         </div>
       </div>
     </div>
+    </>
   );
 };
 

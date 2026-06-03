@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { Download } from 'lucide-react';
 import JSZip from 'jszip';
 import { Canvas } from '@react-three/fiber';
@@ -148,6 +149,11 @@ export const CabinetTestingPage: React.FC<{ isDark?: boolean }> = ({ isDark = tr
   }, [settings]);
 
   return (
+    <>
+      <Helmet>
+        <title>Cabinet Testing - CabEngine Pro</title>
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
     <div className={`flex h-full ${isDark ? 'bg-slate-950 text-white' : 'bg-slate-50 text-slate-900'} font-sans overflow-hidden`}>
       <div className={`w-96 shrink-0 overflow-y-auto p-4 border-r ${isDark ? 'border-slate-700 bg-slate-900' : 'border-slate-200 bg-white'} scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent`}>
         <div className="flex items-center gap-2 mb-6">
@@ -649,6 +655,7 @@ export const CabinetTestingPage: React.FC<{ isDark?: boolean }> = ({ isDark = tr
         </div>
       </div>
     </div>
+    </>
   );
 };
 

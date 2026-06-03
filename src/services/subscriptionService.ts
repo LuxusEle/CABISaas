@@ -7,7 +7,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     name: 'Free',
     price: 0,
     interval: 'month',
-    description: 'Basic features for hobbyists',
+    description: 'Free 3D cabinet design software — basic features for hobbyists',
     features: [
       'Up to 3 projects',
       'Basic cabinet presets',
@@ -20,7 +20,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     name: 'Pro',
     price: 29,
     interval: 'month',
-    description: 'Professional features for small shops',
+    description: 'Pro subscription — white-label cabinet software for commercial shops',
     features: [
       'Unlimited projects',
       'Custom cabinet library',
@@ -148,6 +148,11 @@ export const subscriptionService = {
   },
 
   async isPro(): Promise<boolean> {
+    // TEMPORARY: Grant all users Pro features while payment gateway is in testing.
+    return true;
+
+    // Uncomment below section to use real pro status
+    /*
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) return false;
 
@@ -158,6 +163,7 @@ export const subscriptionService = {
       .single();
 
     return sub?.plan_id === 'pro' && sub?.status === 'active';
+    */
   },
 
   async getCurrentPlan(): Promise<SubscriptionPlan | null> {

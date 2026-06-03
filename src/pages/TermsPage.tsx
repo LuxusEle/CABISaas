@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { FileText, Shield, ArrowLeft } from 'lucide-react';
 import { LandingHeader } from '../components/LandingHeader';
 
@@ -624,6 +625,12 @@ export const TermsPage: React.FC<TermsPageProps> = ({
   }, []);
 
   return (
+    <>
+      <Helmet>
+        <title>Terms of Service - CabEngine Pro</title>
+        <link rel="canonical" href="https://www.protradee.com/terms" />
+        <meta name="description" content="CabEngine Pro terms of service and conditions of use for our cabinet design software platform." />
+      </Helmet>
     <div className="h-full overflow-y-auto bg-white dark:bg-slate-950">
       <LandingHeader
         onSignIn={onSignIn}
@@ -668,6 +675,7 @@ export const TermsPage: React.FC<TermsPageProps> = ({
         </div>
       </div>
     </div>
+    </>
   );
 };
 
