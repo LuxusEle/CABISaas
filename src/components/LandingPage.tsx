@@ -51,21 +51,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
 
   const heroFeatures = [
     {
-      icon: <Monitor size={48} />,
+      icon: <Monitor size={36} />,
       title: 'No Download Required',
       subtitle: '100% browser-based. Nothing to install.',
       border: 'rgba(34, 197, 94, 0.3)',
       iconBg: 'bg-lp-icon-green',
     },
     {
-      icon: <Zap size={48} />,
+      icon: <Zap size={36} />,
       title: 'No Payment Until You Earn',
       subtitle: 'Start free. Upgrade when your shop grows.',
       border: 'rgba(245, 158, 11, 0.3)',
       iconBg: 'bg-lp-icon-amber',
     },
     {
-      icon: <Globe size={48} />,
+      icon: <Globe size={36} />,
       title: 'SketchUp & 3D Export',
       subtitle: 'Export models to your favorite 3D software.',
       border: 'rgba(59, 130, 246, 0.3)',
@@ -78,19 +78,19 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
       {heroFeatures.map((f, i) => (
         <div
           key={i}
-          className="absolute inset-0 flex items-center justify-center p-8"
+          className="absolute inset-0 flex items-center justify-center p-6"
         >
           <div
-            className="animate-feature w-full h-full flex flex-col items-center justify-center gap-4 rounded-2xl bg-lp-overlay backdrop-blur-xl border-2 shadow-2xl p-8"
+            className="animate-feature w-full h-full flex flex-col items-center justify-center gap-3 rounded-2xl bg-lp-overlay backdrop-blur-xl border-2 shadow-xl p-6"
             style={{ borderColor: f.border, animationDelay: `${i * 4}s` }}
           >
-            <div className={`w-20 h-20 rounded-2xl ${f.iconBg} flex items-center justify-center`}>
+            <div className={`w-16 h-16 rounded-2xl ${f.iconBg} flex items-center justify-center`}>
               {f.icon}
             </div>
-            <h3 className="text-2xl sm:text-3xl font-black text-lp-heading text-center leading-tight">
+            <h3 className="text-xl sm:text-2xl font-black text-lp-heading text-center leading-tight">
               {f.title}
             </h3>
-            <p className="text-base sm:text-lg text-lp-muted text-center max-w-xs">
+            <p className="text-sm sm:text-base text-lp-muted text-center max-w-xs">
               {f.subtitle}
             </p>
           </div>
@@ -164,24 +164,22 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
       />
 
       {/* Hero */}
-      <section className="relative pt-24 sm:pt-32 pb-16 sm:pb-24 overflow-hidden">
+      <section className="relative pt-20 sm:pt-24 pb-12 sm:pb-16 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary-subtle/30 via-transparent to-transparent dark:from-primary-light/10" />
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-bl from-primary/5 to-transparent rounded-full blur-3xl" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-start">
-            <div className="space-y-8">
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-start">
+            <div className="space-y-6">
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary-subtle dark:bg-primary-light border border-primary/10">
                 <Sparkles size={14} className="text-primary" />
                 <span className="text-xs font-semibold text-primary">3D Cabinet Design Software — Professional Grade</span>
               </div>
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black leading-[1.1] tracking-tight">
-                <span className="text-lp-heading">Design Kitchens.</span>
-                <br />
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-black tracking-tight flex flex-col gap-3">
+                <span>Design Kitchens.</span>
                 <span className="text-gradient">Build Cabinets.</span>
-                <br />
-                <span className="text-lp-heading">Grow Your Shop.</span>
+                <span>Grow Your Shop.</span>
               </h1>
-              <p className="text-lg sm:text-xl text-lp-muted max-w-lg leading-relaxed">
+              <p className="text-base sm:text-lg text-lp-muted max-w-lg leading-relaxed">
                 Cloud-based 3D cabinet engineering platform with instant BOM generation, 
                 automated cut optimization, and CNC-ready exports — all in your browser.
               </p>
@@ -189,27 +187,27 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
                 {onQuickStart && (
                   <button
                     onClick={onQuickStart}
-                    className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-lp-icon-amber hover:bg-lp-icon-amber-hover text-lp-amber-text font-bold rounded-xl transition-all border-2 border-lp-border-amber hover:border-lp-border-amber-solid text-lg group"
+                    className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-lp-icon-amber hover:bg-lp-icon-amber-hover text-lp-amber-text font-bold rounded-xl transition-all border-2 border-lp-border-amber hover:border-lp-border-amber-solid text-base group"
                   >
-                    <Download size={20} />
+                    <Download size={18} />
                     Try Live Demo
                   </button>
                 )}
                 <button
                   onClick={onGetStarted}
-                  className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-primary hover:bg-primary-hover text-lp-white font-bold rounded-xl transition-all shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 text-lg group"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary hover:bg-primary-hover text-lp-white font-bold rounded-xl transition-all shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 text-base group"
                 >
                   Get Started Free
                   <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
                 </button>
                 <button
                   onClick={onSignIn}
-                  className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-lp-elevated hover:bg-lp-elevated-hover text-lp-secondary font-semibold rounded-xl transition-all border border-lp-border-strong text-lg"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-lp-elevated hover:bg-lp-elevated-hover text-lp-secondary font-semibold rounded-xl transition-all border border-lp-border-strong text-base"
                 >
                   Sign In
                 </button>
               </div>
-              <div className="flex items-center gap-8 pt-4">
+              <div className="flex items-center gap-6 pt-2">
                 <div className="flex -space-x-3">
                   {[1, 2, 3, 4].map((i) => (
                     <div
@@ -232,8 +230,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
                 </div>
               </div>
             </div>
-            <div className="relative hidden lg:flex flex-col gap-6">
-              <div className="relative h-[320px]">
+            <div className="relative hidden lg:flex flex-col gap-4">
+              <div className="relative h-[280px]">
                 <CyclingFeature />
               </div>
               <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-lp-border-strong bg-lp-elevated aspect-[4/3]">
