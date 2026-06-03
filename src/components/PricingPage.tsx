@@ -149,6 +149,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({
 
   const currentPlanId = currentSubscription?.plan_id || 'free';
   const isPro = currentSubscription?.plan_id === 'pro' && currentSubscription?.status === 'active';
+  const showLaunchOverlay = true;
 
   return (
     <>
@@ -164,6 +165,47 @@ export const PricingPage: React.FC<PricingPageProps> = ({
         isDark={isDark}
         setIsDark={setIsDark}
       />
+
+      {showLaunchOverlay && (
+      <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
+        <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-500" />
+        <div className="relative bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl p-8 sm:p-12 max-w-xl w-full text-center border-4 border-amber-500/30 animate-in zoom-in-95 duration-500 overflow-hidden">
+          <div className="absolute -top-24 -right-24 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="w-24 h-24 bg-gradient-to-br from-amber-400 to-amber-600 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-xl shadow-amber-500/40 rotate-3 animate-pulse">
+            <Sparkles size={48} className="text-white" />
+          </div>
+
+          <h2 className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-white mb-4 tracking-tighter uppercase italic">
+            It's <span className="text-amber-500">Free</span> Now!
+          </h2>
+
+          <div className="space-y-4 mb-10">
+            <p className="text-xl font-bold text-slate-700 dark:text-slate-200">
+              Enjoy full Pro features for free during our launch phase.
+            </p>
+            <p className="text-slate-500 dark:text-slate-400 font-medium italic">
+              No subscription needed. No credit cards. Just start building your dream kitchen today.
+            </p>
+          </div>
+
+          <div className="space-y-4 relative z-10">
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="w-full py-5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black rounded-2xl hover:scale-[1.02] transition-all shadow-xl shadow-slate-900/20 dark:shadow-white/10 flex items-center justify-center gap-3 group text-lg uppercase tracking-widest"
+            >
+              Start Building Now
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="group-hover:translate-x-1 transition-transform"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
+            </button>
+
+            <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em]">
+              Limited Time Launch Offer
+            </p>
+          </div>
+        </div>
+      </div>
+      )}
 
       <div className="py-12 px-4 pt-14 sm:pt-16">
         <div className="max-w-6xl mx-auto">
