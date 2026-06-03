@@ -168,10 +168,10 @@ export const PricingPage: React.FC<PricingPageProps> = ({
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h1 className="text-4xl font-black text-slate-900 dark:text-white mb-4">
-              Choose Your Plan
+              Cabinet Design Software Pricing
             </h1>
             <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
-              Start with our free plan and upgrade as you grow. All plans include core features.
+              Start with our free plan, upgrade to a Pro subscription as you grow. White-label cabinet software available for commercial use.
             </p>
           </div>
 
@@ -332,7 +332,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({
 
           <div className="mt-16 text-center">
             <p className="text-slate-500 dark:text-slate-400 mb-4">
-              Questions about our plans?
+              Questions about our cabinet design software pricing?
             </p>
             <a
               href="mailto:support@cabengine.com"

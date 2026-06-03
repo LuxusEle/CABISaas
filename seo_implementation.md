@@ -186,9 +186,32 @@ Add `<link rel="canonical">` to every public page via `react-helmet-async` (alre
 
 ### 4.3 Google Search Console & Sitemap Submission
 
-- Register `protradee.com` in Google Search Console
-- Submit `sitemap.xml`
-- Monitor crawl errors, mobile usability, and Core Web Vitals
+**Step 1 — Add property in Search Console**
+1. Go to https://search.google.com/search-console
+2. Sign in with the Google account that manages `protradee.com`
+3. Choose **"URL prefix"** and enter `https://www.protradee.com/`
+4. Select **"DNS"** verification method
+5. Copy the TXT record value provided
+
+**Step 2 — Add DNS TXT record (via domain registrar / DNS provider)**
+1. Log in to your DNS provider (e.g., Cloudflare, Namecheap, GoDaddy)
+2. Add a new TXT record:
+   - **Name/Host:** `@` (or `protradee.com`)
+   - **Value:** the TXT record from step 1
+   - **TTL:** 300 (or default)
+3. Wait up to 30 minutes for propagation, then click **"Verify"** in Search Console
+
+**Step 3 — Submit sitemap**
+1. In Search Console, go to **Sitemaps** (left sidebar)
+2. Enter `https://www.protradee.com/sitemap.xml`
+3. Click **Submit**
+4. Verify status shows "Success" — you should see 8 URLs discovered
+
+**Step 4 — Monitor**
+- **Coverage** — check for crawl errors or pages excluded from indexing
+- **Mobile Usability** — fix any issues found
+- **Core Web Vitals** — verify LCP, FID, CLS are passing
+- **URL Inspection** — test a few URLs (e.g., `/`, `/pricing`, `/docs`) to confirm Googlebot sees the pre-rendered HTML with all meta tags and JSON-LD
 
 ---
 

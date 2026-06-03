@@ -326,7 +326,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             {/* Animated badge */}
             <div className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-amber-100 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 mb-4 sm:mb-8 animate-slide-up">
               <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-amber-600 dark:text-amber-500" />
-              <span className="text-xs sm:text-sm font-medium text-amber-700 dark:text-amber-400">Professional Cabinet Design Made Simple</span>
+              <span className="text-xs sm:text-sm font-medium text-amber-700 dark:text-amber-400">3D Cabinet Design Software — Professional Grade</span>
             </div>
 
             {/* Subheading and description with mobile glassmohrphism background for readability */}
@@ -351,8 +351,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
               </div>
 
               <p className="text-lg sm:text-xl md:text-2xl text-slate-800 dark:text-slate-300 md:text-slate-600 md:dark:text-slate-500 leading-relaxed" style={{ animationDelay: '1s' }}>
-                Professional-grade cabinet design software with instant 3D visualization,
-                automated cut lists, and material optimization.
+                Cloud-based cabinet engineering platform with instant 3D visualization,
+                automated cut lists, and panel nesting optimization.
               </p>
             </div>
 
@@ -421,7 +421,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
               <span className="text-slate-900 dark:text-white">Everything You Need to </span>
               <span className="text-gradient">Build</span>
             </h2>
-            <p className="text-slate-600 dark:text-slate-400 text-base sm:text-lg">Professional tools designed for cabinet makers</p>
+            <p className="text-slate-600 dark:text-slate-400 text-base sm:text-lg">Cloud-based 3D cabinet engineering tools for professional woodworkers</p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
@@ -440,8 +440,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
               },
               {
                 icon: <Calculator className="w-6 h-6 sm:w-8 sm:h-8" />,
-                title: 'Material Lists',
-                description: 'Instant BOM generation with optimized cut plans',
+                title: 'Cabinet BOM Generator',
+                description: 'Instant material lists with optimized cut plans and cost reports',
                 color: 'yellow',
               },
             ].map((feature, i) => (
