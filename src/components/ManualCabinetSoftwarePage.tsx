@@ -20,6 +20,7 @@ export const ManualCabinetSoftwarePage: React.FC<ManualCabinetSoftwarePageProps>
     <>
       <Helmet>
         <title>Manual Cabinet Layout Software | Full Control Cabinet Design | CabEngine Pro</title>
+        <link rel="canonical" href="https://www.protradee.com/manual-cabinet-software" />
         <meta name="description" content="Manual cabinet layout software with full geometric override. No auto-solver lock-in. Design custom cabinet boxes, set exact dimensions, and generate cut lists on your terms." />
       </Helmet>
       <div className="bg-slate-50 dark:bg-slate-950">

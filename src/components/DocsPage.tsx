@@ -424,6 +424,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
     <>
       <Helmet>
         <title>Cabinet Software Integration Docs — CabEngine Pro | Cabinet Configurator API &amp; Embeddable 3D Planner</title>
+        <link rel="canonical" href="https://www.protradee.com/docs" />
         <meta name="description" content="Complete CabEngine Pro documentation covering cabinet software integration, the cabinet configurator API, embeddable 3D planner setup, project workflows, and BOM generation." />
       </Helmet>
     <div className="h-full overflow-y-auto bg-slate-50 dark:bg-slate-950">

@@ -20,6 +20,7 @@ export const EmbedCabinetPlannerPage: React.FC<EmbedCabinetPlannerPageProps> = (
     <>
       <Helmet>
         <title>Embeddable 3D Cabinet Configurator API | CabEngine Pro</title>
+        <link rel="canonical" href="https://www.protradee.com/embed-cabinet-planner" />
         <meta name="description" content="Embed a 3D kitchen cabinet configurator directly in your website. White-label cabinet design API with iframe integration. Let your customers design cabinets on your site." />
       </Helmet>
       <div className="bg-slate-50 dark:bg-slate-950">

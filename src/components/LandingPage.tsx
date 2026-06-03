@@ -212,6 +212,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
     <>
       <Helmet>
         <title>CabEngine Pro | 3D Cabinet Design Software & Cut List Optimizer</title>
+        <link rel="canonical" href="https://www.protradee.com/" />
         <meta name="description" content="Professional-grade cloud-based cabinet design and cut list optimization software. Generate 3D visualizations, automated cut lists, and material nesting instantly." />
       </Helmet>
     <div className="min-h-screen text-slate-900 dark:text-white overflow-x-hidden relative">

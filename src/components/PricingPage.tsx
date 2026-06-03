@@ -154,6 +154,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({
     <>
       <Helmet>
         <title>Pricing - CabEngine Pro | 3D Cabinet Design Software</title>
+        <link rel="canonical" href="https://www.protradee.com/pricing" />
         <meta name="description" content="Choose the right plan for your cabinet workshop. Free tier available. Pro plan at $29/month unlocks full reports, advanced layout overrides, and embeddable configurator APIs." />
       </Helmet>
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 relative">

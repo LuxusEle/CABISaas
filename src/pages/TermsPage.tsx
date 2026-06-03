@@ -628,6 +628,7 @@ export const TermsPage: React.FC<TermsPageProps> = ({
     <>
       <Helmet>
         <title>Terms of Service - CabEngine Pro</title>
+        <link rel="canonical" href="https://www.protradee.com/terms" />
         <meta name="description" content="CabEngine Pro terms of service and conditions of use for our cabinet design software platform." />
       </Helmet>
     <div className="h-full overflow-y-auto bg-white dark:bg-slate-950">

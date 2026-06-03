@@ -20,6 +20,7 @@ export const CutListGeneratorPage: React.FC<CutListGeneratorPageProps> = ({
     <>
       <Helmet>
         <title>Cabinet Cut List Generator & Sheet Nesting Tool | CabEngine Pro</title>
+        <link rel="canonical" href="https://www.protradee.com/cut-list-generator" />
         <meta name="description" content="Online plywood sheet nesting and cabinet cut list generator. Optimize panel layouts to minimize waste, reduce material costs, and generate professional cut sheets." />
       </Helmet>
       <div className="bg-slate-50 dark:bg-slate-950">
