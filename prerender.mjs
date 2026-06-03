@@ -7,6 +7,14 @@ import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const distDir = join(__dirname, 'dist');
 
+let executablePath;
+try {
+  const chromium = (await import('@sparticuz/chromium')).default;
+  executablePath = await chromium.executablePath();
+} catch {
+  executablePath = '/usr/bin/google-chrome-stable';
+}
+
 const ROUTES = ['/', '/pricing', '/docs', '/terms', '/embed-cabinet-planner', '/manual-cabinet-software', '/cut-list-generator'];
 const PORT = 45678;
 
@@ -46,7 +54,7 @@ async function prerender() {
   await new Promise((resolve) => server.listen(PORT, resolve));
 
   const browser = await puppeteer.launch({
-    executablePath: '/usr/bin/google-chrome-stable',
+    executablePath,
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
   });
