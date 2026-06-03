@@ -55,21 +55,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
       title: 'No Download Required',
       subtitle: '100% browser-based. Nothing to install.',
       border: 'rgba(34, 197, 94, 0.3)',
-      iconBg: 'bg-green-100 dark:bg-green-900/30',
+      iconBg: 'bg-lp-icon-green',
     },
     {
       icon: <Zap size={48} />,
       title: 'No Payment Until You Earn',
       subtitle: 'Start free. Upgrade when your shop grows.',
       border: 'rgba(245, 158, 11, 0.3)',
-      iconBg: 'bg-amber-100 dark:bg-amber-900/30',
+      iconBg: 'bg-lp-icon-amber',
     },
     {
       icon: <Globe size={48} />,
       title: 'SketchUp & 3D Export',
       subtitle: 'Export models to your favorite 3D software.',
       border: 'rgba(59, 130, 246, 0.3)',
-      iconBg: 'bg-blue-100 dark:bg-blue-900/30',
+      iconBg: 'bg-lp-icon-blue',
     },
   ];
 
@@ -81,16 +81,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
           className="absolute inset-0 flex items-center justify-center p-8"
         >
           <div
-            className="animate-feature w-full h-full flex flex-col items-center justify-center gap-4 rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-2 shadow-2xl p-8"
+            className="animate-feature w-full h-full flex flex-col items-center justify-center gap-4 rounded-2xl bg-lp-overlay backdrop-blur-xl border-2 shadow-2xl p-8"
             style={{ borderColor: f.border, animationDelay: `${i * 4}s` }}
           >
             <div className={`w-20 h-20 rounded-2xl ${f.iconBg} flex items-center justify-center`}>
               {f.icon}
             </div>
-            <h3 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white text-center leading-tight">
+            <h3 className="text-2xl sm:text-3xl font-black text-lp-heading text-center leading-tight">
               {f.title}
             </h3>
-            <p className="text-base sm:text-lg text-slate-500 dark:text-slate-400 text-center max-w-xs">
+            <p className="text-base sm:text-lg text-lp-muted text-center max-w-xs">
               {f.subtitle}
             </p>
           </div>
@@ -106,7 +106,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
         <link rel="canonical" href="https://www.protradee.com/" />
         <meta name="description" content="Cloud-based 3D cabinet design software with instant BOM generation, automated cut optimization, and CNC-ready DXF exports. Try free — no download required." />
       </Helmet>
-    <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-white overflow-x-hidden">
+    <div className="min-h-screen bg-lp-page text-lp-heading overflow-x-hidden">
       <style>{`
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(12px); }
@@ -175,13 +175,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
                 <span className="text-xs font-semibold text-primary">3D Cabinet Design Software — Professional Grade</span>
               </div>
               <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black leading-[1.1] tracking-tight">
-                <span className="text-slate-900 dark:text-white">Design Kitchens.</span>
+                <span className="text-lp-heading">Design Kitchens.</span>
                 <br />
                 <span className="text-gradient">Build Cabinets.</span>
                 <br />
-                <span className="text-slate-900 dark:text-white">Grow Your Shop.</span>
+                <span className="text-lp-heading">Grow Your Shop.</span>
               </h1>
-              <p className="text-lg sm:text-xl text-slate-500 dark:text-slate-400 max-w-lg leading-relaxed">
+              <p className="text-lg sm:text-xl text-lp-muted max-w-lg leading-relaxed">
                 Cloud-based 3D cabinet engineering platform with instant BOM generation, 
                 automated cut optimization, and CNC-ready exports — all in your browser.
               </p>
@@ -189,7 +189,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
                 {onQuickStart && (
                   <button
                     onClick={onQuickStart}
-                    className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-amber-100 dark:bg-amber-900/30 hover:bg-amber-200 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-300 font-bold rounded-xl transition-all border-2 border-amber-500/50 hover:border-amber-500 text-lg group"
+                    className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-lp-icon-amber hover:bg-lp-icon-amber-hover text-lp-amber-text font-bold rounded-xl transition-all border-2 border-lp-border-amber hover:border-lp-border-amber-solid text-lg group"
                   >
                     <Download size={20} />
                     Try Live Demo
@@ -197,14 +197,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
                 )}
                 <button
                   onClick={onGetStarted}
-                  className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-primary hover:bg-primary-hover text-white font-bold rounded-xl transition-all shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 text-lg group"
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-primary hover:bg-primary-hover text-lp-white font-bold rounded-xl transition-all shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 text-lg group"
                 >
                   Get Started Free
                   <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
                 </button>
                 <button
                   onClick={onSignIn}
-                  className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold rounded-xl transition-all border border-slate-200 dark:border-slate-700 text-lg"
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-lp-elevated hover:bg-lp-elevated-hover text-lp-secondary font-semibold rounded-xl transition-all border border-lp-border-strong text-lg"
                 >
                   Sign In
                 </button>
@@ -214,7 +214,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
                   {[1, 2, 3, 4].map((i) => (
                     <div
                       key={i}
-                      className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 border-2 border-white dark:border-slate-950 flex items-center justify-center text-xs font-bold text-slate-500 dark:text-slate-400"
+                      className="w-10 h-10 rounded-full bg-lp-avatar border-2 border-lp-border-avatar flex items-center justify-center text-xs font-bold text-lp-muted"
                     >
                       {String.fromCharCode(64 + i)}
                     </div>
@@ -223,11 +223,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
                 <div>
                   <div className="flex items-center gap-1">
                     {[1, 2, 3, 4, 5].map((i) => (
-                      <Star key={i} size={14} className="fill-amber-400 text-amber-400" />
+                      <Star key={i} size={14} className="fill-lp-star text-lp-star" />
                     ))}
                   </div>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Trusted by <span className="font-semibold text-slate-700 dark:text-slate-200">200+</span> cabinet engineering professionals
+                  <p className="text-sm text-lp-muted">
+                    Trusted by <span className="font-semibold text-lp-secondary">200+</span> cabinet engineering professionals
                   </p>
                 </div>
               </div>
@@ -236,7 +236,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
               <div className="relative h-[320px]">
                 <CyclingFeature />
               </div>
-              <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 aspect-[4/3]">
+              <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-lp-border-strong bg-lp-elevated aspect-[4/3]">
                 <img
                   src="/kitchen_hero.png"
                   alt="Cabinetrix Pro 3D Kitchen Design"
@@ -249,7 +249,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
       </section>
 
       {/* Stats */}
-      <section className="py-12 sm:py-16 border-y border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+      <section className="py-12 sm:py-16 border-y border-lp-border-section bg-lp-section-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {[
@@ -260,8 +260,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             ].map((stat, i) => (
               <div key={i} className="text-center">
                 <div className="text-2xl sm:text-3xl font-black text-primary mb-1">{stat.value}</div>
-                <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">{stat.label}</div>
-                <div className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{stat.desc}</div>
+                <div className="text-sm font-semibold text-lp-secondary-dim">{stat.label}</div>
+                <div className="text-xs text-lp-subtle mt-0.5">{stat.desc}</div>
               </div>
             ))}
           </div>
@@ -274,10 +274,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center max-w-2xl mx-auto mb-16">
               <h2 className="text-3xl sm:text-4xl font-black mb-4">
-                <span className="text-slate-900 dark:text-white">Everything You Need, </span>
+                <span className="text-lp-heading">Everything You Need, </span>
                 <span className="text-gradient">Nothing You Don't</span>
               </h2>
-              <p className="text-lg text-slate-500 dark:text-slate-400">
+              <p className="text-lg text-lp-muted">
                 Cloud-based 3D cabinet engineering tools for professional woodworkers
               </p>
             </div>
@@ -304,16 +304,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
               ].map((feature, i) => (
                 <div
                   key={i}
-                  className="group relative p-8 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-primary/30 dark:hover:border-primary/30 transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1"
+                  className="group relative p-8 rounded-2xl bg-lp-card border border-lp-border hover:border-primary/30 dark:hover:border-primary/30 transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1"
                 >
                   <div className="w-14 h-14 rounded-xl bg-primary-subtle dark:bg-primary-light flex items-center justify-center text-primary mb-6 group-hover:scale-110 transition-transform">
                     {feature.icon}
                   </div>
-                  <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">{feature.title}</h3>
-                  <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed mb-6">{feature.description}</p>
+                  <h3 className="text-xl font-bold text-lp-heading mb-3">{feature.title}</h3>
+                  <p className="text-lp-muted text-sm leading-relaxed mb-6">{feature.description}</p>
                   <ul className="space-y-2">
                     {feature.features.map((f, j) => (
-                      <li key={j} className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                      <li key={j} className="flex items-center gap-2 text-sm text-lp-body">
                         <Check size={14} className="text-primary flex-shrink-0" />
                         {f}
                       </li>
@@ -328,14 +328,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
 
       {/* How It Works */}
       <RevealSection>
-        <section id="how-it-works" className="py-16 sm:py-24 bg-slate-50/80 dark:bg-slate-900/50">
+        <section id="how-it-works" className="py-16 sm:py-24 bg-lp-section-80">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center max-w-2xl mx-auto mb-16">
               <h2 className="text-3xl sm:text-4xl font-black mb-4">
-                <span className="text-slate-900 dark:text-white">From Design to </span>
+                <span className="text-lp-heading">From Design to </span>
                 <span className="text-gradient">Manufacturing</span>
               </h2>
-              <p className="text-lg text-slate-500 dark:text-slate-400">
+              <p className="text-lg text-lp-muted">
                 Four simple steps from concept to production
               </p>
             </div>
@@ -370,12 +370,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
                   <div className="w-16 h-16 rounded-2xl bg-primary-subtle dark:bg-primary-light flex items-center justify-center text-primary mx-auto mb-6 group-hover:scale-110 transition-transform">
                     {step.icon}
                   </div>
-                  <div className="absolute top-8 left-[calc(50%+40px)] hidden md:block w-[calc(100%-80px)] h-[2px] bg-slate-200 dark:bg-slate-700">
+                  <div className="absolute top-8 left-[calc(50%+40px)] hidden md:block w-[calc(100%-80px)] h-[2px] bg-lp-avatar">
                     <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-primary" />
                   </div>
                   <span className="text-xs font-black text-primary uppercase tracking-widest">{step.step}</span>
-                  <h3 className="text-lg font-bold text-slate-900 dark:text-white mt-2 mb-2">{step.title}</h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">{step.description}</p>
+                  <h3 className="text-lg font-bold text-lp-heading mt-2 mb-2">{step.title}</h3>
+                  <p className="text-sm text-lp-muted">{step.description}</p>
                 </div>
               ))}
             </div>
@@ -389,29 +389,29 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center max-w-2xl mx-auto mb-16">
               <h2 className="text-3xl sm:text-4xl font-black mb-4">
-                <span className="text-slate-900 dark:text-white">Simple </span>
+                <span className="text-lp-heading">Simple </span>
                 <span className="text-gradient">Pricing</span>
               </h2>
-              <p className="text-lg text-slate-500 dark:text-slate-400">
+              <p className="text-lg text-lp-muted">
                 Start free — no credit card required. Pay only when you're earning.
               </p>
             </div>
             <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
-              <div className="p-8 rounded-2xl bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800">
-                <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400 mb-6">
+              <div className="p-8 rounded-2xl bg-lp-card border-2 border-lp-border">
+                <div className="w-12 h-12 rounded-xl bg-lp-elevated flex items-center justify-center text-lp-body-muted mb-6">
                   <Users size={24} />
                 </div>
-                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Free</h3>
+                <h3 className="text-2xl font-bold text-lp-heading mb-2">Free</h3>
                 <div className="mb-6">
-                  <span className="text-4xl font-black text-slate-900 dark:text-white">$0</span>
-                  <span className="text-slate-400">/month</span>
+                  <span className="text-4xl font-black text-lp-heading">$0</span>
+                  <span className="text-lp-subtle-static">/month</span>
                 </div>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mb-8">
+                <p className="text-sm text-lp-muted mb-8">
                   Perfect for getting started — no payment required, no risk
                 </p>
                 <button
                   onClick={onGetStarted}
-                  className="w-full py-3.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold transition-all border border-slate-200 dark:border-slate-700 mb-8"
+                  className="w-full py-3.5 rounded-xl bg-lp-elevated hover:bg-lp-elevated-hover text-lp-secondary font-bold transition-all border border-lp-border-strong mb-8"
                 >
                   Get Started Free
                 </button>
@@ -423,31 +423,31 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
                     'Browser-based — no download',
                     'On-screen reports',
                   ].map((item, i) => (
-                    <li key={i} className="flex items-start gap-3 text-sm text-slate-600 dark:text-slate-300">
-                      <Check size={16} className="text-green-500 mt-0.5 flex-shrink-0" />
+                    <li key={i} className="flex items-start gap-3 text-sm text-lp-body">
+                      <Check size={16} className="text-lp-green mt-0.5 flex-shrink-0" />
                       {item}
                     </li>
                   ))}
                 </ul>
               </div>
-              <div className="relative p-8 rounded-2xl bg-white dark:bg-slate-900 border-2 border-primary shadow-xl shadow-primary/10">
-                <div className="absolute top-0 right-8 -translate-y-1/2 bg-primary text-white text-xs font-bold px-4 py-1.5 rounded-full">
+              <div className="relative p-8 rounded-2xl bg-lp-card border-2 border-primary shadow-xl shadow-primary/10">
+                <div className="absolute top-0 right-8 -translate-y-1/2 bg-primary text-lp-white text-xs font-bold px-4 py-1.5 rounded-full">
                   POPULAR
                 </div>
                 <div className="w-12 h-12 rounded-xl bg-primary-subtle dark:bg-primary-light flex items-center justify-center text-primary mb-6">
                   <Sparkles size={24} />
                 </div>
-                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Pro</h3>
+                <h3 className="text-2xl font-bold text-lp-heading mb-2">Pro</h3>
                 <div className="mb-6">
-                  <span className="text-4xl font-black text-slate-900 dark:text-white">$29</span>
-                  <span className="text-slate-400">/month</span>
+                  <span className="text-4xl font-black text-lp-heading">$29</span>
+                  <span className="text-lp-subtle-static">/month</span>
                 </div>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mb-8">
+                <p className="text-sm text-lp-muted mb-8">
                   For professionals and growing workshops
                 </p>
                 <button
                   onClick={onGetStarted}
-                  className="w-full py-3.5 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold transition-all shadow-lg shadow-primary/20 mb-8"
+                  className="w-full py-3.5 rounded-xl bg-primary hover:bg-primary-hover text-lp-white font-bold transition-all shadow-lg shadow-primary/20 mb-8"
                 >
                   Start Pro Trial
                 </button>
@@ -461,8 +461,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
                     'Full cloud-based platform',
                     'Priority email support',
                   ].map((item, i) => (
-                    <li key={i} className="flex items-start gap-3 text-sm text-slate-600 dark:text-slate-300">
-                      <Check size={16} className="text-green-500 mt-0.5 flex-shrink-0" />
+                    <li key={i} className="flex items-start gap-3 text-sm text-lp-body">
+                      <Check size={16} className="text-lp-green mt-0.5 flex-shrink-0" />
                       {item}
                     </li>
                   ))}
@@ -475,43 +475,43 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
 
       {/* Contact */}
       <RevealSection>
-        <section id="contact" className="py-16 sm:py-24 bg-slate-50/80 dark:bg-slate-900/50">
+        <section id="contact" className="py-16 sm:py-24 bg-lp-section-80">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
               <h2 className="text-3xl sm:text-4xl font-black mb-4">
-                <span className="text-slate-900 dark:text-white">Get In </span>
+                <span className="text-lp-heading">Get In </span>
                 <span className="text-gradient">Touch</span>
               </h2>
-              <p className="text-lg text-slate-500 dark:text-slate-400 max-w-xl mx-auto">
+              <p className="text-lg text-lp-muted max-w-xl mx-auto">
                 Have questions? We're here to help.
               </p>
             </div>
             <div className="max-w-3xl mx-auto grid md:grid-cols-2 gap-8">
-              <div className="p-8 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+              <div className="p-8 rounded-2xl bg-lp-card border border-lp-border">
                 <h3 className="text-sm font-black text-primary uppercase tracking-widest mb-6">Contact Info</h3>
                 <div className="space-y-4">
                   <div>
-                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Email</p>
-                    <a href="mailto:support@cabinetrixpro.com" className="text-sm font-semibold text-slate-900 dark:text-white hover:text-primary transition-colors">
+                    <p className="text-xs font-semibold text-lp-subtle-static uppercase tracking-wide">Email</p>
+                    <a href="mailto:support@cabinetrixpro.com" className="text-sm font-semibold text-lp-heading hover:text-primary transition-colors">
                       support@cabinetrixpro.com
                     </a>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Response Time</p>
-                    <p className="text-sm text-slate-600 dark:text-slate-300">Within 24-48 business hours</p>
+                    <p className="text-xs font-semibold text-lp-subtle-static uppercase tracking-wide">Response Time</p>
+                    <p className="text-sm text-lp-body">Within 24-48 business hours</p>
                   </div>
                 </div>
               </div>
-              <div className="p-8 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+              <div className="p-8 rounded-2xl bg-lp-card border border-lp-border">
                 <h3 className="text-sm font-black text-primary uppercase tracking-widest mb-6">Software Details</h3>
                 <div className="space-y-4">
                   <div>
-                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Platform</p>
-                    <p className="text-sm font-semibold text-slate-900 dark:text-white">Cabinetrix Pro</p>
+                    <p className="text-xs font-semibold text-lp-subtle-static uppercase tracking-wide">Platform</p>
+                    <p className="text-sm font-semibold text-lp-heading">Cabinetrix Pro</p>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Type</p>
-                    <p className="text-sm text-slate-600 dark:text-slate-300">Cloud-based SaaS — browser only</p>
+                    <p className="text-xs font-semibold text-lp-subtle-static uppercase tracking-wide">Type</p>
+                    <p className="text-sm text-lp-body">Cloud-based SaaS — browser only</p>
                   </div>
                 </div>
               </div>
@@ -526,15 +526,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
           <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 dark:from-primary-light dark:via-primary/5 dark:to-primary-light" />
           <div className="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="text-3xl sm:text-5xl font-black mb-6 leading-tight">
-              <span className="text-slate-900 dark:text-white">Ready to Transform </span>
+              <span className="text-lp-heading">Ready to Transform </span>
               <span className="text-gradient">Your Workflow?</span>
             </h2>
-            <p className="text-lg sm:text-xl text-slate-500 dark:text-slate-400 mb-10 max-w-xl mx-auto">
+            <p className="text-lg sm:text-xl text-lp-muted mb-10 max-w-xl mx-auto">
               Join 200+ cabinet engineering professionals using Cabinetrix Pro to design faster, build smarter.
             </p>
             <button
               onClick={onGetStarted}
-              className="inline-flex items-center justify-center gap-2 px-10 py-5 bg-primary hover:bg-primary-hover text-white font-bold rounded-xl transition-all shadow-xl shadow-primary/20 hover:shadow-2xl hover:shadow-primary/30 text-xl group"
+              className="inline-flex items-center justify-center gap-2 px-10 py-5 bg-primary hover:bg-primary-hover text-lp-white font-bold rounded-xl transition-all shadow-xl shadow-primary/20 hover:shadow-2xl hover:shadow-primary/30 text-xl group"
             >
               Get Started Free
               <ArrowRight size={22} className="group-hover:translate-x-1 transition-transform" />
@@ -544,21 +544,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
       </RevealSection>
 
       {/* Footer */}
-      <footer className="border-t border-slate-100 dark:border-slate-800 py-12">
+      <footer className="border-t border-lp-border-section py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-white font-black text-sm">
+              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-lp-white font-black text-sm">
                 C
               </div>
-              <span className="font-bold text-slate-700 dark:text-slate-300">Cabinetrix Pro</span>
+              <span className="font-bold text-lp-secondary-dim">Cabinetrix Pro</span>
             </div>
             <div className="flex items-center gap-6">
-              <Link to="/docs" className="text-sm text-slate-400 hover:text-primary transition-colors">Docs</Link>
-              <Link to="/terms" className="text-sm text-slate-400 hover:text-primary transition-colors">Terms</Link>
-              <Link to="/pricing" className="text-sm text-slate-400 hover:text-primary transition-colors">Pricing</Link>
+              <Link to="/docs" className="text-sm text-lp-subtle-static hover:text-primary transition-colors">Docs</Link>
+              <Link to="/terms" className="text-sm text-lp-subtle-static hover:text-primary transition-colors">Terms</Link>
+              <Link to="/pricing" className="text-sm text-lp-subtle-static hover:text-primary transition-colors">Pricing</Link>
             </div>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-lp-subtle-static">
               &copy; {new Date().getFullYear()} Cabinetrix Pro. All rights reserved.
             </p>
           </div>
