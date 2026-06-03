@@ -9,6 +9,7 @@ import { LandingHeader } from './LandingHeader';
 interface LandingPageProps {
   onGetStarted: () => void;
   onSignIn: () => void;
+  onQuickStart?: () => void;
   isDark: boolean;
   setIsDark: (isDark: boolean) => void;
 }
@@ -182,7 +183,7 @@ const ParticleBackground: React.FC = () => {
   );
 };
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn, onQuickStart }) => {
   const [scrollY, setScrollY] = useState(0);
   const [isDark, setIsDark] = useState(() => {
     try { return localStorage.getItem('app-theme') !== 'false'; } catch { return true; }
@@ -304,6 +305,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
       <LandingHeader
         onSignIn={onSignIn}
         onGetStarted={onGetStarted}
+        onQuickStart={onQuickStart}
         isDark={isDark}
         setIsDark={setIsDark}
       />
@@ -374,6 +376,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
 
             {/* CTA Buttons - full width on mobile */}
             <div className="flex flex-col sm:flex-row items-center md:justify-end justify-center gap-4 sm:gap-6 px-4 sm:px-0 animate-slide-up" style={{ animationDelay: '1.2s' }}>
+              {onQuickStart && (
+                <Button
+                  size="xl"
+                  variant="secondary"
+                  onClick={onQuickStart}
+                  className="w-full sm:w-auto min-h-[56px] border-amber-500 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                  leftIcon={<Download className="w-5 h-5" />}
+                >
+                  Try Live Demo
+                </Button>
+              )}
               <Button
                 size="xl"
                 onClick={onGetStarted}

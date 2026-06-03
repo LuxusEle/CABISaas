@@ -5,6 +5,7 @@ import { Box, Sun, Moon, Menu, X, FileText, Shield } from 'lucide-react';
 interface LandingHeaderProps {
   onSignIn: () => void;
   onGetStarted: () => void;
+  onQuickStart?: () => void;
   isDark: boolean;
   setIsDark: (isDark: boolean) => void;
 }
@@ -12,6 +13,7 @@ interface LandingHeaderProps {
 export const LandingHeader: React.FC<LandingHeaderProps> = ({
   onSignIn,
   onGetStarted,
+  onQuickStart,
   isDark,
   setIsDark
 }) => {
@@ -156,6 +158,14 @@ export const LandingHeader: React.FC<LandingHeaderProps> = ({
               >
                 Sign In
               </button>
+              {onQuickStart && (
+                <button
+                  onClick={() => { onQuickStart(); setMobileMenuOpen(false); }}
+                  className="w-full text-left px-4 py-3 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-colors text-base font-medium min-h-[48px] border border-amber-500/30"
+                >
+                  Try Live Demo
+                </button>
+              )}
               <button
                 onClick={() => { onGetStarted(); setMobileMenuOpen(false); }}
                 className="w-full text-left px-4 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors text-base font-bold min-h-[48px] text-center"

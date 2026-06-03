@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
-import { Home, Box, Moon, Sun, Table2, Settings, LayoutDashboard, Wrench, CreditCard, Book, ChevronLeft, Save, ArrowRight, ShieldCheck, Building2 } from 'lucide-react';
+import { Home, Box, Moon, Sun, Table2, Settings, LayoutDashboard, Wrench, CreditCard, Book, ChevronLeft, Save, ArrowRight, ShieldCheck, Building2, Ruler } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Screen, Project } from './types';
 import { GlobalProjectProgress } from './components/GlobalProjectProgress';
@@ -84,6 +84,7 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isUserPro, setIsUserPro] = useState(false);
+  const isDemoRef = useRef(false);
 
   // Check subscription status
   useEffect(() => {
@@ -216,7 +217,7 @@ export default function App() {
   // Separate effect for navigation-related auth checks and beforeunload
   useEffect(() => {
     const isPublicPath = LANDING_PATHS.includes(location.pathname);
-    if (user && isPublicPath && location.pathname === '/') {
+    if (user && isPublicPath && location.pathname === '/' && !user.is_anonymous) {
       navigate('/dashboard');
     }
 
@@ -361,25 +362,21 @@ export default function App() {
     });
   };
 
-  const handleQuickStart = () => {
-    requireAuth(async () => {
-      // Fetch user's saved profile to use for the new project
-      let profileData: any = null;
-      if (user) {
-        profileData = await profileService.getProfile(user.id);
+  const handleQuickStart = async () => {
+    if (!user) {
+      // Sign in anonymously so unauthenticated users get an auth session
+      const { error } = await authService.signInAnonymously();
+      if (error) {
+        console.error('Failed to start anonymous session:', error);
+        return;
       }
-
-      const demoProj = createDemoProject(profileData?.company_name, profileData?.currency || '$');
-      if (profileData?.logo_url) {
-        demoProj.settings.logoUrl = profileData.logo_url;
-      }
-
-      // Just set state and navigate straight to the editor
-      setProject(demoProj);
-      markAsSaved();
-      navigate('/walls?view=studio');
-      track('demo_project_created');
-    });
+    }
+    const demoProj = createDemoProject();
+    setProject(demoProj);
+    markAsSaved();
+    isDemoRef.current = true;
+    navigate('/walls?view=studio');
+    track('demo_project_created');
   };
 
   const openAuthModal = (mode: 'login' | 'signup') => {
@@ -606,6 +603,7 @@ export default function App() {
               <LandingPage
                 onGetStarted={() => openAuthModal('signup')}
                 onSignIn={() => openAuthModal('login')}
+                onQuickStart={handleQuickStart}
                 isDark={isDark}
                 setIsDark={setIsDark}
               />
@@ -662,7 +660,7 @@ export default function App() {
             } />
             <Route path="/bom" element={
               <ProtectedRoute user={user} loading={authLoading}>
-                <ScreenBOMReport isUserPro={isUserPro} />
+                <ScreenBOMReport isUserPro={isUserPro} user={user} onOpenAuth={() => openAuthModal('signup')} />
               </ProtectedRoute>
             } />
             <Route path="/profile" element={
@@ -733,12 +731,14 @@ export default function App() {
                 setIsDark={setIsDark}
                 onGetStarted={() => openAuthModal('signup')}
                 onSignIn={() => openAuthModal('login')}
+                onQuickStart={handleQuickStart}
               />
             } />
             <Route path="*" element={
               <LandingPage
                 onGetStarted={() => openAuthModal('signup')}
                 onSignIn={() => openAuthModal('login')}
+                onQuickStart={handleQuickStart}
                 isDark={isDark}
                 setIsDark={setIsDark}
               />
@@ -821,6 +821,21 @@ export default function App() {
 
       {/* Help Button - Available on all screens */}
       {!location.pathname.startsWith('/embed') && <HelpButton disablePhrases={screen === Screen.WALL_EDITOR} hasBottomNav={location.pathname !== '/' && location.pathname !== '/terms' && location.pathname !== '/testing' && location.pathname !== '/embed-cabinet-planner' && location.pathname !== '/manual-cabinet-software' && location.pathname !== '/cut-list-generator'} />}
+
+      {/* Reset Demo Button - only for anonymous users in the workspace */}
+      {user?.is_anonymous && location.pathname === '/walls' && (
+        <button
+          onClick={() => {
+            const demoProj = createDemoProject();
+            setProject(demoProj);
+            markAsSaved();
+          }}
+          className="fixed bottom-24 left-4 z-40 flex items-center gap-2 px-4 py-2.5 bg-slate-800/90 hover:bg-slate-700 text-white rounded-xl shadow-xl border border-slate-600/50 backdrop-blur-sm transition-all text-sm font-medium"
+        >
+          <Ruler size={16} />
+          Reset to Default
+        </button>
+      )}
 
       {/* Vercel Analytics & Speed Insights */}
       <Analytics />
@@ -916,7 +931,7 @@ const MobileNavButton = ({ active, onClick, icon, label, path, isDirty, canDisca
   );
 };
 
-const ResetPasswordPage = ({ onOpenModal, isDark, setIsDark, onGetStarted, onSignIn }: any) => {
+const ResetPasswordPage = ({ onOpenModal, isDark, setIsDark, onGetStarted, onSignIn, onQuickStart }: any) => {
   useEffect(() => {
     // Small delay to ensure Supabase handles the recovery session
     const timer = setTimeout(() => {
@@ -930,6 +945,7 @@ const ResetPasswordPage = ({ onOpenModal, isDark, setIsDark, onGetStarted, onSig
       <LandingPage
         onGetStarted={onGetStarted}
         onSignIn={onSignIn}
+        onQuickStart={onQuickStart}
         isDark={isDark}
         setIsDark={setIsDark}
       />
