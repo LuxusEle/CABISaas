@@ -12,6 +12,17 @@ export const authService = {
    * Sign up a new user with email and password
    */
   async signUp(email: string, password: string): Promise<AuthResponse> {
+    // Check if current user is anonymous — if so, upgrade instead of creating new user
+    const sessionResult = await supabase.auth.getSession();
+    if (sessionResult.data.session?.user?.is_anonymous) {
+      const { data, error } = await supabase.auth.updateUser({ email, password });
+      return {
+        user: data.user,
+        session: sessionResult.data.session,
+        error,
+      };
+    }
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -124,5 +135,17 @@ export const authService = {
       }
     });
     return { error };
+  },
+
+  /**
+   * Sign in anonymously (for live demo)
+   */
+  async signInAnonymously(): Promise<AuthResponse> {
+    const { data, error } = await supabase.auth.signInAnonymously();
+    return {
+      user: data.user,
+      session: data.session,
+      error,
+    };
   }
 };

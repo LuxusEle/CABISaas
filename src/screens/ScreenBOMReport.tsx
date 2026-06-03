@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Printer, Download, FileSpreadsheet, Wrench, CreditCard, Layers, DollarSign, Scissors, FileCode, Check, Lock } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Printer, Download, FileSpreadsheet, Wrench, CreditCard, Layers, DollarSign, Scissors, FileCode, Check, Lock, X } from 'lucide-react';
 import { Project, SheetType, PresetType, CabinetType, Zone } from '../types';
 import { Button } from '../components/Button';
 import { CutPlanVisualizer } from '../components/CutPlanVisualizer';
@@ -16,15 +17,20 @@ import { generateQuotationPDF } from '../services/pdfService';
 import { projectService } from '../services/projectService';
 import { formatPrice } from '../utils/formatUtils';
 import { useProjectStore } from '../store/useProjectStore';
+import type { User } from '@supabase/supabase-js';
 
 interface ScreenBOMReportProps {
   isUserPro: boolean;
+  user?: User | null;
+  onOpenAuth?: () => void;
 }
 
-const ScreenBOMReport = ({ isUserPro }: ScreenBOMReportProps) => {
+const ScreenBOMReport = ({ isUserPro, user, onOpenAuth }: ScreenBOMReportProps) => {
   const { project, setProject } = useProjectStore();
 
   const navigate = useNavigate();
+  const [showDownloadGate, setShowDownloadGate] = useState(false);
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
   // Use more specific dependencies to prevent unnecessary recalculations
   const data = useMemo(() => generateProjectBOM(project), [project.id, project.zones, project.settings]);
   const [activeView, setActiveView] = useState<'list' | 'cutplan' | 'wallplan' | 'quotation'>('list');
@@ -77,6 +83,17 @@ const ScreenBOMReport = ({ isUserPro }: ScreenBOMReportProps) => {
       }));
     }
   }, []);
+
+  const gateDownload = (action: () => void) => {
+    if (user?.is_anonymous) {
+      setPendingAction(() => action);
+      setShowDownloadGate(true);
+    } else if (!isUserPro) {
+      navigate('/pricing');
+    } else {
+      action();
+    }
+  };
 
   // Accessory Costs
   const hingeAccessory = accessories.find(acc =>
@@ -386,23 +403,19 @@ const ScreenBOMReport = ({ isUserPro }: ScreenBOMReportProps) => {
           <Button 
             variant="secondary" 
             size="sm" 
-            onClick={() => {
-              if (isUserPro) {
-                exportToExcel(data.groups, cutPlan, project, data, accessories, sheetTypes);
-                setProject(prev => ({
-                  ...prev,
-                  settings: {
-                    ...prev.settings,
-                    progress: {
-                      ...(prev.settings.progress || {}),
-                      excelDownloaded: true
-                    }
+            onClick={() => gateDownload(() => {
+              exportToExcel(data.groups, cutPlan, project, data, accessories, sheetTypes);
+              setProject(prev => ({
+                ...prev,
+                settings: {
+                  ...prev.settings,
+                  progress: {
+                    ...(prev.settings.progress || {}),
+                    excelDownloaded: true
                   }
-                }));
-              } else {
-                navigate('/pricing');
-              }
-            }} 
+                }
+              }));
+            })} 
             className="h-9 text-[10px] sm:text-xs px-3 gap-1.5"
           >
             {isUserPro ? <FileSpreadsheet size={14} /> : <Lock size={12} className="text-amber-500" />}
@@ -411,11 +424,7 @@ const ScreenBOMReport = ({ isUserPro }: ScreenBOMReportProps) => {
           <Button 
             variant="secondary" 
             size="sm" 
-            onClick={() => {
-              if (!isUserPro) {
-                navigate('/pricing');
-                return;
-              }
+            onClick={() => gateDownload(() => {
               const allCabinets = project.zones.flatMap(z => z.cabinets);
               exportAllDrillingToZip(allCabinets, project.settings, project.name);
               setProject(prev => ({
@@ -428,7 +437,7 @@ const ScreenBOMReport = ({ isUserPro }: ScreenBOMReportProps) => {
                   }
                 }
               }));
-            }} 
+            })} 
             className="h-9 text-[10px] sm:text-xs px-3 gap-1.5"
           >
             {isUserPro ? <Wrench size={14} /> : <Lock size={12} className="text-amber-500" />}
@@ -617,23 +626,19 @@ const ScreenBOMReport = ({ isUserPro }: ScreenBOMReportProps) => {
               <Button
                 variant={isUserPro ? "secondary" : "outline"}
                 size="sm"
-                onClick={() => {
-                  if (isUserPro) {
-                    exportAllSheetsToDXFZip(cutPlan.sheets, project.settings, project.name);
-                    setProject(prev => ({
-                      ...prev,
-                      settings: {
-                        ...prev.settings,
-                        progress: {
-                          ...(prev.settings.progress || {}),
-                          dxfDownloaded: true
-                        }
+                onClick={() => gateDownload(() => {
+                  exportAllSheetsToDXFZip(cutPlan.sheets, project.settings, project.name);
+                  setProject(prev => ({
+                    ...prev,
+                    settings: {
+                      ...prev.settings,
+                      progress: {
+                        ...(prev.settings.progress || {}),
+                        dxfDownloaded: true
                       }
-                    }));
-                  } else {
-                    navigate('/pricing');
-                  }
-                }}
+                    }
+                  }));
+                })}
                 className="min-h-[40px] gap-2"
               >
                 {isUserPro ? <FileCode size={16} /> : <Lock size={14} className="text-amber-500" />}
@@ -648,7 +653,7 @@ const ScreenBOMReport = ({ isUserPro }: ScreenBOMReportProps) => {
                   <Button
                     variant="secondary"
                     size="sm"
-                    onClick={() => isUserPro ? exportSingleSheetToDXF(sheet, project.settings, i, project.name) : navigate('/pricing')}
+                    onClick={() => gateDownload(() => exportSingleSheetToDXF(sheet, project.settings, i, project.name))}
                     className="absolute top-2 right-2 print:hidden gap-1"
                   >
                     {isUserPro ? <FileCode size={14} /> : <Lock size={12} className="text-amber-500" />}
@@ -970,6 +975,57 @@ const ScreenBOMReport = ({ isUserPro }: ScreenBOMReportProps) => {
           </div>
         </div>
       </div>
+
+      {/* Download Gate Modal for anonymous users */}
+      <AnimatePresence>
+        {showDownloadGate && (
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowDownloadGate(false)}
+              className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800"
+            >
+              <div className="p-8 text-center">
+                <div className="w-20 h-20 bg-amber-100 dark:bg-amber-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Download size={32} className="text-amber-500" />
+                </div>
+                <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-2">Unlock Downloads</h3>
+                <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed mb-8 px-4">
+                  Sign up free to download your custom designs and BOM reports. Or download demo files now.
+                </p>
+                <div className="flex flex-col gap-3">
+                  <button
+                    onClick={() => {
+                      setShowDownloadGate(false);
+                      onOpenAuth?.();
+                    }}
+                    className="w-full py-4 bg-amber-500 hover:bg-amber-600 text-white font-black uppercase tracking-widest text-[10px] rounded-2xl shadow-xl shadow-amber-500/20 transition-all"
+                  >
+                    Sign Up Free
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowDownloadGate(false);
+                      pendingAction?.();
+                    }}
+                    className="w-full py-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-black uppercase tracking-widest text-[10px] rounded-2xl transition-all"
+                  >
+                    Download Demo Files
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

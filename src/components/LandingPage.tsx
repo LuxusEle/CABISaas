@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import {
   ArrowRight, Box, Ruler, Calculator, Check, Sparkles, Layers,
   FileText, Download, Users, Star, Monitor, Zap, Globe
@@ -10,6 +11,7 @@ import { LandingHeader } from './LandingHeader';
 interface LandingPageProps {
   onGetStarted: () => void;
   onSignIn: () => void;
+  onQuickStart?: () => void;
   isDark: boolean;
   setIsDark: (isDark: boolean) => void;
 }
@@ -44,14 +46,8 @@ const RevealSection: React.FC<{ children: React.ReactNode; className?: string }>
   );
 };
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn, isDark, setIsDark }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn, onQuickStart, isDark, setIsDark }) => {
   const [docsModalOpen, setDocsModalOpen] = useState(false);
-
-  useEffect(() => {
-    localStorage.setItem('app-theme', String(isDark));
-    if (isDark) document.documentElement.classList.add('dark');
-    else document.documentElement.classList.remove('dark');
-  }, [isDark]);
 
   const heroFeatures = [
     {
@@ -104,6 +100,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
   );
 
   return (
+    <>
+      <Helmet>
+        <title>Cabinetrix Pro | 3D Cabinet Design Software & Cut List Optimizer</title>
+        <link rel="canonical" href="https://www.protradee.com/" />
+        <meta name="description" content="Cloud-based 3D cabinet design software with instant BOM generation, automated cut optimization, and CNC-ready DXF exports. Try free — no download required." />
+      </Helmet>
     <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-white overflow-x-hidden">
       <style>{`
         @keyframes fadeIn {
@@ -170,7 +172,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             <div className="space-y-8">
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary-subtle dark:bg-primary-light border border-primary/10">
                 <Sparkles size={14} className="text-primary" />
-                <span className="text-xs font-semibold text-primary">Professional Cabinet Design Software</span>
+                <span className="text-xs font-semibold text-primary">3D Cabinet Design Software — Professional Grade</span>
               </div>
               <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black leading-[1.1] tracking-tight">
                 <span className="text-slate-900 dark:text-white">Design Kitchens.</span>
@@ -180,10 +182,19 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
                 <span className="text-slate-900 dark:text-white">Grow Your Shop.</span>
               </h1>
               <p className="text-lg sm:text-xl text-slate-500 dark:text-slate-400 max-w-lg leading-relaxed">
-                Professional-grade 3D kitchen design with instant BOM generation, 
-                cut optimization, and manufacturing exports — all in your browser.
+                Cloud-based 3D cabinet engineering platform with instant BOM generation, 
+                automated cut optimization, and CNC-ready exports — all in your browser.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
+                {onQuickStart && (
+                  <button
+                    onClick={onQuickStart}
+                    className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-amber-100 dark:bg-amber-900/30 hover:bg-amber-200 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-300 font-bold rounded-xl transition-all border-2 border-amber-500/50 hover:border-amber-500 text-lg group"
+                  >
+                    <Download size={20} />
+                    Try Live Demo
+                  </button>
+                )}
                 <button
                   onClick={onGetStarted}
                   className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-primary hover:bg-primary-hover text-white font-bold rounded-xl transition-all shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 text-lg group"
@@ -216,7 +227,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
                     ))}
                   </div>
                   <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Trusted by <span className="font-semibold text-slate-700 dark:text-slate-200">200+</span> cabinet makers
+                    Trusted by <span className="font-semibold text-slate-700 dark:text-slate-200">200+</span> cabinet engineering professionals
                   </p>
                 </div>
               </div>
@@ -267,7 +278,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
                 <span className="text-gradient">Nothing You Don't</span>
               </h2>
               <p className="text-lg text-slate-500 dark:text-slate-400">
-                Purpose-built for professional cabinet makers and workshop operators
+                Cloud-based 3D cabinet engineering tools for professional woodworkers
               </p>
             </div>
             <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
@@ -519,7 +530,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
               <span className="text-gradient">Your Workflow?</span>
             </h2>
             <p className="text-lg sm:text-xl text-slate-500 dark:text-slate-400 mb-10 max-w-xl mx-auto">
-              Join 200+ cabinet makers using Cabinetrix Pro to design faster, build smarter.
+              Join 200+ cabinet engineering professionals using Cabinetrix Pro to design faster, build smarter.
             </p>
             <button
               onClick={onGetStarted}
@@ -554,5 +565,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
         </div>
       </footer>
     </div>
+    </>
   );
 };

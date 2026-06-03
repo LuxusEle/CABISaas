@@ -206,8 +206,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, onLogo
     }
   };
 
-  // If user is logged in, show profile view (unless we are in the middle of a password update)
-  if (user && mode !== 'update-password') {
+  // If user is logged in (not anonymous), show profile view (unless we are in the middle of a password update)
+  if (user && !user.is_anonymous && mode !== 'update-password') {
     return (
       <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade-in">
         <div className="bg-slate-900 border border-slate-800 rounded-[2.5rem] shadow-2xl max-w-md w-full p-10 relative animate-modal-pop overflow-hidden">
