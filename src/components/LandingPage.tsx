@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Sparkles, Box, Ruler, Calculator, ChevronDown, Sun, Moon, Menu, X, User, Check, FileText, Shield, Download } from 'lucide-react';
+import {
+  ArrowRight, Box, Ruler, Calculator, Check, Sparkles, Layers,
+  FileText, Download, Users, Star, Monitor, Zap, Globe
+} from 'lucide-react';
 import { Button } from './Button';
-import { LandingDocsModal } from './LandingDocsModal';
 import { LandingHeader } from './LandingHeader';
 
 interface LandingPageProps {
@@ -12,187 +14,38 @@ interface LandingPageProps {
   setIsDark: (isDark: boolean) => void;
 }
 
-// Animated text component with typing effect
-const TypewriterText: React.FC<{ text: string; delay?: number; className?: string }> = ({
-  text,
-  delay = 0,
-  className = ''
-}) => {
-  const [displayText, setDisplayText] = useState('');
-  const [started, setStarted] = useState(false);
+function useScrollReveal(threshold = 0.15) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const timeout = setTimeout(() => setStarted(true), delay);
-    return () => clearTimeout(timeout);
-  }, [delay]);
-
-  useEffect(() => {
-    if (!started) return;
-
-    let index = 0;
-    const interval = setInterval(() => {
-      if (index <= text.length) {
-        setDisplayText(text.slice(0, index));
-        index++;
-      } else {
-        clearInterval(interval);
-      }
-    }, 50);
-
-    return () => clearInterval(interval);
-  }, [started, text]);
-
-  return (
-    <span className={className}>
-      {displayText}
-      <span className="animate-pulse">|</span>
-    </span>
-  );
-};
-
-// Word reveal animation component
-const RevealWord: React.FC<{ text: string; delay?: number; className?: string }> = ({
-  text,
-  delay = 0,
-  className = ''
-}) => {
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    const timeout = setTimeout(() => setIsVisible(true), delay);
-    return () => clearTimeout(timeout);
-  }, [delay]);
-
-  return (
-    <span
-      className={`inline-block transition-all duration-700 transform ${isVisible
-        ? 'opacity-100 translate-y-0'
-        : 'opacity-0 translate-y-8'
-        } ${className}`}
-    >
-      {text}
-    </span>
-  );
-};
-
-// Cycling text animation component
-const CyclingText: React.FC<{
-  phrases: string[];
-  className?: string;
-}> = ({
-  phrases,
-  className = ''
-}) => {
-    const [index, setIndex] = useState(0);
-    const [displayText, setDisplayText] = useState('');
-    const [showCursor, setShowCursor] = useState(true);
-    const timeoutsRef = useRef<NodeJS.Timeout[]>([]);
-
-    useEffect(() => {
-      // Clear any existing timeouts
-      timeoutsRef.current.forEach(t => clearTimeout(t));
-      timeoutsRef.current = [];
-
-      const currentPhrase = phrases[index];
-      const charDelay = 2000 / currentPhrase.length; // 2000ms total typing time
-
-      // Type each character
-      for (let i = 0; i <= currentPhrase.length; i++) {
-        const timeout = setTimeout(() => {
-          setDisplayText(currentPhrase.slice(0, i));
-
-          // When typing is complete
-          if (i === currentPhrase.length) {
-            // Hide cursor after a brief pause
-            const cursorTimeout = setTimeout(() => {
-              setShowCursor(false);
-            }, 500);
-            timeoutsRef.current.push(cursorTimeout);
-
-            // Move to next phrase after total display time (3.5s total per phrase)
-            const nextTimeout = setTimeout(() => {
-              setIndex((prev) => (prev + 1) % phrases.length);
-              setShowCursor(true);
-            }, 3500);
-            timeoutsRef.current.push(nextTimeout);
-          }
-        }, i * charDelay);
-
-        timeoutsRef.current.push(timeout);
-      }
-
-      return () => {
-        timeoutsRef.current.forEach(t => clearTimeout(t));
-      };
-    }, [index]); // Only re-run when index changes
-
-    return (
-      <span className={`inline-block whitespace-nowrap ${className}`}>
-        {displayText}
-        {showCursor && <span className="animate-pulse">|</span>}
-      </span>
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setVisible(true); observer.disconnect(); } },
+      { threshold }
     );
-  };
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [threshold]);
 
-// Floating animation component
-const FloatingElement: React.FC<{ children: React.ReactNode; delay?: number; className?: string }> = ({
-  children,
-  delay = 0,
-  className = ''
-}) => {
+  return { ref, visible };
+}
+
+const RevealSection: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = '' }) => {
+  const { ref, visible } = useScrollReveal();
   return (
     <div
-      className={`animate-float ${className}`}
-      style={{ animationDelay: `${delay}ms` }}
+      ref={ref}
+      className={`transition-all duration-700 ease-out ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'} ${className}`}
     >
       {children}
     </div>
   );
 };
 
-// Particle background component
-const ParticleBackground: React.FC = () => {
-  const particles = Array.from({ length: 20 }, (_, i) => ({
-    id: i,
-    left: `${Math.random() * 100}%`,
-    top: `${Math.random() * 100}%`,
-    delay: Math.random() * 5,
-    duration: 3 + Math.random() * 4,
-    size: 2 + Math.random() * 4,
-  }));
-
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {particles.map((p) => (
-        <div
-          key={p.id}
-          className="absolute rounded-full bg-amber-500/20 animate-particle"
-          style={{
-            left: p.left,
-            top: p.top,
-            width: p.size,
-            height: p.size,
-            animationDelay: `${p.delay}s`,
-            animationDuration: `${p.duration}s`,
-          }}
-        />
-      ))}
-    </div>
-  );
-};
-
-export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn }) => {
-  const [scrollY, setScrollY] = useState(0);
-  const [isDark, setIsDark] = useState(() => {
-    try { return localStorage.getItem('app-theme') !== 'false'; } catch { return true; }
-  });
+export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn, isDark, setIsDark }) => {
   const [docsModalOpen, setDocsModalOpen] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => setScrollY(window.scrollY);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   useEffect(() => {
     localStorage.setItem('app-theme', String(isDark));
@@ -200,94 +53,101 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
     else document.documentElement.classList.remove('dark');
   }, [isDark]);
 
-  const scrollToSection = (id: string) => {
-    const element = document.getElementById(id);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
+  const heroFeatures = [
+    {
+      icon: <Monitor size={48} />,
+      title: 'No Download Required',
+      subtitle: '100% browser-based. Nothing to install.',
+      border: 'rgba(34, 197, 94, 0.3)',
+      iconBg: 'bg-green-100 dark:bg-green-900/30',
+    },
+    {
+      icon: <Zap size={48} />,
+      title: 'No Payment Until You Earn',
+      subtitle: 'Start free. Upgrade when your shop grows.',
+      border: 'rgba(245, 158, 11, 0.3)',
+      iconBg: 'bg-amber-100 dark:bg-amber-900/30',
+    },
+    {
+      icon: <Globe size={48} />,
+      title: 'SketchUp & 3D Export',
+      subtitle: 'Export models to your favorite 3D software.',
+      border: 'rgba(59, 130, 246, 0.3)',
+      iconBg: 'bg-blue-100 dark:bg-blue-900/30',
+    },
+  ];
+
+  const CyclingFeature = () => (
+    <div className="relative w-full h-full">
+      {heroFeatures.map((f, i) => (
+        <div
+          key={i}
+          className="absolute inset-0 flex items-center justify-center p-8"
+        >
+          <div
+            className="animate-feature w-full h-full flex flex-col items-center justify-center gap-4 rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-2 shadow-2xl p-8"
+            style={{ borderColor: f.border, animationDelay: `${i * 4}s` }}
+          >
+            <div className={`w-20 h-20 rounded-2xl ${f.iconBg} flex items-center justify-center`}>
+              {f.icon}
+            </div>
+            <h3 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white text-center leading-tight">
+              {f.title}
+            </h3>
+            <p className="text-base sm:text-lg text-slate-500 dark:text-slate-400 text-center max-w-xs">
+              {f.subtitle}
+            </p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 
   return (
-    <div className="min-h-screen text-slate-900 dark:text-white overflow-x-hidden relative">
-      {/* Fixed Background Image - Desktop */}
-      <div
-        className="fixed inset-0 z-0 transition-all duration-1000 ease-out hidden md:block"
-        style={{
-          backgroundImage: isDark ? 'url("/landing-bg.jpeg")' : 'url("/landing-bg-light.jpeg")',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          transform: `scale(1.15) translateY(${scrollY * 0.05}px)`
-        }}
-      />
-
-      {/* Fixed Background Image - Mobile */}
-      <div
-        className="fixed inset-0 z-0 transition-all duration-1000 ease-out block md:hidden"
-        style={{
-          backgroundImage: isDark ? 'url("/landing-bg-mobile.jpeg")' : 'url("/landing-bg-light-mobile.jpeg")',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          transform: `scale(1.15) translateY(${scrollY * 0.05}px)`
-        }}
-      />
-
+    <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-white overflow-x-hidden">
       <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(12px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
         @keyframes float {
-          0%, 100% { transform: translateY(0px) rotate(0deg); }
-          50% { transform: translateY(-20px) rotate(2deg); }
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-12px); }
         }
-        @keyframes particle {
-          0%, 100% { opacity: 0.2; transform: scale(1); }
-          50% { opacity: 0.8; transform: scale(1.5); }
-        }
-        @keyframes shimmer {
-          0% { background-position: -200% center; }
-          100% { background-position: 200% center; }
-        }
-        @keyframes glow {
-          0%, 100% { box-shadow: 0 0 20px rgba(245, 158, 11, 0.3); }
-          50% { box-shadow: 0 0 40px rgba(245, 158, 11, 0.6), 0 0 60px rgba(245, 158, 11, 0.3); }
-        }
-        @keyframes slideUp {
-          from { opacity: 0; transform: translateY(30px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-float { animation: float 6s ease-in-out infinite; }
-        .animate-particle { animation: particle 4s ease-in-out infinite; }
-        .animate-shimmer { 
-          background: linear-gradient(90deg, transparent, rgba(245, 158, 11, 0.4), transparent);
-          background-size: 200% 100%;
-          animation: shimmer 3s ease-in-out infinite;
-        }
-        .animate-glow { animation: glow 2s ease-in-out infinite; }
-        .animate-slide-up { animation: slideUp 0.8s ease-out forwards; }
-        @keyframes blink {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.3; }
-        }
-        .animate-slide-up-blink { 
-          animation: slideUp 0.8s ease-out forwards, blink 2s infinite ease-in-out 0.8s; 
-        }
-        @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in-up { animation: fadeInUp 0.6s ease-out forwards; }
         @keyframes pulse-glow {
-          0%, 100% { 
-            box-shadow: 0 0 20px rgba(245, 158, 11, 0.2);
-            transform: scale(1);
-          }
-          50% { 
-            box-shadow: 0 0 50px rgba(245, 158, 11, 0.5), 0 0 80px rgba(245, 158, 11, 0.2);
-            transform: scale(1.03);
+          0%, 100% { box-shadow: 0 0 20px rgba(79, 70, 229, 0.15); }
+          50% { box-shadow: 0 0 40px rgba(79, 70, 229, 0.3); }
+        }
+        @keyframes slideIn {
+          from { opacity: 0; transform: translateX(-20px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes featurePop {
+          0% { opacity: 0; transform: scale(0.6); }
+          4% { opacity: 1; transform: scale(1.1); }
+          27% { opacity: 1; transform: scale(1.15); }
+          33% { opacity: 0; transform: scale(0.6); }
+          100% { opacity: 0; transform: scale(0.6); }
+        }
+        .dark {
+          @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.15); }
+            50% { box-shadow: 0 0 40px rgba(139, 92, 246, 0.3); }
           }
         }
-        .animate-pulse-glow {
-          animation: pulse-glow 2.5s ease-in-out infinite;
-        }
+        .animate-fade-in { animation: fadeIn 0.6s ease-out forwards; }
+        .animate-float { animation: float 6s ease-in-out infinite; }
+        .animate-pulse-glow { animation: pulse-glow 2.5s ease-in-out infinite; }
+        .animate-slide-in { animation: slideIn 0.5s ease-out forwards; }
+        .animate-feature { animation: featurePop 12s ease-in-out infinite both; }
         .text-gradient {
-          background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 50%, #f59e0b 100%);
+          background: linear-gradient(135deg, #4F46E5, #6366F1, #818CF8);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+        .dark .text-gradient {
+          background: linear-gradient(135deg, #A855F7, #8B5CF6, #C084FC);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           background-clip: text;
@@ -301,413 +161,398 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
         setIsDark={setIsDark}
       />
 
-      {/* Hero Section */}
-      <section className="relative min-h-screen flex items-start md:items-center justify-center md:pt-14 sm:pt-16 overflow-hidden bg-transparent">
-        {/* Layered Overlays Removed as requested */}
-
-        {/* No Download Required - top left */}
-        <div className="absolute top-20 left-8 sm:top-28 sm:left-20 z-20 animate-slide-up" style={{ animationDelay: '0.2s' }}>
-          <div className="inline-flex items-center gap-2 sm:gap-3 px-3 sm:px-5 py-2 sm:py-3 rounded-xl bg-gradient-to-r from-amber-500/10 via-amber-400/20 to-amber-500/10 dark:from-amber-500/20 dark:via-amber-400/30 dark:to-amber-500/20 border border-amber-300/30 dark:border-amber-400/30 animate-pulse-glow backdrop-blur-sm">
-            <Download className="w-5 h-5 sm:w-7 sm:h-7 text-amber-500 flex-shrink-0" />
-            <span className="text-base sm:text-xl md:text-2xl font-black text-amber-600 dark:text-amber-400 whitespace-nowrap">
-              No Download Required
-            </span>
-          </div>
-        </div>
-
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-start md:items-center justify-end min-h-screen pt-4 md:pt-12 pb-24 md:pb-40 w-full">
-          <div className="w-full max-w-2xl text-center md:text-right flex flex-col items-center md:items-end md:mr-[15%] xl:mr-[-10%]">
-            {/* Animated badge */}
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-amber-100 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 mb-4 sm:mb-8 animate-slide-up">
-              <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-amber-600 dark:text-amber-500" />
-              <span className="text-xs sm:text-sm font-medium text-amber-700 dark:text-amber-400">Professional Cabinet Design Made Simple</span>
-            </div>
-
-            {/* Subheading and description with mobile glassmohrphism background for readability */}
-            <div className="bg-white/5 dark:bg-slate-900/5 backdrop-blur-xs rounded-2xl p-3 md:bg-transparent md:backdrop-blur-none md:p-0 md:rounded-none animate-slide-up w-full max-w-2xl md:ml-auto md:mr-0 mb-6 sm:mb-16 text-right">
-              {/* Subheading with typewriter effect */}
-              <div className="text-xl sm:text-2xl md:text-3xl text-slate-800 dark:text-slate-200 md:text-slate-600 md:dark:text-slate-400 mb-4 sm:mb-6 font-medium">
-                <TypewriterText text="Design. Visualize. Build." delay={800} />
+      {/* Hero */}
+      <section className="relative pt-24 sm:pt-32 pb-16 sm:pb-24 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary-subtle/30 via-transparent to-transparent dark:from-primary-light/10" />
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-bl from-primary/5 to-transparent rounded-full blur-3xl" />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-start">
+            <div className="space-y-8">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary-subtle dark:bg-primary-light border border-primary/10">
+                <Sparkles size={14} className="text-primary" />
+                <span className="text-xs font-semibold text-primary">Professional Cabinet Design Software</span>
               </div>
-
-              <div className="flex flex-col items-center md:items-end gap-2 mb-8 animate-slide-up-blink opacity-0" style={{ animationDelay: '1.2s', animationFillMode: 'forwards' }}>
-                <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded bg-blue-500 text-[10px] uppercase font-black text-white shadow-lg shadow-blue-500/20">
-                    New
-                  </span>
-                  <span className="text-lg sm:text-xl md:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-500 dark:from-blue-400 dark:to-indigo-300">
-                    SketchUp & 3D Export
-                  </span>
-                </div>
-                <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 font-medium italic">
-                  Take your designs to your favourite 3D software
-                </p>
-              </div>
-
-              <p className="text-lg sm:text-xl md:text-2xl text-slate-800 dark:text-slate-300 md:text-slate-600 md:dark:text-slate-500 leading-relaxed" style={{ animationDelay: '1s' }}>
-                Professional-grade cabinet design software with instant 3D visualization,
-                automated cut lists, and material optimization.
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black leading-[1.1] tracking-tight">
+                <span className="text-slate-900 dark:text-white">Design Kitchens.</span>
+                <br />
+                <span className="text-gradient">Build Cabinets.</span>
+                <br />
+                <span className="text-slate-900 dark:text-white">Grow Your Shop.</span>
+              </h1>
+              <p className="text-lg sm:text-xl text-slate-500 dark:text-slate-400 max-w-lg leading-relaxed">
+                Professional-grade 3D kitchen design with instant BOM generation, 
+                cut optimization, and manufacturing exports — all in your browser.
               </p>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <button
+                  onClick={onGetStarted}
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-primary hover:bg-primary-hover text-white font-bold rounded-xl transition-all shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 text-lg group"
+                >
+                  Get Started Free
+                  <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                </button>
+                <button
+                  onClick={onSignIn}
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold rounded-xl transition-all border border-slate-200 dark:border-slate-700 text-lg"
+                >
+                  Sign In
+                </button>
+              </div>
+              <div className="flex items-center gap-8 pt-4">
+                <div className="flex -space-x-3">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div
+                      key={i}
+                      className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 border-2 border-white dark:border-slate-950 flex items-center justify-center text-xs font-bold text-slate-500 dark:text-slate-400"
+                    >
+                      {String.fromCharCode(64 + i)}
+                    </div>
+                  ))}
+                </div>
+                <div>
+                  <div className="flex items-center gap-1">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <Star key={i} size={14} className="fill-amber-400 text-amber-400" />
+                    ))}
+                  </div>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    Trusted by <span className="font-semibold text-slate-700 dark:text-slate-200">200+</span> cabinet makers
+                  </p>
+                </div>
+              </div>
             </div>
-
-            {/* Main heading with cycling animation - responsive text sizes */}
-            <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-black mb-6 sm:mb-8 leading-tight md:leading-snug">
-              <div className="text-slate-900 dark:text-white">Build Your</div>
-              <div className="mt-1 sm:mt-2 text-gradient inline-block h-[1.2em]">
-                <CyclingText
-                  phrases={[
-                    "Dream Kitchen",
-                    "Perfect Cabinets",
-                    "Custom Furniture",
-                    "Dream Space"
-                  ]}
+            <div className="relative hidden lg:flex flex-col gap-6">
+              <div className="relative h-[320px]">
+                <CyclingFeature />
+              </div>
+              <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 aspect-[4/3]">
+                <img
+                  src="/kitchen_hero.png"
+                  alt="Cabinetrix Pro 3D Kitchen Design"
+                  className="w-full h-full object-cover"
                 />
               </div>
-            </h1>
-
-            {/* CTA Buttons - full width on mobile */}
-            <div className="flex flex-col sm:flex-row items-center md:justify-end justify-center gap-4 sm:gap-6 px-4 sm:px-0 animate-slide-up" style={{ animationDelay: '1.2s' }}>
-              <Button
-                size="xl"
-                onClick={onGetStarted}
-                className="w-full sm:w-auto animate-glow group min-h-[56px]"
-                leftIcon={<ArrowRight className="group-hover:translate-x-1 transition-transform" />}
-              >
-                Get Started Free
-              </Button>
-              <Button
-                size="xl"
-                variant="secondary"
-                onClick={onSignIn}
-                className="w-full sm:w-auto min-h-[56px]"
-              >
-                Sign In
-              </Button>
-            </div>
-
-            {/* Stats - better mobile layout */}
-            <div className="grid grid-cols-3 gap-4 sm:gap-8 max-w-lg md:ml-auto md:mr-0 mt-12 sm:mt-16 animate-slide-up px-4 sm:px-0" style={{ animationDelay: '1.4s' }}>
-              {[
-                { value: '3D', label: 'Visualization' },
-                { value: 'BOM', label: 'Auto Reports' },
-                { value: 'Cut', label: 'Optimization' },
-              ].map((stat, i) => (
-                <div key={i} className="text-center">
-                  <div className="text-xl sm:text-2xl md:text-3xl font-black text-amber-500">{stat.value}</div>
-                  <div className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-500 uppercase tracking-wider">{stat.label}</div>
-                </div>
-              ))}
             </div>
           </div>
-        </div>
-
-        {/* Scroll indicator */}
-        <div className="absolute bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
-          <ChevronDown className="w-5 h-5 sm:w-6 sm:h-6 text-slate-400 dark:text-slate-600" />
         </div>
       </section>
 
-      {/* Features Section */}
-      <section id="features" className="relative py-16 sm:py-24 bg-slate-50/40 dark:bg-slate-950/40 backdrop-blur-md">
+      {/* Stats */}
+      <section className="py-12 sm:py-16 border-y border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-10 sm:mb-16">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-black mb-3 sm:mb-4">
-              <span className="text-slate-900 dark:text-white">Everything You Need to </span>
-              <span className="text-gradient">Build</span>
-            </h2>
-            <p className="text-slate-600 dark:text-slate-400 text-base sm:text-lg">Professional tools designed for cabinet makers</p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {[
-              {
-                icon: <Box className="w-6 h-6 sm:w-8 sm:h-8" />,
-                title: 'Visual Design',
-                description: 'Drag-and-drop cabinet placement with real-time 3D preview',
-                color: 'amber',
-              },
-              {
-                icon: <Ruler className="w-6 h-6 sm:w-8 sm:h-8" />,
-                title: 'Precise Measurements',
-                description: 'Accurate dimensions and automatic collision detection',
-                color: 'orange',
-              },
-              {
-                icon: <Calculator className="w-6 h-6 sm:w-8 sm:h-8" />,
-                title: 'Material Lists',
-                description: 'Instant BOM generation with optimized cut plans',
-                color: 'yellow',
-              },
-            ].map((feature, i) => (
-              <FloatingElement key={i} delay={i * 200}>
-                <div className="group relative p-6 sm:p-8 rounded-xl sm:rounded-2xl bg-white/10 dark:bg-slate-900/40 backdrop-blur-sm border border-slate-200/50 dark:border-slate-800/50 hover:border-amber-500/50 transition-all duration-500 hover:transform hover:-translate-y-2 shadow-sm dark:shadow-none">
-                  <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-${feature.color}-500/10 flex items-center justify-center text-${feature.color}-500 mb-4 sm:mb-6 group-hover:scale-110 transition-transform`}>
-                    {feature.icon}
-                  </div>
-                  <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white mb-2 sm:mb-3">{feature.title}</h3>
-                  <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400">{feature.description}</p>
-                  <div className="absolute inset-0 rounded-xl sm:rounded-2xl bg-gradient-to-r from-amber-500/0 via-amber-500/5 to-amber-500/0 opacity-0 group-hover:opacity-100 transition-opacity animate-shimmer" />
-                </div>
-              </FloatingElement>
+              { value: '3D', label: 'Real-Time Visualization', desc: 'interactive 3D preview' },
+              { value: 'BOM', label: 'Auto-Generated Reports', desc: 'materials & cut lists' },
+              { value: 'DXF', label: 'CNC-Ready Exports', desc: 'drilling & cutting files' },
+              { value: 'PDF', label: 'Professional Quotes', desc: 'branded quotations' },
+            ].map((stat, i) => (
+              <div key={i} className="text-center">
+                <div className="text-2xl sm:text-3xl font-black text-primary mb-1">{stat.value}</div>
+                <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">{stat.label}</div>
+                <div className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{stat.desc}</div>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section id="pricing" className="relative py-16 sm:py-24 bg-white/40 dark:bg-slate-900/40 backdrop-blur-md">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-10 sm:mb-16">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-black mb-3 sm:mb-4">
-              <span className="text-slate-900 dark:text-white">Simple </span>
-              <span className="text-gradient">Pricing</span>
-            </h2>
-            <p className="text-slate-600 dark:text-slate-400 text-base sm:text-lg">Start free, upgrade when you need more</p>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-6 sm:gap-8 max-w-3xl mx-auto">
-            {/* Free Plan */}
-            <div className="relative bg-white/10 dark:bg-slate-900/40 backdrop-blur-sm rounded-2xl shadow-lg border-2 border-slate-200/50 dark:border-slate-800/50 overflow-hidden">
-              <div className="p-6 sm:p-8">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-3 rounded-lg bg-slate-100 dark:bg-slate-700">
-                    <User className="w-6 h-6 text-slate-600 dark:text-slate-400" />
+      {/* Features */}
+      <RevealSection>
+        <section id="features" className="py-16 sm:py-24">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center max-w-2xl mx-auto mb-16">
+              <h2 className="text-3xl sm:text-4xl font-black mb-4">
+                <span className="text-slate-900 dark:text-white">Everything You Need, </span>
+                <span className="text-gradient">Nothing You Don't</span>
+              </h2>
+              <p className="text-lg text-slate-500 dark:text-slate-400">
+                Purpose-built for professional cabinet makers and workshop operators
+              </p>
+            </div>
+            <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
+              {[
+                {
+                  icon: <Box size={28} />,
+                  title: '3D Design Studio',
+                  description: 'Drag-and-drop cabinet placement on multiple walls with real-time 3D preview. Support for base, wall, tall, corner, and specialty cabinets.',
+                  features: ['Real-time 3D rendering', 'Multi-wall layouts', 'Obstacle integration'],
+                },
+                {
+                  icon: <Calculator size={28} />,
+                  title: 'Instant BOM Engine',
+                  description: 'Automatic bill of materials with exact panel dimensions, hardware counts, and cost calculations. No manual takeoffs.',
+                  features: ['Panel dimensioning', 'Hardware counts', 'Cost estimation'],
+                },
+                {
+                  icon: <Layers size={28} />,
+                  title: 'Manufacturing Exports',
+                  description: 'Export CNC-ready DXF files with drilling patterns, Excel spreadsheets, SketchUp models, and optimized cut plans for your workshop.',
+                  features: ['DXF cutting files', 'SketchUp & 3D export', 'Drilling patterns', 'Cut optimization'],
+                },
+              ].map((feature, i) => (
+                <div
+                  key={i}
+                  className="group relative p-8 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-primary/30 dark:hover:border-primary/30 transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1"
+                >
+                  <div className="w-14 h-14 rounded-xl bg-primary-subtle dark:bg-primary-light flex items-center justify-center text-primary mb-6 group-hover:scale-110 transition-transform">
+                    {feature.icon}
                   </div>
-                  <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Free</h3>
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">{feature.title}</h3>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed mb-6">{feature.description}</p>
+                  <ul className="space-y-2">
+                    {feature.features.map((f, j) => (
+                      <li key={j} className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                        <Check size={14} className="text-primary flex-shrink-0" />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      </RevealSection>
 
-                <div className="mb-4">
+      {/* How It Works */}
+      <RevealSection>
+        <section id="how-it-works" className="py-16 sm:py-24 bg-slate-50/80 dark:bg-slate-900/50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center max-w-2xl mx-auto mb-16">
+              <h2 className="text-3xl sm:text-4xl font-black mb-4">
+                <span className="text-slate-900 dark:text-white">From Design to </span>
+                <span className="text-gradient">Manufacturing</span>
+              </h2>
+              <p className="text-lg text-slate-500 dark:text-slate-400">
+                Four simple steps from concept to production
+              </p>
+            </div>
+            <div className="grid md:grid-cols-4 gap-8">
+              {[
+                {
+                  step: '01',
+                  title: 'Set Up',
+                  description: 'Define your walls, materials, and preferences in minutes.',
+                  icon: <Ruler size={24} />,
+                },
+                {
+                  step: '02',
+                  title: 'Design',
+                  description: 'Place cabinets with drag-and-drop. Preview in real-time 3D.',
+                  icon: <Box size={24} />,
+                },
+                {
+                  step: '03',
+                  title: 'Review',
+                  description: 'BOM, cut plans, and cost estimates generated instantly.',
+                  icon: <FileText size={24} />,
+                },
+                {
+                  step: '04',
+                  title: 'Export',
+                  description: 'Download DXF, Excel, PDF — ready for the workshop.',
+                  icon: <Download size={24} />,
+                },
+              ].map((step, i) => (
+                <div key={i} className="relative text-center group">
+                  <div className="w-16 h-16 rounded-2xl bg-primary-subtle dark:bg-primary-light flex items-center justify-center text-primary mx-auto mb-6 group-hover:scale-110 transition-transform">
+                    {step.icon}
+                  </div>
+                  <div className="absolute top-8 left-[calc(50%+40px)] hidden md:block w-[calc(100%-80px)] h-[2px] bg-slate-200 dark:bg-slate-700">
+                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-primary" />
+                  </div>
+                  <span className="text-xs font-black text-primary uppercase tracking-widest">{step.step}</span>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white mt-2 mb-2">{step.title}</h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">{step.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      </RevealSection>
+
+      {/* Pricing */}
+      <RevealSection>
+        <section id="pricing" className="py-16 sm:py-24">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center max-w-2xl mx-auto mb-16">
+              <h2 className="text-3xl sm:text-4xl font-black mb-4">
+                <span className="text-slate-900 dark:text-white">Simple </span>
+                <span className="text-gradient">Pricing</span>
+              </h2>
+              <p className="text-lg text-slate-500 dark:text-slate-400">
+                Start free — no credit card required. Pay only when you're earning.
+              </p>
+            </div>
+            <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
+              <div className="p-8 rounded-2xl bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800">
+                <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400 mb-6">
+                  <Users size={24} />
+                </div>
+                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Free</h3>
+                <div className="mb-6">
                   <span className="text-4xl font-black text-slate-900 dark:text-white">$0</span>
-                  <span className="text-slate-500 dark:text-slate-400">/month</span>
+                  <span className="text-slate-400">/month</span>
                 </div>
-
-                <p className="text-slate-600 dark:text-slate-400 mb-6">Perfect for hobbyists and small projects — instant web access</p>
-
-                <Button
-                  size="lg"
+                <p className="text-sm text-slate-500 dark:text-slate-400 mb-8">
+                  Perfect for getting started — no payment required, no risk
+                </p>
+                <button
                   onClick={onGetStarted}
-                  variant="secondary"
-                  className="w-full mb-6"
+                  className="w-full py-3.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold transition-all border border-slate-200 dark:border-slate-700 mb-8"
                 >
                   Get Started Free
-                </Button>
-
-                <div className="space-y-3">
-                  <div className="flex items-start gap-3">
-                    <Check size={18} className="text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-slate-600 dark:text-slate-400 text-sm">Up to 3 projects</span>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Check size={18} className="text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-slate-600 dark:text-slate-400 text-sm">Basic cabinet presets</span>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Check size={18} className="text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-slate-600 dark:text-slate-400 text-sm">3D visualization</span>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Check size={18} className="text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-slate-600 dark:text-slate-400 text-sm">Instant browser access — no download</span>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <X size={18} className="text-red-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-slate-500 dark:text-slate-500 text-sm">No BOM export</span>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <X size={18} className="text-red-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-slate-500 dark:text-slate-500 text-sm">No custom cabinets</span>
-                  </div>
-                </div>
+                </button>
+                <ul className="space-y-3">
+                  {[
+                    'Up to 3 projects',
+                    'Basic cabinet presets',
+                    '3D visualization',
+                    'Browser-based — no download',
+                    'On-screen reports',
+                  ].map((item, i) => (
+                    <li key={i} className="flex items-start gap-3 text-sm text-slate-600 dark:text-slate-300">
+                      <Check size={16} className="text-green-500 mt-0.5 flex-shrink-0" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
               </div>
-            </div>
-
-            {/* Pro Plan */}
-            <div className="relative bg-white/10 dark:bg-slate-900/40 backdrop-blur-sm rounded-2xl shadow-xl border-2 border-amber-500 overflow-hidden transform md:-translate-y-4">
-              <div className="absolute top-0 right-0 bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">
-                POPULAR
-              </div>
-
-              <div className="p-6 sm:p-8">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-3 rounded-lg bg-amber-100 dark:bg-amber-900/30">
-                    <Sparkles className="w-6 h-6 text-amber-600 dark:text-amber-400" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Pro</h3>
+              <div className="relative p-8 rounded-2xl bg-white dark:bg-slate-900 border-2 border-primary shadow-xl shadow-primary/10">
+                <div className="absolute top-0 right-8 -translate-y-1/2 bg-primary text-white text-xs font-bold px-4 py-1.5 rounded-full">
+                  POPULAR
                 </div>
-
-                <div className="mb-4">
+                <div className="w-12 h-12 rounded-xl bg-primary-subtle dark:bg-primary-light flex items-center justify-center text-primary mb-6">
+                  <Sparkles size={24} />
+                </div>
+                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Pro</h3>
+                <div className="mb-6">
                   <span className="text-4xl font-black text-slate-900 dark:text-white">$29</span>
-                  <span className="text-slate-500 dark:text-slate-400">/month</span>
+                  <span className="text-slate-400">/month</span>
                 </div>
-
-                <p className="text-slate-600 dark:text-slate-400 mb-6">For professionals and growing shops — browser-based platform</p>
-
-                <Button
-                  size="lg"
+                <p className="text-sm text-slate-500 dark:text-slate-400 mb-8">
+                  For professionals and growing workshops
+                </p>
+                <button
                   onClick={onGetStarted}
-                  className="w-full mb-6 bg-amber-500 hover:bg-amber-600"
+                  className="w-full py-3.5 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold transition-all shadow-lg shadow-primary/20 mb-8"
                 >
                   Start Pro Trial
-                </Button>
+                </button>
+                <ul className="space-y-3">
+                  {[
+                    'Unlimited projects',
+                    'Custom cabinet library',
+                    'BOM & PDF export',
+                    'DXF & CNC export',
+                    'Advanced cut optimization',
+                    'Full cloud-based platform',
+                    'Priority email support',
+                  ].map((item, i) => (
+                    <li key={i} className="flex items-start gap-3 text-sm text-slate-600 dark:text-slate-300">
+                      <Check size={16} className="text-green-500 mt-0.5 flex-shrink-0" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+      </RevealSection>
 
-                <div className="space-y-3">
-                  <div className="flex items-start gap-3">
-                    <Check size={18} className="text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-slate-600 dark:text-slate-400 text-sm"><strong>Unlimited</strong> projects</span>
+      {/* Contact */}
+      <RevealSection>
+        <section id="contact" className="py-16 sm:py-24 bg-slate-50/80 dark:bg-slate-900/50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl sm:text-4xl font-black mb-4">
+                <span className="text-slate-900 dark:text-white">Get In </span>
+                <span className="text-gradient">Touch</span>
+              </h2>
+              <p className="text-lg text-slate-500 dark:text-slate-400 max-w-xl mx-auto">
+                Have questions? We're here to help.
+              </p>
+            </div>
+            <div className="max-w-3xl mx-auto grid md:grid-cols-2 gap-8">
+              <div className="p-8 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                <h3 className="text-sm font-black text-primary uppercase tracking-widest mb-6">Contact Info</h3>
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Email</p>
+                    <a href="mailto:support@cabinetrixpro.com" className="text-sm font-semibold text-slate-900 dark:text-white hover:text-primary transition-colors">
+                      support@cabinetrixpro.com
+                    </a>
                   </div>
-                  <div className="flex items-start gap-3">
-                    <Check size={18} className="text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-slate-600 dark:text-slate-400 text-sm">Custom cabinet library</span>
+                  <div>
+                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Response Time</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-300">Within 24-48 business hours</p>
                   </div>
-                  <div className="flex items-start gap-3">
-                    <Check size={18} className="text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-slate-600 dark:text-slate-400 text-sm">BOM & PDF export</span>
+                </div>
+              </div>
+              <div className="p-8 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                <h3 className="text-sm font-black text-primary uppercase tracking-widest mb-6">Software Details</h3>
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Platform</p>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white">Cabinetrix Pro</p>
                   </div>
-                  <div className="flex items-start gap-3">
-                    <Check size={18} className="text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-slate-600 dark:text-slate-400 text-sm">Advanced cut optimization</span>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Check size={18} className="text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-slate-600 dark:text-slate-400 text-sm">Full cloud-based platform</span>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Check size={18} className="text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-slate-600 dark:text-slate-400 text-sm">Email support</span>
+                  <div>
+                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Type</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-300">Cloud-based SaaS — browser only</p>
                   </div>
                 </div>
               </div>
             </div>
           </div>
+        </section>
+      </RevealSection>
 
-          <p className="text-center text-sm text-slate-500 dark:text-slate-400 mt-8 max-w-xl mx-auto">
-            CabEngine Pro is a 100% cloud-based SaaS platform. All you need is a modern web browser and an internet connection.
-          </p>
-        </div>
-      </section>
-
-      {/* Contact Us Section */}
-      <section id="contact" className="relative py-16 sm:py-24 bg-slate-50/40 dark:bg-slate-950/40 backdrop-blur-md overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12 sm:mb-16">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-black mb-4">
-              <span className="text-slate-900 dark:text-white">Contact </span>
-              <span className="text-gradient">Us</span>
+      {/* CTA */}
+      <RevealSection>
+        <section className="py-20 sm:py-28 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 dark:from-primary-light dark:via-primary/5 dark:to-primary-light" />
+          <div className="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 className="text-3xl sm:text-5xl font-black mb-6 leading-tight">
+              <span className="text-slate-900 dark:text-white">Ready to Transform </span>
+              <span className="text-gradient">Your Workflow?</span>
             </h2>
-            <p className="text-slate-600 dark:text-slate-400 text-base sm:text-lg max-w-2xl mx-auto">
-              Have questions about Protradee? We're here to help you get started.
+            <p className="text-lg sm:text-xl text-slate-500 dark:text-slate-400 mb-10 max-w-xl mx-auto">
+              Join 200+ cabinet makers using Cabinetrix Pro to design faster, build smarter.
             </p>
+            <button
+              onClick={onGetStarted}
+              className="inline-flex items-center justify-center gap-2 px-10 py-5 bg-primary hover:bg-primary-hover text-white font-bold rounded-xl transition-all shadow-xl shadow-primary/20 hover:shadow-2xl hover:shadow-primary/30 text-xl group"
+            >
+              Get Started Free
+              <ArrowRight size={22} className="group-hover:translate-x-1 transition-transform" />
+            </button>
           </div>
-
-          <div className="max-w-4xl mx-auto grid md:grid-cols-2 gap-8 lg:gap-12">
-            {/* Contact Details Card */}
-            <div className="bg-white/10 dark:bg-slate-900/40 backdrop-blur-sm p-8 rounded-2xl shadow-xl border border-slate-200/50 dark:border-slate-800/50 animate-slide-up">
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-sm font-black text-amber-500 uppercase tracking-widest mb-3">Platform Details</h3>
-                  <div className="space-y-1">
-                    <p className="text-slate-900 dark:text-white font-bold">Protradee</p>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Legal Name: ASANKE ABEYKOON JAYALATH RATHNAYAKE</p>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-sm font-black text-amber-500 uppercase tracking-widest mb-3">Physical Address</h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed italic">
-                    98/16, NUWARA WEWA WATTA,<br />
-                    JAFFNA ROAD,<br />
-                    ANURADHAPURA,<br />
-                    SRI LANKA
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Contact Card */}
-            <div className="bg-white/10 dark:bg-slate-900/40 backdrop-blur-sm p-8 rounded-2xl shadow-xl border border-slate-200/50 dark:border-slate-800/50 animate-slide-up" style={{ animationDelay: '200ms' }}>
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-sm font-black text-amber-500 uppercase tracking-widest mb-3">Direct Contact</h3>
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-700">
-                        <Menu className="w-4 h-4 text-amber-500 rotated-45" />
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase">Phone</p>
-                        <a href="tel:+94777163564" className="text-sm text-slate-900 dark:text-white font-bold hover:text-amber-500 transition-colors tracking-tight">
-                          +94 777 163 564
-                        </a>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-700">
-                        <FileText className="w-4 h-4 text-amber-500" />
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase">Email Support</p>
-                        <div className="flex flex-col">
-                          <a href="mailto:support@protradee.com" className="text-sm text-slate-900 dark:text-white font-bold hover:text-amber-500 transition-colors">
-                            support@protradee.com
-                          </a>
-                          <a href="mailto:asanke1@gmail.com" className="text-sm text-slate-900 dark:text-white font-bold mt-1 hover:text-amber-500 transition-colors">
-                            asanke1@gmail.com
-                          </a>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    We typically respond to all inquiries within 24-48 business hours.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section id="about" className="relative py-16 sm:py-24 overflow-hidden bg-white/40 dark:bg-slate-900/40 backdrop-blur-md">
-        <div className="absolute inset-0 bg-gradient-to-r from-amber-100/50 to-orange-100/50 dark:from-amber-600/30 dark:to-orange-600/30" />
-        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-          <h2 className="text-2xl sm:text-4xl md:text-5xl font-black mb-4 sm:mb-6">
-            <span className="text-slate-900 dark:text-white">Ready to Start </span>
-            <span className="text-gradient">Building?</span>
-          </h2>
-          <p className="text-base sm:text-xl text-slate-600 dark:text-slate-400 mb-6 sm:mb-8 px-4 sm:px-0">
-            Join professional cabinet makers who trust CABENGINE for their projects
-          </p>
-          <Button
-            size="xl"
-            onClick={onGetStarted}
-            className="animate-glow w-full sm:w-auto min-h-[56px]"
-          >
-            Get Started Now
-          </Button>
-        </div>
-      </section>
+        </section>
+      </RevealSection>
 
       {/* Footer */}
-      <footer className="bg-slate-50/40 dark:bg-slate-950/40 backdrop-blur-md border-t border-slate-200/20 dark:border-slate-800/50 pt-16 pb-8">
+      <footer className="border-t border-slate-100 dark:border-slate-800 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <img src="/landing.png" alt="CabEngine Logo" className="h-6 sm:h-8 w-auto object-contain dark:invert-0 invert" />
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-white font-black text-sm">
+                C
+              </div>
+              <span className="font-bold text-slate-700 dark:text-slate-300">Cabinetrix Pro</span>
             </div>
-            <p className="text-slate-600 dark:text-slate-600 text-xs sm:text-sm text-center md:text-left">
-              Professional cabinet design software
+            <div className="flex items-center gap-6">
+              <Link to="/docs" className="text-sm text-slate-400 hover:text-primary transition-colors">Docs</Link>
+              <Link to="/terms" className="text-sm text-slate-400 hover:text-primary transition-colors">Terms</Link>
+              <Link to="/pricing" className="text-sm text-slate-400 hover:text-primary transition-colors">Pricing</Link>
+            </div>
+            <p className="text-xs text-slate-400">
+              &copy; {new Date().getFullYear()} Cabinetrix Pro. All rights reserved.
             </p>
           </div>
         </div>
       </footer>
-
-      {/* Docs Modal */}
-      <LandingDocsModal isOpen={docsModalOpen} onClose={() => setDocsModalOpen(false)} onGetStarted={onGetStarted} />
     </div>
   );
 };
