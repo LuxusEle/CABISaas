@@ -25,4 +25,19 @@
     <priority>0.7</priority>
     <changefreq>monthly</changefreq>
   </url>
+  <url>
+    <loc>https://www.protradee.com/embed-cabinet-planner</loc>
+    <priority>0.8</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+  <url>
+    <loc>https://www.protradee.com/manual-cabinet-software</loc>
+    <priority>0.8</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+  <url>
+    <loc>https://www.protradee.com/cut-list-generator</loc>
+    <priority>0.8</priority>
+    <changefreq>weekly</changefreq>
+  </url>
 </urlset>

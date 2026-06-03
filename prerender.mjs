@@ -7,7 +7,7 @@ import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const distDir = join(__dirname, 'dist');
 
-const ROUTES = ['/', '/pricing', '/docs', '/terms'];
+const ROUTES = ['/', '/pricing', '/docs', '/terms', '/embed-cabinet-planner', '/manual-cabinet-software', '/cut-list-generator'];
 const PORT = 45678;
 
 function startStaticServer() {

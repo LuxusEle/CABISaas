@@ -20,6 +20,9 @@ import { PolicyModal } from './components/PolicyModal';
 import { logoService } from './services/logoService';
 import TermsPage from './pages/TermsPage';
 import { CabinetTestingPage } from './components/CabinetTestingPage';
+import { EmbedCabinetPlannerPage } from './components/EmbedCabinetPlannerPage';
+import { ManualCabinetSoftwarePage } from './components/ManualCabinetSoftwarePage';
+import { CutListGeneratorPage } from './components/CutListGeneratorPage';
 import ScreenWallEditor from './screens/ScreenWallEditor';
 import ScreenHome from './screens/ScreenHome';
 import ScreenProjectSetup from './screens/ScreenProjectSetup';
@@ -35,6 +38,8 @@ import { UserProfile, profileService } from './services/profileService';
 import { createDemoProject } from './utils/demoProject';
 
 import { useProjectStore } from './store/useProjectStore';
+
+const LANDING_PATHS = ['/', '/terms', '/testing', '/embed-cabinet-planner', '/manual-cabinet-software', '/cut-list-generator'];
 
 // --- PROTECTED ROUTE COMPONENT ---
 const ProtectedRoute = ({ user, loading, children }: { user: User | null, loading: boolean, children: React.ReactNode }) => {
@@ -210,7 +215,7 @@ export default function App() {
 
   // Separate effect for navigation-related auth checks and beforeunload
   useEffect(() => {
-    const isPublicPath = ['/', '/docs', '/terms'].includes(location.pathname);
+    const isPublicPath = LANDING_PATHS.includes(location.pathname);
     if (user && isPublicPath && location.pathname === '/') {
       navigate('/dashboard');
     }
@@ -428,7 +433,7 @@ export default function App() {
       </Helmet>
     <div className="h-[100dvh] w-full flex flex-col font-sans transition-colors duration-200 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-hidden">
       {/* MOBILE HEADER */}
-      {!['/', '/terms', '/pricing', '/docs', '/reset-password'].includes(location.pathname) && !location.pathname.startsWith('/embed') && (
+      {!['/', '/terms', '/pricing', '/docs', '/reset-password', '/embed-cabinet-planner', '/manual-cabinet-software', '/cut-list-generator'].includes(location.pathname) && !location.pathname.startsWith('/embed') && (
         <div className="md:hidden h-14 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 shrink-0 z-40 print:hidden">
           <img src="/landing.png" alt="CabEngine Logo" className="h-8 w-auto object-contain dark:invert-0 invert" />
           <div className="flex items-center gap-2">
@@ -446,7 +451,7 @@ export default function App() {
 
       <div className="flex-1 flex overflow-hidden">
         {/* DESKTOP SIDEBAR - Hidden on landing page & embed page */}
-        {(location.pathname !== '/' && location.pathname !== '/terms' && location.pathname !== '/testing' && !location.pathname.startsWith('/embed') && (location.pathname !== '/docs' || user)) && (
+        {(location.pathname !== '/' && location.pathname !== '/terms' && location.pathname !== '/testing' && location.pathname !== '/embed-cabinet-planner' && location.pathname !== '/manual-cabinet-software' && location.pathname !== '/cut-list-generator' && !location.pathname.startsWith('/embed') && (location.pathname !== '/docs' || user)) && (
           <motion.aside
             initial={false}
             animate={{ width: isSidebarExpanded ? 240 : 80 }}
@@ -595,6 +600,7 @@ export default function App() {
               </div>
             </div>
           )}
+          <div className="flex-1 overflow-y-auto">
           <Routes>
             <Route path="/" element={
               <LandingPage
@@ -693,6 +699,30 @@ export default function App() {
                 setIsDark={setIsDark}
               />
             } />
+            <Route path="/embed-cabinet-planner" element={
+              <EmbedCabinetPlannerPage
+                onSignIn={() => openAuthModal('login')}
+                onGetStarted={() => openAuthModal('signup')}
+                isDark={isDark}
+                setIsDark={setIsDark}
+              />
+            } />
+            <Route path="/manual-cabinet-software" element={
+              <ManualCabinetSoftwarePage
+                onSignIn={() => openAuthModal('login')}
+                onGetStarted={() => openAuthModal('signup')}
+                isDark={isDark}
+                setIsDark={setIsDark}
+              />
+            } />
+            <Route path="/cut-list-generator" element={
+              <CutListGeneratorPage
+                onSignIn={() => openAuthModal('login')}
+                onGetStarted={() => openAuthModal('signup')}
+                isDark={isDark}
+                setIsDark={setIsDark}
+              />
+            } />
             <Route path="/testing" element={
               <CabinetTestingPage isDark={isDark} />
             } />
@@ -714,11 +744,12 @@ export default function App() {
               />
             } />
           </Routes>
+          </div>
         </main>
       </div>
 
       {/* MOBILE NAV - NOW A FLEX SIBLING FOR DYNAMIC HEIGHT */}
-      {location.pathname !== '/' && location.pathname !== '/terms' && location.pathname !== '/testing' && !location.pathname.startsWith('/embed') && (
+      {location.pathname !== '/' && location.pathname !== '/terms' && location.pathname !== '/testing' && location.pathname !== '/embed-cabinet-planner' && location.pathname !== '/manual-cabinet-software' && location.pathname !== '/cut-list-generator' && !location.pathname.startsWith('/embed') && (
         <div className="md:hidden min-h-[4rem] h-auto mobile-nav bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex items-stretch justify-around z-[100] shrink-0 print:hidden safe-area-bottom">
           <MobileNavButton active={location.pathname === '/dashboard'} path="/dashboard" icon={<Home size={20} />} label="Home" isDirty={isDirty} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
           <MobileNavButton active={location.pathname === '/setup'} path="/setup" icon={<Settings size={20} />} label="Setup" isDirty={isDirty} canDiscard={project.id.length < 20} onSave={() => handleSaveProject(project)} />
@@ -789,7 +820,7 @@ export default function App() {
       )}
 
       {/* Help Button - Available on all screens */}
-      {!location.pathname.startsWith('/embed') && <HelpButton disablePhrases={screen === Screen.WALL_EDITOR} hasBottomNav={location.pathname !== '/' && location.pathname !== '/terms' && location.pathname !== '/testing'} />}
+      {!location.pathname.startsWith('/embed') && <HelpButton disablePhrases={screen === Screen.WALL_EDITOR} hasBottomNav={location.pathname !== '/' && location.pathname !== '/terms' && location.pathname !== '/testing' && location.pathname !== '/embed-cabinet-planner' && location.pathname !== '/manual-cabinet-software' && location.pathname !== '/cut-list-generator'} />}
 
       {/* Vercel Analytics & Speed Insights */}
       <Analytics />
