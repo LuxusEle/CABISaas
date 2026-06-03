@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { Book, ChevronRight, Settings, Settings2, Box, Table2, CreditCard, Lightbulb, HelpCircle, CheckCircle, Share2 } from 'lucide-react';
 import { LandingHeader } from './LandingHeader';
 
@@ -420,6 +421,11 @@ export const DocsPage: React.FC<DocsPageProps> = ({
 
 
   return (
+    <>
+      <Helmet>
+        <title>Documentation - CabEngine Pro | Cabinet Software Guide</title>
+        <meta name="description" content="Complete CabEngine Pro documentation. Learn how to set up projects, use the 3D design studio, generate BOM reports, and integrate the embeddable cabinet configurator." />
+      </Helmet>
     <div className="h-full overflow-y-auto bg-slate-50 dark:bg-slate-950">
       <LandingHeader
         onSignIn={onSignIn}
@@ -512,6 +518,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
         </div>
       </div>
     </div>
+    </>
   );
 };
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { supabase } from '../services/supabaseClient';
 import { subscriptionService, SUBSCRIPTION_PLANS } from '../services/subscriptionService';
 import type { UserSubscription } from '../types';
@@ -150,6 +151,11 @@ export const PricingPage: React.FC<PricingPageProps> = ({
   const isPro = currentSubscription?.plan_id === 'pro' && currentSubscription?.status === 'active';
 
   return (
+    <>
+      <Helmet>
+        <title>Pricing - CabEngine Pro | 3D Cabinet Design Software</title>
+        <meta name="description" content="Choose the right plan for your cabinet workshop. Free tier available. Pro plan at $29/month unlocks full reports, advanced layout overrides, and embeddable configurator APIs." />
+      </Helmet>
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 relative">
       <LandingHeader
         onSignIn={onSignIn}
@@ -378,5 +384,6 @@ export const PricingPage: React.FC<PricingPageProps> = ({
         </div>
       )}
     </div>
+    </>
   );
 };

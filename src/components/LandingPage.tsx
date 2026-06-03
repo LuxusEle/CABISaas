@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Sparkles, Box, Ruler, Calculator, ChevronDown, Sun, Moon, Menu, X, User, Check, FileText, Shield, Download } from 'lucide-react';
 import { Button } from './Button';
@@ -208,6 +209,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
   };
 
   return (
+    <>
+      <Helmet>
+        <title>CabEngine Pro | 3D Cabinet Design Software & Cut List Optimizer</title>
+        <meta name="description" content="Professional-grade cloud-based cabinet design and cut list optimization software. Generate 3D visualizations, automated cut lists, and material nesting instantly." />
+      </Helmet>
     <div className="min-h-screen text-slate-900 dark:text-white overflow-x-hidden relative">
       {/* Fixed Background Image - Desktop */}
       <div
@@ -709,5 +715,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
       {/* Docs Modal */}
       <LandingDocsModal isOpen={docsModalOpen} onClose={() => setDocsModalOpen(false)} onGetStarted={onGetStarted} />
     </div>
+    </>
   );
 };

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
 import { FileText, MapPin, Phone, Sparkles, Layout, Layers, Cpu, ArrowRight, CheckCircle2, AlertCircle, Wand2, X, Box, Settings2, RotateCcw, Undo2, Redo2 } from 'lucide-react';
@@ -505,6 +506,12 @@ const ScreenEmbedSetup = ({ isDark }: ScreenEmbedSetupProps) => {
   }
 
   return (
+    <>
+      <Helmet>
+        <title>Embedded Cabinet Planner - CabEngine Pro</title>
+        <meta name="description" content="Embed a 3D cabinet configurator directly into your website. Add cabinet design functionality to your e-commerce or builder portal with a simple iframe." />
+        <meta name="robots" content="index, follow" />
+      </Helmet>
     <div className="flex flex-col h-screen w-full overflow-hidden bg-slate-50 dark:bg-slate-950">
       <div className="flex-1 flex overflow-hidden relative">
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-white dark:bg-slate-900 shadow-2xl relative">
@@ -1465,6 +1472,7 @@ const ScreenEmbedSetup = ({ isDark }: ScreenEmbedSetupProps) => {
         }}
       />
     </div>
+    </>
   );
 };
 

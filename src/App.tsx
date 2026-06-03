@@ -26,6 +26,7 @@ import ScreenProjectSetup from './screens/ScreenProjectSetup';
 import ScreenBOMReport from './screens/ScreenBOMReport';
 import { ProfilePage } from './components/ProfilePage';
 import ScreenEmbedSetup from './screens/ScreenEmbedSetup';
+import { Helmet } from 'react-helmet-async';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import { track } from '@vercel/analytics';
@@ -382,6 +383,49 @@ export default function App() {
   };
 
   return (
+    <>
+      <Helmet>
+        <title>CabEngine Pro | 3D Cabinet Design Software & Cut List Optimizer</title>
+        <meta name="description" content="Professional-grade cloud-based cabinet design software. Generate instant 3D visualization, automated cut lists, optimized material sheet nesting, and dynamic BOM reports." />
+        <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+        <link rel="canonical" href="https://www.protradee.com/" />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="CabEngine Pro | Professional Cabinet Design Suite" />
+        <meta property="og:description" content="Cloud-based engineering suite for cabinet makers. Real-time 3D Studio, material nesting algorithms, and embeddable configurator APIs." />
+        <meta property="og:url" content="https://www.protradee.com/" />
+        <meta property="og:site_name" content="CabEngine Pro" />
+        <script type="application/ld+json">{JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          "name": "CabEngine Pro",
+          "url": "https://www.protradee.com/",
+          "operatingSystem": "All (Cloud-Based, Cross-Platform)",
+          "applicationCategory": "DesignApplication",
+          "browserRequirements": "Requires WebGL capability and HTML5 modern browser compliance",
+          "description": "Professional-grade cabinet engineering suite supporting high-fidelity 3D layouts, dynamic cut plan sheet nesting optimization, global material library assignments, and complete technical document generation.",
+          "offers": [
+            {
+              "@type": "Offer",
+              "price": "0.00",
+              "priceCurrency": "USD",
+              "description": "Free introductory tier. Complete visualization and multi-project onboarding access. Limited to standard preset libraries.",
+              "priceModel": "FreeOnboarding"
+            },
+            {
+              "@type": "Offer",
+              "price": "29.00",
+              "priceCurrency": "USD",
+              "priceModel": "Subscription",
+              "eligibleRegion": "Global",
+              "description": "Pro professional execution suite. Unlocks full multi-format reports, advanced manual layout logic overrides, and programmatic embedding parameters."
+            }
+          ],
+          "author": {
+            "@type": "Person",
+            "name": "Asanke Ratnayake"
+          }
+        })}</script>
+      </Helmet>
     <div className="h-[100dvh] w-full flex flex-col font-sans transition-colors duration-200 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-hidden">
       {/* MOBILE HEADER */}
       {!['/', '/terms', '/pricing', '/docs', '/reset-password'].includes(location.pathname) && !location.pathname.startsWith('/embed') && (
@@ -751,6 +795,7 @@ export default function App() {
       <Analytics />
       <SpeedInsights />
     </div>
+    </>
   );
 }
 
