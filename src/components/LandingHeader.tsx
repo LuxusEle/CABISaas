@@ -155,18 +155,20 @@ export const LandingHeader: React.FC<LandingHeaderProps> = ({
           position: sticky;
           top: 0;
           z-index: 50;
-          width: 100%;
-          font-family: Inter, ui-sans-serif, system-ui, sans-serif;
-          background: transparent;
-          border-bottom: 1px solid transparent;
           backdrop-filter: blur(22px);
           -webkit-backdrop-filter: blur(22px);
-          transition: background 300ms ease, border-color 300ms ease, box-shadow 300ms ease;
+          background: rgba(5, 8, 21, 0.72);
+          border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+        }
+        .nav-inner {
+          height: 74px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 24px;
         }
         .nav-scrolled {
-          background: var(--card, rgba(19, 27, 39, 0.78));
-          border-bottom-color: var(--border, rgba(214, 168, 79, 0.18));
-          box-shadow: var(--shadow, 0 24px 80px rgba(0, 0, 0, 0.16));
+          box-shadow: 0 24px 80px rgba(0, 0, 0, 0.16);
         }
         .container {
           width: min(var(--max, 1180px), calc(100% - 40px));
@@ -185,7 +187,7 @@ export const LandingHeader: React.FC<LandingHeaderProps> = ({
           gap: 12px;
           font-weight: 800;
           letter-spacing: -0.03em;
-          color: var(--text, #f8fafc);
+          color: var(--text, var(--slate-50));
           text-decoration: none;
         }
         .brand-mark {
@@ -194,10 +196,10 @@ export const LandingHeader: React.FC<LandingHeaderProps> = ({
           border-radius: 10px;
           display: grid;
           place-items: center;
-          background: linear-gradient(135deg, var(--brass, #D6A84F), var(--wood-walnut, #7A4E2D));
-          box-shadow: 0 12px 32px rgba(214, 168, 79, 0.28);
+          background: linear-gradient(135deg, var(--brass, var(--brass)), var(--wood-walnut, var(--wood-walnut)));
+          box-shadow: 0 12px 32px rgba(var(--brass-rgb), 0.28);
           font-size: 14px;
-          color: #111827;
+          color: var(--ink);
           flex-shrink: 0;
         }
         .brand-text {
@@ -206,7 +208,7 @@ export const LandingHeader: React.FC<LandingHeaderProps> = ({
         }
         .brand-text small {
           display: block;
-          color: var(--muted, #94a3b8);
+          color: var(--muted, var(--slate-400));
           font-size: 11px;
           letter-spacing: 0.06em;
           text-transform: uppercase;
@@ -231,7 +233,7 @@ export const LandingHeader: React.FC<LandingHeaderProps> = ({
           padding: 0;
         }
         .nav-link:hover {
-          color: var(--text, #ffffff);
+          color: var(--text, var(--white));
           opacity: 1;
           transform: translateY(-1px);
         }
@@ -247,15 +249,15 @@ export const LandingHeader: React.FC<LandingHeaderProps> = ({
           width: 36px;
           height: 36px;
           border-radius: 10px;
-          border: 1px solid var(--border, rgba(148, 163, 184, 0.12));
-          background: color-mix(in srgb, var(--card-strong, rgba(148, 163, 184, 0.08)) 70%, transparent);
-          color: var(--muted, #94a3b8);
+          border: 1px solid var(--border, rgba(var(--slate-400-rgb), 0.12));
+          background: color-mix(in srgb, var(--card-strong, rgba(var(--slate-400-rgb), 0.08)) 70%, transparent);
+          color: var(--muted, var(--slate-400));
           cursor: pointer;
           transition: background 180ms ease, color 180ms ease;
         }
         .nav-theme-btn:hover {
-          background: color-mix(in srgb, var(--card-strong, rgba(148, 163, 184, 0.16)) 92%, transparent);
-          color: var(--text, #ffffff);
+          background: color-mix(in srgb, var(--card-strong, rgba(var(--slate-400-rgb), 0.16)) 92%, transparent);
+          color: var(--text, var(--white));
         }
         .nav-action-btn {
           display: none;
@@ -280,21 +282,21 @@ export const LandingHeader: React.FC<LandingHeaderProps> = ({
           transform: translateY(-2px);
         }
         .btn-primary {
-          color: #111827;
-          background: linear-gradient(135deg, var(--brass, #D6A84F), var(--amber, #F59E0B) 70%);
-          box-shadow: 0 14px 34px rgba(214, 168, 79, 0.30);
+          color: var(--ink);
+          background: linear-gradient(135deg, var(--brass, var(--brass)), var(--amber, var(--amber)) 70%);
+          box-shadow: 0 14px 34px rgba(var(--brass-rgb), 0.3);
         }
         .btn-primary:hover {
-          box-shadow: 0 18px 44px rgba(245, 158, 11, 0.34);
+          box-shadow: 0 18px 44px rgba(var(--amber-rgb), 0.34);
         }
         .btn-ghost {
-          background: color-mix(in srgb, var(--card-strong, rgba(148, 163, 184, 0.08)) 70%, transparent);
-          border-color: var(--border, rgba(148, 163, 184, 0.12));
+          background: color-mix(in srgb, var(--card-strong, rgba(var(--slate-400-rgb), 0.08)) 70%, transparent);
+          border-color: var(--border, rgba(var(--slate-400-rgb), 0.12));
           color: var(--soft, #cbd5e1);
         }
         .btn-ghost:hover {
-          background: color-mix(in srgb, var(--card-strong, rgba(148, 163, 184, 0.13)) 88%, transparent);
-          color: var(--text, #ffffff);
+          background: color-mix(in srgb, var(--card-strong, rgba(var(--slate-400-rgb), 0.13)) 88%, transparent);
+          color: var(--text, var(--white));
         }
         .mobile-controls {
           display: none;
@@ -306,18 +308,18 @@ export const LandingHeader: React.FC<LandingHeaderProps> = ({
           width: 36px;
           height: 36px;
           border-radius: 10px;
-          border: 1px solid var(--border, rgba(148, 163, 184, 0.12));
-          background: color-mix(in srgb, var(--card-strong, rgba(148, 163, 184, 0.08)) 70%, transparent);
+          border: 1px solid var(--border, rgba(var(--slate-400-rgb), 0.12));
+          background: color-mix(in srgb, var(--card-strong, rgba(var(--slate-400-rgb), 0.08)) 70%, transparent);
           color: var(--soft, #cbd5e1);
           cursor: pointer;
         }
         .nav-mobile-btn:hover {
-          background: color-mix(in srgb, var(--card-strong, rgba(148, 163, 184, 0.16)) 92%, transparent);
-          color: var(--text, #ffffff);
+          background: color-mix(in srgb, var(--card-strong, rgba(var(--slate-400-rgb), 0.16)) 92%, transparent);
+          color: var(--text, var(--white));
         }
         .mobile-menu {
-          background: color-mix(in srgb, var(--bg-950, #050815) 96%, transparent);
-          border-bottom: 1px solid var(--border, rgba(148, 163, 184, 0.1));
+          background: color-mix(in srgb, var(--bg-950, var(--nav-bg-rgb)) 96%, transparent);
+          border-bottom: 1px solid var(--border, rgba(var(--slate-400-rgb), 0.1));
         }
         .mobile-menu-inner {
           padding: 12px 20px;
@@ -344,8 +346,8 @@ export const LandingHeader: React.FC<LandingHeaderProps> = ({
           text-decoration: none;
         }
         .mobile-link:hover {
-          background: color-mix(in srgb, var(--card-strong, rgba(148, 163, 184, 0.1)) 78%, transparent);
-          color: var(--text, #ffffff);
+          background: color-mix(in srgb, var(--card-strong, rgba(var(--slate-400-rgb), 0.1)) 78%, transparent);
+          color: var(--text, var(--white));
         }
 
         .mobile-theme-toggle {
@@ -354,8 +356,8 @@ export const LandingHeader: React.FC<LandingHeaderProps> = ({
           align-items: center;
           gap: 10px;
           padding: 12px 16px;
-          background: color-mix(in srgb, var(--card-strong, rgba(148, 163, 184, 0.08)) 74%, transparent);
-          border: 1px solid var(--border, rgba(148, 163, 184, 0.12));
+          background: color-mix(in srgb, var(--card-strong, rgba(var(--slate-400-rgb), 0.08)) 74%, transparent);
+          border: 1px solid var(--border, rgba(var(--slate-400-rgb), 0.12));
           color: var(--soft, #cbd5e1);
           font-size: 15px;
           font-weight: 700;
@@ -365,8 +367,8 @@ export const LandingHeader: React.FC<LandingHeaderProps> = ({
           font-family: inherit;
         }
         .mobile-theme-toggle:hover {
-          background: color-mix(in srgb, var(--card-strong, rgba(148, 163, 184, 0.16)) 94%, transparent);
-          color: var(--text, #ffffff);
+          background: color-mix(in srgb, var(--card-strong, rgba(var(--slate-400-rgb), 0.16)) 94%, transparent);
+          color: var(--text, var(--white));
           transform: translateY(-1px);
         }
         .mobile-theme-icon {
@@ -376,13 +378,13 @@ export const LandingHeader: React.FC<LandingHeaderProps> = ({
           align-items: center;
           justify-content: center;
           border-radius: 8px;
-          background: linear-gradient(135deg, var(--brass, #D6A84F), var(--amber, #F59E0B));
-          color: #111827;
+          background: linear-gradient(135deg, var(--brass, var(--brass)), var(--amber, var(--amber)));
+          color: var(--ink);
         }
 
         .mobile-divider {
           height: 1px;
-          background: var(--border, rgba(148, 163, 184, 0.12));
+          background: var(--border, rgba(var(--slate-400-rgb), 0.12));
           margin: 8px 0;
         }
         .mobile-cta {
@@ -390,14 +392,14 @@ export const LandingHeader: React.FC<LandingHeaderProps> = ({
           width: 100%;
           text-align: center;
           padding: 14px;
-          background: linear-gradient(135deg, var(--brass, #D6A84F), var(--amber, #F59E0B) 70%);
-          color: #111827;
+          background: linear-gradient(135deg, var(--brass, var(--brass)), var(--amber, var(--amber)) 70%);
+          color: var(--ink);
           font-weight: 800;
           font-size: 15px;
           border: none;
           border-radius: 12px;
           cursor: pointer;
-          box-shadow: 0 14px 34px rgba(214, 168, 79, 0.30);
+          box-shadow: 0 14px 34px rgba(var(--brass-rgb), 0.3);
           font-family: inherit;
         }
         @media (min-width: 781px) {

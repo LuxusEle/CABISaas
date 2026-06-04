@@ -62,7 +62,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
         <meta name="description" content="Cloud-based cabinet engineering platform with 3D design, BOM generation, DXF/CNC export, and quote-ready PDF reports." />
       </Helmet>
 
-      <div ref={pageRef} className={`lp-landing ${isDark ? 'lp-dark-theme' : 'lp-light-theme'}`} style={{ position: 'relative', minHeight: '100vh', overflowX: 'hidden' }}>
+      <div ref={pageRef} className={`lp-landing ${isDark ? 'lp-dark-theme' : 'lp-light-theme'}`} style={{ position: 'relative', minHeight: '100vh' }}>
         <LandingHeader
           onSignIn={onSignIn}
           onGetStarted={onGetStarted}
@@ -356,10 +356,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
           .lp-landing {
             font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
             background:
-              radial-gradient(circle at 18% 6%, rgba(122, 78, 45, 0.28), transparent 28%),
-              radial-gradient(circle at 82% 16%, rgba(214, 168, 79, 0.15), transparent 24%),
-              radial-gradient(circle at 56% 0%, rgba(143, 175, 141, 0.08), transparent 30%),
-              linear-gradient(180deg, var(--bg-950), var(--bg-900) 38%, var(--bg-950) 100%);
+              radial-gradient(circle at 18% 6%, rgba(var(--wood-walnut-rgb), 0.28), transparent 28%),
+              radial-gradient(circle at 82% 16%, rgba(var(--brass-rgb), 0.15), transparent 24%),
+              radial-gradient(circle at 56% 0%, rgba(var(--sage-rgb), 0.08), transparent 30%),
+              linear-gradient(180deg, var(--bg-950), var(--bg-900) 38%, #06080D 100%);
             color: var(--text);
             -webkit-font-smoothing: antialiased;
           }
@@ -372,7 +372,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
               linear-gradient(var(--grid-line) 1px, transparent 1px),
               linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
             background-size: 72px 72px;
-            mask-image: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent 78%);
+            mask-image: linear-gradient(to bottom, rgba(var(--black-rgb), 0.8), transparent 78%);
             z-index: -1;
           }
           .lp-landing a { color: inherit; text-decoration: none; }
@@ -397,9 +397,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             gap: 9px;
             padding: 7px 12px;
             border-radius: 999px;
-            border: 1px solid rgba(214, 168, 79, 0.40);
-            background: rgba(122, 78, 45, 0.16);
-            color: #F4D79B;
+            border: 1px solid rgba(var(--brass-rgb), 0.4);
+            background: rgba(var(--wood-walnut-rgb), 0.16);
+            color: var(--amber-light);
             font-weight: 800;
             font-size: 12px;
             letter-spacing: 0.02em;
@@ -410,13 +410,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             height: 7px;
             border-radius: 50%;
             background: var(--sage);
-            box-shadow: 0 0 0 rgba(143, 175, 141, 0.7);
+            box-shadow: 0 0 0 rgba(var(--sage-rgb), 0.7);
             animation: pulse 1.8s infinite;
           }
           @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(143, 175, 141, 0.5); }
-            70% { box-shadow: 0 0 0 9px rgba(143, 175, 141, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(143, 175, 141, 0); }
+            0% { box-shadow: 0 0 0 0 rgba(var(--sage-rgb), 0.5); }
+            70% { box-shadow: 0 0 0 9px rgba(var(--sage-rgb), 0); }
+            100% { box-shadow: 0 0 0 0 rgba(var(--sage-rgb), 0); }
           }
           .lp-landing h1 {
             font-size: clamp(44px, 7vw, 82px);
@@ -425,7 +425,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             margin-bottom: 24px;
           }
           .lp-landing .gradient-text {
-            background: linear-gradient(135deg, #F4D79B, var(--brass) 50%, var(--wood-oak));
+            background: linear-gradient(135deg, var(--amber-light), var(--brass) 50%, var(--wood-oak));
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
@@ -465,29 +465,29 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
           }
           .lp-landing .btn-primary {
             color: white;
-            color: #111827;
+            color: var(--ink);
             background: linear-gradient(135deg, var(--brass), var(--amber) 70%);
-            box-shadow: 0 14px 34px rgba(214, 168, 79, 0.30);
+            box-shadow: 0 14px 34px rgba(var(--brass-rgb), 0.3);
           }
           .lp-landing .btn-primary:hover {
-            box-shadow: 0 18px 44px rgba(245, 158, 11, 0.34);
+            box-shadow: 0 18px 44px rgba(var(--amber-rgb), 0.34);
           }
           .lp-landing .btn-secondary {
-            color: #fef3c7;
-            background: rgba(245, 158, 11, 0.08);
-            border-color: rgba(245, 158, 11, 0.42);
+            color: var(--cream);
+            background: rgba(var(--amber-rgb), 0.08);
+            border-color: rgba(var(--amber-rgb), 0.42);
           }
           .lp-landing .btn-secondary:hover {
-            background: rgba(245, 158, 11, 0.14);
-            box-shadow: 0 14px 34px rgba(245, 158, 11, 0.12);
+            background: rgba(var(--amber-rgb), 0.14);
+            box-shadow: 0 14px 34px rgba(var(--amber-rgb), 0.12);
           }
           .lp-landing .btn-ghost {
-            background: rgba(148, 163, 184, 0.08);
-            border-color: rgba(148, 163, 184, 0.12);
+            background: rgba(var(--slate-400-rgb), 0.08);
+            border-color: rgba(var(--slate-400-rgb), 0.12);
             color: var(--soft);
           }
           .lp-landing .btn-ghost:hover {
-            background: rgba(148, 163, 184, 0.13);
+            background: rgba(var(--slate-400-rgb), 0.13);
             color: white;
           }
           .lp-landing .micro-trust {
@@ -508,7 +508,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             border-radius: 50%;
             display: grid;
             place-items: center;
-            background: linear-gradient(135deg, #334155, #64748b);
+            background: linear-gradient(135deg, var(--slate-700), var(--slate-500));
             border: 2px solid var(--bg-950);
             margin-left: -8px;
             font-size: 11px;
@@ -516,7 +516,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
           }
           .lp-landing .avatar:first-child { margin-left: 0; }
           .lp-landing .stars {
-            color: #facc15;
+            color: var(--yellow);
             letter-spacing: 1px;
           }
           .lp-landing .hero-visual {
@@ -531,7 +531,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             width: 420px;
             height: 420px;
             border-radius: 50%;
-            background: radial-gradient(circle, rgba(214, 168, 79, 0.22), transparent 67%);
+            background: radial-gradient(circle, rgba(var(--brass-rgb), 0.22), transparent 67%);
             filter: blur(8px);
             animation: float 7s ease-in-out infinite;
           }
@@ -544,10 +544,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             z-index: 6;
             padding: 13px 14px;
             border-radius: 16px;
-            background: rgba(15, 23, 42, 0.86);
+            background: rgba(var(--slate-900-rgb), 0.86);
             backdrop-filter: blur(14px);
-            border: 1px solid rgba(148, 163, 184, 0.17);
-            box-shadow: 0 18px 46px rgba(0,0,0,0.32);
+            border: 1px solid rgba(var(--slate-400-rgb), 0.17);
+            box-shadow: 0 18px 46px rgba(var(--black-rgb), 0.32);
             color: white;
             animation: float 6s ease-in-out infinite;
           }
@@ -564,9 +564,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             width: min(100%, 720px);
             border-radius: 24px;
             overflow: hidden;
-            background: rgba(15, 23, 42, 0.94);
-            border: 1px solid rgba(148, 163, 184, 0.18);
-            box-shadow: var(--shadow), 0 0 0 1px rgba(255,255,255,0.03) inset;
+            background: rgba(var(--slate-900-rgb), 0.94);
+            border: 1px solid rgba(var(--slate-400-rgb), 0.18);
+            box-shadow: var(--shadow), 0 0 0 1px rgba(var(--white-rgb), 0.03) inset;
             transform: perspective(1100px) rotateY(-6deg) rotateX(3deg);
             animation: windowIn 700ms ease both;
           }
@@ -580,14 +580,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             align-items: center;
             justify-content: space-between;
             padding: 0 16px;
-            border-bottom: 1px solid rgba(148, 163, 184, 0.14);
-            background: rgba(2, 6, 23, 0.48);
+            border-bottom: 1px solid rgba(var(--slate-400-rgb), 0.14);
+            background: rgba(var(--slate-950-rgb), 0.48);
           }
           .lp-landing .dots { display: flex; gap: 7px; }
           .lp-landing .dot { width: 10px; height: 10px; border-radius: 50%; }
-          .lp-landing .dot:nth-child(1) { background: #fb7185; }
-          .lp-landing .dot:nth-child(2) { background: #facc15; }
-          .lp-landing .dot:nth-child(3) { background: #8FAF8D; }
+          .lp-landing .dot:nth-child(1) { background: var(--pink); }
+          .lp-landing .dot:nth-child(2) { background: var(--yellow); }
+          .lp-landing .dot:nth-child(3) { background: var(--sage); }
           .lp-landing .window-title {
             color: var(--muted);
             font-size: 12px;
@@ -599,9 +599,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             font-weight: 900;
             padding: 5px 7px;
             border-radius: 8px;
-            background: rgba(255,255,255,0.08);
-            color: #F4D79B;
-            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(var(--white-rgb), 0.08);
+            color: var(--amber-light);
+            border: 1px solid rgba(var(--white-rgb), 0.1);
           }
           .lp-landing .scan-line {
             position: absolute;
@@ -609,8 +609,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             left: 26px;
             right: 26px;
             height: 2px;
-            background: linear-gradient(90deg, transparent, rgba(214, 168, 79, 0.9), transparent);
-            filter: drop-shadow(0 0 12px rgba(214, 168, 79, 0.68));
+            background: linear-gradient(90deg, transparent, rgba(var(--brass-rgb), 0.9), transparent);
+            filter: drop-shadow(0 0 12px rgba(var(--brass-rgb), 0.68));
             animation: scan 3.4s ease-in-out infinite;
           }
           @keyframes scan {
@@ -622,7 +622,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
           .lp-landing .hero-media-shell {
             position: relative;
             min-height: 484px;
-            background: #05070B;
+            background: var(--bg-hero);
             overflow: hidden;
           }
           .lp-landing .hero-video-clickable {
@@ -638,12 +638,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             gap: 10px;
             padding: 9px 18px 9px 20px;
             border-radius: 999px;
-            background: rgba(15, 23, 42, 0.55);
+            background: rgba(var(--slate-900-rgb), 0.55);
             backdrop-filter: blur(18px) saturate(1.4);
             -webkit-backdrop-filter: blur(18px) saturate(1.4);
-            border: 1px solid rgba(214, 168, 79, 0.35);
-            box-shadow: 0 8px 32px rgba(0,0,0,0.35), 0 0 0 1px rgba(214, 168, 79, 0.10) inset;
-            color: #FEF3C7;
+            border: 1px solid rgba(var(--brass-rgb), 0.35);
+            box-shadow: 0 8px 32px rgba(var(--black-rgb), 0.35), 0 0 0 1px rgba(var(--brass-rgb), 0.1) inset;
+            color: var(--cream);
             font-weight: 900;
             font-size: 12px;
             letter-spacing: 0.02em;
@@ -683,8 +683,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             inset: 0;
             pointer-events: none;
             background:
-              radial-gradient(circle at 20% 0%, rgba(214, 168, 79, 0.13), transparent 34%),
-              linear-gradient(180deg, rgba(2, 6, 23, 0.05), rgba(2, 6, 23, 0.22));
+              radial-gradient(circle at 20% 0%, rgba(var(--brass-rgb), 0.13), transparent 34%),
+              linear-gradient(180deg, rgba(var(--slate-950-rgb), 0.05), rgba(var(--slate-950-rgb), 0.22));
           }
           .lp-landing .media-caption-bar {
             position: absolute;
@@ -698,8 +698,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             gap: 12px;
             padding: 12px 14px;
             border-radius: 14px;
-            background: rgba(2, 6, 23, 0.68);
-            border: 1px solid rgba(148, 163, 184, 0.16);
+            background: rgba(var(--slate-950-rgb), 0.68);
+            border: 1px solid rgba(var(--slate-400-rgb), 0.16);
             backdrop-filter: blur(14px);
             color: var(--soft);
             font-size: 12px;
@@ -712,9 +712,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             min-height: 304px;
             border-radius: 18px;
             overflow: hidden;
-            border: 1px solid rgba(148, 163, 184, 0.14);
-            background: rgba(2, 6, 23, 0.42);
-            box-shadow: 0 18px 46px rgba(0,0,0,0.22);
+            border: 1px solid rgba(var(--slate-400-rgb), 0.14);
+            background: rgba(var(--slate-950-rgb), 0.42);
+            box-shadow: 0 18px 46px rgba(var(--black-rgb), 0.22);
           }
           .lp-landing .real-media-card .real-product-image {
             min-height: 304px;
@@ -728,9 +728,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
           .lp-landing .workflow-media-card {
             border-radius: 20px;
             overflow: hidden;
-            border: 1px solid rgba(214, 168, 79, 0.18);
-            background: rgba(19, 27, 39, 0.78);
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(var(--brass-rgb), 0.18);
+            background: var(--card);
+            box-shadow: 0 20px 60px rgba(var(--black-rgb), 0.2);
           }
           .lp-landing .workflow-media-card img {
             width: 100%;
@@ -740,7 +740,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
           }
           .lp-landing .workflow-media-copy {
             padding: 18px 20px;
-            border-top: 1px solid rgba(148, 163, 184, 0.1);
+            border-top: 1px solid rgba(var(--slate-400-rgb), 0.1);
           }
           .lp-landing .workflow-media-copy h3 {
             font-size: 17px;
@@ -752,9 +752,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             font-size: 13px;
           }
           .lp-landing .proof-strip {
-            border-top: 1px solid rgba(148, 163, 184, 0.1);
-            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
-            background: rgba(15, 23, 42, 0.32);
+            border-top: 1px solid rgba(var(--slate-400-rgb), 0.1);
+            border-bottom: 1px solid rgba(var(--slate-400-rgb), 0.1);
+            background: rgba(var(--slate-900-rgb), 0.32);
             backdrop-filter: blur(18px);
           }
           .lp-landing .proof-grid {
@@ -770,12 +770,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             transition: background 180ms ease, transform 180ms ease;
           }
           .lp-landing .proof-item:hover {
-            background: rgba(214, 168, 79, 0.09);
+            background: rgba(var(--brass-rgb), 0.09);
             transform: translateY(-3px);
           }
           .lp-landing .proof-item strong {
             display: block;
-            color: #D6A84F;
+            color: var(--brass);
             font-size: 23px;
             margin-bottom: 4px;
           }
@@ -819,7 +819,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
           .lp-landing .showcase-main, .lp-landing .showcase-side {
             border: 1px solid var(--border);
             background: var(--card);
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 20px 60px rgba(var(--black-rgb), 0.2);
           }
           .lp-landing .showcase-main {
             border-radius: var(--radius-lg);
@@ -841,9 +841,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             min-height: 360px;
             border-radius: 22px;
             background:
-              linear-gradient(135deg, rgba(2, 6, 23, 0.65), rgba(15, 23, 42, 0.92)),
-              radial-gradient(circle at 72% 32%, rgba(122, 78, 45, 0.26), transparent 28%);
-            border: 1px solid rgba(148, 163, 184, 0.13);
+              linear-gradient(135deg, rgba(var(--slate-950-rgb), 0.65), rgba(var(--slate-900-rgb), 0.92)),
+              radial-gradient(circle at 72% 32%, rgba(var(--wood-walnut-rgb), 0.26), transparent 28%);
+            border: 1px solid rgba(var(--slate-400-rgb), 0.13);
             position: relative;
             overflow: hidden;
             padding: 28px;
@@ -860,8 +860,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
           .lp-landing .mini-card {
             padding: 18px;
             border-radius: 18px;
-            background: rgba(2, 6, 23, 0.3);
-            border: 1px solid rgba(148, 163, 184, 0.12);
+            background: rgba(var(--slate-950-rgb), 0.3);
+            border: 1px solid rgba(var(--slate-400-rgb), 0.12);
           }
           .lp-landing .mini-card h4 {
             margin-bottom: 8px;
@@ -875,7 +875,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
           .lp-landing .progress {
             height: 8px;
             border-radius: 999px;
-            background: rgba(148, 163, 184, 0.12);
+            background: rgba(var(--slate-400-rgb), 0.12);
             overflow: hidden;
             margin-top: 12px;
           }
@@ -909,21 +909,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             overflow: hidden;
             border: 1px solid var(--border);
             background: var(--card);
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 20px 60px rgba(var(--black-rgb), 0.2);
             transition: transform 220ms ease, border-color 220ms ease, background 220ms ease;
           }
           .lp-landing .feature-card::before {
             content: "";
             position: absolute;
             inset: -1px;
-            background: radial-gradient(circle at 20% 0%, rgba(214, 168, 79, 0.20), transparent 34%);
+            background: radial-gradient(circle at 20% 0%, rgba(var(--brass-rgb), 0.2), transparent 34%);
             opacity: 0;
             transition: opacity 220ms ease;
             pointer-events: none;
           }
           .lp-landing .feature-card:hover {
             transform: translateY(-8px);
-            border-color: rgba(214, 168, 79, 0.36);
+            border-color: rgba(var(--brass-rgb), 0.36);
             background: var(--card-strong);
           }
           .lp-landing .feature-card:hover::before { opacity: 1; }
@@ -933,9 +933,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             border-radius: 14px;
             display: grid;
             place-items: center;
-            background: rgba(214, 168, 79, 0.15);
-            border: 1px solid rgba(214, 168, 79, 0.24);
-            color: #F4D79B;
+            background: rgba(var(--brass-rgb), 0.15);
+            border: 1px solid rgba(var(--brass-rgb), 0.24);
+            color: var(--amber-light);
             font-size: 22px;
             margin-bottom: 22px;
           }
@@ -959,14 +959,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
           }
           .lp-landing .tick-list li::before {
             content: "✓";
-            color: #D6A84F;
+            color: var(--brass);
             margin-right: 8px;
             font-weight: 900;
           }
           .lp-landing .workflow {
-            background: rgba(15, 23, 42, 0.34);
-            border-top: 1px solid rgba(148, 163, 184, 0.08);
-            border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+            background: rgba(var(--slate-900-rgb), 0.34);
+            border-top: 1px solid rgba(var(--slate-400-rgb), 0.08);
+            border-bottom: 1px solid rgba(var(--slate-400-rgb), 0.08);
           }
           .lp-landing .workflow-grid {
             display: grid;
@@ -977,11 +977,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
           .lp-landing .workflow-step {
             padding: 24px;
             border-radius: 20px;
-            background: rgba(15, 23, 42, 0.68);
-            border: 1px solid rgba(148, 163, 184, 0.13);
+            background: rgba(var(--slate-900-rgb), 0.68);
+            border: 1px solid rgba(var(--slate-400-rgb), 0.13);
             position: relative;
             min-height: 190px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 20px 60px rgba(var(--black-rgb), 0.2);
           }
           .lp-landing .step-number {
             width: 40px;
@@ -992,7 +992,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             place-items: center;
             font-weight: 900;
             margin-bottom: 18px;
-            box-shadow: 0 12px 28px rgba(214, 168, 79, 0.22);
+            box-shadow: 0 12px 28px rgba(var(--brass-rgb), 0.22);
           }
           .lp-landing .workflow-step h3 {
             font-size: 17px;
@@ -1012,7 +1012,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
           .lp-landing .stat-card {
             border: 1px solid var(--border);
             background: var(--card);
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 20px 60px rgba(var(--black-rgb), 0.2);
             border-radius: 20px;
             padding: 24px;
             text-align: center;
@@ -1021,7 +1021,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             display: block;
             font-size: 31px;
             letter-spacing: -0.04em;
-            color: #F4D79B;
+            color: var(--amber-light);
             margin-bottom: 6px;
           }
           .lp-landing .stat-card span {
@@ -1042,11 +1042,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             padding: 30px;
             border: 1px solid var(--border);
             background: var(--card);
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 20px 60px rgba(var(--black-rgb), 0.2);
           }
           .lp-landing .pricing-card.featured {
             border-color: var(--border-strong);
-            box-shadow: 0 24px 80px rgba(214, 168, 79, 0.18);
+            box-shadow: 0 24px 80px rgba(var(--brass-rgb), 0.18);
             transform: scale(1.025);
           }
           .lp-landing .popular {
@@ -1055,8 +1055,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             right: 22px;
             padding: 6px 12px;
             border-radius: 999px;
-            background: linear-gradient(135deg, #F4D79B, var(--brass));
-            color: #111827;
+            background: linear-gradient(135deg, var(--amber-light), var(--brass));
+            color: var(--ink);
             font-size: 11px;
             font-weight: 950;
           }
@@ -1095,7 +1095,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             max-width: 850px;
             border: 1px solid var(--border);
             background: var(--card);
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 20px 60px rgba(var(--black-rgb), 0.2);
             border-radius: 24px;
             padding: 12px;
             overflow: hidden;
@@ -1109,7 +1109,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
           .lp-landing .comparison-table th,
           .lp-landing .comparison-table td {
             padding: 16px;
-            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+            border-bottom: 1px solid rgba(var(--slate-400-rgb), 0.1);
             color: var(--soft);
             text-align: center;
             font-size: 14px;
@@ -1120,12 +1120,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
           }
           .lp-landing .comparison-table th {
             color: white;
-            background: rgba(2, 6, 23, 0.28);
+            background: rgba(var(--slate-950-rgb), 0.28);
             font-weight: 900;
           }
           .lp-landing .comparison-table tr:last-child td { border-bottom: 0; }
-          .lp-landing .yes { color: #8FAF8D; font-weight: 900; }
-          .lp-landing .no { color: #E07A5F; font-weight: 900; }
+          .lp-landing .yes { color: var(--sage); font-weight: 900; }
+          .lp-landing .no { color: var(--terracotta); font-weight: 900; }
           .lp-landing .contact-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -1134,13 +1134,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
           .lp-landing .contact-card {
             border: 1px solid var(--border);
             background: var(--card);
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 20px 60px rgba(var(--black-rgb), 0.2);
             border-radius: 20px;
             padding: 24px;
           }
           .lp-landing .contact-card h3 {
             font-size: 15px;
-            color: #F4D79B;
+            color: var(--amber-light);
             text-transform: uppercase;
             letter-spacing: 0.09em;
             margin-bottom: 16px;
@@ -1153,8 +1153,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
           .lp-landing .final-cta {
             padding: 86px 0;
             background:
-              radial-gradient(circle at 50% 0%, rgba(255,255,255,0.18), transparent 30%),
-              linear-gradient(135deg, #3A2416, #7A4E2D 52%, #0D131C);
+              radial-gradient(circle at 50% 0%, rgba(var(--white-rgb), 0.18), transparent 30%),
+              linear-gradient(135deg, var(--wood-dark), var(--wood-walnut) 52%, var(--bg-900));
             text-align: center;
           }
           .lp-landing .final-cta h2 {
@@ -1165,15 +1165,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             color: var(--text);
           }
           .lp-landing .final-cta p {
-            color: #F4D79B;
+            color: var(--amber-light);
             max-width: 620px;
             margin: 0 auto 28px;
             line-height: 1.7;
           }
           .lp-landing footer {
             padding: 28px 0;
-            background: #05070B;
-            border-top: 1px solid rgba(148, 163, 184, 0.08);
+            background: var(--bg-hero);
+            border-top: 1px solid rgba(var(--slate-400-rgb), 0.08);
           }
           .lp-landing .footer-inner {
             display: flex;
@@ -1189,7 +1189,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             gap: 12px;
             font-weight: 800;
             letter-spacing: -0.03em;
-            color: #f8fafc;
+            color: var(--slate-50);
           }
           .lp-landing .footer-inner .brand-mark {
             width: 34px;
@@ -1198,7 +1198,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             display: grid;
             place-items: center;
             background: linear-gradient(135deg, var(--brass), var(--wood-walnut));
-            box-shadow: 0 12px 32px rgba(214, 168, 79, 0.28);
+            box-shadow: 0 12px 32px rgba(var(--brass-rgb), 0.28);
             font-size: 14px;
             color: white;
           }
@@ -1207,7 +1207,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
           }
           .lp-landing .footer-inner .brand-text small {
             display: block;
-            color: #94a3b8;
+            color: var(--slate-400);
             font-size: 10px;
             letter-spacing: 0.06em;
             text-transform: uppercase;
@@ -1225,31 +1225,31 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             color: white;
           }
           .lp-light-theme .eyebrow {
-            background: rgba(255, 250, 241, 0.74);
+            background: rgba(var(--off-white-rgb), 0.74);
             color: var(--wood-dark);
-            border-color: rgba(184, 135, 47, 0.34);
-            box-shadow: 0 10px 30px rgba(58, 36, 22, 0.08);
+            border-color: rgba(var(--light-brass-rgb), 0.34);
+            box-shadow: 0 10px 30px rgba(var(--wood-dark-rgb), 0.08);
           }
           .lp-light-theme .btn-secondary {
             color: var(--wood-dark);
-            background: rgba(255, 250, 241, 0.72);
-            border-color: rgba(184, 135, 47, 0.38);
+            background: rgba(var(--off-white-rgb), 0.72);
+            border-color: rgba(var(--light-brass-rgb), 0.38);
           }
           .lp-light-theme .btn-secondary:hover {
-            background: rgba(255, 244, 220, 0.94);
+            background: rgba(var(--cream-rgb), 0.94);
           }
           .lp-light-theme .btn-ghost {
-            background: rgba(122, 78, 45, 0.06);
-            border-color: rgba(122, 78, 45, 0.14);
+            background: rgba(var(--wood-walnut-rgb), 0.06);
+            border-color: rgba(var(--wood-walnut-rgb), 0.14);
             color: var(--wood-dark);
           }
           .lp-light-theme .btn-ghost:hover {
-            background: rgba(122, 78, 45, 0.10);
+            background: rgba(var(--wood-walnut-rgb), 0.1);
             color: var(--wood-dark);
           }
           .lp-light-theme .avatar {
-            background: linear-gradient(135deg, #F1E8DA, #C49A6C);
-            border-color: #FFFDF8;
+            background: linear-gradient(135deg, var(--beige), var(--wood-oak));
+            border-color: var(--off-white);
             color: var(--wood-dark);
           }
           .lp-light-theme .floating-card,
@@ -1269,39 +1269,39 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             box-shadow: var(--shadow);
           }
           .lp-light-theme .app-window {
-            background: linear-gradient(180deg, rgba(255, 250, 241, 0.96), rgba(248, 243, 234, 0.94));
+            background: linear-gradient(180deg, rgba(var(--off-white-rgb), 0.96), rgba(var(--bg-light-900-rgb), 0.94));
           }
           .lp-light-theme .window-top {
-            background: rgba(255, 253, 248, 0.72);
-            border-color: rgba(122, 78, 45, 0.14);
+            background: rgba(var(--off-white-rgb), 0.72);
+            border-color: rgba(var(--wood-walnut-rgb), 0.14);
           }
           .lp-light-theme .showcase-preview {
-            background: linear-gradient(180deg, rgba(255, 250, 241, 0.84), rgba(241, 232, 218, 0.92));
-            border-color: rgba(122, 78, 45, 0.13);
+            background: linear-gradient(180deg, rgba(var(--off-white-rgb), 0.84), rgba(var(--beige-rgb), 0.92));
+            border-color: rgba(var(--wood-walnut-rgb), 0.13);
           }
           .lp-light-theme .chip,
           .lp-light-theme .progress {
-            background: rgba(122, 78, 45, 0.055);
-            border-color: rgba(122, 78, 45, 0.13);
+            background: rgba(var(--wood-walnut-rgb), 0.055);
+            border-color: rgba(var(--wood-walnut-rgb), 0.13);
             color: var(--wood-dark);
           }
           .lp-light-theme .proof-strip {
-            border-color: rgba(122, 78, 45, 0.12);
-            background: rgba(255, 253, 248, 0.46);
+            border-color: rgba(var(--wood-walnut-rgb), 0.12);
+            background: rgba(var(--off-white-rgb), 0.46);
           }
           .lp-light-theme .pricing-card.featured {
-            background: linear-gradient(180deg, rgba(255, 250, 241, 0.98), rgba(248, 243, 234, 0.98));
-            border-color: rgba(184, 135, 47, 0.48);
+            background: linear-gradient(180deg, rgba(var(--off-white-rgb), 0.98), rgba(var(--bg-light-900-rgb), 0.98));
+            border-color: rgba(var(--light-brass-rgb), 0.48);
           }
           .lp-light-theme .final-cta,
           .lp-light-theme footer {
-            background: linear-gradient(135deg, #3A2416, #7A4E2D 58%, #0D131C);
-            color: #F8FAFC;
+            background: linear-gradient(135deg, var(--wood-dark), var(--wood-walnut) 58%, var(--bg-900));
+            color: var(--text);
           }
           .lp-light-theme .final-cta p,
           .lp-light-theme footer,
           .lp-light-theme .footer-links a {
-            color: rgba(248, 250, 252, 0.76);
+            color: rgba(var(--text-rgb), 0.76);
           }
           .lp-light-theme .brand-mark,
           .lp-light-theme .footer-inner .brand-mark {

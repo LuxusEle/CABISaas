@@ -32,8 +32,46 @@
   --radius-md: 18px;
   --radius-sm: 12px;
   --max: 1180px;
+  --amber-light: #F4D79B;
+  --ink: #111827;
+  --cream: #fef3c7;
+  --bg-hero: #05070B;
+  --pink: #fb7185;
+  --yellow: #facc15;
+  --slate-400: #94a3b8;
+  --slate-600: #475569;
+  --slate-700: #334155;
+  --slate-500: #64748b;
+  --slate-50: #f8fafc;
+  --terracotta: #E07A5F;
+  --beige: #F1E8DA;
+  --off-white: #FFFDF8;
+  --slate-900: #0F172A;
+  --bg-light-900: #F8F3EA;
+  --light-brass: #B8872F;
+  --slate-950: #020617;
+  --white: #FFFFFF;
+  --black: #000000;
+  --amber-rgb: 245, 158, 11;
+  --beige-rgb: 241, 232, 218;
+  --bg-light-900-rgb: 248, 243, 234;
+  --black-rgb: 0, 0, 0;
+  --brass-rgb: 214, 168, 79;
+  --cream-rgb: 254, 243, 199;
+  --light-brass-rgb: 184, 135, 47;
+  --off-white-rgb: 255, 253, 248;
+  --sage-rgb: 143, 175, 141;
+  --slate-400-rgb: 148, 163, 184;
+  --slate-500-rgb: 100, 116, 139;
+  --slate-600-rgb: 71, 85, 105;
+  --slate-700-rgb: 51, 65, 85;
+  --slate-900-rgb: 15, 23, 42;
+  --slate-950-rgb: 2, 6, 23;
+  --white-rgb: 255, 255, 255;
+  --wood-dark-rgb: 58, 36, 22;
+  --wood-oak-rgb: 196, 154, 108;
+  --wood-walnut-rgb: 122, 78, 45;
 }
-
 
 /* Landing page light theme variables (cabinet-industry matching light mode) */
 .lp-light-theme {
@@ -67,6 +105,45 @@
   --radius-md: 18px;
   --radius-sm: 12px;
   --max: 1180px;
+  --amber-light: #C49A6C;
+  --ink: #1F2933;
+  --cream: #fef3c7;
+  --bg-hero: #F8F3EA;
+  --pink: #E07A5F;
+  --yellow: #D97706;
+  --slate-400: #94a3b8;
+  --slate-600: #475569;
+  --slate-700: #334155;
+  --slate-500: #64748b;
+  --slate-50: #f8fafc;
+  --terracotta: #E07A5F;
+  --beige: #F1E8DA;
+  --off-white: #FFFDF8;
+  --slate-900: #0F172A;
+  --bg-light-900: #F8F3EA;
+  --light-brass: #B8872F;
+  --slate-950: #020617;
+  --white: #FFFFFF;
+  --black: #000000;
+  --amber-rgb: 245, 158, 11;
+  --beige-rgb: 241, 232, 218;
+  --bg-light-900-rgb: 248, 243, 234;
+  --black-rgb: 0, 0, 0;
+  --brass-rgb: 214, 168, 79;
+  --cream-rgb: 254, 243, 199;
+  --light-brass-rgb: 184, 135, 47;
+  --off-white-rgb: 255, 253, 248;
+  --sage-rgb: 143, 175, 141;
+  --slate-400-rgb: 148, 163, 184;
+  --slate-500-rgb: 100, 116, 139;
+  --slate-600-rgb: 71, 85, 105;
+  --slate-700-rgb: 51, 65, 85;
+  --slate-900-rgb: 15, 23, 42;
+  --slate-950-rgb: 2, 6, 23;
+  --white-rgb: 255, 255, 255;
+  --wood-dark-rgb: 58, 36, 22;
+  --wood-oak-rgb: 196, 154, 108;
+  --wood-walnut-rgb: 122, 78, 45;
 }
 
 :root {
