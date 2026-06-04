@@ -1,0 +1,1542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cabinetrix Pro — Cabinet Design & Manufacturing SaaS</title>
+  <meta name="description" content="Cloud-based cabinet engineering platform with 3D design, BOM generation, DXF/CNC export, and quote-ready PDF reports." />
+  <style>
+    :root {
+      --bg-950: #070A0F;
+      --bg-900: #0D131C;
+      --bg-850: #101823;
+      --bg-800: #131B27;
+      --card: rgba(19, 27, 39, 0.78);
+      --card-strong: rgba(24, 32, 43, 0.94);
+      --border: rgba(214, 168, 79, 0.18);
+      --border-strong: rgba(214, 168, 79, 0.58);
+      --text: #F8FAFC;
+      --muted: #9AA7B7;
+      --soft: #D7DEE8;
+      --wood-walnut: #7A4E2D;
+      --wood-oak: #C49A6C;
+      --wood-dark: #3A2416;
+      --brass: #D6A84F;
+      --amber: #F59E0B;
+      --sage: #8FAF8D;
+      --olive: #5F7A46;
+      --purple: #8B5CF6;
+      --purple-2: #A78BFA;
+      --purple-3: #6D28D9;
+      --orange: #F59E0B;
+      --green: #8FAF8D;
+      --cyan: #C49A6C;
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
+      --radius-lg: 28px;
+      --radius-md: 18px;
+      --radius-sm: 12px;
+      --max: 1180px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 18% 6%, rgba(122, 78, 45, 0.28), transparent 28%),
+        radial-gradient(circle at 82% 16%, rgba(214, 168, 79, 0.15), transparent 24%),
+        radial-gradient(circle at 56% 0%, rgba(143, 175, 141, 0.08), transparent 30%),
+        linear-gradient(180deg, var(--bg-950), var(--bg-900) 38%, #06080D 100%);
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+      background-size: 72px 72px;
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent 78%);
+      z-index: -2;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .container {
+      width: min(var(--max), calc(100% - 40px));
+      margin-inline: auto;
+    }
+
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(22px);
+      background: rgba(5, 8, 21, 0.72);
+      border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+    }
+
+    .nav-inner {
+      height: 74px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
+
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, var(--brass), var(--wood-walnut));
+      box-shadow: 0 12px 32px rgba(214, 168, 79, 0.28);
+      font-size: 14px;
+    }
+
+    .brand small {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-top: -2px;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 26px;
+      color: var(--soft);
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .nav-links a {
+      opacity: 0.86;
+      transition: color 180ms ease, opacity 180ms ease, transform 180ms ease;
+    }
+
+    .nav-links a:hover {
+      color: white;
+      opacity: 1;
+      transform: translateY(-1px);
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      height: 44px;
+      padding: 0 18px;
+      border-radius: 12px;
+      border: 1px solid transparent;
+      font-weight: 800;
+      font-size: 14px;
+      cursor: pointer;
+      transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease, background 180ms ease;
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .btn-primary {
+      color: #111827;
+      background: linear-gradient(135deg, var(--brass), var(--amber) 70%);
+      box-shadow: 0 14px 34px rgba(214, 168, 79, 0.30);
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 18px 44px rgba(245, 158, 11, 0.34);
+    }
+
+    .btn-secondary {
+      color: #fef3c7;
+      background: rgba(245, 158, 11, 0.08);
+      border-color: rgba(245, 158, 11, 0.42);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(245, 158, 11, 0.14);
+      box-shadow: 0 14px 34px rgba(245, 158, 11, 0.12);
+    }
+
+    .btn-ghost {
+      background: rgba(148, 163, 184, 0.08);
+      border-color: rgba(148, 163, 184, 0.12);
+      color: var(--soft);
+    }
+
+    .btn-ghost:hover {
+      background: rgba(148, 163, 184, 0.13);
+      color: white;
+    }
+
+    .hero {
+      position: relative;
+      padding: 92px 0 72px;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.05fr;
+      align-items: center;
+      gap: 58px;
+    }
+
+    .eyebrow {
+      width: fit-content;
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(214, 168, 79, 0.40);
+      background: rgba(122, 78, 45, 0.16);
+      color: #F4D79B;
+      font-weight: 800;
+      font-size: 12px;
+      letter-spacing: 0.02em;
+      margin-bottom: 22px;
+    }
+
+    .pulse-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--sage);
+      box-shadow: 0 0 0 rgba(143, 175, 141, 0.7);
+      animation: pulse 1.8s infinite;
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(143, 175, 141, 0.5); }
+      70% { box-shadow: 0 0 0 9px rgba(143, 175, 141, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(143, 175, 141, 0); }
+    }
+
+    h1 {
+      font-size: clamp(44px, 7vw, 82px);
+      line-height: 0.94;
+      letter-spacing: -0.075em;
+      margin-bottom: 24px;
+    }
+
+    .gradient-text {
+      background: linear-gradient(135deg, #F4D79B, var(--brass) 50%, var(--wood-oak));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .hero-copy {
+      color: var(--soft);
+      font-size: 18px;
+      line-height: 1.7;
+      max-width: 620px;
+      margin-bottom: 30px;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+
+    .micro-trust {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 16px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .avatars {
+      display: flex;
+      align-items: center;
+    }
+
+    .avatar {
+      width: 31px;
+      height: 31px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, #334155, #64748b);
+      border: 2px solid var(--bg-950);
+      margin-left: -8px;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .avatar:first-child { margin-left: 0; }
+
+    .stars {
+      color: #facc15;
+      letter-spacing: 1px;
+    }
+
+    .hero-visual {
+      position: relative;
+      min-height: 560px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .glow-orb {
+      position: absolute;
+      width: 420px;
+      height: 420px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(214, 168, 79, 0.22), transparent 67%);
+      filter: blur(8px);
+      animation: float 7s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%,100% { transform: translateY(0); }
+      50% { transform: translateY(-18px); }
+    }
+
+    .app-window {
+      position: relative;
+      width: min(100%, 640px);
+      border-radius: 24px;
+      overflow: hidden;
+      background: rgba(15, 23, 42, 0.94);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      box-shadow: var(--shadow), 0 0 0 1px rgba(255,255,255,0.03) inset;
+      transform: perspective(1100px) rotateY(-6deg) rotateX(3deg);
+      animation: windowIn 700ms ease both;
+    }
+
+    @keyframes windowIn {
+      from { opacity: 0; transform: perspective(1100px) rotateY(-10deg) rotateX(5deg) translateY(18px); }
+      to { opacity: 1; transform: perspective(1100px) rotateY(-6deg) rotateX(3deg) translateY(0); }
+    }
+
+    .window-top {
+      height: 46px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+      background: rgba(2, 6, 23, 0.48);
+    }
+
+    .dots { display: flex; gap: 7px; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: #475569; }
+    .dot:nth-child(1) { background: #fb7185; }
+    .dot:nth-child(2) { background: #facc15; }
+    .dot:nth-child(3) { background: #8FAF8D; }
+
+    .window-title {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+    }
+
+    .software-grid {
+      display: grid;
+      grid-template-columns: 64px 1fr 210px;
+      min-height: 430px;
+    }
+
+    .side-rail {
+      background: rgba(2, 6, 23, 0.38);
+      border-right: 1px solid rgba(148, 163, 184, 0.1);
+      padding: 16px 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .rail-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      background: rgba(148, 163, 184, 0.08);
+      color: #F4D79B;
+      border: 1px solid rgba(148, 163, 184, 0.1);
+    }
+
+    .rail-icon.active {
+      background: rgba(214, 168, 79, 0.18);
+      border-color: rgba(214, 168, 79, 0.38);
+      box-shadow: 0 12px 24px rgba(214, 168, 79, 0.16);
+    }
+
+    .canvas {
+      padding: 18px;
+      position: relative;
+      background:
+        radial-gradient(circle at 50% 35%, rgba(196, 154, 108, 0.13), transparent 36%),
+        linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(8, 13, 27, 0.98));
+      overflow: hidden;
+    }
+
+    .canvas::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(148,163,184,0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(148,163,184,0.05) 1px, transparent 1px);
+      background-size: 28px 28px;
+      transform: perspective(500px) rotateX(54deg) scale(1.4) translateY(35px);
+      transform-origin: bottom;
+      opacity: 0.75;
+    }
+
+    .kitchen-wireframe {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      height: 100%;
+      min-height: 360px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .cabinet-model {
+      position: relative;
+      width: 320px;
+      height: 260px;
+      transform: skewY(-6deg) rotate(-1deg);
+    }
+
+    .wall-cabs, .base-cabs, .island {
+      position: absolute;
+      display: grid;
+      gap: 6px;
+    }
+
+    .wall-cabs {
+      top: 22px;
+      left: 30px;
+      grid-template-columns: repeat(4, 52px);
+    }
+
+    .base-cabs {
+      bottom: 76px;
+      left: 22px;
+      grid-template-columns: repeat(4, 58px);
+    }
+
+    .island {
+      right: 0;
+      bottom: 20px;
+      grid-template-columns: repeat(3, 48px);
+      transform: skewX(-16deg);
+    }
+
+    .cab {
+      height: 58px;
+      border-radius: 7px;
+      background: linear-gradient(145deg, rgba(122, 78, 45, 0.54), rgba(30, 41, 59, 0.82));
+      border: 1px solid rgba(196, 154, 108, 0.36);
+      box-shadow: 0 12px 22px rgba(0,0,0,0.2), 0 0 26px rgba(214,168,79,0.08) inset;
+      position: relative;
+    }
+
+    .cab::after {
+      content: "";
+      position: absolute;
+      inset: 8px;
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 5px;
+    }
+
+    .base-cabs .cab { height: 76px; }
+    .island .cab { height: 62px; background: linear-gradient(145deg, rgba(196, 154, 108, 0.30), rgba(30, 41, 59, 0.86)); }
+
+    .measure-line {
+      position: absolute;
+      z-index: 2;
+      color: #E8C77C;
+      font-size: 11px;
+      font-weight: 800;
+      opacity: 0.9;
+    }
+
+    .measure-line.one { top: 16px; left: 70px; }
+    .measure-line.two { bottom: 42px; right: 54px; }
+
+    .scan-line {
+      position: absolute;
+      z-index: 3;
+      left: 26px;
+      right: 26px;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(214, 168, 79, 0.9), transparent);
+      filter: drop-shadow(0 0 12px rgba(214, 168, 79, 0.68));
+      animation: scan 3.4s ease-in-out infinite;
+    }
+
+    @keyframes scan {
+      0%, 100% { top: 18%; opacity: 0.2; }
+      45% { opacity: 1; }
+      70% { top: 78%; opacity: 0.5; }
+    }
+
+    .right-panel {
+      border-left: 1px solid rgba(148, 163, 184, 0.1);
+      padding: 16px;
+      background: rgba(2, 6, 23, 0.28);
+    }
+
+    .panel-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: white;
+      font-weight: 900;
+      font-size: 13px;
+      margin-bottom: 14px;
+    }
+
+    .status-pill {
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(34, 197, 94, 0.11);
+      color: #8FAF8D;
+      font-size: 10px;
+      border: 1px solid rgba(34, 197, 94, 0.24);
+    }
+
+    .bom-table {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .bom-row {
+      display: grid;
+      grid-template-columns: 1fr 34px;
+      gap: 8px;
+      padding: 9px;
+      border-radius: 10px;
+      background: rgba(148, 163, 184, 0.07);
+      border: 1px solid rgba(148, 163, 184, 0.08);
+      color: var(--soft);
+      font-size: 11px;
+    }
+
+    .export-card {
+      padding: 14px;
+      border-radius: 15px;
+      background: linear-gradient(135deg, rgba(122, 78, 45, 0.26), rgba(214, 168, 79, 0.11));
+      border: 1px solid rgba(214, 168, 79, 0.32);
+      margin-top: 12px;
+    }
+
+    .export-card strong {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .file-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    .chip {
+      font-size: 10px;
+      font-weight: 900;
+      padding: 5px 7px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.08);
+      color: #F4D79B;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .floating-card {
+      position: absolute;
+      z-index: 6;
+      padding: 13px 14px;
+      border-radius: 16px;
+      background: rgba(15, 23, 42, 0.86);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(148, 163, 184, 0.17);
+      box-shadow: 0 18px 46px rgba(0,0,0,0.32);
+      color: white;
+      animation: float 6s ease-in-out infinite;
+    }
+
+    .floating-card small {
+      display: block;
+      color: var(--muted);
+      margin-top: 4px;
+      font-size: 11px;
+    }
+
+    .float-a { left: -14px; top: 88px; }
+    .float-b { right: -8px; bottom: 70px; animation-delay: -2s; }
+
+    .proof-strip {
+      border-top: 1px solid rgba(148, 163, 184, 0.1);
+      border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+      background: rgba(15, 23, 42, 0.32);
+      backdrop-filter: blur(18px);
+    }
+
+    .proof-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 18px;
+      padding: 30px 0;
+    }
+
+    .proof-item {
+      text-align: center;
+      padding: 14px 10px;
+      border-radius: 16px;
+      transition: background 180ms ease, transform 180ms ease;
+    }
+
+    .proof-item:hover {
+      background: rgba(214, 168, 79, 0.09);
+      transform: translateY(-3px);
+    }
+
+    .proof-item strong {
+      display: block;
+      color: #D6A84F;
+      font-size: 23px;
+      margin-bottom: 4px;
+    }
+
+    .proof-item span {
+      display: block;
+      color: white;
+      font-weight: 850;
+      font-size: 13px;
+    }
+
+    .proof-item small {
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    section {
+      padding: 92px 0;
+      position: relative;
+    }
+
+    .section-heading {
+      text-align: center;
+      max-width: 720px;
+      margin: 0 auto 46px;
+    }
+
+    .section-heading h2 {
+      font-size: clamp(30px, 4vw, 48px);
+      line-height: 1.05;
+      letter-spacing: -0.045em;
+      margin-bottom: 14px;
+    }
+
+    .section-heading p {
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.7;
+    }
+
+    .product-showcase {
+      display: grid;
+      grid-template-columns: 1.35fr 0.85fr;
+      gap: 24px;
+      align-items: stretch;
+    }
+
+    .showcase-main, .showcase-side, .feature-card, .pricing-card, .contact-card, .stat-card, .comparison-card {
+      border: 1px solid var(--border);
+      background: var(--card);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+    }
+
+    .showcase-main {
+      border-radius: var(--radius-lg);
+      padding: 26px;
+      overflow: hidden;
+    }
+
+    .showcase-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+
+    .showcase-header h3 {
+      font-size: 20px;
+      letter-spacing: -0.02em;
+    }
+
+    .showcase-preview {
+      min-height: 360px;
+      border-radius: 22px;
+      background:
+        linear-gradient(135deg, rgba(2, 6, 23, 0.65), rgba(15, 23, 42, 0.92)),
+        radial-gradient(circle at 72% 32%, rgba(122, 78, 45, 0.26), transparent 28%);
+      border: 1px solid rgba(148, 163, 184, 0.13);
+      position: relative;
+      overflow: hidden;
+      padding: 28px;
+      display: grid;
+      place-items: center;
+    }
+
+    .room-preview {
+      width: min(100%, 560px);
+      height: 280px;
+      position: relative;
+      transform: perspective(800px) rotateX(52deg) rotateZ(-12deg);
+      transform-style: preserve-3d;
+    }
+
+    .room-floor {
+      position: absolute;
+      inset: 0;
+      border-radius: 18px;
+      background:
+        linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px),
+        linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+        rgba(15, 23, 42, 0.72);
+      background-size: 28px 28px;
+      border: 1px solid rgba(148, 163, 184, 0.18);
+    }
+
+    .room-block {
+      position: absolute;
+      height: 48px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, rgba(122, 78, 45, 0.62), rgba(196, 154, 108, 0.22));
+      border: 1px solid rgba(214, 168, 79, 0.32);
+      transform: translateZ(32px);
+      box-shadow: 0 18px 34px rgba(0,0,0,0.28);
+    }
+
+    .room-block.one { left: 42px; top: 38px; width: 260px; }
+    .room-block.two { left: 42px; top: 100px; width: 88px; height: 120px; }
+    .room-block.three { right: 74px; bottom: 58px; width: 200px; }
+    .room-block.four { right: 76px; top: 52px; width: 112px; height: 112px; }
+
+    .showcase-side {
+      border-radius: var(--radius-lg);
+      padding: 22px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .mini-card {
+      padding: 18px;
+      border-radius: 18px;
+      background: rgba(2, 6, 23, 0.3);
+      border: 1px solid rgba(148, 163, 184, 0.12);
+    }
+
+    .mini-card h4 {
+      margin-bottom: 8px;
+      font-size: 15px;
+    }
+
+    .mini-card p {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .progress {
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, 0.12);
+      overflow: hidden;
+      margin-top: 12px;
+    }
+
+    .progress span {
+      display: block;
+      height: 100%;
+      width: 76%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--wood-walnut), var(--brass));
+      animation: progressLoad 2.6s ease-in-out infinite alternate;
+    }
+
+    @keyframes progressLoad {
+      from { width: 42%; }
+      to { width: 92%; }
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 22px;
+    }
+
+    .feature-card {
+      position: relative;
+      border-radius: var(--radius-md);
+      padding: 28px;
+      overflow: hidden;
+      transition: transform 220ms ease, border-color 220ms ease, background 220ms ease;
+    }
+
+    .feature-card::before {
+      content: "";
+      position: absolute;
+      inset: -1px;
+      background: radial-gradient(circle at 20% 0%, rgba(214, 168, 79, 0.20), transparent 34%);
+      opacity: 0;
+      transition: opacity 220ms ease;
+      pointer-events: none;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-8px);
+      border-color: rgba(214, 168, 79, 0.36);
+      background: var(--card-strong);
+    }
+
+    .feature-card:hover::before { opacity: 1; }
+
+    .icon-box {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      background: rgba(214, 168, 79, 0.15);
+      border: 1px solid rgba(214, 168, 79, 0.24);
+      color: #F4D79B;
+      font-size: 22px;
+      margin-bottom: 22px;
+    }
+
+    .feature-card h3 {
+      font-size: 20px;
+      margin-bottom: 12px;
+      letter-spacing: -0.02em;
+    }
+
+    .feature-card p {
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 14px;
+      margin-bottom: 18px;
+    }
+
+    .tick-list {
+      list-style: none;
+      display: grid;
+      gap: 11px;
+      color: var(--soft);
+      font-size: 13px;
+    }
+
+    .tick-list li::before {
+      content: "✓";
+      color: #D6A84F;
+      margin-right: 8px;
+      font-weight: 900;
+    }
+
+    .visual-chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 18px;
+    }
+
+    .workflow {
+      background: rgba(15, 23, 42, 0.34);
+      border-top: 1px solid rgba(148, 163, 184, 0.08);
+      border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+    }
+
+    .workflow-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+      position: relative;
+    }
+
+    .workflow-step {
+      padding: 24px;
+      border-radius: 20px;
+      background: rgba(15, 23, 42, 0.68);
+      border: 1px solid rgba(148, 163, 184, 0.13);
+      position: relative;
+      min-height: 190px;
+    }
+
+    .step-number {
+      width: 40px;
+      height: 40px;
+      border-radius: 13px;
+      background: linear-gradient(135deg, var(--brass), var(--wood-walnut));
+      display: grid;
+      place-items: center;
+      font-weight: 900;
+      margin-bottom: 18px;
+      box-shadow: 0 12px 28px rgba(214, 168, 79, 0.22);
+    }
+
+    .workflow-step h3 {
+      font-size: 17px;
+      margin-bottom: 9px;
+    }
+
+    .workflow-step p {
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: 13px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-top: 24px;
+    }
+
+    .stat-card {
+      border-radius: 20px;
+      padding: 24px;
+      text-align: center;
+    }
+
+    .stat-card strong {
+      display: block;
+      font-size: 31px;
+      letter-spacing: -0.04em;
+      color: #F4D79B;
+      margin-bottom: 6px;
+    }
+
+    .stat-card span {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 360px));
+      gap: 24px;
+      justify-content: center;
+      align-items: stretch;
+    }
+
+    .pricing-card {
+      position: relative;
+      border-radius: 22px;
+      padding: 30px;
+    }
+
+    .pricing-card.featured {
+      border-color: var(--border-strong);
+      box-shadow: 0 24px 80px rgba(214, 168, 79, 0.18);
+      transform: scale(1.025);
+    }
+
+    .popular {
+      position: absolute;
+      top: -13px;
+      right: 22px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #F4D79B, var(--brass));
+      color: #111827;
+      font-size: 11px;
+      font-weight: 950;
+    }
+
+    .plan-name {
+      font-size: 18px;
+      font-weight: 900;
+      margin: 16px 0 8px;
+    }
+
+    .price {
+      display: flex;
+      align-items: end;
+      gap: 5px;
+      margin-bottom: 12px;
+    }
+
+    .price strong {
+      font-size: 46px;
+      letter-spacing: -0.06em;
+    }
+
+    .price span {
+      color: var(--muted);
+      padding-bottom: 8px;
+    }
+
+    .plan-copy {
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: 14px;
+      min-height: 46px;
+      margin-bottom: 22px;
+    }
+
+    .pricing-card .btn {
+      width: 100%;
+      margin-bottom: 22px;
+    }
+
+    .comparison-card {
+      margin: 42px auto 0;
+      max-width: 850px;
+      border-radius: 24px;
+      padding: 12px;
+      overflow: hidden;
+    }
+
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: 18px;
+    }
+
+    .comparison-table th,
+    .comparison-table td {
+      padding: 16px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+      color: var(--soft);
+      text-align: center;
+      font-size: 14px;
+    }
+
+    .comparison-table th:first-child,
+    .comparison-table td:first-child {
+      text-align: left;
+    }
+
+    .comparison-table th {
+      color: white;
+      background: rgba(2, 6, 23, 0.28);
+      font-weight: 900;
+    }
+
+    .comparison-table tr:last-child td { border-bottom: 0; }
+    .yes { color: #8FAF8D; font-weight: 900; }
+    .no { color: #E07A5F; font-weight: 900; }
+
+    .contact-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .contact-card {
+      border-radius: 20px;
+      padding: 24px;
+    }
+
+    .contact-card h3 {
+      font-size: 15px;
+      color: #F4D79B;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      margin-bottom: 16px;
+    }
+
+    .contact-card p {
+      color: var(--soft);
+      line-height: 1.8;
+      font-size: 14px;
+    }
+
+    .final-cta {
+      padding: 86px 0;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(255,255,255,0.18), transparent 30%),
+        linear-gradient(135deg, #3A2416, #7A4E2D 52%, #0D131C);
+      text-align: center;
+    }
+
+    .final-cta h2 {
+      font-size: clamp(34px, 5vw, 58px);
+      line-height: 1.02;
+      letter-spacing: -0.055em;
+      margin-bottom: 16px;
+    }
+
+    .final-cta p {
+      color: #F4D79B;
+      max-width: 620px;
+      margin: 0 auto 28px;
+      line-height: 1.7;
+    }
+
+    footer {
+      padding: 28px 0;
+      background: #05070B;
+      border-top: 1px solid rgba(148, 163, 184, 0.08);
+    }
+
+    .footer-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 18px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 20px;
+    }
+
+    .help-button {
+      position: fixed;
+      right: 22px;
+      bottom: 22px;
+      z-index: 60;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      height: 46px;
+      padding: 0 14px 0 16px;
+      border-radius: 999px;
+      background: rgba(245, 158, 11, 0.95);
+      color: #111827;
+      font-weight: 950;
+      font-size: 12px;
+      box-shadow: 0 16px 42px rgba(245, 158, 11, 0.32);
+      border: 1px solid rgba(255,255,255,0.22);
+      animation: helpNudge 5s ease-in-out infinite;
+    }
+
+    @keyframes helpNudge {
+      0%, 86%, 100% { transform: translateY(0); }
+      90% { transform: translateY(-5px); }
+      94% { transform: translateY(0); }
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(18px);
+      transition: opacity 600ms ease, transform 600ms ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 1040px) {
+      .hero-grid, .product-showcase {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-visual { min-height: 500px; }
+      .app-window { transform: none; }
+      .software-grid { grid-template-columns: 54px 1fr; }
+      .right-panel { display: none; }
+      .proof-grid { grid-template-columns: repeat(3, 1fr); }
+      .features-grid, .workflow-grid, .stats-grid, .contact-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 780px) {
+      .container { width: min(100% - 28px, var(--max)); }
+      .nav-links { display: none; }
+      .nav-actions .btn-ghost { display: none; }
+      .hero { padding-top: 58px; }
+      .hero-actions { flex-direction: column; align-items: stretch; }
+      .btn { width: 100%; }
+      .software-grid { grid-template-columns: 1fr; }
+      .side-rail { display: none; }
+      .floating-card { display: none; }
+      .proof-grid { grid-template-columns: repeat(2, 1fr); }
+      .features-grid, .workflow-grid, .stats-grid, .pricing-grid, .contact-grid { grid-template-columns: 1fr; }
+      .pricing-card.featured { transform: none; }
+      .comparison-card { overflow-x: auto; }
+      .comparison-table { min-width: 620px; }
+      .footer-inner { flex-direction: column; align-items: flex-start; }
+      .help-button span { display: none; }
+      .help-button { width: 48px; justify-content: center; padding: 0; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="#top" aria-label="Cabinetrix Pro home">
+        <span class="brand-mark">C</span>
+        <span>Cabinetrix<small>Pro</small></span>
+      </a>
+      <div class="nav-links" aria-label="Main navigation">
+        <a href="#features">Features</a>
+        <a href="#workflow">How it works</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#contact">Contact</a>
+        <a href="#docs">Docs</a>
+      </div>
+      <div class="nav-actions">
+        <a class="btn btn-ghost" href="#signin">Sign in</a>
+        <a class="btn btn-primary" href="#pricing">Get Started Free</a>
+      </div>
+    </div>
+  </nav>
+
+  <main id="top">
+    <header class="hero">
+      <div class="container hero-grid">
+        <div class="hero-content reveal">
+          <div class="eyebrow"><span class="pulse-dot"></span> 3D cabinet design software — professional grade</div>
+          <h1>Design Kitchens.<br><span class="gradient-text">Build Cabinets.</span><br>Grow Your Shop.</h1>
+          <p class="hero-copy">Cloud-based cabinet engineering for workshops that need 3D design, instant BOM generation, cut lists, DXF/CNC exports, and quote-ready PDF reports — all in your browser.</p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="#pricing">Start Designing Free →</a>
+            <a class="btn btn-secondary" href="#showcase">Try Live Demo</a>
+          </div>
+          <div class="micro-trust">
+            <div class="avatars" aria-hidden="true">
+              <span class="avatar">A</span><span class="avatar">J</span><span class="avatar">M</span><span class="avatar">K</span>
+            </div>
+            <span><span class="stars">★★★★★</span> Trusted by cabinet engineering professionals</span>
+          </div>
+        </div>
+
+        <div class="hero-visual reveal">
+          <div class="glow-orb"></div>
+          <div class="floating-card float-a"><strong>BOM generated</strong><small>42 panels · 18mm MDF · hardware counted</small></div>
+          <div class="floating-card float-b"><strong>DXF ready</strong><small>CNC export prepared for workshop</small></div>
+          <div class="app-window" aria-label="Cabinetrix product interface mockup">
+            <div class="window-top">
+              <div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+              <div class="window-title">Cabinetrix Studio / Kitchen Project</div>
+              <div class="chip">LIVE</div>
+            </div>
+            <div class="software-grid">
+              <aside class="side-rail">
+                <div class="rail-icon active">▦</div>
+                <div class="rail-icon">▱</div>
+                <div class="rail-icon">≣</div>
+                <div class="rail-icon">⇩</div>
+              </aside>
+              <div class="canvas">
+                <div class="scan-line"></div>
+                <span class="measure-line one">3600 mm</span>
+                <span class="measure-line two">Island 2100 mm</span>
+                <div class="kitchen-wireframe">
+                  <div class="cabinet-model">
+                    <div class="wall-cabs"><div class="cab"></div><div class="cab"></div><div class="cab"></div><div class="cab"></div></div>
+                    <div class="base-cabs"><div class="cab"></div><div class="cab"></div><div class="cab"></div><div class="cab"></div></div>
+                    <div class="island"><div class="cab"></div><div class="cab"></div><div class="cab"></div></div>
+                  </div>
+                </div>
+              </div>
+              <aside class="right-panel">
+                <div class="panel-title">BOM Engine <span class="status-pill">Ready</span></div>
+                <div class="bom-table">
+                  <div class="bom-row"><span>Side panel</span><strong>12</strong></div>
+                  <div class="bom-row"><span>Shelf</span><strong>18</strong></div>
+                  <div class="bom-row"><span>Door front</span><strong>14</strong></div>
+                  <div class="bom-row"><span>Hinges</span><strong>28</strong></div>
+                </div>
+                <div class="export-card">
+                  <strong>Manufacturing exports</strong>
+                  <div class="file-chips"><span class="chip">DXF</span><span class="chip">PDF</span><span class="chip">CUT LIST</span><span class="chip">CNC</span></div>
+                </div>
+              </aside>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="proof-strip">
+      <div class="container proof-grid">
+        <div class="proof-item"><strong>3D</strong><span>Real-time design</span><small>Interactive preview</small></div>
+        <div class="proof-item"><strong>BOM</strong><span>Instant reports</span><small>Materials & hardware</small></div>
+        <div class="proof-item"><strong>DXF</strong><span>CNC exports</span><small>Workshop-ready files</small></div>
+        <div class="proof-item"><strong>PDF</strong><span>Quote packs</span><small>Client-ready output</small></div>
+        <div class="proof-item"><strong>CUT</strong><span>Panel lists</span><small>Faster production</small></div>
+      </div>
+    </div>
+
+    <section id="showcase">
+      <div class="container">
+        <div class="section-heading reveal">
+          <h2>See Cabinetrix <span class="gradient-text">in Action</span></h2>
+          <p>A product-first layout makes the landing page feel like real software, not just a generic kitchen website.</p>
+        </div>
+        <div class="product-showcase reveal">
+          <div class="showcase-main">
+            <div class="showcase-header">
+              <h3>3D room layout and cabinet placement</h3>
+              <span class="chip">Auto-save cloud project</span>
+            </div>
+            <div class="showcase-preview">
+              <div class="room-preview" aria-hidden="true">
+                <div class="room-floor"></div>
+                <div class="room-block one"></div>
+                <div class="room-block two"></div>
+                <div class="room-block three"></div>
+                <div class="room-block four"></div>
+              </div>
+            </div>
+          </div>
+          <div class="showcase-side">
+            <div class="mini-card">
+              <h4>Design in 3D</h4>
+              <p>Drag cabinets onto multiple walls and preview the kitchen layout before manufacturing.</p>
+              <div class="progress"><span></span></div>
+            </div>
+            <div class="mini-card">
+              <h4>Generate BOM</h4>
+              <p>Convert project geometry into panels, material counts, hardware, and cost estimates.</p>
+              <div class="visual-chip-row"><span class="chip">Panels</span><span class="chip">Hardware</span><span class="chip">Costs</span></div>
+            </div>
+            <div class="mini-card">
+              <h4>Export for workshop</h4>
+              <p>Download DXF, PDF quote packs, cut lists, and CNC-ready production files.</p>
+              <div class="visual-chip-row"><span class="chip">DXF</span><span class="chip">PDF</span><span class="chip">CNC</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="features">
+      <div class="container">
+        <div class="section-heading reveal">
+          <h2>Everything You Need. <span class="gradient-text">Nothing You Don’t.</span></h2>
+          <p>Cloud-based cabinet engineering tools for professional woodworkers, joinery shops, and kitchen manufacturers.</p>
+        </div>
+        <div class="features-grid">
+          <article class="feature-card reveal">
+            <div class="icon-box">▧</div>
+            <h3>3D Design Studio</h3>
+            <p>Plan rooms, place cabinets, edit dimensions, and preview the full layout in real time.</p>
+            <ul class="tick-list">
+              <li>Real-time 3D rendering</li>
+              <li>Multi-wall layouts</li>
+              <li>Cabinet library presets</li>
+            </ul>
+            <div class="visual-chip-row"><span class="chip">Wall units</span><span class="chip">Base units</span><span class="chip">Island</span></div>
+          </article>
+
+          <article class="feature-card reveal">
+            <div class="icon-box">▤</div>
+            <h3>Instant BOM Engine</h3>
+            <p>Automatically calculate panel dimensions, hardware counts, quantities, and material costs.</p>
+            <ul class="tick-list">
+              <li>Panel dimensioning</li>
+              <li>Hardware counts</li>
+              <li>Cost estimation</li>
+            </ul>
+            <div class="visual-chip-row"><span class="chip">18mm MDF</span><span class="chip">Hinges</span><span class="chip">Drawer runners</span></div>
+          </article>
+
+          <article class="feature-card reveal">
+            <div class="icon-box">⇩</div>
+            <h3>Manufacturing Exports</h3>
+            <p>Export CNC-ready DXF files, quote-ready PDFs, cut lists, and SketchUp-compatible assets.</p>
+            <ul class="tick-list">
+              <li>DXF cutting files</li>
+              <li>PDF quote reports</li>
+              <li>Cut-list optimisation</li>
+            </ul>
+            <div class="visual-chip-row"><span class="chip">DXF</span><span class="chip">PDF</span><span class="chip">SKP</span><span class="chip">CSV</span></div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="workflow" id="workflow">
+      <div class="container">
+        <div class="section-heading reveal">
+          <h2>From Design to <span class="gradient-text">Manufacturing</span></h2>
+          <p>Four simple stages from concept to production-ready cabinet files.</p>
+        </div>
+        <div class="workflow-grid">
+          <div class="workflow-step reveal"><div class="step-number">01</div><h3>Set up</h3><p>Define room walls, materials, panel thickness, margins, and workshop preferences.</p></div>
+          <div class="workflow-step reveal"><div class="step-number">02</div><h3>Design</h3><p>Place cabinets with drag-and-drop controls and preview the kitchen in real-time 3D.</p></div>
+          <div class="workflow-step reveal"><div class="step-number">03</div><h3>Review</h3><p>Check BOM, cut plans, material usage, hardware counts, and quote estimates.</p></div>
+          <div class="workflow-step reveal"><div class="step-number">04</div><h3>Export</h3><p>Download DXF, quote PDFs, cut lists, and CNC-ready files for the workshop.</p></div>
+        </div>
+        <div class="stats-grid reveal">
+          <div class="stat-card"><strong>Fast</strong><span>Move from layout to quote-ready output without rebuilding spreadsheets.</span></div>
+          <div class="stat-card"><strong>Accurate</strong><span>Reduce manual counting errors across panels, hardware, and materials.</span></div>
+          <div class="stat-card"><strong>Ready</strong><span>Produce export files your workshop can actually use.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="pricing">
+      <div class="container">
+        <div class="section-heading reveal">
+          <h2>Simple <span class="gradient-text">Pricing</span></h2>
+          <p>Start free. No credit card required. Upgrade when you need full manufacturing exports.</p>
+        </div>
+        <div class="pricing-grid">
+          <article class="pricing-card reveal">
+            <div class="icon-box">♙</div>
+            <div class="plan-name">Free</div>
+            <div class="price"><strong>$0</strong><span>/month</span></div>
+            <p class="plan-copy">Best for testing the workflow and preparing your first cabinet projects.</p>
+            <a class="btn btn-ghost" href="#signup">Get Started Free</a>
+            <ul class="tick-list">
+              <li>Up to 3 projects</li>
+              <li>Basic cabinet presets</li>
+              <li>3D visualization</li>
+              <li>Browser reports, no download</li>
+            </ul>
+          </article>
+
+          <article class="pricing-card featured reveal">
+            <span class="popular">POPULAR</span>
+            <div class="icon-box">✦</div>
+            <div class="plan-name">Pro</div>
+            <div class="price"><strong>$29</strong><span>/month</span></div>
+            <p class="plan-copy">For workshops that need manufacturing-ready outputs and full project control.</p>
+            <a class="btn btn-primary" href="#signup">Start Pro Trial</a>
+            <ul class="tick-list">
+              <li>Unlimited projects</li>
+              <li>Custom cabinet library</li>
+              <li>BOM and PDF export</li>
+              <li>DXF and CNC export</li>
+              <li>Cut-list optimisation</li>
+              <li>Priority email support</li>
+            </ul>
+          </article>
+        </div>
+
+        <div class="comparison-card reveal">
+          <table class="comparison-table" aria-label="Free versus Pro comparison">
+            <thead><tr><th>Feature</th><th>Free</th><th>Pro</th></tr></thead>
+            <tbody>
+              <tr><td>3D cabinet design</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+              <tr><td>Projects</td><td>3</td><td>Unlimited</td></tr>
+              <tr><td>BOM reports</td><td>Basic</td><td>Full</td></tr>
+              <tr><td>DXF export</td><td class="no">—</td><td class="yes">✓</td></tr>
+              <tr><td>CNC-ready files</td><td class="no">—</td><td class="yes">✓</td></tr>
+              <tr><td>PDF quote packs</td><td class="no">—</td><td class="yes">✓</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="contact">
+      <div class="container">
+        <div class="section-heading reveal">
+          <h2>Need Cabinetrix for <span class="gradient-text">Your Workshop?</span></h2>
+          <p>Book a demo, ask about CNC/export support, or request onboarding help for your team.</p>
+        </div>
+        <div class="contact-grid">
+          <div class="contact-card reveal"><h3>Contact Info</h3><p>Email<br><strong>support@cabinetrixpro.com</strong><br><br>Response time<br><strong>Within 24–48 business hours</strong></p></div>
+          <div class="contact-card reveal"><h3>Software Details</h3><p>Platform<br><strong>Cabinetrix Pro</strong><br><br>Type<br><strong>Cloud-based SaaS — browser only</strong></p></div>
+          <div class="contact-card reveal"><h3>Best For</h3><p>Kitchen designers, cabinet makers, joinery shops, and workshops needing faster quotes and production files.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="final-cta" id="signup">
+      <div class="container reveal">
+        <h2>Ready to Design, Quote, and Export Cabinets Faster?</h2>
+        <p>Start free and generate your first cabinet project in minutes. Upgrade only when you need full manufacturing exports.</p>
+        <a class="btn btn-primary" href="#pricing">Start Designing Free →</a>
+      </div>
+    </section>
+  </main>
+
+  <footer id="docs">
+    <div class="container footer-inner">
+      <a class="brand" href="#top"><span class="brand-mark">C</span><span>Cabinetrix<small>Pro</small></span></a>
+      <div class="footer-links"><a href="#docs">Docs</a><a href="#terms">Terms</a><a href="#pricing">Pricing</a></div>
+      <span>© 2026 Cabinetrix Pro. All rights reserved.</span>
+    </div>
+  </footer>
+
+  <a class="help-button" href="#contact" aria-label="Get help"><span>NEED HELP?</span>?</a>
+
+  <script>
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12 });
+
+    document.querySelectorAll('.reveal').forEach((el) => observer.observe(el));
+
+    document.querySelectorAll('a[href^="#"]').forEach((link) => {
+      link.addEventListener('click', (event) => {
+        const id = link.getAttribute('href');
+        const target = document.querySelector(id);
+        if (!target) return;
+        event.preventDefault();
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+  </script>
+</body>
+</html>

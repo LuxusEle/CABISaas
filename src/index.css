@@ -1,5 +1,74 @@
 /* Cabinetrix Pro - Main Styles */
 
+/* Landing page dark theme variables (matches cabinetrix_front_page.html) */
+.lp-dark-theme {
+  --bg-950: #070A0F;
+  --bg-900: #0D131C;
+  --bg-850: #101823;
+  --bg-800: #131B27;
+  --card: rgba(19, 27, 39, 0.78);
+  --card-strong: rgba(24, 32, 43, 0.94);
+  --border: rgba(214, 168, 79, 0.18);
+  --border-strong: rgba(214, 168, 79, 0.58);
+  --text: #F8FAFC;
+  --muted: #9AA7B7;
+  --soft: #D7DEE8;
+  --wood-walnut: #7A4E2D;
+  --wood-oak: #C49A6C;
+  --wood-dark: #3A2416;
+  --brass: #D6A84F;
+  --amber: #F59E0B;
+  --sage: #8FAF8D;
+  --olive: #5F7A46;
+  --purple: #8B5CF6;
+  --purple-2: #A78BFA;
+  --purple-3: #6D28D9;
+  --orange: #F59E0B;
+  --green: #8FAF8D;
+  --cyan: #C49A6C;
+  --shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
+  --grid-line: rgba(255,255,255,0.025);
+  --radius-lg: 28px;
+  --radius-md: 18px;
+  --radius-sm: 12px;
+  --max: 1180px;
+}
+
+
+/* Landing page light theme variables (cabinet-industry matching light mode) */
+.lp-light-theme {
+  --bg-950: #FFFDF8;
+  --bg-900: #F8F3EA;
+  --bg-850: #F1E8DA;
+  --bg-800: #E8DCCB;
+  --card: rgba(255, 253, 248, 0.82);
+  --card-strong: rgba(255, 250, 241, 0.96);
+  --border: rgba(122, 78, 45, 0.16);
+  --border-strong: rgba(122, 78, 45, 0.42);
+  --text: #1F2933;
+  --muted: #6B7280;
+  --soft: #3F4A56;
+  --wood-walnut: #7A4E2D;
+  --wood-oak: #B9854F;
+  --wood-dark: #3A2416;
+  --brass: #B8872F;
+  --amber: #D97706;
+  --sage: #6F8F6C;
+  --olive: #4F6F3A;
+  --purple: #7C3AED;
+  --purple-2: #8B5CF6;
+  --purple-3: #5B21B6;
+  --orange: #D97706;
+  --green: #6F8F6C;
+  --cyan: #B9854F;
+  --shadow: 0 24px 80px rgba(58, 36, 22, 0.16);
+  --grid-line: rgba(58, 36, 22, 0.055);
+  --radius-lg: 28px;
+  --radius-md: 18px;
+  --radius-sm: 12px;
+  --max: 1180px;
+}
+
 :root {
   --color-primary: #4F46E5;
   --color-primary-hover: #4338CA;

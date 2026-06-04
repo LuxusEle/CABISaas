@@ -1,11 +1,6 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import {
-  ArrowRight, Box, Ruler, Calculator, Check, Sparkles, Layers,
-  FileText, Download, Users, Star, Monitor, Zap, Globe
-} from 'lucide-react';
-import { Button } from './Button';
 import { LandingHeader } from './LandingHeader';
 
 interface LandingPageProps {
@@ -16,553 +11,1344 @@ interface LandingPageProps {
   setIsDark: (isDark: boolean) => void;
 }
 
-function useScrollReveal(threshold = 0.15) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
+export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn, onQuickStart, isDark, setIsDark }) => {
+  const pageRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) { setVisible(true); observer.disconnect(); } },
-      { threshold }
-    );
-    observer.observe(el);
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12 });
+
+    const el = pageRef.current;
+    if (el) {
+      el.querySelectorAll('.reveal').forEach((r) => observer.observe(r));
+    }
+
     return () => observer.disconnect();
-  }, [threshold]);
+  }, []);
 
-  return { ref, visible };
-}
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', isDark);
+  }, [isDark]);
 
-const RevealSection: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = '' }) => {
-  const { ref, visible } = useScrollReveal();
-  return (
-    <div
-      ref={ref}
-      className={`transition-all duration-700 ease-out ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'} ${className}`}
-    >
-      {children}
-    </div>
-  );
-};
+  const scrollToSection = (id: string) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn, onQuickStart, isDark, setIsDark }) => {
-  const [docsModalOpen, setDocsModalOpen] = useState(false);
+  const [cursorPos, setCursorPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [showTooltip, setShowTooltip] = useState(false);
+  const videoRef = useRef<HTMLDivElement>(null);
 
-  const heroFeatures = [
-    {
-      icon: <Monitor size={36} />,
-      title: 'No Download Required',
-      subtitle: '100% browser-based. Nothing to install.',
-      border: 'rgba(34, 197, 94, 0.3)',
-      iconBg: 'bg-lp-icon-green',
-    },
-    {
-      icon: <Zap size={36} />,
-      title: 'No Payment Until You Earn',
-      subtitle: 'Start free. Upgrade when your shop grows.',
-      border: 'rgba(245, 158, 11, 0.3)',
-      iconBg: 'bg-lp-icon-amber',
-    },
-    {
-      icon: <Globe size={36} />,
-      title: 'SketchUp & 3D Export',
-      subtitle: 'Export models to your favorite 3D software.',
-      border: 'rgba(59, 130, 246, 0.3)',
-      iconBg: 'bg-lp-icon-blue',
-    },
-  ];
-
-  const CyclingFeature = () => (
-    <div className="relative w-full h-full">
-      {heroFeatures.map((f, i) => (
-        <div
-          key={i}
-          className="absolute inset-0 flex items-center justify-center p-6"
-        >
-          <div
-            className="animate-feature w-full h-full flex flex-col items-center justify-center gap-3 rounded-2xl bg-lp-overlay backdrop-blur-xl border-2 shadow-xl p-6"
-            style={{ borderColor: f.border, animationDelay: `${i * 4}s` }}
-          >
-            <div className={`w-16 h-16 rounded-2xl ${f.iconBg} flex items-center justify-center`}>
-              {f.icon}
-            </div>
-            <h3 className="text-xl sm:text-2xl font-black text-lp-heading text-center leading-tight">
-              {f.title}
-            </h3>
-            <p className="text-sm sm:text-base text-lp-muted text-center max-w-xs">
-              {f.subtitle}
-            </p>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
+  const handleVideoMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = videoRef.current?.getBoundingClientRect();
+    if (rect) {
+      setCursorPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+    }
+  };
 
   return (
     <>
       <Helmet>
-        <title>Cabinetrix Pro | 3D Cabinet Design Software & Cut List Optimizer</title>
+        <title>Cabinetrix Pro — Cabinet Design & Manufacturing SaaS</title>
         <link rel="canonical" href="https://www.protradee.com/" />
-        <meta name="description" content="Cloud-based 3D cabinet design software with instant BOM generation, automated cut optimization, and CNC-ready DXF exports. Try free — no download required." />
+        <meta name="description" content="Cloud-based cabinet engineering platform with 3D design, BOM generation, DXF/CNC export, and quote-ready PDF reports." />
       </Helmet>
-    <div className="min-h-screen bg-lp-page text-lp-heading overflow-x-hidden">
-      <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(12px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-12px); }
-        }
-        @keyframes pulse-glow {
-          0%, 100% { box-shadow: 0 0 20px rgba(79, 70, 229, 0.15); }
-          50% { box-shadow: 0 0 40px rgba(79, 70, 229, 0.3); }
-        }
-        @keyframes slideIn {
-          from { opacity: 0; transform: translateX(-20px); }
-          to { opacity: 1; transform: translateX(0); }
-        }
-        @keyframes featurePop {
-          0% { opacity: 0; transform: scale(0.6); }
-          4% { opacity: 1; transform: scale(1.1); }
-          27% { opacity: 1; transform: scale(1.15); }
-          33% { opacity: 0; transform: scale(0.6); }
-          100% { opacity: 0; transform: scale(0.6); }
-        }
-        .dark {
-          @keyframes pulse-glow {
-            0%, 100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.15); }
-            50% { box-shadow: 0 0 40px rgba(139, 92, 246, 0.3); }
-          }
-        }
-        .animate-fade-in { animation: fadeIn 0.6s ease-out forwards; }
-        .animate-float { animation: float 6s ease-in-out infinite; }
-        .animate-pulse-glow { animation: pulse-glow 2.5s ease-in-out infinite; }
-        .animate-slide-in { animation: slideIn 0.5s ease-out forwards; }
-        .animate-feature { animation: featurePop 12s ease-in-out infinite both; }
-        .text-gradient {
-          background: linear-gradient(135deg, #4F46E5, #6366F1, #818CF8);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-        }
-        .dark .text-gradient {
-          background: linear-gradient(135deg, #A855F7, #8B5CF6, #C084FC);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-        }
-      `}</style>
 
-      <LandingHeader
-        onSignIn={onSignIn}
-        onGetStarted={onGetStarted}
-        isDark={isDark}
-        setIsDark={setIsDark}
-      />
+      <div ref={pageRef} className={`lp-landing ${isDark ? 'lp-dark-theme' : 'lp-light-theme'}`} style={{ position: 'relative', minHeight: '100vh', overflowX: 'hidden' }}>
+        <LandingHeader
+          onSignIn={onSignIn}
+          onGetStarted={onGetStarted}
+          isDark={isDark}
+          setIsDark={setIsDark}
+        />
 
-      {/* Hero */}
-      <section className="relative pt-20 sm:pt-24 pb-12 sm:pb-16 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary-subtle/30 via-transparent to-transparent dark:from-primary-light/10" />
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-bl from-primary/5 to-transparent rounded-full blur-3xl" />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-start">
-            <div className="space-y-6">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary-subtle dark:bg-primary-light border border-primary/10">
-                <Sparkles size={14} className="text-primary" />
-                <span className="text-xs font-semibold text-primary">3D Cabinet Design Software — Professional Grade</span>
+        <main id="top">
+          <header className="hero">
+            <div className="container hero-grid">
+              <div className="hero-content reveal">
+                <div className="eyebrow"><span className="pulse-dot"></span> 3D cabinet design software — professional grade</div>
+                <h1>Design Kitchens.<br /><span className="gradient-text">Build Cabinets.</span><br />Grow Your Shop.</h1>
+                <p className="hero-copy">Cloud-based cabinet engineering for workshops that need 3D design, instant BOM generation, cut lists, DXF/CNC exports, and quote-ready PDF reports — all in your browser.</p>
+                <div className="hero-actions">
+                  <button className="btn btn-primary" onClick={onGetStarted}>Start Designing Free →</button>
+                  <button className="btn btn-secondary" onClick={onQuickStart}>Try Live Demo</button>
+                </div>
+                <div className="micro-trust">
+                  <div className="avatars" aria-hidden="true">
+                    <span className="avatar">A</span><span className="avatar">J</span><span className="avatar">M</span><span className="avatar">K</span>
+                  </div>
+                  <span><span className="stars">★★★★★</span> Trusted by cabinet engineering professionals</span>
+                </div>
               </div>
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-black tracking-tight flex flex-col gap-3">
-                <span>Design Kitchens.</span>
-                <span className="text-gradient">Build Cabinets.</span>
-                <span>Grow Your Shop.</span>
-              </h1>
-              <p className="text-base sm:text-lg text-lp-muted max-w-lg leading-relaxed">
-                Cloud-based 3D cabinet engineering platform with instant BOM generation, 
-                automated cut optimization, and CNC-ready exports — all in your browser.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4">
-                {onQuickStart && (
-                  <button
-                    onClick={onQuickStart}
-                    className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-lp-icon-amber hover:bg-lp-icon-amber-hover text-lp-amber-text font-bold rounded-xl transition-all border-2 border-lp-border-amber hover:border-lp-border-amber-solid text-base group"
-                  >
-                    <Download size={18} />
-                    Try Live Demo
-                  </button>
-                )}
-                <button
-                  onClick={onGetStarted}
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary hover:bg-primary-hover text-lp-white font-bold rounded-xl transition-all shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 text-base group"
-                >
-                  Get Started Free
-                  <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-                </button>
-                <button
-                  onClick={onSignIn}
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-lp-elevated hover:bg-lp-elevated-hover text-lp-secondary font-semibold rounded-xl transition-all border border-lp-border-strong text-base"
-                >
-                  Sign In
-                </button>
-              </div>
-              <div className="flex items-center gap-6 pt-2">
-                <div className="flex -space-x-3">
-                  {[1, 2, 3, 4].map((i) => (
+
+              <div className="hero-visual reveal">
+                <div className="glow-orb"></div>
+                <div className="floating-card float-a"><strong>BOM generated</strong><small>42 panels · 18mm MDF · hardware counted</small></div>
+                <div className="floating-card float-b"><strong>DXF ready</strong><small>CNC export prepared for workshop</small></div>
+                <div className="app-window" aria-label="Cabinetrix product interface mockup">
+                  <div className="window-top">
+                    <div className="dots"><span className="dot"></span><span className="dot"></span><span className="dot"></span></div>
+                    <div className="window-title">Cabinetrix Studio / Kitchen Project</div>
+                    <div className="chip">LIVE</div>
+                  </div>
+                  <div className="hero-media-shell">
                     <div
-                      key={i}
-                      className="w-10 h-10 rounded-full bg-lp-avatar border-2 border-lp-border-avatar flex items-center justify-center text-xs font-bold text-lp-muted"
+                      className="hero-video-clickable"
+                      ref={videoRef}
+                      onClick={() => onQuickStart?.()}
+                      role="button"
+                      tabIndex={0}
+                      onMouseMove={handleVideoMove}
+                      onMouseEnter={(e) => { setShowTooltip(true); handleVideoMove(e); }}
+                      onMouseLeave={() => setShowTooltip(false)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onQuickStart?.(); }}
                     >
-                      {String.fromCharCode(64 + i)}
+                      <video className="hero-product-video" autoPlay muted loop playsInline preload="metadata" poster="/hero.mp4">
+                        <source src="/hero.mp4" type="video/mp4" />
+                      </video>
+                      <div
+                        className={`hero-video-tooltip${showTooltip ? ' visible' : ''}`}
+                        style={{ left: cursorPos.x + 14, top: cursorPos.y - 36 }}
+                      >Try Live Demo</div>
                     </div>
-                  ))}
-                </div>
-                <div>
-                  <div className="flex items-center gap-1">
-                    {[1, 2, 3, 4, 5].map((i) => (
-                      <Star key={i} size={14} className="fill-lp-star text-lp-star" />
-                    ))}
+                    <div className="scan-line"></div>
+                    <div className="media-caption-bar"><span>Live 3D cabinet preview</span><span className="chip">REAL APP VIDEO</span></div>
                   </div>
-                  <p className="text-sm text-lp-muted">
-                    Trusted by <span className="font-semibold text-lp-secondary">200+</span> cabinet engineering professionals
-                  </p>
                 </div>
               </div>
             </div>
-            <div className="relative hidden lg:flex flex-col gap-4">
-              <div className="relative h-[280px]">
-                <CyclingFeature />
-              </div>
-              <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-lp-border-strong bg-lp-elevated aspect-[4/3]">
-                <img
-                  src="/kitchen_hero.png"
-                  alt="Cabinetrix Pro 3D Kitchen Design"
-                  className="w-full h-full object-cover"
-                />
-              </div>
+          </header>
+
+          <div className="proof-strip">
+            <div className="container proof-grid">
+              <div className="proof-item"><strong>3D</strong><span>Real-time design</span><small>Interactive preview</small></div>
+              <div className="proof-item"><strong>BOM</strong><span>Instant reports</span><small>Materials & hardware</small></div>
+              <div className="proof-item"><strong>DXF</strong><span>CNC exports</span><small>Workshop-ready files</small></div>
+              <div className="proof-item"><strong>PDF</strong><span>Quote packs</span><small>Client-ready output</small></div>
+              <div className="proof-item"><strong>CUT</strong><span>Panel lists</span><small>Faster production</small></div>
             </div>
           </div>
-        </div>
-      </section>
 
-      {/* Stats */}
-      <section className="py-12 sm:py-16 border-y border-lp-border-section bg-lp-section-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {[
-              { value: '3D', label: 'Real-Time Visualization', desc: 'interactive 3D preview' },
-              { value: 'BOM', label: 'Auto-Generated Reports', desc: 'materials & cut lists' },
-              { value: 'DXF', label: 'CNC-Ready Exports', desc: 'drilling & cutting files' },
-              { value: 'PDF', label: 'Professional Quotes', desc: 'branded quotations' },
-            ].map((stat, i) => (
-              <div key={i} className="text-center">
-                <div className="text-2xl sm:text-3xl font-black text-primary mb-1">{stat.value}</div>
-                <div className="text-sm font-semibold text-lp-secondary-dim">{stat.label}</div>
-                <div className="text-xs text-lp-subtle mt-0.5">{stat.desc}</div>
+          <section id="showcase">
+            <div className="container">
+              <div className="section-heading reveal">
+                <h2>See Cabinetrix <span className="gradient-text">in Action</span></h2>
+                <p>A product-first layout makes the landing page feel like real software, not just a generic kitchen website.</p>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Features */}
-      <RevealSection>
-        <section id="features" className="py-16 sm:py-24">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center max-w-2xl mx-auto mb-16">
-              <h2 className="text-3xl sm:text-4xl font-black mb-4">
-                <span className="text-lp-heading">Everything You Need, </span>
-                <span className="text-gradient">Nothing You Don't</span>
-              </h2>
-              <p className="text-lg text-lp-muted">
-                Cloud-based 3D cabinet engineering tools for professional woodworkers
-              </p>
-            </div>
-            <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
-              {[
-                {
-                  icon: <Box size={28} />,
-                  title: '3D Design Studio',
-                  description: 'Drag-and-drop cabinet placement on multiple walls with real-time 3D preview. Support for base, wall, tall, corner, and specialty cabinets.',
-                  features: ['Real-time 3D rendering', 'Multi-wall layouts', 'Obstacle integration'],
-                },
-                {
-                  icon: <Calculator size={28} />,
-                  title: 'Instant BOM Engine',
-                  description: 'Automatic bill of materials with exact panel dimensions, hardware counts, and cost calculations. No manual takeoffs.',
-                  features: ['Panel dimensioning', 'Hardware counts', 'Cost estimation'],
-                },
-                {
-                  icon: <Layers size={28} />,
-                  title: 'Manufacturing Exports',
-                  description: 'Export CNC-ready DXF files with drilling patterns, Excel spreadsheets, SketchUp models, and optimized cut plans for your workshop.',
-                  features: ['DXF cutting files', 'SketchUp & 3D export', 'Drilling patterns', 'Cut optimization'],
-                },
-              ].map((feature, i) => (
-                <div
-                  key={i}
-                  className="group relative p-8 rounded-2xl bg-lp-card border border-lp-border hover:border-primary/30 dark:hover:border-primary/30 transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1"
-                >
-                  <div className="w-14 h-14 rounded-xl bg-primary-subtle dark:bg-primary-light flex items-center justify-center text-primary mb-6 group-hover:scale-110 transition-transform">
-                    {feature.icon}
+              <div className="product-showcase reveal">
+                <div className="showcase-main">
+                  <div className="showcase-header">
+                    <h3>3D room layout and cabinet placement</h3>
+                    <span className="chip">Auto-save cloud project</span>
                   </div>
-                  <h3 className="text-xl font-bold text-lp-heading mb-3">{feature.title}</h3>
-                  <p className="text-lp-muted text-sm leading-relaxed mb-6">{feature.description}</p>
-                  <ul className="space-y-2">
-                    {feature.features.map((f, j) => (
-                      <li key={j} className="flex items-center gap-2 text-sm text-lp-body">
-                        <Check size={14} className="text-primary flex-shrink-0" />
-                        {f}
-                      </li>
-                    ))}
+                  <div className="showcase-preview">
+                    <div className="real-media-card" aria-label="Real Cabinetrix 3D cabinet design screenshot">
+                      <img className="real-product-image" src="/3d-design.png" alt="3D cabinet design" />
+                      <div className="media-caption-bar"><span>Design walls, cabinets, sink, hob and finishes in 3D</span><span className="chip">3D DESIGN</span></div>
+                    </div>
+                  </div>
+                </div>
+                <div className="showcase-side">
+                  <div className="mini-card">
+                    <h4>Design in 3D</h4>
+                    <p>Drag cabinets onto multiple walls and preview the kitchen layout before manufacturing.</p>
+                    <div className="progress"><span></span></div>
+                  </div>
+                  <div className="mini-card">
+                    <h4>Generate BOM</h4>
+                    <p>Convert project geometry into panels, material counts, hardware, and cost estimates.</p>
+                    <div className="visual-chip-row"><span className="chip">Panels</span><span className="chip">Hardware</span><span className="chip">Costs</span></div>
+                  </div>
+                  <div className="mini-card">
+                    <h4>Export for workshop</h4>
+                    <p>Download DXF, PDF quote packs, cut lists, and CNC-ready production files.</p>
+                    <div className="visual-chip-row"><span className="chip">DXF</span><span className="chip">PDF</span><span className="chip">CNC</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section id="features">
+            <div className="container">
+              <div className="section-heading reveal">
+                <h2>Everything You Need. <span className="gradient-text">Nothing You Don't.</span></h2>
+                <p>Cloud-based cabinet engineering tools for professional woodworkers, joinery shops, and kitchen manufacturers.</p>
+              </div>
+              <div className="features-grid">
+                <article className="feature-card reveal">
+                  <div className="icon-box">▧</div>
+                  <h3>3D Design Studio</h3>
+                  <p>Plan rooms, place cabinets, edit dimensions, and preview the full layout in real time.</p>
+                  <ul className="tick-list">
+                    <li>Real-time 3D rendering</li>
+                    <li>Multi-wall layouts</li>
+                    <li>Cabinet library presets</li>
                   </ul>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      </RevealSection>
+                  <div className="visual-chip-row"><span className="chip">Wall units</span><span className="chip">Base units</span><span className="chip">Island</span></div>
+                </article>
 
-      {/* How It Works */}
-      <RevealSection>
-        <section id="how-it-works" className="py-16 sm:py-24 bg-lp-section-80">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center max-w-2xl mx-auto mb-16">
-              <h2 className="text-3xl sm:text-4xl font-black mb-4">
-                <span className="text-lp-heading">From Design to </span>
-                <span className="text-gradient">Manufacturing</span>
-              </h2>
-              <p className="text-lg text-lp-muted">
-                Four simple steps from concept to production
-              </p>
-            </div>
-            <div className="grid md:grid-cols-4 gap-8">
-              {[
-                {
-                  step: '01',
-                  title: 'Set Up',
-                  description: 'Define your walls, materials, and preferences in minutes.',
-                  icon: <Ruler size={24} />,
-                },
-                {
-                  step: '02',
-                  title: 'Design',
-                  description: 'Place cabinets with drag-and-drop. Preview in real-time 3D.',
-                  icon: <Box size={24} />,
-                },
-                {
-                  step: '03',
-                  title: 'Review',
-                  description: 'BOM, cut plans, and cost estimates generated instantly.',
-                  icon: <FileText size={24} />,
-                },
-                {
-                  step: '04',
-                  title: 'Export',
-                  description: 'Download DXF, Excel, PDF — ready for the workshop.',
-                  icon: <Download size={24} />,
-                },
-              ].map((step, i) => (
-                <div key={i} className="relative text-center group">
-                  <div className="w-16 h-16 rounded-2xl bg-primary-subtle dark:bg-primary-light flex items-center justify-center text-primary mx-auto mb-6 group-hover:scale-110 transition-transform">
-                    {step.icon}
-                  </div>
-                  <div className="absolute top-8 left-[calc(50%+40px)] hidden md:block w-[calc(100%-80px)] h-[2px] bg-lp-avatar">
-                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-primary" />
-                  </div>
-                  <span className="text-xs font-black text-primary uppercase tracking-widest">{step.step}</span>
-                  <h3 className="text-lg font-bold text-lp-heading mt-2 mb-2">{step.title}</h3>
-                  <p className="text-sm text-lp-muted">{step.description}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      </RevealSection>
+                <article className="feature-card reveal">
+                  <div className="icon-box">▤</div>
+                  <h3>Instant BOM Engine</h3>
+                  <p>Automatically calculate panel dimensions, hardware counts, quantities, and material costs.</p>
+                  <ul className="tick-list">
+                    <li>Panel dimensioning</li>
+                    <li>Hardware counts</li>
+                    <li>Cost estimation</li>
+                  </ul>
+                  <div className="visual-chip-row"><span className="chip">18mm MDF</span><span className="chip">Hinges</span><span className="chip">Drawer runners</span></div>
+                </article>
 
-      {/* Pricing */}
-      <RevealSection>
-        <section id="pricing" className="py-16 sm:py-24">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center max-w-2xl mx-auto mb-16">
-              <h2 className="text-3xl sm:text-4xl font-black mb-4">
-                <span className="text-lp-heading">Simple </span>
-                <span className="text-gradient">Pricing</span>
-              </h2>
-              <p className="text-lg text-lp-muted">
-                Start free — no credit card required. Pay only when you're earning.
-              </p>
-            </div>
-            <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
-              <div className="p-8 rounded-2xl bg-lp-card border-2 border-lp-border">
-                <div className="w-12 h-12 rounded-xl bg-lp-elevated flex items-center justify-center text-lp-body-muted mb-6">
-                  <Users size={24} />
-                </div>
-                <h3 className="text-2xl font-bold text-lp-heading mb-2">Free</h3>
-                <div className="mb-6">
-                  <span className="text-4xl font-black text-lp-heading">$0</span>
-                  <span className="text-lp-subtle-static">/month</span>
-                </div>
-                <p className="text-sm text-lp-muted mb-8">
-                  Perfect for getting started — no payment required, no risk
-                </p>
-                <button
-                  onClick={onGetStarted}
-                  className="w-full py-3.5 rounded-xl bg-lp-elevated hover:bg-lp-elevated-hover text-lp-secondary font-bold transition-all border border-lp-border-strong mb-8"
-                >
-                  Get Started Free
-                </button>
-                <ul className="space-y-3">
-                  {[
-                    'Up to 3 projects',
-                    'Basic cabinet presets',
-                    '3D visualization',
-                    'Browser-based — no download',
-                    'On-screen reports',
-                  ].map((item, i) => (
-                    <li key={i} className="flex items-start gap-3 text-sm text-lp-body">
-                      <Check size={16} className="text-lp-green mt-0.5 flex-shrink-0" />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div className="relative p-8 rounded-2xl bg-lp-card border-2 border-primary shadow-xl shadow-primary/10">
-                <div className="absolute top-0 right-8 -translate-y-1/2 bg-primary text-lp-white text-xs font-bold px-4 py-1.5 rounded-full">
-                  POPULAR
-                </div>
-                <div className="w-12 h-12 rounded-xl bg-primary-subtle dark:bg-primary-light flex items-center justify-center text-primary mb-6">
-                  <Sparkles size={24} />
-                </div>
-                <h3 className="text-2xl font-bold text-lp-heading mb-2">Pro</h3>
-                <div className="mb-6">
-                  <span className="text-4xl font-black text-lp-heading">$29</span>
-                  <span className="text-lp-subtle-static">/month</span>
-                </div>
-                <p className="text-sm text-lp-muted mb-8">
-                  For professionals and growing workshops
-                </p>
-                <button
-                  onClick={onGetStarted}
-                  className="w-full py-3.5 rounded-xl bg-primary hover:bg-primary-hover text-lp-white font-bold transition-all shadow-lg shadow-primary/20 mb-8"
-                >
-                  Start Pro Trial
-                </button>
-                <ul className="space-y-3">
-                  {[
-                    'Unlimited projects',
-                    'Custom cabinet library',
-                    'BOM & PDF export',
-                    'DXF & CNC export',
-                    'Advanced cut optimization',
-                    'Full cloud-based platform',
-                    'Priority email support',
-                  ].map((item, i) => (
-                    <li key={i} className="flex items-start gap-3 text-sm text-lp-body">
-                      <Check size={16} className="text-lp-green mt-0.5 flex-shrink-0" />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
+                <article className="feature-card reveal">
+                  <div className="icon-box">⇩</div>
+                  <h3>Manufacturing Exports</h3>
+                  <p>Export CNC-ready DXF files, quote-ready PDFs, cut lists, and SketchUp-compatible assets.</p>
+                  <ul className="tick-list">
+                    <li>DXF cutting files</li>
+                    <li>PDF quote reports</li>
+                    <li>Cut-list optimisation</li>
+                  </ul>
+                  <div className="visual-chip-row"><span className="chip">DXF</span><span className="chip">PDF</span><span className="chip">SKP</span><span className="chip">CSV</span></div>
+                </article>
               </div>
             </div>
-          </div>
-        </section>
-      </RevealSection>
+          </section>
 
-      {/* Contact */}
-      <RevealSection>
-        <section id="contact" className="py-16 sm:py-24 bg-lp-section-80">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl sm:text-4xl font-black mb-4">
-                <span className="text-lp-heading">Get In </span>
-                <span className="text-gradient">Touch</span>
-              </h2>
-              <p className="text-lg text-lp-muted max-w-xl mx-auto">
-                Have questions? We're here to help.
-              </p>
-            </div>
-            <div className="max-w-3xl mx-auto grid md:grid-cols-2 gap-8">
-              <div className="p-8 rounded-2xl bg-lp-card border border-lp-border">
-                <h3 className="text-sm font-black text-primary uppercase tracking-widest mb-6">Contact Info</h3>
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-xs font-semibold text-lp-subtle-static uppercase tracking-wide">Email</p>
-                    <a href="mailto:support@cabinetrixpro.com" className="text-sm font-semibold text-lp-heading hover:text-primary transition-colors">
-                      support@cabinetrixpro.com
-                    </a>
+          <section className="workflow" id="workflow">
+            <div className="container">
+              <div className="section-heading reveal">
+                <h2>From Design to <span className="gradient-text">Manufacturing</span></h2>
+                <p>Four simple stages from concept to production-ready cabinet files.</p>
+              </div>
+              <div className="workflow-grid">
+                <div className="workflow-step reveal"><div className="step-number">01</div><h3>Set up</h3><p>Define room walls, materials, panel thickness, margins, and workshop preferences.</p></div>
+                <div className="workflow-step reveal"><div className="step-number">02</div><h3>Design</h3><p>Place cabinets with drag-and-drop controls and preview the kitchen in real-time 3D.</p></div>
+                <div className="workflow-step reveal"><div className="step-number">03</div><h3>Review</h3><p>Check BOM, cut plans, material usage, hardware counts, and quote estimates.</p></div>
+                <div className="workflow-step reveal"><div className="step-number">04</div><h3>Export</h3><p>Download DXF, quote PDFs, cut lists, and CNC-ready files for the workshop.</p></div>
+              </div>
+              <div className="workflow-media-grid reveal">
+                <div className="workflow-media-card">
+                  <img src="/bom.png" alt="BOM export" />
+                  <div className="workflow-media-copy">
+                    <h3>Quote-ready costing</h3>
+                    <p>Show material, hardware, labour, transport and margin in one clear estimate.</p>
                   </div>
-                  <div>
-                    <p className="text-xs font-semibold text-lp-subtle-static uppercase tracking-wide">Response Time</p>
-                    <p className="text-sm text-lp-body">Within 24-48 business hours</p>
+                </div>
+                <div className="workflow-media-card">
+                  <img src="/cut-list.png" alt="Cut list export" />
+                  <div className="workflow-media-copy">
+                    <h3>Cut optimisation and DXF export</h3>
+                    <p>Turn project parts into sheet layouts and workshop-ready manufacturing exports.</p>
                   </div>
                 </div>
               </div>
-              <div className="p-8 rounded-2xl bg-lp-card border border-lp-border">
-                <h3 className="text-sm font-black text-primary uppercase tracking-widest mb-6">Software Details</h3>
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-xs font-semibold text-lp-subtle-static uppercase tracking-wide">Platform</p>
-                    <p className="text-sm font-semibold text-lp-heading">Cabinetrix Pro</p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-lp-subtle-static uppercase tracking-wide">Type</p>
-                    <p className="text-sm text-lp-body">Cloud-based SaaS — browser only</p>
-                  </div>
-                </div>
+              <div className="stats-grid reveal">
+                <div className="stat-card"><strong>Fast</strong><span>Move from layout to quote-ready output without rebuilding spreadsheets.</span></div>
+                <div className="stat-card"><strong>Accurate</strong><span>Reduce manual counting errors across panels, hardware, and materials.</span></div>
+                <div className="stat-card"><strong>Ready</strong><span>Produce export files your workshop can actually use.</span></div>
               </div>
             </div>
-          </div>
-        </section>
-      </RevealSection>
+          </section>
 
-      {/* CTA */}
-      <RevealSection>
-        <section className="py-20 sm:py-28 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 dark:from-primary-light dark:via-primary/5 dark:to-primary-light" />
-          <div className="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="text-3xl sm:text-5xl font-black mb-6 leading-tight">
-              <span className="text-lp-heading">Ready to Transform </span>
-              <span className="text-gradient">Your Workflow?</span>
-            </h2>
-            <p className="text-lg sm:text-xl text-lp-muted mb-10 max-w-xl mx-auto">
-              Join 200+ cabinet engineering professionals using Cabinetrix Pro to design faster, build smarter.
-            </p>
-            <button
-              onClick={onGetStarted}
-              className="inline-flex items-center justify-center gap-2 px-10 py-5 bg-primary hover:bg-primary-hover text-lp-white font-bold rounded-xl transition-all shadow-xl shadow-primary/20 hover:shadow-2xl hover:shadow-primary/30 text-xl group"
-            >
-              Get Started Free
-              <ArrowRight size={22} className="group-hover:translate-x-1 transition-transform" />
-            </button>
-          </div>
-        </section>
-      </RevealSection>
-
-      {/* Footer */}
-      <footer className="border-t border-lp-border-section py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-lp-white font-black text-sm">
-                C
+          <section id="pricing">
+            <div className="container">
+              <div className="section-heading reveal">
+                <h2>Simple <span className="gradient-text">Pricing</span></h2>
+                <p>Start free. No credit card required. Upgrade when you need full manufacturing exports.</p>
               </div>
-              <span className="font-bold text-lp-secondary-dim">Cabinetrix Pro</span>
+              <div className="pricing-grid">
+                <article className="pricing-card reveal">
+                  <div className="icon-box">♙</div>
+                  <div className="plan-name">Free</div>
+                  <div className="price"><strong>$0</strong><span>/month</span></div>
+                  <p className="plan-copy">Best for testing the workflow and preparing your first cabinet projects.</p>
+                  <button className="btn btn-ghost pricing-btn" onClick={onGetStarted}>Get Started Free</button>
+                  <ul className="tick-list">
+                    <li>Up to 3 projects</li>
+                    <li>Basic cabinet presets</li>
+                    <li>3D visualization</li>
+                    <li>Browser reports, no download</li>
+                  </ul>
+                </article>
+
+                <article className="pricing-card featured reveal">
+                  <span className="popular">POPULAR</span>
+                  <div className="icon-box">✦</div>
+                  <div className="plan-name">Pro</div>
+                  <div className="price"><strong>$29</strong><span>/month</span></div>
+                  <p className="plan-copy">For workshops that need manufacturing-ready outputs and full project control.</p>
+                  <button className="btn btn-primary pricing-btn" onClick={onGetStarted}>Start Pro Trial</button>
+                  <ul className="tick-list">
+                    <li>Unlimited projects</li>
+                    <li>Custom cabinet library</li>
+                    <li>BOM and PDF export</li>
+                    <li>DXF and CNC export</li>
+                    <li>Cut-list optimisation</li>
+                    <li>Priority email support</li>
+                  </ul>
+                </article>
+              </div>
+
+              <div className="comparison-card reveal">
+                <table className="comparison-table" aria-label="Free versus Pro comparison">
+                  <thead><tr><th>Feature</th><th>Free</th><th>Pro</th></tr></thead>
+                  <tbody>
+                    <tr><td>3D cabinet design</td><td className="yes">✓</td><td className="yes">✓</td></tr>
+                    <tr><td>Projects</td><td>3</td><td>Unlimited</td></tr>
+                    <tr><td>BOM reports</td><td>Basic</td><td>Full</td></tr>
+                    <tr><td>DXF export</td><td className="no">—</td><td className="yes">✓</td></tr>
+                    <tr><td>CNC-ready files</td><td className="no">—</td><td className="yes">✓</td></tr>
+                    <tr><td>PDF quote packs</td><td className="no">—</td><td className="yes">✓</td></tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
-            <div className="flex items-center gap-6">
-              <Link to="/docs" className="text-sm text-lp-subtle-static hover:text-primary transition-colors">Docs</Link>
-              <Link to="/terms" className="text-sm text-lp-subtle-static hover:text-primary transition-colors">Terms</Link>
-              <Link to="/pricing" className="text-sm text-lp-subtle-static hover:text-primary transition-colors">Pricing</Link>
+          </section>
+
+          <section id="contact">
+            <div className="container">
+              <div className="section-heading reveal">
+                <h2>Need Cabinetrix for <span className="gradient-text">Your Workshop?</span></h2>
+                <p>Book a demo, ask about CNC/export support, or request onboarding help for your team.</p>
+              </div>
+              <div className="contact-grid">
+                <div className="contact-card reveal"><h3>Contact Info</h3><p>Email<br /><strong>support@cabinetrixpro.com</strong><br /><br />Response time<br /><strong>Within 24–48 business hours</strong></p></div>
+                <div className="contact-card reveal"><h3>Software Details</h3><p>Platform<br /><strong>Cabinetrix Pro</strong><br /><br />Type<br /><strong>Cloud-based SaaS — browser only</strong></p></div>
+                <div className="contact-card reveal"><h3>Best For</h3><p>Kitchen designers, cabinet makers, joinery shops, and workshops needing faster quotes and production files.</p></div>
+              </div>
             </div>
-            <p className="text-xs text-lp-subtle-static">
-              &copy; {new Date().getFullYear()} Cabinetrix Pro. All rights reserved.
-            </p>
+          </section>
+
+          <section className="final-cta" id="signup">
+            <div className="container reveal">
+              <h2>Ready to Design, Quote, and Export Cabinets Faster?</h2>
+              <p>Start free and generate your first cabinet project in minutes. Upgrade only when you need full manufacturing exports.</p>
+              <button className="btn btn-primary" onClick={onGetStarted}>Start Designing Free →</button>
+            </div>
+          </section>
+        </main>
+
+        <footer id="docs">
+          <div className="container footer-inner">
+            <Link to="/" className="brand">
+              <span className="brand-mark">C</span>
+              <span className="brand-text">Cabinetrix<small>Pro</small></span>
+            </Link>
+            <div className="footer-links">
+              <Link to="/docs">Docs</Link>
+              <Link to="/terms">Terms</Link>
+              <Link to="/pricing">Pricing</Link>
+            </div>
+            <span>&copy; {new Date().getFullYear()} Cabinetrix Pro. All rights reserved.</span>
           </div>
-        </div>
-      </footer>
-    </div>
+        </footer>
+
+        <style>{`
+          .lp-landing {
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background:
+              radial-gradient(circle at 18% 6%, rgba(122, 78, 45, 0.28), transparent 28%),
+              radial-gradient(circle at 82% 16%, rgba(214, 168, 79, 0.15), transparent 24%),
+              radial-gradient(circle at 56% 0%, rgba(143, 175, 141, 0.08), transparent 30%),
+              linear-gradient(180deg, var(--bg-950), var(--bg-900) 38%, var(--bg-950) 100%);
+            color: var(--text);
+            -webkit-font-smoothing: antialiased;
+          }
+          .lp-landing::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background-image:
+              linear-gradient(var(--grid-line) 1px, transparent 1px),
+              linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+            background-size: 72px 72px;
+            mask-image: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent 78%);
+            z-index: -1;
+          }
+          .lp-landing a { color: inherit; text-decoration: none; }
+          .lp-landing .container {
+            width: min(var(--max), calc(100% - 40px));
+            margin-inline: auto;
+          }
+          .lp-landing .hero {
+            position: relative;
+            padding: 92px 0 72px;
+          }
+          .lp-landing .hero-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.05fr;
+            align-items: center;
+            gap: 58px;
+          }
+          .lp-landing .eyebrow {
+            width: fit-content;
+            display: inline-flex;
+            align-items: center;
+            gap: 9px;
+            padding: 7px 12px;
+            border-radius: 999px;
+            border: 1px solid rgba(214, 168, 79, 0.40);
+            background: rgba(122, 78, 45, 0.16);
+            color: #F4D79B;
+            font-weight: 800;
+            font-size: 12px;
+            letter-spacing: 0.02em;
+            margin-bottom: 22px;
+          }
+          .lp-landing .pulse-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--sage);
+            box-shadow: 0 0 0 rgba(143, 175, 141, 0.7);
+            animation: pulse 1.8s infinite;
+          }
+          @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(143, 175, 141, 0.5); }
+            70% { box-shadow: 0 0 0 9px rgba(143, 175, 141, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(143, 175, 141, 0); }
+          }
+          .lp-landing h1 {
+            font-size: clamp(44px, 7vw, 82px);
+            line-height: 0.94;
+            letter-spacing: -0.075em;
+            margin-bottom: 24px;
+          }
+          .lp-landing .gradient-text {
+            background: linear-gradient(135deg, #F4D79B, var(--brass) 50%, var(--wood-oak));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+          }
+          .lp-landing .hero-copy {
+            color: var(--soft);
+            font-size: 18px;
+            line-height: 1.7;
+            max-width: 620px;
+            margin-bottom: 30px;
+          }
+          .lp-landing .hero-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-bottom: 24px;
+          }
+          .lp-landing .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 9px;
+            height: 44px;
+            padding: 0 18px;
+            border-radius: 12px;
+            border: 1px solid transparent;
+            font-weight: 800;
+            font-size: 14px;
+            cursor: pointer;
+            transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease, background 180ms ease;
+            white-space: nowrap;
+            font-family: inherit;
+            text-decoration: none;
+          }
+          .lp-landing .btn:hover {
+            transform: translateY(-2px);
+          }
+          .lp-landing .btn-primary {
+            color: white;
+            color: #111827;
+            background: linear-gradient(135deg, var(--brass), var(--amber) 70%);
+            box-shadow: 0 14px 34px rgba(214, 168, 79, 0.30);
+          }
+          .lp-landing .btn-primary:hover {
+            box-shadow: 0 18px 44px rgba(245, 158, 11, 0.34);
+          }
+          .lp-landing .btn-secondary {
+            color: #fef3c7;
+            background: rgba(245, 158, 11, 0.08);
+            border-color: rgba(245, 158, 11, 0.42);
+          }
+          .lp-landing .btn-secondary:hover {
+            background: rgba(245, 158, 11, 0.14);
+            box-shadow: 0 14px 34px rgba(245, 158, 11, 0.12);
+          }
+          .lp-landing .btn-ghost {
+            background: rgba(148, 163, 184, 0.08);
+            border-color: rgba(148, 163, 184, 0.12);
+            color: var(--soft);
+          }
+          .lp-landing .btn-ghost:hover {
+            background: rgba(148, 163, 184, 0.13);
+            color: white;
+          }
+          .lp-landing .micro-trust {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 16px;
+            color: var(--muted);
+            font-size: 13px;
+          }
+          .lp-landing .avatars {
+            display: flex;
+            align-items: center;
+          }
+          .lp-landing .avatar {
+            width: 31px;
+            height: 31px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            background: linear-gradient(135deg, #334155, #64748b);
+            border: 2px solid var(--bg-950);
+            margin-left: -8px;
+            font-size: 11px;
+            font-weight: 800;
+          }
+          .lp-landing .avatar:first-child { margin-left: 0; }
+          .lp-landing .stars {
+            color: #facc15;
+            letter-spacing: 1px;
+          }
+          .lp-landing .hero-visual {
+            position: relative;
+            min-height: 620px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          .lp-landing .glow-orb {
+            position: absolute;
+            width: 420px;
+            height: 420px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(214, 168, 79, 0.22), transparent 67%);
+            filter: blur(8px);
+            animation: float 7s ease-in-out infinite;
+          }
+          @keyframes float {
+            0%,100% { transform: translateY(0); }
+            50% { transform: translateY(-18px); }
+          }
+          .lp-landing .floating-card {
+            position: absolute;
+            z-index: 6;
+            padding: 13px 14px;
+            border-radius: 16px;
+            background: rgba(15, 23, 42, 0.86);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(148, 163, 184, 0.17);
+            box-shadow: 0 18px 46px rgba(0,0,0,0.32);
+            color: white;
+            animation: float 6s ease-in-out infinite;
+          }
+          .lp-landing .floating-card small {
+            display: block;
+            color: var(--muted);
+            margin-top: 4px;
+            font-size: 11px;
+          }
+          .lp-landing .float-a { left: -14px; top: 88px; }
+          .lp-landing .float-b { right: -8px; bottom: 70px; animation-delay: -2s; }
+          .lp-landing .app-window {
+            position: relative;
+            width: min(100%, 720px);
+            border-radius: 24px;
+            overflow: hidden;
+            background: rgba(15, 23, 42, 0.94);
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            box-shadow: var(--shadow), 0 0 0 1px rgba(255,255,255,0.03) inset;
+            transform: perspective(1100px) rotateY(-6deg) rotateX(3deg);
+            animation: windowIn 700ms ease both;
+          }
+          @keyframes windowIn {
+            from { opacity: 0; transform: perspective(1100px) rotateY(-10deg) rotateX(5deg) translateY(18px); }
+            to { opacity: 1; transform: perspective(1100px) rotateY(-6deg) rotateX(3deg) translateY(0); }
+          }
+          .lp-landing .window-top {
+            height: 46px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+            background: rgba(2, 6, 23, 0.48);
+          }
+          .lp-landing .dots { display: flex; gap: 7px; }
+          .lp-landing .dot { width: 10px; height: 10px; border-radius: 50%; }
+          .lp-landing .dot:nth-child(1) { background: #fb7185; }
+          .lp-landing .dot:nth-child(2) { background: #facc15; }
+          .lp-landing .dot:nth-child(3) { background: #8FAF8D; }
+          .lp-landing .window-title {
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+          }
+          .lp-landing .chip {
+            font-size: 10px;
+            font-weight: 900;
+            padding: 5px 7px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.08);
+            color: #F4D79B;
+            border: 1px solid rgba(255,255,255,0.1);
+          }
+          .lp-landing .scan-line {
+            position: absolute;
+            z-index: 3;
+            left: 26px;
+            right: 26px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(214, 168, 79, 0.9), transparent);
+            filter: drop-shadow(0 0 12px rgba(214, 168, 79, 0.68));
+            animation: scan 3.4s ease-in-out infinite;
+          }
+          @keyframes scan {
+            0%, 100% { top: 18%; opacity: 0.2; }
+            45% { opacity: 1; }
+            70% { top: 78%; opacity: 0.5; }
+          }
+
+          .lp-landing .hero-media-shell {
+            position: relative;
+            min-height: 484px;
+            background: #05070B;
+            overflow: hidden;
+          }
+          .lp-landing .hero-video-clickable {
+            cursor: pointer;
+            position: relative;
+          }
+          .lp-landing .hero-video-tooltip {
+            position: absolute;
+            z-index: 10;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 18px 9px 20px;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.55);
+            backdrop-filter: blur(18px) saturate(1.4);
+            -webkit-backdrop-filter: blur(18px) saturate(1.4);
+            border: 1px solid rgba(214, 168, 79, 0.35);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.35), 0 0 0 1px rgba(214, 168, 79, 0.10) inset;
+            color: #FEF3C7;
+            font-weight: 900;
+            font-size: 12px;
+            letter-spacing: 0.02em;
+            pointer-events: none;
+            opacity: 0;
+            transform: translateY(4px);
+            transition: opacity 160ms ease, transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+          }
+          .lp-landing .hero-video-tooltip.visible {
+            opacity: 1;
+            transform: translateY(0);
+          }
+          .lp-landing .hero-video-tooltip::after {
+            content: "→";
+            font-size: 14px;
+            color: var(--brass);
+            font-weight: 900;
+            transition: transform 180ms ease;
+          }
+          .lp-landing .hero-video-clickable:hover .hero-video-tooltip::after {
+            transform: translateX(4px);
+          }
+          .lp-landing .hero-product-video,
+          .lp-landing .real-product-image {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: cover;
+          }
+          .lp-landing .hero-product-video {
+            min-height: 484px;
+          }
+          .lp-landing .hero-media-shell::after,
+          .lp-landing .real-media-card::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background:
+              radial-gradient(circle at 20% 0%, rgba(214, 168, 79, 0.13), transparent 34%),
+              linear-gradient(180deg, rgba(2, 6, 23, 0.05), rgba(2, 6, 23, 0.22));
+          }
+          .lp-landing .media-caption-bar {
+            position: absolute;
+            left: 16px;
+            right: 16px;
+            bottom: 16px;
+            z-index: 4;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 14px;
+            border-radius: 14px;
+            background: rgba(2, 6, 23, 0.68);
+            border: 1px solid rgba(148, 163, 184, 0.16);
+            backdrop-filter: blur(14px);
+            color: var(--soft);
+            font-size: 12px;
+            font-weight: 800;
+          }
+          .lp-landing .real-media-card {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            min-height: 304px;
+            border-radius: 18px;
+            overflow: hidden;
+            border: 1px solid rgba(148, 163, 184, 0.14);
+            background: rgba(2, 6, 23, 0.42);
+            box-shadow: 0 18px 46px rgba(0,0,0,0.22);
+          }
+          .lp-landing .real-media-card .real-product-image {
+            min-height: 304px;
+          }
+          .lp-landing .workflow-media-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 24px;
+          }
+          .lp-landing .workflow-media-card {
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(214, 168, 79, 0.18);
+            background: rgba(19, 27, 39, 0.78);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+          }
+          .lp-landing .workflow-media-card img {
+            width: 100%;
+            display: block;
+            aspect-ratio: 16 / 8.2;
+            object-fit: cover;
+          }
+          .lp-landing .workflow-media-copy {
+            padding: 18px 20px;
+            border-top: 1px solid rgba(148, 163, 184, 0.1);
+          }
+          .lp-landing .workflow-media-copy h3 {
+            font-size: 17px;
+            margin-bottom: 8px;
+          }
+          .lp-landing .workflow-media-copy p {
+            color: var(--muted);
+            line-height: 1.6;
+            font-size: 13px;
+          }
+          .lp-landing .proof-strip {
+            border-top: 1px solid rgba(148, 163, 184, 0.1);
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+            background: rgba(15, 23, 42, 0.32);
+            backdrop-filter: blur(18px);
+          }
+          .lp-landing .proof-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 18px;
+            padding: 30px 0;
+          }
+          .lp-landing .proof-item {
+            text-align: center;
+            padding: 14px 10px;
+            border-radius: 16px;
+            transition: background 180ms ease, transform 180ms ease;
+          }
+          .lp-landing .proof-item:hover {
+            background: rgba(214, 168, 79, 0.09);
+            transform: translateY(-3px);
+          }
+          .lp-landing .proof-item strong {
+            display: block;
+            color: #D6A84F;
+            font-size: 23px;
+            margin-bottom: 4px;
+          }
+          .lp-landing .proof-item span {
+            display: block;
+            color: white;
+            font-weight: 850;
+            font-size: 13px;
+          }
+          .lp-landing .proof-item small {
+            color: var(--muted);
+            font-size: 11px;
+          }
+          .lp-landing section {
+            padding: 92px 0;
+            position: relative;
+          }
+          .lp-landing .section-heading {
+            text-align: center;
+            max-width: 720px;
+            margin: 0 auto 46px;
+          }
+          .lp-landing .section-heading h2 {
+            font-size: clamp(30px, 4vw, 48px);
+            line-height: 1.05;
+            letter-spacing: -0.045em;
+            margin-bottom: 14px;
+            color: var(--text);
+          }
+          .lp-landing .section-heading p {
+            color: var(--muted);
+            font-size: 16px;
+            line-height: 1.7;
+          }
+          .lp-landing .product-showcase {
+            display: grid;
+            grid-template-columns: 1.35fr 0.85fr;
+            gap: 24px;
+            align-items: stretch;
+          }
+          .lp-landing .showcase-main, .lp-landing .showcase-side {
+            border: 1px solid var(--border);
+            background: var(--card);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+          }
+          .lp-landing .showcase-main {
+            border-radius: var(--radius-lg);
+            padding: 26px;
+            overflow: hidden;
+          }
+          .lp-landing .showcase-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 22px;
+          }
+          .lp-landing .showcase-header h3 {
+            font-size: 20px;
+            letter-spacing: -0.02em;
+          }
+          .lp-landing .showcase-preview {
+            min-height: 360px;
+            border-radius: 22px;
+            background:
+              linear-gradient(135deg, rgba(2, 6, 23, 0.65), rgba(15, 23, 42, 0.92)),
+              radial-gradient(circle at 72% 32%, rgba(122, 78, 45, 0.26), transparent 28%);
+            border: 1px solid rgba(148, 163, 184, 0.13);
+            position: relative;
+            overflow: hidden;
+            padding: 28px;
+            display: grid;
+            place-items: center;
+          }
+
+          .lp-landing .showcase-side {
+            border-radius: var(--radius-lg);
+            padding: 22px;
+            display: grid;
+            gap: 16px;
+          }
+          .lp-landing .mini-card {
+            padding: 18px;
+            border-radius: 18px;
+            background: rgba(2, 6, 23, 0.3);
+            border: 1px solid rgba(148, 163, 184, 0.12);
+          }
+          .lp-landing .mini-card h4 {
+            margin-bottom: 8px;
+            font-size: 15px;
+          }
+          .lp-landing .mini-card p {
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.6;
+          }
+          .lp-landing .progress {
+            height: 8px;
+            border-radius: 999px;
+            background: rgba(148, 163, 184, 0.12);
+            overflow: hidden;
+            margin-top: 12px;
+          }
+          .lp-landing .progress span {
+            display: block;
+            height: 100%;
+            width: 76%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, var(--wood-walnut), var(--brass));
+            animation: progressLoad 2.6s ease-in-out infinite alternate;
+          }
+          @keyframes progressLoad {
+            from { width: 42%; }
+            to { width: 92%; }
+          }
+          .lp-landing .visual-chip-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 18px;
+          }
+          .lp-landing .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 22px;
+          }
+          .lp-landing .feature-card {
+            position: relative;
+            border-radius: var(--radius-md);
+            padding: 28px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            background: var(--card);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            transition: transform 220ms ease, border-color 220ms ease, background 220ms ease;
+          }
+          .lp-landing .feature-card::before {
+            content: "";
+            position: absolute;
+            inset: -1px;
+            background: radial-gradient(circle at 20% 0%, rgba(214, 168, 79, 0.20), transparent 34%);
+            opacity: 0;
+            transition: opacity 220ms ease;
+            pointer-events: none;
+          }
+          .lp-landing .feature-card:hover {
+            transform: translateY(-8px);
+            border-color: rgba(214, 168, 79, 0.36);
+            background: var(--card-strong);
+          }
+          .lp-landing .feature-card:hover::before { opacity: 1; }
+          .lp-landing .icon-box {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            display: grid;
+            place-items: center;
+            background: rgba(214, 168, 79, 0.15);
+            border: 1px solid rgba(214, 168, 79, 0.24);
+            color: #F4D79B;
+            font-size: 22px;
+            margin-bottom: 22px;
+          }
+          .lp-landing .feature-card h3 {
+            font-size: 20px;
+            margin-bottom: 12px;
+            letter-spacing: -0.02em;
+          }
+          .lp-landing .feature-card p {
+            color: var(--muted);
+            line-height: 1.7;
+            font-size: 14px;
+            margin-bottom: 18px;
+          }
+          .lp-landing .tick-list {
+            list-style: none;
+            display: grid;
+            gap: 11px;
+            color: var(--soft);
+            font-size: 13px;
+          }
+          .lp-landing .tick-list li::before {
+            content: "✓";
+            color: #D6A84F;
+            margin-right: 8px;
+            font-weight: 900;
+          }
+          .lp-landing .workflow {
+            background: rgba(15, 23, 42, 0.34);
+            border-top: 1px solid rgba(148, 163, 184, 0.08);
+            border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+          }
+          .lp-landing .workflow-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 18px;
+            position: relative;
+          }
+          .lp-landing .workflow-step {
+            padding: 24px;
+            border-radius: 20px;
+            background: rgba(15, 23, 42, 0.68);
+            border: 1px solid rgba(148, 163, 184, 0.13);
+            position: relative;
+            min-height: 190px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+          }
+          .lp-landing .step-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 13px;
+            background: linear-gradient(135deg, var(--brass), var(--wood-walnut));
+            display: grid;
+            place-items: center;
+            font-weight: 900;
+            margin-bottom: 18px;
+            box-shadow: 0 12px 28px rgba(214, 168, 79, 0.22);
+          }
+          .lp-landing .workflow-step h3 {
+            font-size: 17px;
+            margin-bottom: 9px;
+          }
+          .lp-landing .workflow-step p {
+            color: var(--muted);
+            line-height: 1.6;
+            font-size: 13px;
+          }
+          .lp-landing .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-top: 24px;
+          }
+          .lp-landing .stat-card {
+            border: 1px solid var(--border);
+            background: var(--card);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            border-radius: 20px;
+            padding: 24px;
+            text-align: center;
+          }
+          .lp-landing .stat-card strong {
+            display: block;
+            font-size: 31px;
+            letter-spacing: -0.04em;
+            color: #F4D79B;
+            margin-bottom: 6px;
+          }
+          .lp-landing .stat-card span {
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.5;
+          }
+          .lp-landing .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 360px));
+            gap: 24px;
+            justify-content: center;
+            align-items: stretch;
+          }
+          .lp-landing .pricing-card {
+            position: relative;
+            border-radius: 22px;
+            padding: 30px;
+            border: 1px solid var(--border);
+            background: var(--card);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+          }
+          .lp-landing .pricing-card.featured {
+            border-color: var(--border-strong);
+            box-shadow: 0 24px 80px rgba(214, 168, 79, 0.18);
+            transform: scale(1.025);
+          }
+          .lp-landing .popular {
+            position: absolute;
+            top: -13px;
+            right: 22px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #F4D79B, var(--brass));
+            color: #111827;
+            font-size: 11px;
+            font-weight: 950;
+          }
+          .lp-landing .plan-name {
+            font-size: 18px;
+            font-weight: 900;
+            margin: 16px 0 8px;
+          }
+          .lp-landing .price {
+            display: flex;
+            align-items: end;
+            gap: 5px;
+            margin-bottom: 12px;
+          }
+          .lp-landing .price strong {
+            font-size: 46px;
+            letter-spacing: -0.06em;
+          }
+          .lp-landing .price span {
+            color: var(--muted);
+            padding-bottom: 8px;
+          }
+          .lp-landing .plan-copy {
+            color: var(--muted);
+            line-height: 1.6;
+            font-size: 14px;
+            min-height: 46px;
+            margin-bottom: 22px;
+          }
+          .lp-landing .pricing-btn {
+            width: 100%;
+            margin-bottom: 22px;
+          }
+          .lp-landing .comparison-card {
+            margin: 42px auto 0;
+            max-width: 850px;
+            border: 1px solid var(--border);
+            background: var(--card);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            border-radius: 24px;
+            padding: 12px;
+            overflow: hidden;
+          }
+          .lp-landing .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            overflow: hidden;
+            border-radius: 18px;
+          }
+          .lp-landing .comparison-table th,
+          .lp-landing .comparison-table td {
+            padding: 16px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+            color: var(--soft);
+            text-align: center;
+            font-size: 14px;
+          }
+          .lp-landing .comparison-table th:first-child,
+          .lp-landing .comparison-table td:first-child {
+            text-align: left;
+          }
+          .lp-landing .comparison-table th {
+            color: white;
+            background: rgba(2, 6, 23, 0.28);
+            font-weight: 900;
+          }
+          .lp-landing .comparison-table tr:last-child td { border-bottom: 0; }
+          .lp-landing .yes { color: #8FAF8D; font-weight: 900; }
+          .lp-landing .no { color: #E07A5F; font-weight: 900; }
+          .lp-landing .contact-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+          }
+          .lp-landing .contact-card {
+            border: 1px solid var(--border);
+            background: var(--card);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            border-radius: 20px;
+            padding: 24px;
+          }
+          .lp-landing .contact-card h3 {
+            font-size: 15px;
+            color: #F4D79B;
+            text-transform: uppercase;
+            letter-spacing: 0.09em;
+            margin-bottom: 16px;
+          }
+          .lp-landing .contact-card p {
+            color: var(--soft);
+            line-height: 1.8;
+            font-size: 14px;
+          }
+          .lp-landing .final-cta {
+            padding: 86px 0;
+            background:
+              radial-gradient(circle at 50% 0%, rgba(255,255,255,0.18), transparent 30%),
+              linear-gradient(135deg, #3A2416, #7A4E2D 52%, #0D131C);
+            text-align: center;
+          }
+          .lp-landing .final-cta h2 {
+            font-size: clamp(34px, 5vw, 58px);
+            line-height: 1.02;
+            letter-spacing: -0.055em;
+            margin-bottom: 16px;
+            color: var(--text);
+          }
+          .lp-landing .final-cta p {
+            color: #F4D79B;
+            max-width: 620px;
+            margin: 0 auto 28px;
+            line-height: 1.7;
+          }
+          .lp-landing footer {
+            padding: 28px 0;
+            background: #05070B;
+            border-top: 1px solid rgba(148, 163, 184, 0.08);
+          }
+          .lp-landing .footer-inner {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 18px;
+            color: var(--muted);
+            font-size: 13px;
+          }
+          .lp-landing .footer-inner .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            color: #f8fafc;
+          }
+          .lp-landing .footer-inner .brand-mark {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            display: grid;
+            place-items: center;
+            background: linear-gradient(135deg, var(--brass), var(--wood-walnut));
+            box-shadow: 0 12px 32px rgba(214, 168, 79, 0.28);
+            font-size: 14px;
+            color: white;
+          }
+          .lp-landing .footer-inner .brand-text {
+            font-size: 14px;
+          }
+          .lp-landing .footer-inner .brand-text small {
+            display: block;
+            color: #94a3b8;
+            font-size: 10px;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            margin-top: -2px;
+          }
+          .lp-landing .footer-links {
+            display: flex;
+            gap: 20px;
+          }
+          .lp-landing .footer-links a {
+            color: var(--muted);
+            transition: color 180ms ease;
+          }
+          .lp-landing .footer-links a:hover {
+            color: white;
+          }
+          .lp-light-theme .eyebrow {
+            background: rgba(255, 250, 241, 0.74);
+            color: var(--wood-dark);
+            border-color: rgba(184, 135, 47, 0.34);
+            box-shadow: 0 10px 30px rgba(58, 36, 22, 0.08);
+          }
+          .lp-light-theme .btn-secondary {
+            color: var(--wood-dark);
+            background: rgba(255, 250, 241, 0.72);
+            border-color: rgba(184, 135, 47, 0.38);
+          }
+          .lp-light-theme .btn-secondary:hover {
+            background: rgba(255, 244, 220, 0.94);
+          }
+          .lp-light-theme .btn-ghost {
+            background: rgba(122, 78, 45, 0.06);
+            border-color: rgba(122, 78, 45, 0.14);
+            color: var(--wood-dark);
+          }
+          .lp-light-theme .btn-ghost:hover {
+            background: rgba(122, 78, 45, 0.10);
+            color: var(--wood-dark);
+          }
+          .lp-light-theme .avatar {
+            background: linear-gradient(135deg, #F1E8DA, #C49A6C);
+            border-color: #FFFDF8;
+            color: var(--wood-dark);
+          }
+          .lp-light-theme .floating-card,
+          .lp-light-theme .app-window,
+          .lp-light-theme .showcase-main,
+          .lp-light-theme .showcase-side,
+          .lp-light-theme .mini-card,
+          .lp-light-theme .feature-card,
+          .lp-light-theme .workflow-step,
+          .lp-light-theme .stat-card,
+          .lp-light-theme .pricing-card,
+          .lp-light-theme .comparison-card,
+          .lp-light-theme .contact-card,
+          .lp-light-theme .proof-item {
+            background: var(--card-strong);
+            border-color: var(--border);
+            box-shadow: var(--shadow);
+          }
+          .lp-light-theme .app-window {
+            background: linear-gradient(180deg, rgba(255, 250, 241, 0.96), rgba(248, 243, 234, 0.94));
+          }
+          .lp-light-theme .window-top {
+            background: rgba(255, 253, 248, 0.72);
+            border-color: rgba(122, 78, 45, 0.14);
+          }
+          .lp-light-theme .showcase-preview {
+            background: linear-gradient(180deg, rgba(255, 250, 241, 0.84), rgba(241, 232, 218, 0.92));
+            border-color: rgba(122, 78, 45, 0.13);
+          }
+          .lp-light-theme .chip,
+          .lp-light-theme .progress {
+            background: rgba(122, 78, 45, 0.055);
+            border-color: rgba(122, 78, 45, 0.13);
+            color: var(--wood-dark);
+          }
+          .lp-light-theme .proof-strip {
+            border-color: rgba(122, 78, 45, 0.12);
+            background: rgba(255, 253, 248, 0.46);
+          }
+          .lp-light-theme .pricing-card.featured {
+            background: linear-gradient(180deg, rgba(255, 250, 241, 0.98), rgba(248, 243, 234, 0.98));
+            border-color: rgba(184, 135, 47, 0.48);
+          }
+          .lp-light-theme .final-cta,
+          .lp-light-theme footer {
+            background: linear-gradient(135deg, #3A2416, #7A4E2D 58%, #0D131C);
+            color: #F8FAFC;
+          }
+          .lp-light-theme .final-cta p,
+          .lp-light-theme footer,
+          .lp-light-theme .footer-links a {
+            color: rgba(248, 250, 252, 0.76);
+          }
+          .lp-light-theme .brand-mark,
+          .lp-light-theme .footer-inner .brand-mark {
+            color: var(--wood-dark);
+          }
+          .lp-landing .reveal {
+            opacity: 0;
+            transform: translateY(18px);
+            transition: opacity 600ms ease, transform 600ms ease;
+          }
+          .lp-landing .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+          }
+          @media (max-width: 1040px) {
+            .lp-landing .hero-grid, .lp-landing .product-showcase {
+              grid-template-columns: 1fr;
+            }
+            .lp-landing .hero-visual { min-height: 540px; }
+            .lp-landing .app-window { transform: none; }
+            .lp-landing .proof-grid { grid-template-columns: repeat(3, 1fr); }
+            .lp-landing .features-grid, .lp-landing .workflow-grid, .lp-landing .stats-grid, .lp-landing .contact-grid { grid-template-columns: 1fr 1fr; }
+          }
+          @media (max-width: 780px) {
+            .lp-landing .container { width: min(100% - 28px, var(--max)); }
+            .lp-landing .hero { padding-top: 58px; }
+            .lp-landing .hero-actions { flex-direction: column; align-items: stretch; }
+            .lp-landing .hero-visual { min-height: 420px; }
+            .lp-landing .btn { width: 100%; }
+            .lp-landing .floating-card { display: none; }
+            .lp-landing .proof-grid { grid-template-columns: repeat(2, 1fr); }
+            .lp-landing .features-grid, .lp-landing .workflow-grid, .lp-landing .workflow-media-grid, .lp-landing .stats-grid, .lp-landing .pricing-grid, .lp-landing .contact-grid { grid-template-columns: 1fr; }
+            .lp-landing .pricing-card.featured { transform: none; }
+            .lp-landing .comparison-card { overflow-x: auto; }
+            .lp-landing .comparison-table { min-width: 620px; }
+            .lp-landing .footer-inner { flex-direction: column; align-items: flex-start; }
+          }
+          @media (prefers-reduced-motion: reduce) {
+            .lp-landing *, .lp-landing *::before, .lp-landing *::after {
+              animation-duration: 0.01ms !important;
+              animation-iteration-count: 1 !important;
+              scroll-behavior: auto !important;
+              transition-duration: 0.01ms !important;
+            }
+          }
+        `}</style>
+      </div>
     </>
   );
 };

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Sun, Moon, Menu, X, FileText, Shield } from 'lucide-react';
+import { Sun, Moon, Menu, X } from 'lucide-react';
 
 interface LandingHeaderProps {
   onSignIn: () => void;
@@ -54,81 +54,48 @@ export const LandingHeader: React.FC<LandingHeaderProps> = ({
 
   const navLinks = [
     { label: 'Features', id: 'features' },
-    { label: 'How It Works', id: 'how-it-works' },
+    { label: 'How it works', id: 'workflow' },
     { label: 'Pricing', id: 'pricing' },
     { label: 'Contact', id: 'contact' },
   ];
 
   return (
-    <nav
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled
-          ? 'bg-lp-header backdrop-blur-xl border-b border-lp-header-border shadow-sm'
-          : 'bg-transparent'
-      }`}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 sm:h-20">
-          <Link to="/" className="flex items-center gap-3 group">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-lp-white font-black text-sm">
-              C
-            </div>
-            <div className="flex flex-col">
-              <span className="text-lg font-black text-lp-heading leading-none">Cabinetrix</span>
-              <span className="text-[10px] font-bold text-primary uppercase tracking-widest leading-tight">Pro</span>
-            </div>
-          </Link>
-
-          <div className="hidden md:flex items-center gap-8">
-            {navLinks.map((link) => (
-              <button
-                key={link.id}
-                onClick={() => scrollToSection(link.id)}
-                className="text-sm font-medium text-lp-body hover:text-primary dark:hover:text-primary transition-colors"
-              >
-                {link.label}
-              </button>
-            ))}
-            <Link
-              to="/docs"
-              className="text-sm font-medium text-lp-body hover:text-primary dark:hover:text-primary transition-colors"
-            >
-              Docs
-            </Link>
+    <nav className={`nav ${scrolled ? 'nav-scrolled' : ''}`}>
+      <div className="container nav-inner">
+        <Link to="/" className="brand" aria-label="Cabinetrix Pro home">
+          <span className="brand-mark">C</span>
+          <span className="brand-text">Cabinetrix<small>Pro</small></span>
+        </Link>
+        <div className="nav-links" aria-label="Main navigation">
+          {navLinks.map((link) => (
             <button
-              onClick={() => setIsDark(!isDark)}
-              className="p-2 rounded-lg bg-lp-elevated text-lp-muted hover:bg-lp-elevated-hover transition-colors"
-              aria-label="Toggle theme"
+              key={link.id}
+              onClick={() => scrollToSection(link.id)}
+              className="nav-link"
             >
-              {isDark ? <Sun size={18} /> : <Moon size={18} />}
+              {link.label}
             </button>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={onSignIn}
-                className="text-sm font-semibold text-lp-secondary hover:text-primary dark:hover:text-primary transition-colors px-4 py-2"
-              >
-                Sign In
-              </button>
-              <button
-                onClick={onGetStarted}
-                className="text-sm font-bold text-lp-white bg-primary hover:bg-primary-hover px-5 py-2.5 rounded-lg transition-all shadow-lg shadow-primary/20"
-              >
-                Get Started Free
-              </button>
-            </div>
-          </div>
-
-          <div className="flex md:hidden items-center gap-2">
-            <button
-              onClick={() => setIsDark(!isDark)}
-              className="p-2 rounded-lg bg-lp-elevated text-lp-muted hover:bg-lp-elevated-hover transition-colors"
-              aria-label="Toggle theme"
-            >
-              {isDark ? <Sun size={18} /> : <Moon size={18} />}
-            </button>
+          ))}
+          <Link to="/docs" className="nav-link">Docs</Link>
+        </div>
+        <div className="nav-actions">
+          <button
+            onClick={() => setIsDark(!isDark)}
+            className="nav-theme-btn"
+            aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
+          >
+            {isDark ? <Sun size={16} /> : <Moon size={16} />}
+          </button>
+          <button onClick={onSignIn} className="btn btn-ghost nav-action-btn">
+            Sign in
+          </button>
+          <button onClick={onGetStarted} className="btn btn-primary nav-action-btn">
+            Get Started Free
+          </button>
+          <div className="mobile-controls">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-lg bg-lp-elevated text-lp-body hover:bg-lp-elevated-hover transition-colors"
+              className="nav-mobile-btn"
               aria-label="Toggle menu"
             >
               {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
@@ -138,13 +105,13 @@ export const LandingHeader: React.FC<LandingHeaderProps> = ({
       </div>
 
       {mobileMenuOpen && (
-        <div className="md:hidden bg-lp-card border-b border-lp-border shadow-xl">
-          <div className="px-4 py-4 space-y-1">
+        <div className="mobile-menu">
+          <div className="mobile-menu-inner">
             {navLinks.map((link) => (
               <button
                 key={link.id}
                 onClick={() => scrollToSection(link.id)}
-                className="w-full text-left px-4 py-3 text-lp-body hover:text-primary dark:hover:text-primary hover:bg-lp-hover-light rounded-lg transition-colors text-base font-medium"
+                className="mobile-link"
               >
                 {link.label}
               </button>
@@ -152,36 +119,310 @@ export const LandingHeader: React.FC<LandingHeaderProps> = ({
             <Link
               to="/docs"
               onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center gap-2 w-full text-left px-4 py-3 text-lp-body hover:text-primary dark:hover:text-primary hover:bg-lp-hover-light rounded-lg transition-colors text-base font-medium"
+              className="mobile-link"
             >
-              <FileText size={18} />
               Docs
             </Link>
-            <Link
-              to="/terms"
-              onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center gap-2 w-full text-left px-4 py-3 text-lp-body hover:text-primary dark:hover:text-primary hover:bg-lp-hover-light rounded-lg transition-colors text-base font-medium"
+            <button
+              onClick={() => setIsDark(!isDark)}
+              className="mobile-theme-toggle"
+              aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
             >
-              <Shield size={18} />
-              Terms
-            </Link>
-            <div className="border-t border-lp-border-strong my-3 pt-3 space-y-2">
-              <button
-                onClick={() => { onSignIn(); setMobileMenuOpen(false); }}
-                className="w-full text-left px-4 py-3 text-lp-body hover:bg-lp-hover-light rounded-lg transition-colors text-base font-medium"
-              >
-                Sign In
-              </button>
-              <button
-                onClick={() => { onGetStarted(); setMobileMenuOpen(false); }}
-                className="w-full text-center px-4 py-3 bg-primary hover:bg-primary-hover text-lp-white rounded-lg transition-colors text-base font-bold shadow-lg shadow-primary/20"
-              >
-                Get Started Free
-              </button>
-            </div>
+              <span className="mobile-theme-icon">
+                {isDark ? <Sun size={16} /> : <Moon size={16} />}
+              </span>
+              <span>{isDark ? 'Light mode' : 'Dark mode'}</span>
+            </button>
+            <div className="mobile-divider" />
+            <button
+              onClick={() => { onSignIn(); setMobileMenuOpen(false); }}
+              className="mobile-link"
+            >
+              Sign in
+            </button>
+            <button
+              onClick={() => { onGetStarted(); setMobileMenuOpen(false); }}
+              className="mobile-cta"
+            >
+              Get Started Free
+            </button>
           </div>
         </div>
       )}
+
+      <style>{`
+        .nav {
+          position: sticky;
+          top: 0;
+          z-index: 50;
+          width: 100%;
+          font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+          background: transparent;
+          border-bottom: 1px solid transparent;
+          backdrop-filter: blur(22px);
+          -webkit-backdrop-filter: blur(22px);
+          transition: background 300ms ease, border-color 300ms ease, box-shadow 300ms ease;
+        }
+        .nav-scrolled {
+          background: var(--card, rgba(19, 27, 39, 0.78));
+          border-bottom-color: var(--border, rgba(214, 168, 79, 0.18));
+          box-shadow: var(--shadow, 0 24px 80px rgba(0, 0, 0, 0.16));
+        }
+        .container {
+          width: min(var(--max, 1180px), calc(100% - 40px));
+          margin-inline: auto;
+        }
+        .nav-inner {
+          height: 74px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 24px;
+        }
+        .brand {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          font-weight: 800;
+          letter-spacing: -0.03em;
+          color: var(--text, #f8fafc);
+          text-decoration: none;
+        }
+        .brand-mark {
+          width: 34px;
+          height: 34px;
+          border-radius: 10px;
+          display: grid;
+          place-items: center;
+          background: linear-gradient(135deg, var(--brass, #D6A84F), var(--wood-walnut, #7A4E2D));
+          box-shadow: 0 12px 32px rgba(214, 168, 79, 0.28);
+          font-size: 14px;
+          color: #111827;
+          flex-shrink: 0;
+        }
+        .brand-text {
+          font-size: 16px;
+          line-height: 1;
+        }
+        .brand-text small {
+          display: block;
+          color: var(--muted, #94a3b8);
+          font-size: 11px;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          margin-top: -2px;
+        }
+        .nav-links {
+          display: flex;
+          align-items: center;
+          gap: 26px;
+        }
+        .nav-link {
+          background: none;
+          border: none;
+          cursor: pointer;
+          color: var(--soft, #cbd5e1);
+          font-size: 14px;
+          font-weight: 600;
+          opacity: 0.86;
+          transition: color 180ms ease, opacity 180ms ease, transform 180ms ease;
+          text-decoration: none;
+          font-family: inherit;
+          padding: 0;
+        }
+        .nav-link:hover {
+          color: var(--text, #ffffff);
+          opacity: 1;
+          transform: translateY(-1px);
+        }
+        .nav-actions {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .nav-theme-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 36px;
+          height: 36px;
+          border-radius: 10px;
+          border: 1px solid var(--border, rgba(148, 163, 184, 0.12));
+          background: color-mix(in srgb, var(--card-strong, rgba(148, 163, 184, 0.08)) 70%, transparent);
+          color: var(--muted, #94a3b8);
+          cursor: pointer;
+          transition: background 180ms ease, color 180ms ease;
+        }
+        .nav-theme-btn:hover {
+          background: color-mix(in srgb, var(--card-strong, rgba(148, 163, 184, 0.16)) 92%, transparent);
+          color: var(--text, #ffffff);
+        }
+        .nav-action-btn {
+          display: none;
+        }
+        .btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 9px;
+          height: 44px;
+          padding: 0 18px;
+          border-radius: 12px;
+          border: 1px solid transparent;
+          font-weight: 800;
+          font-size: 14px;
+          cursor: pointer;
+          transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease, background 180ms ease;
+          white-space: nowrap;
+          font-family: inherit;
+        }
+        .btn:hover {
+          transform: translateY(-2px);
+        }
+        .btn-primary {
+          color: #111827;
+          background: linear-gradient(135deg, var(--brass, #D6A84F), var(--amber, #F59E0B) 70%);
+          box-shadow: 0 14px 34px rgba(214, 168, 79, 0.30);
+        }
+        .btn-primary:hover {
+          box-shadow: 0 18px 44px rgba(245, 158, 11, 0.34);
+        }
+        .btn-ghost {
+          background: color-mix(in srgb, var(--card-strong, rgba(148, 163, 184, 0.08)) 70%, transparent);
+          border-color: var(--border, rgba(148, 163, 184, 0.12));
+          color: var(--soft, #cbd5e1);
+        }
+        .btn-ghost:hover {
+          background: color-mix(in srgb, var(--card-strong, rgba(148, 163, 184, 0.13)) 88%, transparent);
+          color: var(--text, #ffffff);
+        }
+        .mobile-controls {
+          display: none;
+        }
+        .nav-mobile-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 36px;
+          height: 36px;
+          border-radius: 10px;
+          border: 1px solid var(--border, rgba(148, 163, 184, 0.12));
+          background: color-mix(in srgb, var(--card-strong, rgba(148, 163, 184, 0.08)) 70%, transparent);
+          color: var(--soft, #cbd5e1);
+          cursor: pointer;
+        }
+        .nav-mobile-btn:hover {
+          background: color-mix(in srgb, var(--card-strong, rgba(148, 163, 184, 0.16)) 92%, transparent);
+          color: var(--text, #ffffff);
+        }
+        .mobile-menu {
+          background: color-mix(in srgb, var(--bg-950, #050815) 96%, transparent);
+          border-bottom: 1px solid var(--border, rgba(148, 163, 184, 0.1));
+        }
+        .mobile-menu-inner {
+          padding: 12px 20px;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          max-width: var(--max, 1180px);
+          margin: 0 auto;
+        }
+        .mobile-link {
+          display: block;
+          width: 100%;
+          text-align: left;
+          padding: 12px 16px;
+          background: none;
+          border: none;
+          cursor: pointer;
+          color: var(--soft, #cbd5e1);
+          font-size: 15px;
+          font-weight: 600;
+          border-radius: 10px;
+          transition: background 180ms ease;
+          font-family: inherit;
+          text-decoration: none;
+        }
+        .mobile-link:hover {
+          background: color-mix(in srgb, var(--card-strong, rgba(148, 163, 184, 0.1)) 78%, transparent);
+          color: var(--text, #ffffff);
+        }
+
+        .mobile-theme-toggle {
+          display: flex;
+          width: 100%;
+          align-items: center;
+          gap: 10px;
+          padding: 12px 16px;
+          background: color-mix(in srgb, var(--card-strong, rgba(148, 163, 184, 0.08)) 74%, transparent);
+          border: 1px solid var(--border, rgba(148, 163, 184, 0.12));
+          color: var(--soft, #cbd5e1);
+          font-size: 15px;
+          font-weight: 700;
+          border-radius: 10px;
+          cursor: pointer;
+          transition: background 180ms ease, color 180ms ease, transform 180ms ease;
+          font-family: inherit;
+        }
+        .mobile-theme-toggle:hover {
+          background: color-mix(in srgb, var(--card-strong, rgba(148, 163, 184, 0.16)) 94%, transparent);
+          color: var(--text, #ffffff);
+          transform: translateY(-1px);
+        }
+        .mobile-theme-icon {
+          display: inline-flex;
+          width: 26px;
+          height: 26px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 8px;
+          background: linear-gradient(135deg, var(--brass, #D6A84F), var(--amber, #F59E0B));
+          color: #111827;
+        }
+
+        .mobile-divider {
+          height: 1px;
+          background: var(--border, rgba(148, 163, 184, 0.12));
+          margin: 8px 0;
+        }
+        .mobile-cta {
+          display: block;
+          width: 100%;
+          text-align: center;
+          padding: 14px;
+          background: linear-gradient(135deg, var(--brass, #D6A84F), var(--amber, #F59E0B) 70%);
+          color: #111827;
+          font-weight: 800;
+          font-size: 15px;
+          border: none;
+          border-radius: 12px;
+          cursor: pointer;
+          box-shadow: 0 14px 34px rgba(214, 168, 79, 0.30);
+          font-family: inherit;
+        }
+        @media (min-width: 781px) {
+          .nav-action-btn {
+            display: inline-flex;
+          }
+          .mobile-controls {
+            display: none;
+          }
+        }
+        @media (max-width: 780px) {
+          .nav-links {
+            display: none;
+          }
+          .btn-ghost.nav-action-btn {
+            display: none;
+          }
+          .btn-primary.nav-action-btn {
+            display: none;
+          }
+          .mobile-controls {
+            display: flex;
+          }
+        }
+      `}</style>
     </nav>
   );
 };
