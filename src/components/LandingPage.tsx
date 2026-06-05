@@ -67,7 +67,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
   return (
     <>
       <Helmet>
-        <title>Cabinetrix Pro — Cabinet Design & Manufacturing SaaS</title>
+        <title>CabEngine Pro | 3D Cabinet Design Software & Cut List Optimizer</title>
         <link rel="canonical" href="https://www.protradee.com/" />
         <meta name="description" content="Cloud-based cabinet engineering platform with 3D design, BOM generation, DXF/CNC export, and quote-ready PDF reports." />
       </Helmet>
@@ -99,16 +99,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
                 </div>
               </div>
 
-               <div className="hero-visual reveal">
-                 <div className="glow-orb"></div>
-                                   <div className="eyebrow eyebrow-mobile"><span className="pulse-dot"></span> 3D cabinet design software — professional grade</div>
-                 <div className="mobile-phrase-rotator"><span key={phraseIndex} className="gradient-text">{phrases[phraseIndex]}</span></div>
-                 <div className="floating-card float-a"><strong>BOM generated</strong><small>42 panels · 18mm MDF · hardware counted</small></div>
-                 <div className="floating-card float-b"><strong>DXF ready</strong><small>CNC export prepared for workshop</small></div>
-                 <div className="app-window" aria-label="Cabinetrix product interface mockup">
+              <div className="hero-visual reveal">
+                <div className="glow-orb"></div>
+                <div className="eyebrow eyebrow-mobile"><span className="pulse-dot"></span> 3D cabinet design software — professional grade</div>
+                <div className="mobile-phrase-rotator"><span key={phraseIndex} className="gradient-text">{phrases[phraseIndex]}</span></div>
+                <div className="floating-card float-a"><strong>BOM generated</strong><small>42 panels · 18mm MDF · hardware counted</small></div>
+                <div className="floating-card float-b"><strong>DXF ready</strong><small>CNC export prepared for workshop</small></div>
+                <div className="app-window" aria-label="CabEngine product interface mockup">
                   <div className="window-top">
                     <div className="dots"><span className="dot"></span><span className="dot"></span><span className="dot"></span></div>
-                    <div className="window-title">Cabinetrix Studio / Kitchen Project</div>
+                    <div className="window-title">CabEngine Studio / Kitchen Project</div>
                     <div className="chip">LIVE</div>
                   </div>
                   <div className="hero-media-shell">
@@ -152,7 +152,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
           <section id="showcase" style={{ scrollMarginTop: '80px' }}>
             <div className="container">
               <div className="section-heading reveal">
-                <h2>See Cabinetrix <span className="gradient-text">in Action</span></h2>
+                <h2>See CabEngine <span className="gradient-text">in Action</span></h2>
                 <p>A product-first layout makes the landing page feel like real software, not just a generic kitchen website.</p>
               </div>
               <div className="product-showcase reveal">
@@ -162,7 +162,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
                     <span className="chip">Auto-save cloud project</span>
                   </div>
                   <div className="showcase-preview">
-                    <div className="real-media-card" aria-label="Real Cabinetrix 3D cabinet design screenshot">
+                    <div className="real-media-card" aria-label="Real CabEngine 3D cabinet design screenshot">
                       <img className="real-product-image" src="/3d-design.png" alt="3D cabinet design" />
                       <div className="media-caption-bar"><span>Design walls, cabinets, sink, hob and finishes in 3D</span><span className="chip">3D DESIGN</span></div>
                     </div>
@@ -329,12 +329,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
           <section id="contact" style={{ scrollMarginTop: '80px' }}>
             <div className="container">
               <div className="section-heading reveal">
-                <h2>Need Cabinetrix for <span className="gradient-text">Your Workshop?</span></h2>
+                <h2>Need CabEngine for <span className="gradient-text">Your Workshop?</span></h2>
                 <p>Book a demo, ask about CNC/export support, or request onboarding help for your team.</p>
               </div>
               <div className="contact-grid">
-                <div className="contact-card reveal"><h3>Contact Info</h3><p>Email<br /><strong>support@cabinetrixpro.com</strong><br /><br />Response time<br /><strong>Within 24–48 business hours</strong></p></div>
-                <div className="contact-card reveal"><h3>Software Details</h3><p>Platform<br /><strong>Cabinetrix Pro</strong><br /><br />Type<br /><strong>Cloud-based SaaS — browser only</strong></p></div>
+                <div className="contact-card reveal"><h3>Contact Info</h3><p>Email<br /><strong>support@CabEnginepro.com</strong><br /><br />Response time<br /><strong>Within 24–48 business hours</strong></p></div>
+                <div className="contact-card reveal"><h3>Software Details</h3><p>Platform<br /><strong>CabEngine Pro</strong><br /><br />Type<br /><strong>Cloud-based SaaS — browser only</strong></p></div>
                 <div className="contact-card reveal"><h3>Best For</h3><p>Kitchen designers, cabinet makers, joinery shops, and workshops needing faster quotes and production files.</p></div>
               </div>
             </div>
@@ -352,15 +352,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
         <footer id="docs">
           <div className="container footer-inner">
             <Link to="/" className="brand">
-              <span className="brand-mark">C</span>
-              <span className="brand-text">Cabinetrix<small>Pro</small></span>
+              <img src="/landing.png" alt="CabEngine Pro" className="brand-logo h-6 sm:h-8 w-auto object-contain" />
             </Link>
             <div className="footer-links">
               <Link to="/docs">Docs</Link>
               <Link to="/terms">Terms</Link>
               <Link to="/pricing">Pricing</Link>
             </div>
-            <span>&copy; {new Date().getFullYear()} Cabinetrix Pro. All rights reserved.</span>
+            <span>&copy; {new Date().getFullYear()} CabEngine Pro. All rights reserved.</span>
           </div>
         </footer>
 
@@ -1218,36 +1217,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             color: var(--muted);
             font-size: 13px;
           }
-          .lp-landing .footer-inner .brand {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-weight: 800;
-            letter-spacing: -0.03em;
-            color: var(--slate-50);
-          }
-          .lp-landing .footer-inner .brand-mark {
-            width: 34px;
-            height: 34px;
-            border-radius: 10px;
-            display: grid;
-            place-items: center;
-            background: linear-gradient(135deg, var(--brass), var(--wood-walnut));
-            box-shadow: 0 12px 32px rgba(var(--brass-rgb), 0.28);
-            font-size: 14px;
-            color: white;
-          }
-          .lp-landing .footer-inner .brand-text {
-            font-size: 14px;
-          }
-          .lp-landing .footer-inner .brand-text small {
-            display: block;
-            color: var(--slate-400);
-            font-size: 10px;
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-            margin-top: -2px;
-          }
+           .lp-landing .footer-inner .brand {
+             display: flex;
+             align-items: center;
+           }
           .lp-landing .footer-links {
             display: flex;
             gap: 20px;
@@ -1272,11 +1245,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
              border-bottom: 1px solid rgba(92, 61, 37, 0.12);
              box-shadow: 0 12px 36px rgba(64, 43, 25, 0.06);
            }
-           .lp-light-theme .brand-mark {
-             background: linear-gradient(135deg, var(--amber-light), var(--brass));
-             color: #201407;
-             box-shadow: 0 12px 32px rgba(183, 121, 31, 0.22);
-           }
+           .lp-light-theme .brand-logo { filter: invert(1); }
            .lp-light-theme .nav-links { color: var(--soft); }
            .lp-light-theme .nav-links a:hover { color: var(--text); }
            .lp-light-theme .btn-primary {

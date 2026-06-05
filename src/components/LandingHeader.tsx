@@ -69,9 +69,8 @@ export const LandingHeader: React.FC<LandingHeaderProps> = ({
   return (
     <nav className={`nav ${scrolled ? 'nav-scrolled' : ''}`}>
       <div className="container nav-inner">
-        <Link to="/" className="brand" aria-label="Cabinetrix Pro home" onClick={(e) => { if (location.pathname === '/') { e.preventDefault(); document.querySelector('.overflow-y-auto')?.scrollTo({ top: 0, behavior: 'smooth' }); } }}>
-          <span className="brand-mark">C</span>
-          <span className="brand-text">Cabinetrix<small>Pro</small></span>
+        <Link to="/" className="brand" aria-label="CabEngine Pro home" onClick={(e) => { if (location.pathname === '/') { e.preventDefault(); document.querySelector('.overflow-y-auto')?.scrollTo({ top: 0, behavior: 'smooth' }); } }}>
+          <img src="/landing.png" alt="CabEngine Pro" className="brand-logo h-8 sm:h-10 w-auto object-contain" />
         </Link>
         <div className="nav-links" aria-label="Main navigation">
           {navLinks.map((link) => (
@@ -189,35 +188,10 @@ export const LandingHeader: React.FC<LandingHeaderProps> = ({
         .brand {
           display: flex;
           align-items: center;
-          gap: 12px;
-          font-weight: 800;
-          letter-spacing: -0.03em;
-          color: var(--text, var(--slate-50));
           text-decoration: none;
         }
-        .brand-mark {
-          width: 34px;
-          height: 34px;
-          border-radius: 10px;
-          display: grid;
-          place-items: center;
-          background: linear-gradient(135deg, var(--brass, var(--brass)), var(--wood-walnut, var(--wood-walnut)));
-          box-shadow: 0 12px 32px rgba(var(--brass-rgb), 0.28);
-          font-size: 14px;
-          color: var(--ink);
-          flex-shrink: 0;
-        }
-        .brand-text {
-          font-size: 16px;
-          line-height: 1;
-        }
-        .brand-text small {
+        .brand-logo {
           display: block;
-          color: var(--muted, var(--slate-400));
-          font-size: 11px;
-          letter-spacing: 0.06em;
-          text-transform: uppercase;
-          margin-top: -2px;
         }
         .nav-links {
           display: flex;
