@@ -82,7 +82,8 @@ export const LandingHeader: React.FC<LandingHeaderProps> = ({
               {link.label}
             </button>
           ))}
-          <Link to="/docs" className="nav-link">Docs</Link>
+          <Link to="/docs" className="nav-link">Documentation</Link>
+          <Link to="/terms" className="nav-link">Terms & Conditions</Link>
         </div>
         <div className="nav-actions">
           <button
@@ -91,9 +92,6 @@ export const LandingHeader: React.FC<LandingHeaderProps> = ({
             aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
           >
             {isDark ? <Sun size={16} /> : <Moon size={16} />}
-          </button>
-          <button onClick={onSignIn} className="btn btn-ghost nav-action-btn">
-            Sign in
           </button>
           <button onClick={onGetStarted} className="btn btn-primary nav-action-btn">
             Get Started Free
@@ -127,6 +125,13 @@ export const LandingHeader: React.FC<LandingHeaderProps> = ({
               className="mobile-link"
             >
               Docs
+            </Link>
+            <Link
+              to="/terms"
+              onClick={() => setMobileMenuOpen(false)}
+              className="mobile-link"
+            >
+              Terms & Conditions
             </Link>
             <button
               onClick={() => setIsDark(!isDark)}
