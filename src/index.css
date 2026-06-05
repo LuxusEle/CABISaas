@@ -73,67 +73,90 @@
   --wood-walnut-rgb: 122, 78, 45;
 }
 
-/* Landing page light theme variables (cabinet-industry matching light mode) */
+/* Landing page light theme variables — warm premium cabinet showroom */
 .lp-light-theme {
-  --bg-950: #FFFDF8;
-  --bg-900: #F8F3EA;
-  --bg-850: #F1E8DA;
-  --bg-800: #E8DCCB;
-  --card: rgba(255, 253, 248, 0.82);
-  --card-strong: rgba(255, 250, 241, 0.96);
-  --border: rgba(122, 78, 45, 0.16);
-  --border-strong: rgba(122, 78, 45, 0.42);
-  --text: #1F2933;
-  --muted: #6B7280;
-  --soft: #3F4A56;
+  /* Background system */
+  --bg-950: #FFFCF6;              /* page base */
+  --bg-900: #F7EFE3;              /* main section bg */
+  --bg-850: #EFE2D0;              /* soft bands */
+  --bg-800: #E2D0B8;              /* deeper warm section */
+
+  /* Surfaces */
+  --card: rgba(255, 252, 246, 0.88);
+  --card-strong: rgba(255, 249, 240, 0.98);
+
+  /* Borders */
+  --border: rgba(92, 61, 37, 0.14);
+  --border-strong: rgba(183, 121, 31, 0.46);
+
+  /* Text */
+  --text: #172033;                /* deep navy, not black */
+  --muted: #687386;
+  --soft: #3A4658;
+
+  /* Wood / cabinet tones */
   --wood-walnut: #7A4E2D;
-  --wood-oak: #B9854F;
+  --wood-oak: #BE8550;
   --wood-dark: #3A2416;
-  --brass: #B8872F;
-  --amber: #D97706;
-  --sage: #6F8F6C;
-  --olive: #4F6F3A;
+
+  /* Premium brass / amber accents */
+  --brass: #B7791F;
+  --amber: #EA8A00;
+  --amber-light: #F1C874;
+  --light-brass: #A86F1D;
+
+  /* Supporting accents */
+  --sage: #78966F;
+  --olive: #526F3A;
   --purple: #7C3AED;
   --purple-2: #8B5CF6;
   --purple-3: #5B21B6;
-  --orange: #D97706;
-  --green: #6F8F6C;
-  --cyan: #B9854F;
-  --shadow: 0 24px 80px rgba(58, 36, 22, 0.16);
-  --grid-line: rgba(58, 36, 22, 0.055);
+  --orange: #EA8A00;
+  --green: #78966F;
+  --cyan: #BE8550;
+
+  /* Effects */
+  --shadow: 0 24px 70px rgba(64, 43, 25, 0.14);
+  --grid-line: rgba(64, 43, 25, 0.045);
+
+  /* Existing layout tokens */
   --radius-lg: 28px;
   --radius-md: 18px;
   --radius-sm: 12px;
   --max: 1180px;
-  --amber-light: #C49A6C;
-  --ink: #1F2933;
-  --cream: #fef3c7;
-  --bg-hero: #F8F3EA;
-  --pink: #E07A5F;
-  --yellow: #D97706;
-  --slate-400: #94a3b8;
+
+  /* Utility aliases */
+  --ink: #172033;
+  --cream: #FFF3CF;
+  --bg-hero: #F8EFE1;
+  --pink: #D96B54;
+  --yellow: #D88A00;
+  --terracotta: #D96B54;
+  --beige: #EFE2D0;
+  --off-white: #FFFCF6;
+
+  /* Slate compatibility */
+  --slate-50: #F8FAFC;
+  --slate-400: #94A3B8;
+  --slate-500: #64748B;
   --slate-600: #475569;
   --slate-700: #334155;
-  --slate-500: #64748b;
-  --slate-50: #f8fafc;
-  --terracotta: #E07A5F;
-  --beige: #F1E8DA;
-  --off-white: #FFFDF8;
   --slate-900: #0F172A;
-  --bg-light-900: #F8F3EA;
-  --light-brass: #B8872F;
   --slate-950: #020617;
+
   --white: #FFFFFF;
   --black: #000000;
-  --amber-rgb: 245, 158, 11;
-  --beige-rgb: 241, 232, 218;
-  --bg-light-900-rgb: 248, 243, 234;
+
+  /* RGB values — keep these aligned with the hex values above */
+  --amber-rgb: 234, 138, 0;
+  --beige-rgb: 239, 226, 208;
+  --bg-light-900-rgb: 247, 239, 227;
   --black-rgb: 0, 0, 0;
-  --brass-rgb: 214, 168, 79;
-  --cream-rgb: 254, 243, 199;
-  --light-brass-rgb: 184, 135, 47;
-  --off-white-rgb: 255, 253, 248;
-  --sage-rgb: 143, 175, 141;
+  --brass-rgb: 183, 121, 31;
+  --cream-rgb: 255, 243, 207;
+  --light-brass-rgb: 168, 111, 29;
+  --off-white-rgb: 255, 252, 246;
+  --sage-rgb: 120, 150, 111;
   --slate-400-rgb: 148, 163, 184;
   --slate-500-rgb: 100, 116, 139;
   --slate-600-rgb: 71, 85, 105;
@@ -142,7 +165,7 @@
   --slate-950-rgb: 2, 6, 23;
   --white-rgb: 255, 255, 255;
   --wood-dark-rgb: 58, 36, 22;
-  --wood-oak-rgb: 196, 154, 108;
+  --wood-oak-rgb: 190, 133, 80;
   --wood-walnut-rgb: 122, 78, 45;
 }
 

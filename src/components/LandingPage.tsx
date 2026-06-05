@@ -1259,89 +1259,214 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
           .lp-landing .footer-links a:hover {
             color: white;
           }
-          .lp-light-theme .eyebrow {
-            background: rgba(var(--off-white-rgb), 0.74);
-            color: var(--wood-dark);
-            border-color: rgba(var(--light-brass-rgb), 0.34);
-            box-shadow: 0 10px 30px rgba(var(--wood-dark-rgb), 0.08);
-          }
-          .lp-light-theme .btn-secondary {
-            color: var(--wood-dark);
-            background: rgba(var(--off-white-rgb), 0.72);
-            border-color: rgba(var(--light-brass-rgb), 0.38);
-          }
-          .lp-light-theme .btn-secondary:hover {
-            background: rgba(var(--cream-rgb), 0.94);
-          }
-          .lp-light-theme .btn-ghost {
-            background: rgba(var(--wood-walnut-rgb), 0.06);
-            border-color: rgba(var(--wood-walnut-rgb), 0.14);
-            color: var(--wood-dark);
-          }
-          .lp-light-theme .btn-ghost:hover {
-            background: rgba(var(--wood-walnut-rgb), 0.1);
-            color: var(--wood-dark);
-          }
-          .lp-light-theme .avatar {
-            background: linear-gradient(135deg, var(--beige), var(--wood-oak));
-            border-color: var(--off-white);
-            color: var(--wood-dark);
-          }
-          .lp-light-theme .floating-card,
-          .lp-light-theme .app-window,
-          .lp-light-theme .showcase-main,
-          .lp-light-theme .showcase-side,
-          .lp-light-theme .mini-card,
-          .lp-light-theme .feature-card,
-          .lp-light-theme .workflow-step,
-          .lp-light-theme .stat-card,
-          .lp-light-theme .pricing-card,
-          .lp-light-theme .comparison-card,
-          .lp-light-theme .contact-card,
-          .lp-light-theme .proof-item {
-            background: var(--card-strong);
-            border-color: var(--border);
-            box-shadow: var(--shadow);
-          }
-          .lp-light-theme .app-window {
-            background: linear-gradient(180deg, rgba(var(--off-white-rgb), 0.96), rgba(var(--bg-light-900-rgb), 0.94));
-          }
-          .lp-light-theme .window-top {
-            background: rgba(var(--off-white-rgb), 0.72);
-            border-color: rgba(var(--wood-walnut-rgb), 0.14);
-          }
-          .lp-light-theme .showcase-preview {
-            background: linear-gradient(180deg, rgba(var(--off-white-rgb), 0.84), rgba(var(--beige-rgb), 0.92));
-            border-color: rgba(var(--wood-walnut-rgb), 0.13);
-          }
-          .lp-light-theme .chip,
-          .lp-light-theme .progress {
-            background: rgba(var(--wood-walnut-rgb), 0.055);
-            border-color: rgba(var(--wood-walnut-rgb), 0.13);
-            color: var(--wood-dark);
-          }
-          .lp-light-theme .proof-strip {
-            border-color: rgba(var(--wood-walnut-rgb), 0.12);
-            background: rgba(var(--off-white-rgb), 0.46);
-          }
-          .lp-light-theme .pricing-card.featured {
-            background: linear-gradient(180deg, rgba(var(--off-white-rgb), 0.98), rgba(var(--bg-light-900-rgb), 0.98));
-            border-color: rgba(var(--light-brass-rgb), 0.48);
-          }
-          .lp-light-theme .final-cta,
-          .lp-light-theme footer {
-            background: linear-gradient(135deg, var(--wood-dark), var(--wood-walnut) 58%, var(--bg-900));
-            color: var(--text);
-          }
-          .lp-light-theme .final-cta p,
-          .lp-light-theme footer,
-          .lp-light-theme .footer-links a {
-            color: rgba(var(--text-rgb), 0.76);
-          }
-          .lp-light-theme .brand-mark,
-          .lp-light-theme .footer-inner .brand-mark {
-            color: var(--wood-dark);
-          }
+           .lp-light-theme {
+             background:
+               radial-gradient(circle at 18% 6%, rgba(190, 133, 80, 0.20), transparent 30%),
+               radial-gradient(circle at 82% 16%, rgba(183, 121, 31, 0.14), transparent 28%),
+               radial-gradient(circle at 56% 0%, rgba(120, 150, 111, 0.10), transparent 34%),
+               linear-gradient(180deg, var(--bg-950) 0%, var(--bg-900) 38%, #F3E8D9 100%);
+             color: var(--text);
+           }
+           .lp-light-theme .nav {
+             background: rgba(var(--off-white-rgb), 0.78);
+             border-bottom: 1px solid rgba(92, 61, 37, 0.12);
+             box-shadow: 0 12px 36px rgba(64, 43, 25, 0.06);
+           }
+           .lp-light-theme .brand-mark {
+             background: linear-gradient(135deg, var(--amber-light), var(--brass));
+             color: #201407;
+             box-shadow: 0 12px 32px rgba(183, 121, 31, 0.22);
+           }
+           .lp-light-theme .nav-links { color: var(--soft); }
+           .lp-light-theme .nav-links a:hover { color: var(--text); }
+           .lp-light-theme .btn-primary {
+             color: #1B1207;
+             background: linear-gradient(180deg, #F6A21A 0%, #D88400 100%);
+             border: 1px solid rgba(122, 78, 45, 0.20);
+             box-shadow: 0 14px 34px rgba(234, 138, 0, 0.24);
+           }
+           .lp-light-theme .btn-primary:hover {
+             box-shadow: 0 18px 44px rgba(234, 138, 0, 0.32);
+           }
+           .lp-light-theme .btn-secondary {
+             color: #44270D;
+             background: rgba(var(--off-white-rgb), 0.78);
+             border: 1px solid rgba(183, 121, 31, 0.42);
+           }
+           .lp-light-theme .btn-secondary:hover {
+             background: rgba(255, 249, 240, 0.96);
+             box-shadow: 0 14px 34px rgba(183, 121, 31, 0.14);
+           }
+           .lp-light-theme .btn-ghost {
+             color: var(--soft);
+             background: rgba(23, 32, 51, 0.045);
+             border: 1px solid rgba(92, 61, 37, 0.12);
+           }
+           .lp-light-theme .btn-ghost:hover {
+             color: var(--text);
+             background: rgba(183, 121, 31, 0.10);
+           }
+           .lp-light-theme .eyebrow {
+             color: #7A4E16;
+             background: rgba(var(--off-white-rgb), 0.82);
+             border: 1px solid rgba(183, 121, 31, 0.32);
+             box-shadow: 0 12px 30px rgba(64, 43, 25, 0.08);
+           }
+           .lp-light-theme .gradient-text {
+             background: linear-gradient(135deg, #9B641E, #C7821C 52%, #7A4E2D);
+             -webkit-background-clip: text;
+             background-clip: text;
+             color: transparent;
+           }
+           .lp-light-theme .avatar {
+             background: linear-gradient(135deg, #D9C4A4, #8B6A48);
+             border-color: var(--bg-950);
+             color: #172033;
+           }
+           .lp-light-theme .app-window {
+             background: rgba(var(--off-white-rgb), 0.92);
+             border: 1px solid rgba(92, 61, 37, 0.16);
+             box-shadow: var(--shadow), 0 0 0 1px rgba(255, 255, 255, 0.72) inset;
+           }
+           .lp-light-theme .window-top {
+             background: rgba(255, 249, 240, 0.82);
+             border-bottom: 1px solid rgba(92, 61, 37, 0.12);
+           }
+           .lp-light-theme .window-title { color: var(--muted); }
+           .lp-light-theme .chip {
+             background: rgba(183, 121, 31, 0.11);
+             color: #7A4E16;
+             border: 1px solid rgba(183, 121, 31, 0.20);
+           }
+           .lp-light-theme .hero-media-shell { background: #F5E9D8; }
+           .lp-light-theme .hero-media-shell::after,
+           .lp-light-theme .real-media-card::after {
+             background:
+               radial-gradient(circle at 20% 0%, rgba(183, 121, 31, 0.10), transparent 34%),
+               linear-gradient(180deg, rgba(var(--off-white-rgb), 0.04), rgba(92, 61, 37, 0.08));
+           }
+           .lp-light-theme .floating-card {
+             background: rgba(var(--off-white-rgb), 0.88);
+             color: var(--text);
+             border: 1px solid rgba(92, 61, 37, 0.14);
+             box-shadow: 0 18px 46px rgba(64, 43, 25, 0.16);
+           }
+           .lp-light-theme .floating-card small {
+             color: var(--muted);
+           }
+           .lp-light-theme .proof-strip {
+             background: rgba(var(--bg-light-900-rgb), 0.76);
+             border-top: 1px solid rgba(92, 61, 37, 0.10);
+             border-bottom: 1px solid rgba(92, 61, 37, 0.10);
+           }
+           .lp-light-theme .proof-item:hover { background: rgba(183, 121, 31, 0.09); }
+           .lp-light-theme .proof-item strong { color: var(--brass); }
+           .lp-light-theme .proof-item span { color: var(--text); }
+           .lp-light-theme .showcase-main,
+           .lp-light-theme .showcase-side,
+           .lp-light-theme .feature-card,
+           .lp-light-theme .pricing-card,
+           .lp-light-theme .contact-card,
+           .lp-light-theme .stat-card,
+           .lp-light-theme .comparison-card {
+             background: var(--card-strong);
+             border: 1px solid var(--border);
+             box-shadow: 0 18px 50px rgba(64, 43, 25, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.72);
+           }
+           .lp-light-theme .showcase-preview {
+             background:
+               linear-gradient(135deg, rgba(var(--off-white-rgb), 0.74), rgba(var(--bg-light-900-rgb), 0.94)),
+               radial-gradient(circle at 72% 32%, rgba(190, 133, 80, 0.18), transparent 30%);
+             border: 1px solid rgba(92, 61, 37, 0.14);
+           }
+           .lp-light-theme .room-floor {
+             background:
+               linear-gradient(90deg, rgba(64, 43, 25, 0.05) 1px, transparent 1px),
+               linear-gradient(rgba(64, 43, 25, 0.05) 1px, transparent 1px),
+               rgba(var(--beige-rgb), 0.72);
+             border: 1px solid rgba(92, 61, 37, 0.14);
+           }
+           .lp-light-theme .room-block {
+             background: linear-gradient(135deg, rgba(122, 78, 45, 0.58), rgba(190, 133, 80, 0.38));
+             border: 1px solid rgba(183, 121, 31, 0.32);
+             box-shadow: 0 18px 34px rgba(64, 43, 25, 0.20);
+           }
+           .lp-light-theme .mini-card {
+             background: rgba(var(--bg-light-900-rgb), 0.72);
+             border: 1px solid rgba(92, 61, 37, 0.12);
+           }
+           .lp-light-theme .progress { background: rgba(92, 61, 37, 0.12); }
+           .lp-light-theme .progress span { background: linear-gradient(90deg, var(--wood-walnut), var(--brass)); }
+           .lp-light-theme .feature-card:hover {
+             border-color: rgba(183, 121, 31, 0.38);
+             background: #FFF9F0;
+           }
+           .lp-light-theme .feature-card::before {
+             background: radial-gradient(circle at 20% 0%, rgba(183, 121, 31, 0.14), transparent 36%);
+           }
+           .lp-light-theme .icon-box {
+             background: rgba(183, 121, 31, 0.11);
+             border: 1px solid rgba(183, 121, 31, 0.20);
+             color: #9B641E;
+           }
+           .lp-light-theme .tick-list li::before { color: var(--brass); }
+           .lp-light-theme .workflow {
+             background:
+               radial-gradient(circle at 50% 0%, rgba(183, 121, 31, 0.12), transparent 38%),
+               linear-gradient(180deg, #E9DAC5 0%, #CDB89D 100%);
+             border-top: 1px solid rgba(92, 61, 37, 0.10);
+             border-bottom: 1px solid rgba(92, 61, 37, 0.12);
+           }
+           .lp-light-theme .workflow-step {
+             background: rgba(var(--off-white-rgb), 0.84);
+             border: 1px solid rgba(92, 61, 37, 0.14);
+             box-shadow: 0 18px 46px rgba(64, 43, 25, 0.10);
+           }
+           .lp-light-theme .step-number {
+             background: linear-gradient(135deg, var(--amber-light), var(--brass));
+             color: #1B1207;
+             box-shadow: 0 12px 28px rgba(183, 121, 31, 0.22);
+           }
+           .lp-light-theme .workflow-media-card {
+             background: rgba(var(--off-white-rgb), 0.88);
+             border: 1px solid rgba(92, 61, 37, 0.14);
+             box-shadow: 0 20px 60px rgba(64, 43, 25, 0.12);
+           }
+           .lp-light-theme .workflow-media-copy { border-top: 1px solid rgba(92, 61, 37, 0.10); }
+           .lp-light-theme .stat-card strong,
+           .lp-light-theme .contact-card h3 { color: #9B641E; }
+           .lp-light-theme .pricing-card.featured {
+             border-color: var(--border-strong);
+             box-shadow: 0 24px 80px rgba(183, 121, 31, 0.18);
+           }
+           .lp-light-theme .popular {
+             background: linear-gradient(135deg, var(--amber-light), var(--brass));
+             color: #1B1207;
+           }
+           .lp-light-theme .comparison-table th,
+           .lp-light-theme .comparison-table td {
+             border-bottom: 1px solid rgba(92, 61, 37, 0.10);
+             color: var(--soft);
+           }
+           .lp-light-theme .comparison-table th {
+             color: var(--text);
+             background: rgba(var(--beige-rgb), 0.72);
+           }
+           .lp-light-theme .yes { color: #526F3A; }
+           .lp-light-theme .no { color: #D96B54; }
+           .lp-light-theme .final-cta {
+             background:
+               radial-gradient(circle at 50% 0%, rgba(var(--cream-rgb), 0.24), transparent 42%),
+               linear-gradient(135deg, #6B3D21 0%, #996236 48%, #C79862 100%);
+             color: #FFFDF8;
+           }
+           .lp-light-theme .final-cta h2 { color: #FFFDF8; }
+           .lp-light-theme .final-cta p { color: var(--cream); }
+           .lp-light-theme footer {
+             background: #FFF9F0;
+             border-top: 1px solid rgba(92, 61, 37, 0.12);
+           }
+           .lp-light-theme .footer-inner { color: var(--muted); }
           .lp-landing .reveal {
             opacity: 0;
             transform: translateY(18px);
