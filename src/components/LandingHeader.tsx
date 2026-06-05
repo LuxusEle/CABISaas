@@ -31,10 +31,17 @@ export const LandingHeader: React.FC<LandingHeaderProps> = ({
     if (location.pathname !== '/') {
       navigate('/#' + id);
     } else {
-      const element = document.getElementById(id);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth' });
-      }
+      setTimeout(() => {
+        const element = document.getElementById(id);
+        const container = document.querySelector('.overflow-y-auto');
+        if (element && container) {
+          const elementRect = element.getBoundingClientRect();
+          const containerRect = container.getBoundingClientRect();
+          const relativeTop = elementRect.top - containerRect.top;
+          const navHeight = 74;
+          container.scrollTo({ top: container.scrollTop + relativeTop - navHeight, behavior: 'smooth' });
+        }
+      }, 80);
     }
   };
 
@@ -53,7 +60,7 @@ export const LandingHeader: React.FC<LandingHeaderProps> = ({
   }, [location.pathname, location.hash]);
 
   const navLinks = [
-    { label: 'Features', id: 'features' },
+    { label: 'Features', id: 'features-strip' },
     { label: 'How it works', id: 'workflow' },
     { label: 'Pricing', id: 'pricing' },
     { label: 'Contact', id: 'contact' },
@@ -62,7 +69,7 @@ export const LandingHeader: React.FC<LandingHeaderProps> = ({
   return (
     <nav className={`nav ${scrolled ? 'nav-scrolled' : ''}`}>
       <div className="container nav-inner">
-        <Link to="/" className="brand" aria-label="Cabinetrix Pro home">
+        <Link to="/" className="brand" aria-label="Cabinetrix Pro home" onClick={(e) => { if (location.pathname === '/') { e.preventDefault(); document.querySelector('.overflow-y-auto')?.scrollTo({ top: 0, behavior: 'smooth' }); } }}>
           <span className="brand-mark">C</span>
           <span className="brand-text">Cabinetrix<small>Pro</small></span>
         </Link>
@@ -104,8 +111,7 @@ export const LandingHeader: React.FC<LandingHeaderProps> = ({
         </div>
       </div>
 
-      {mobileMenuOpen && (
-        <div className="mobile-menu">
+      <div className={`mobile-menu ${mobileMenuOpen ? 'open' : ''}`}>
           <div className="mobile-menu-inner">
             {navLinks.map((link) => (
               <button
@@ -148,7 +154,6 @@ export const LandingHeader: React.FC<LandingHeaderProps> = ({
             </button>
           </div>
         </div>
-      )}
 
       <style>{`
         .nav {
@@ -259,9 +264,6 @@ export const LandingHeader: React.FC<LandingHeaderProps> = ({
           background: color-mix(in srgb, var(--card-strong, rgba(var(--slate-400-rgb), 0.16)) 92%, transparent);
           color: var(--text, var(--white));
         }
-        .nav-action-btn {
-          display: none;
-        }
         .btn {
           display: inline-flex;
           align-items: center;
@@ -280,6 +282,9 @@ export const LandingHeader: React.FC<LandingHeaderProps> = ({
         }
         .btn:hover {
           transform: translateY(-2px);
+        }
+        .nav-action-btn {
+          display: none;
         }
         .btn-primary {
           color: var(--ink);
@@ -318,8 +323,21 @@ export const LandingHeader: React.FC<LandingHeaderProps> = ({
           color: var(--text, var(--white));
         }
         .mobile-menu {
+          position: absolute;
+          top: 100%;
+          left: 0;
+          width: 100%;
+          z-index: 49;
+          max-height: 0;
+          opacity: 0;
+          overflow: hidden;
+          transition: max-height 350ms ease, opacity 250ms ease;
           background: color-mix(in srgb, var(--bg-950, var(--nav-bg-rgb)) 96%, transparent);
           border-bottom: 1px solid var(--border, rgba(var(--slate-400-rgb), 0.1));
+        }
+        .mobile-menu.open {
+          max-height: 500px;
+          opacity: 1;
         }
         .mobile-menu-inner {
           padding: 12px 20px;
@@ -415,10 +433,14 @@ export const LandingHeader: React.FC<LandingHeaderProps> = ({
             display: none;
           }
           .btn-ghost.nav-action-btn {
-            display: none;
+            display: none !important;
           }
+          .nav-theme-btn { display: none !important; }
           .btn-primary.nav-action-btn {
-            display: none;
+            display: inline-flex !important;
+            height: 36px !important;
+            font-size: 14px !important;
+            gap: 4px !important;
           }
           .mobile-controls {
             display: flex;

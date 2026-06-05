@@ -820,7 +820,7 @@ export default function App() {
       )}
 
       {/* Help Button - Available on all screens */}
-      {!location.pathname.startsWith('/embed') && <HelpButton disablePhrases={screen === Screen.WALL_EDITOR} hasBottomNav={location.pathname !== '/' && location.pathname !== '/terms' && location.pathname !== '/testing' && location.pathname !== '/embed-cabinet-planner' && location.pathname !== '/manual-cabinet-software' && location.pathname !== '/cut-list-generator'} />}
+      {!location.pathname.startsWith('/embed') && location.pathname !== '/' && <HelpButton disablePhrases={screen === Screen.WALL_EDITOR} hasBottomNav={location.pathname !== '/' && location.pathname !== '/terms' && location.pathname !== '/testing' && location.pathname !== '/embed-cabinet-planner' && location.pathname !== '/manual-cabinet-software' && location.pathname !== '/cut-list-generator'} />}
 
       {/* Reset Demo Button - only for anonymous users in the workspace */}
       {user?.is_anonymous && location.pathname === '/walls' && (

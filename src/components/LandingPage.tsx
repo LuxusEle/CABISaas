@@ -47,6 +47,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
   const [showTooltip, setShowTooltip] = useState(false);
   const videoRef = useRef<HTMLDivElement>(null);
 
+  const phrases = ['Design Kitchens', 'Build Cabinets', 'Grow Your Shop'];
+  const [phraseIndex, setPhraseIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setPhraseIndex(prev => (prev + 1) % phrases.length);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, []);
+
   const handleVideoMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = videoRef.current?.getBoundingClientRect();
     if (rect) {
@@ -70,12 +80,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
           setIsDark={setIsDark}
         />
 
-        <main id="top">
+        <main id="top" style={{ overflowX: 'hidden' }}>
           <header className="hero">
             <div className="container hero-grid">
               <div className="hero-content reveal">
                 <div className="eyebrow"><span className="pulse-dot"></span> 3D cabinet design software — professional grade</div>
-                <h1>Design Kitchens.<br /><span className="gradient-text">Build Cabinets.</span><br />Grow Your Shop.</h1>
+                <h1>Design Kitchens<br /><span className="gradient-text">Build Cabinets</span><br />Grow Your Shop</h1>
                 <p className="hero-copy">Cloud-based cabinet engineering for workshops that need 3D design, instant BOM generation, cut lists, DXF/CNC exports, and quote-ready PDF reports — all in your browser.</p>
                 <div className="hero-actions">
                   <button className="btn btn-primary" onClick={onGetStarted}>Start Designing Free →</button>
@@ -89,11 +99,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
                 </div>
               </div>
 
-              <div className="hero-visual reveal">
-                <div className="glow-orb"></div>
-                <div className="floating-card float-a"><strong>BOM generated</strong><small>42 panels · 18mm MDF · hardware counted</small></div>
-                <div className="floating-card float-b"><strong>DXF ready</strong><small>CNC export prepared for workshop</small></div>
-                <div className="app-window" aria-label="Cabinetrix product interface mockup">
+               <div className="hero-visual reveal">
+                 <div className="glow-orb"></div>
+                                   <div className="eyebrow eyebrow-mobile"><span className="pulse-dot"></span> 3D cabinet design software — professional grade</div>
+                 <div className="mobile-phrase-rotator"><span key={phraseIndex} className="gradient-text">{phrases[phraseIndex]}</span></div>
+                 <div className="floating-card float-a"><strong>BOM generated</strong><small>42 panels · 18mm MDF · hardware counted</small></div>
+                 <div className="floating-card float-b"><strong>DXF ready</strong><small>CNC export prepared for workshop</small></div>
+                 <div className="app-window" aria-label="Cabinetrix product interface mockup">
                   <div className="window-top">
                     <div className="dots"><span className="dot"></span><span className="dot"></span><span className="dot"></span></div>
                     <div className="window-title">Cabinetrix Studio / Kitchen Project</div>
@@ -127,7 +139,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             </div>
           </header>
 
-          <div className="proof-strip">
+          <div className="proof-strip" id="features-strip" style={{ scrollMarginTop: '80px' }}>
             <div className="container proof-grid">
               <div className="proof-item"><strong>3D</strong><span>Real-time design</span><small>Interactive preview</small></div>
               <div className="proof-item"><strong>BOM</strong><span>Instant reports</span><small>Materials & hardware</small></div>
@@ -137,7 +149,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             </div>
           </div>
 
-          <section id="showcase">
+          <section id="showcase" style={{ scrollMarginTop: '80px' }}>
             <div className="container">
               <div className="section-heading reveal">
                 <h2>See Cabinetrix <span className="gradient-text">in Action</span></h2>
@@ -223,7 +235,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             </div>
           </section>
 
-          <section className="workflow" id="workflow">
+          <section className="workflow" id="workflow" style={{ scrollMarginTop: '80px' }}>
             <div className="container">
               <div className="section-heading reveal">
                 <h2>From Design to <span className="gradient-text">Manufacturing</span></h2>
@@ -259,7 +271,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             </div>
           </section>
 
-          <section id="pricing">
+          <section id="pricing" style={{ scrollMarginTop: '80px' }}>
             <div className="container">
               <div className="section-heading reveal">
                 <h2>Simple <span className="gradient-text">Pricing</span></h2>
@@ -314,7 +326,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             </div>
           </section>
 
-          <section id="contact">
+          <section id="contact" style={{ scrollMarginTop: '80px' }}>
             <div className="container">
               <div className="section-heading reveal">
                 <h2>Need Cabinetrix for <span className="gradient-text">Your Workshop?</span></h2>
@@ -380,20 +392,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             width: min(var(--max), calc(100% - 40px));
             margin-inline: auto;
           }
-          .lp-landing .hero {
-            position: relative;
-            padding: 92px 0 72px;
-          }
-          .lp-landing .hero-grid {
-            display: grid;
-            grid-template-columns: 1fr 1.05fr;
-            align-items: center;
-            gap: 58px;
-          }
-          .lp-landing .eyebrow {
-            width: fit-content;
-            display: inline-flex;
-            align-items: center;
+           .lp-landing .hero {
+             position: relative;
+             padding: 8vh 0 6vh;
+           }
+            .lp-landing .hero-grid {
+              display: grid;
+              grid-template-columns: 1fr 1.05fr;
+              align-items: center;
+              gap: 5vw;
+            }
+           .lp-landing .eyebrow {
+             width: fit-content;
+             display: inline-flex;
+             align-items: center;
             gap: 9px;
             padding: 7px 12px;
             border-radius: 999px;
@@ -403,9 +415,26 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             font-weight: 800;
             font-size: 12px;
             letter-spacing: 0.02em;
-            margin-bottom: 22px;
-          }
-          .lp-landing .pulse-dot {
+             margin-bottom: 22px;
+           }
+            .lp-landing .eyebrow-mobile {
+              display: none;
+            }
+            .lp-landing .mobile-phrase-rotator {
+              display: none;
+            }
+            @keyframes slideUp {
+              from { transform: translateY(36px); opacity: 0; }
+              to { transform: translateY(0); opacity: 1; }
+            }
+             .lp-landing .mobile-phrase-rotator .gradient-text {
+               display: block;
+               animation: slideUp 420ms cubic-bezier(0.22, 1, 0.36, 1);
+               font-size: clamp(46px, 11vw, 68px);
+               line-height: 1.1;
+               letter-spacing: -0.04em;
+             }
+           .lp-landing .pulse-dot {
             width: 7px;
             height: 7px;
             border-radius: 50%;
@@ -424,12 +453,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             letter-spacing: -0.075em;
             margin-bottom: 24px;
           }
-          .lp-landing .gradient-text {
-            background: linear-gradient(135deg, var(--amber-light), var(--brass) 50%, var(--wood-oak));
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-          }
+            .lp-landing .gradient-text {
+              background: linear-gradient(135deg, var(--amber-light), var(--brass) 50%, var(--wood-oak));
+              -webkit-background-clip: text;
+              background-clip: text;
+              color: transparent;
+              font-weight: 900;
+              padding-right: 0.05em;
+            }
           .lp-landing .hero-copy {
             color: var(--soft);
             font-size: 18px;
@@ -519,13 +550,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             color: var(--yellow);
             letter-spacing: 1px;
           }
-          .lp-landing .hero-visual {
-            position: relative;
-            min-height: 620px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          }
+           .lp-landing .hero-visual {
+             position: relative;
+             min-height: 55vh;
+             display: flex;
+             align-items: center;
+             justify-content: center;
+           }
           .lp-landing .glow-orb {
             position: absolute;
             width: 420px;
@@ -619,16 +650,19 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             70% { top: 78%; opacity: 0.5; }
           }
 
-          .lp-landing .hero-media-shell {
-            position: relative;
-            min-height: 484px;
-            background: var(--bg-hero);
-            overflow: hidden;
-          }
-          .lp-landing .hero-video-clickable {
-            cursor: pointer;
-            position: relative;
-          }
+            .lp-landing .hero-media-shell {
+             position: relative;
+             aspect-ratio: 640 / 520;
+             background: var(--bg-hero);
+             overflow: hidden;
+             display: flex;
+             flex-direction: column;
+            }
+           .lp-landing .hero-video-clickable {
+             cursor: pointer;
+             position: relative;
+             height: 100%;
+           }
           .lp-landing .hero-video-tooltip {
             position: absolute;
             z-index: 10;
@@ -673,9 +707,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             display: block;
             object-fit: cover;
           }
-          .lp-landing .hero-product-video {
-            min-height: 484px;
-          }
+           .lp-landing .hero-product-video {
+             width: 100%;
+             height: 100%;
+             object-fit: cover;
+           }
           .lp-landing .hero-media-shell::after,
           .lp-landing .real-media-card::after {
             content: "";
@@ -705,20 +741,19 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             font-size: 12px;
             font-weight: 800;
           }
-          .lp-landing .real-media-card {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            min-height: 304px;
-            border-radius: 18px;
+           .lp-landing .real-media-card {
+             position: relative;
+             width: 100%;
+             height: 100%;
+             aspect-ratio: 4 / 3;
+             border-radius: 18px;
             overflow: hidden;
             border: 1px solid rgba(var(--slate-400-rgb), 0.14);
             background: rgba(var(--slate-950-rgb), 0.42);
             box-shadow: 0 18px 46px rgba(var(--black-rgb), 0.22);
           }
-          .lp-landing .real-media-card .real-product-image {
-            min-height: 304px;
-          }
+           .lp-landing .real-media-card .real-product-image {
+           }
           .lp-landing .workflow-media-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -789,10 +824,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             color: var(--muted);
             font-size: 11px;
           }
-          .lp-landing section {
-            padding: 92px 0;
-            position: relative;
-          }
+           .lp-landing section {
+             padding: 8vh 0;
+             position: relative;
+           }
           .lp-landing .section-heading {
             text-align: center;
             max-width: 720px;
@@ -837,9 +872,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             font-size: 20px;
             letter-spacing: -0.02em;
           }
-          .lp-landing .showcase-preview {
-            min-height: 360px;
-            border-radius: 22px;
+           .lp-landing .showcase-preview {
+             min-height: 40vh;
+             border-radius: 22px;
             background:
               linear-gradient(135deg, rgba(var(--slate-950-rgb), 0.65), rgba(var(--slate-900-rgb), 0.92)),
               radial-gradient(circle at 72% 32%, rgba(var(--wood-walnut-rgb), 0.26), transparent 28%);
@@ -980,7 +1015,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             background: rgba(var(--slate-900-rgb), 0.68);
             border: 1px solid rgba(var(--slate-400-rgb), 0.13);
             position: relative;
-            min-height: 190px;
+             min-height: 25vh;
             box-shadow: 0 20px 60px rgba(var(--black-rgb), 0.2);
           }
           .lp-landing .step-number {
@@ -1150,8 +1185,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             line-height: 1.8;
             font-size: 14px;
           }
-          .lp-landing .final-cta {
-            padding: 86px 0;
+           .lp-landing .final-cta {
+             padding: 8vh 0;
             background:
               radial-gradient(circle at 50% 0%, rgba(var(--white-rgb), 0.18), transparent 30%),
               linear-gradient(135deg, var(--wood-dark), var(--wood-walnut) 52%, var(--bg-900));
@@ -1170,8 +1205,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             margin: 0 auto 28px;
             line-height: 1.7;
           }
-          .lp-landing footer {
-            padding: 28px 0;
+           .lp-landing footer {
+             padding: 3vh 0;
             background: var(--bg-hero);
             border-top: 1px solid rgba(var(--slate-400-rgb), 0.08);
           }
@@ -1320,17 +1355,25 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             .lp-landing .hero-grid, .lp-landing .product-showcase {
               grid-template-columns: 1fr;
             }
-            .lp-landing .hero-visual { min-height: 540px; }
+            .lp-landing .hero-visual { min-height: 50vh; }
             .lp-landing .app-window { transform: none; }
             .lp-landing .proof-grid { grid-template-columns: repeat(3, 1fr); }
             .lp-landing .features-grid, .lp-landing .workflow-grid, .lp-landing .stats-grid, .lp-landing .contact-grid { grid-template-columns: 1fr 1fr; }
           }
           @media (max-width: 780px) {
             .lp-landing .container { width: min(100% - 28px, var(--max)); }
-            .lp-landing .hero { padding-top: 58px; }
+            .lp-landing .hero { padding-top: 2vh; }
             .lp-landing .hero-actions { flex-direction: column; align-items: stretch; }
-            .lp-landing .hero-visual { min-height: 420px; }
-            .lp-landing .btn { width: 100%; }
+             .lp-landing .hero-visual { min-height: 40vh; order: -1; flex-direction: column; }
+             .lp-landing .hero-media-shell { aspect-ratio: 640 / 360; }
+            .lp-landing .hero-content { order: 1; }
+             .lp-landing .eyebrow-mobile { display: inline-flex; margin-bottom: 14px; padding: 5px 10px; }
+            .lp-landing .hero-content .eyebrow { display: none; }
+            .lp-landing .mobile-phrase-rotator { display: block; text-align: center; margin-bottom: 10px; }
+            .lp-landing .hero-content h1 { display: none; }
+            .lp-landing .showcase-preview { min-height: 30vh; }
+             .lp-landing .btn { width: 100%; }
+             .lp-landing .hero-copy { font-size: 15px; text-align: justify; }
             .lp-landing .floating-card { display: none; }
             .lp-landing .proof-grid { grid-template-columns: repeat(2, 1fr); }
             .lp-landing .features-grid, .lp-landing .workflow-grid, .lp-landing .workflow-media-grid, .lp-landing .stats-grid, .lp-landing .pricing-grid, .lp-landing .contact-grid { grid-template-columns: 1fr; }
