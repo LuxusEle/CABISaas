@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Check, Code, Shield, Zap, ArrowRight, Smartphone } from 'lucide-react';
 import { LandingHeader } from './LandingHeader';
@@ -16,6 +16,10 @@ export const EmbedCabinetPlannerPage: React.FC<EmbedCabinetPlannerPageProps> = (
   isDark,
   setIsDark
 }) => {
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', isDark);
+  }, [isDark]);
+
   return (
     <>
       <Helmet>
@@ -23,7 +27,7 @@ export const EmbedCabinetPlannerPage: React.FC<EmbedCabinetPlannerPageProps> = (
         <link rel="canonical" href="https://www.protradee.com/embed-cabinet-planner" />
         <meta name="description" content="Embed a 3D kitchen cabinet configurator directly in your website. White-label cabinet design API with iframe integration. Let your customers design cabinets on your site." />
       </Helmet>
-      <div className="bg-slate-50 dark:bg-slate-950">
+      <div className={`bg-slate-50 dark:bg-slate-950 ${isDark ? 'lp-dark-theme' : 'lp-light-theme'}`}>
         <LandingHeader onSignIn={onSignIn} onGetStarted={onGetStarted} isDark={isDark} setIsDark={setIsDark} />
 
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-28 pb-16">

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Box, Ruler, Sliders, Wrench, ArrowRight, Check } from 'lucide-react';
 import { LandingHeader } from './LandingHeader';
@@ -16,6 +16,10 @@ export const ManualCabinetSoftwarePage: React.FC<ManualCabinetSoftwarePageProps>
   isDark,
   setIsDark
 }) => {
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', isDark);
+  }, [isDark]);
+
   return (
     <>
       <Helmet>
@@ -23,7 +27,7 @@ export const ManualCabinetSoftwarePage: React.FC<ManualCabinetSoftwarePageProps>
         <link rel="canonical" href="https://www.protradee.com/manual-cabinet-software" />
         <meta name="description" content="Manual cabinet layout software with full geometric override. No auto-solver lock-in. Design custom cabinet boxes, set exact dimensions, and generate cut lists on your terms." />
       </Helmet>
-      <div className="bg-slate-50 dark:bg-slate-950">
+      <div className={`bg-slate-50 dark:bg-slate-950 ${isDark ? 'lp-dark-theme' : 'lp-light-theme'}`}>
         <LandingHeader onSignIn={onSignIn} onGetStarted={onGetStarted} isDark={isDark} setIsDark={setIsDark} />
 
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-28 pb-16">

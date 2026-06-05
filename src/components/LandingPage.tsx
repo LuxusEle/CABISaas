@@ -1240,42 +1240,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
                linear-gradient(180deg, var(--bg-950) 0%, var(--bg-900) 38%, #F3E8D9 100%);
              color: var(--text);
            }
-           .lp-light-theme .nav {
-             background: rgba(var(--off-white-rgb), 0.78);
-             border-bottom: 1px solid rgba(92, 61, 37, 0.12);
-             box-shadow: 0 12px 36px rgba(64, 43, 25, 0.06);
-           }
-           .lp-light-theme .brand-logo { filter: invert(1); }
-           .lp-light-theme .nav-links { color: var(--soft); }
-           .lp-light-theme .nav-links a:hover { color: var(--text); }
-           .lp-light-theme .btn-primary {
-             color: #1B1207;
-             background: linear-gradient(180deg, #F6A21A 0%, #D88400 100%);
-             border: 1px solid rgba(122, 78, 45, 0.20);
-             box-shadow: 0 14px 34px rgba(234, 138, 0, 0.24);
-           }
-           .lp-light-theme .btn-primary:hover {
-             box-shadow: 0 18px 44px rgba(234, 138, 0, 0.32);
-           }
-           .lp-light-theme .btn-secondary {
-             color: #44270D;
-             background: rgba(var(--off-white-rgb), 0.78);
-             border: 1px solid rgba(183, 121, 31, 0.42);
-           }
-           .lp-light-theme .btn-secondary:hover {
-             background: rgba(255, 249, 240, 0.96);
-             box-shadow: 0 14px 34px rgba(183, 121, 31, 0.14);
-           }
-           .lp-light-theme .btn-ghost {
-             color: var(--soft);
-             background: rgba(23, 32, 51, 0.045);
-             border: 1px solid rgba(92, 61, 37, 0.12);
-           }
-           .lp-light-theme .btn-ghost:hover {
-             color: var(--text);
-             background: rgba(183, 121, 31, 0.10);
-           }
-           .lp-light-theme .eyebrow {
+            .lp-light-theme .eyebrow {
              color: #7A4E16;
              background: rgba(var(--off-white-rgb), 0.82);
              border: 1px solid rgba(183, 121, 31, 0.32);

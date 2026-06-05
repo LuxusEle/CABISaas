@@ -46,6 +46,10 @@ export const DocsPage: React.FC<DocsPageProps> = ({
     }
   }, []);
 
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', isDark);
+  }, [isDark]);
+
   const sections: DocSection[] = [
     {
       id: 'overview',
@@ -427,7 +431,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
         <link rel="canonical" href="https://www.protradee.com/docs" />
         <meta name="description" content="Complete CabEngine Pro documentation covering cabinet software integration, the cabinet configurator API, embeddable 3D planner setup, project workflows, and BOM generation." />
       </Helmet>
-    <div className="h-full overflow-y-auto bg-slate-50 dark:bg-slate-950">
+    <div className={`h-full overflow-y-auto bg-slate-50 dark:bg-slate-950 ${isDark ? 'lp-dark-theme' : 'lp-light-theme'}`}>
       <LandingHeader
         onSignIn={onSignIn}
         onGetStarted={onGetStarted}

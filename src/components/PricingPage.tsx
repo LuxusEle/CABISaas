@@ -68,6 +68,10 @@ export const PricingPage: React.FC<PricingPageProps> = ({
     loadSubscription();
   }, []);
 
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', isDark);
+  }, [isDark]);
+
   const loadSubscription = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
@@ -158,7 +162,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({
         <link rel="canonical" href="https://www.protradee.com/pricing" />
         <meta name="description" content="Choose the right plan for your cabinet workshop. Free tier available. Pro plan at $29/month unlocks full reports, advanced layout overrides, and embeddable configurator APIs." />
       </Helmet>
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 relative">
+    <div className={`min-h-screen bg-slate-50 dark:bg-slate-950 relative ${isDark ? 'lp-dark-theme' : 'lp-light-theme'}`}>
       <LandingHeader
         onSignIn={onSignIn}
         onGetStarted={onGetStarted}

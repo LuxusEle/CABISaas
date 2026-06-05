@@ -624,6 +624,10 @@ export const TermsPage: React.FC<TermsPageProps> = ({
     }
   }, []);
 
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', isDark);
+  }, [isDark]);
+
   return (
     <>
       <Helmet>
@@ -631,7 +635,7 @@ export const TermsPage: React.FC<TermsPageProps> = ({
         <link rel="canonical" href="https://www.protradee.com/terms" />
         <meta name="description" content="CabEngine Pro terms of service and conditions of use for our cabinet design software platform." />
       </Helmet>
-    <div className="h-full overflow-y-auto bg-white dark:bg-slate-950">
+    <div className={`h-full overflow-y-auto bg-white dark:bg-slate-950 ${isDark ? 'lp-dark-theme' : 'lp-light-theme'}`}>
       <LandingHeader
         onSignIn={onSignIn}
         onGetStarted={onGetStarted}
