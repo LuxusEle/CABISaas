@@ -1478,7 +1478,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
              background: #FFF9F0;
              border-top: 1px solid rgba(92, 61, 37, 0.12);
            }
-           .lp-light-theme .footer-inner { color: var(--muted); }
+            .lp-light-theme .footer-inner { color: var(--muted); }
+            .lp-light-theme .btn-secondary {
+              color: var(--ink);
+              background: rgba(183, 121, 31, 0.10);
+              border-color: rgba(92, 61, 37, 0.28);
+            }
+            .lp-light-theme .btn-secondary:hover {
+              background: rgba(183, 121, 31, 0.16);
+            }
           .lp-landing .reveal {
             opacity: 0;
             transform: translateY(18px);
