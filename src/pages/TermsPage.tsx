@@ -97,7 +97,6 @@ export const TermsPage: React.FC<TermsPageProps> = ({
 
         <style>{`
           * { box-sizing: border-box; margin: 0; padding: 0; }
-          html { scroll-behavior: smooth; scroll-padding-top: 108px; }
 
           .legal-page {
             position: relative;
@@ -465,7 +464,6 @@ export const TermsPage: React.FC<TermsPageProps> = ({
           }
 
           @media (max-width: 780px) {
-            .legal-page { overflow-x: hidden; }
             .legal-container { width: min(100% - 28px, var(--max, 1180px)); }
             .page { padding-top:20px; padding-bottom: 44px; }
             .legal-hero { padding: 26px 20px; border-radius: 22px; margin-bottom: 16px; }
