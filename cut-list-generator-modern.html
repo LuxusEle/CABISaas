@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en" class="lp-dark-theme">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cabinet Cut List Generator & Sheet Nesting Tool | CabEngine Pro</title>
+  <meta name="description" content="Online plywood sheet nesting and cabinet cut list generator. Optimize panel layouts to minimize waste, reduce material costs, and generate professional cut sheets." />
+  <link rel="canonical" href="https://www.protradee.com/cut-list-generator" />
+  <style>
+    .lp-dark-theme {
+      --bg-950: #070A0F;
+      --bg-900: #0D131C;
+      --bg-850: #101823;
+      --bg-800: #131B27;
+      --card: rgba(19, 27, 39, 0.78);
+      --card-strong: rgba(24, 32, 43, 0.94);
+      --border: rgba(214, 168, 79, 0.18);
+      --border-strong: rgba(214, 168, 79, 0.58);
+      --text: #F8FAFC;
+      --muted: #9AA7B7;
+      --soft: #D7DEE8;
+      --wood-walnut: #7A4E2D;
+      --wood-oak: #C49A6C;
+      --wood-dark: #3A2416;
+      --brass: #D6A84F;
+      --amber: #F59E0B;
+      --sage: #8FAF8D;
+      --olive: #5F7A46;
+      --purple: #8B5CF6;
+      --purple-2: #A78BFA;
+      --purple-3: #6D28D9;
+      --orange: #F59E0B;
+      --green: #8FAF8D;
+      --cyan: #C49A6C;
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
+      --grid-line: rgba(255,255,255,0.025);
+      --radius-lg: 28px;
+      --radius-md: 18px;
+      --radius-sm: 12px;
+      --max: 1180px;
+      --amber-light: #F4D79B;
+      --ink: #111827;
+      --cream: #fef3c7;
+      --bg-hero: #05070B;
+      --pink: #fb7185;
+      --yellow: #facc15;
+      --slate-400: #94a3b8;
+      --slate-600: #475569;
+      --slate-700: #334155;
+      --slate-500: #64748b;
+      --slate-50: #f8fafc;
+      --terracotta: #E07A5F;
+      --beige: #F1E8DA;
+      --off-white: #FFFDF8;
+      --slate-900: #0F172A;
+      --bg-light-900: #F8F3EA;
+      --light-brass: #B8872F;
+      --slate-950: #020617;
+      --white: #FFFFFF;
+      --black: #000000;
+      --amber-rgb: 245, 158, 11;
+      --beige-rgb: 241, 232, 218;
+      --bg-light-900-rgb: 248, 243, 234;
+      --black-rgb: 0, 0, 0;
+      --brass-rgb: 214, 168, 79;
+      --cream-rgb: 254, 243, 199;
+      --light-brass-rgb: 184, 135, 47;
+      --off-white-rgb: 255, 253, 248;
+      --sage-rgb: 143, 175, 141;
+      --slate-400-rgb: 148, 163, 184;
+      --slate-500-rgb: 100, 116, 139;
+      --slate-600-rgb: 71, 85, 105;
+      --slate-700-rgb: 51, 65, 85;
+      --slate-900-rgb: 15, 23, 42;
+      --slate-950-rgb: 2, 6, 23;
+      --white-rgb: 255, 255, 255;
+      --wood-dark-rgb: 58, 36, 22;
+      --wood-oak-rgb: 196, 154, 108;
+      --wood-walnut-rgb: 122, 78, 45;
+    }
+
+    .lp-light-theme {
+      --bg-950: #FFFCF6;
+      --bg-900: #F7EFE3;
+      --bg-850: #EFE2D0;
+      --bg-800: #E2D0B8;
+      --card: rgba(255, 252, 246, 0.88);
+      --card-strong: rgba(255, 249, 240, 0.98);
+      --border: rgba(92, 61, 37, 0.14);
+      --border-strong: rgba(183, 121, 31, 0.46);
+      --text: #172033;
+      --muted: #687386;
+      --soft: #3A4658;
+      --wood-walnut: #7A4E2D;
+      --wood-oak: #BE8550;
+      --wood-dark: #3A2416;
+      --brass: #B7791F;
+      --amber: #EA8A00;
+      --amber-light: #F1C874;
+      --light-brass: #A86F1D;
+      --sage: #78966F;
+      --olive: #526F3A;
+      --purple: #7C3AED;
+      --purple-2: #8B5CF6;
+      --purple-3: #5B21B6;
+      --orange: #EA8A00;
+      --green: #78966F;
+      --cyan: #BE8550;
+      --shadow: 0 24px 70px rgba(64, 43, 25, 0.14);
+      --grid-line: rgba(64, 43, 25, 0.045);
+      --radius-lg: 28px;
+      --radius-md: 18px;
+      --radius-sm: 12px;
+      --max: 1180px;
+      --ink: #172033;
+      --cream: #FFF3CF;
+      --bg-hero: #F8EFE1;
+      --pink: #D96B54;
+      --yellow: #D88A00;
+      --terracotta: #D96B54;
+      --beige: #EFE2D0;
+      --off-white: #FFFCF6;
+      --slate-50: #F8FAFC;
+      --slate-400: #94A3B8;
+      --slate-500: #64748B;
+      --slate-600: #475569;
+      --slate-700: #334155;
+      --slate-900: #0F172A;
+      --slate-950: #020617;
+      --white: #FFFFFF;
+      --black: #000000;
+      --amber-rgb: 234, 138, 0;
+      --beige-rgb: 239, 226, 208;
+      --bg-light-900-rgb: 247, 239, 227;
+      --black-rgb: 0, 0, 0;
+      --brass-rgb: 183, 121, 31;
+      --cream-rgb: 255, 243, 207;
+      --light-brass-rgb: 168, 111, 29;
+      --off-white-rgb: 255, 252, 246;
+      --sage-rgb: 120, 150, 111;
+      --slate-400-rgb: 148, 163, 184;
+      --slate-500-rgb: 100, 116, 139;
+      --slate-600-rgb: 71, 85, 105;
+      --slate-700-rgb: 51, 65, 85;
+      --slate-900-rgb: 15, 23, 42;
+      --slate-950-rgb: 2, 6, 23;
+      --white-rgb: 255, 255, 255;
+      --wood-dark-rgb: 58, 36, 22;
+      --wood-oak-rgb: 190, 133, 80;
+      --wood-walnut-rgb: 122, 78, 45;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 12% 6%, rgba(var(--wood-walnut-rgb), 0.24), transparent 30%),
+        radial-gradient(circle at 84% 12%, rgba(var(--brass-rgb), 0.16), transparent 25%),
+        radial-gradient(circle at 52% -4%, rgba(var(--sage-rgb), 0.10), transparent 30%),
+        linear-gradient(180deg, var(--bg-950), var(--bg-900) 42%, var(--bg-950) 100%);
+      color: var(--text);
+      overflow-x: hidden;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: -2;
+      background-image:
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+      background-size: 72px 72px;
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,.9), transparent 78%);
+    }
+    body::after {
+      content: "";
+      position: fixed;
+      inset: auto -10% -22% -10%;
+      height: 420px;
+      z-index: -1;
+      pointer-events: none;
+      background: radial-gradient(circle, rgba(var(--brass-rgb), .12), transparent 68%);
+      filter: blur(24px);
+    }
+    a { color: inherit; text-decoration: none; }
+    .container { width: min(var(--max), calc(100% - 40px)); margin-inline: auto; }
+
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 60;
+      backdrop-filter: blur(22px);
+      background: color-mix(in srgb, var(--bg-950) 78%, transparent);
+      border-bottom: 1px solid rgba(var(--slate-400-rgb), 0.10);
+    }
+    .nav-inner { height: 70px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+    .brand { display: flex; align-items: center; gap: 12px; font-weight: 900; letter-spacing: -0.035em; }
+    .brand-mark { width: 36px; height: 36px; }
+    .brand-word { font-size: 18px; }
+    .nav-links { display: flex; gap: 28px; color: var(--soft); font-size: 14px; font-weight: 700; }
+    .nav-links a { opacity: .86; transition: color .18s ease, opacity .18s ease, transform .18s ease; }
+    .nav-links a:hover { color: var(--text); opacity: 1; transform: translateY(-1px); }
+    .nav-actions { display: flex; align-items: center; gap: 12px; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-height: 46px;
+      padding: 0 20px;
+      border-radius: 13px;
+      border: 1px solid transparent;
+      font-weight: 900;
+      font-size: 14px;
+      cursor: pointer;
+      transition: transform .18s ease, box-shadow .18s ease, background .18s ease, border-color .18s ease;
+      white-space: nowrap;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .btn-primary { color: #111827; background: linear-gradient(135deg, var(--brass), var(--amber) 72%); box-shadow: 0 16px 36px rgba(var(--amber-rgb), .30); }
+    .btn-primary:hover { box-shadow: 0 20px 48px rgba(var(--amber-rgb), .40); }
+    .btn-ghost { background: rgba(var(--slate-400-rgb), .08); border-color: rgba(var(--slate-400-rgb), .13); color: var(--soft); }
+    .btn-ghost:hover { background: rgba(var(--slate-400-rgb), .13); color: var(--text); }
+    .theme-toggle { width: 44px; padding: 0; }
+
+    .hero { position: relative; padding: 88px 0 62px; }
+    .hero-grid { display: grid; grid-template-columns: minmax(0, .95fr) minmax(420px, 1.05fr); gap: 54px; align-items: center; }
+    .eyebrow {
+      width: fit-content;
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      padding: 8px 13px;
+      border-radius: 999px;
+      border: 1px solid rgba(var(--brass-rgb), .40);
+      background: rgba(var(--wood-walnut-rgb), .16);
+      color: var(--amber-light);
+      font-weight: 900;
+      font-size: 12px;
+      letter-spacing: .02em;
+      margin-bottom: 24px;
+    }
+    .eyebrow svg { width: 15px; height: 15px; }
+    h1 {
+      font-size: clamp(44px, 6.8vw, 78px);
+      line-height: .94;
+      letter-spacing: -.075em;
+      margin-bottom: 24px;
+      max-width: 780px;
+    }
+    .gradient-text { background: linear-gradient(135deg, var(--amber-light), var(--brass) 52%, var(--wood-oak)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .hero-copy { color: var(--soft); font-size: 18px; line-height: 1.75; max-width: 610px; margin-bottom: 30px; }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 22px; }
+    .trust-row { display: flex; flex-wrap: wrap; gap: 13px; align-items: center; color: var(--muted); font-size: 13px; }
+    .trust-pill { display: inline-flex; align-items: center; gap: 8px; }
+    .trust-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--sage); box-shadow: 0 0 0 rgba(var(--sage-rgb), .55); animation: pulse 1.8s infinite; }
+    @keyframes pulse { 0%{box-shadow:0 0 0 0 rgba(var(--sage-rgb), .55)} 70%{box-shadow:0 0 0 10px rgba(var(--sage-rgb),0)} 100%{box-shadow:0 0 0 0 rgba(var(--sage-rgb),0)} }
+
+    .hero-visual { position: relative; min-height: 560px; display: grid; place-items: center; }
+    .orb { position: absolute; width: 460px; height: 460px; border-radius: 50%; background: radial-gradient(circle, rgba(var(--brass-rgb), .22), transparent 66%); filter: blur(10px); animation: float 7s ease-in-out infinite; }
+    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-16px)} }
+    .optimizer-window {
+      position: relative;
+      width: min(100%, 660px);
+      border-radius: 26px;
+      overflow: hidden;
+      background: rgba(var(--slate-950-rgb), .72);
+      border: 1px solid rgba(var(--slate-400-rgb), .18);
+      box-shadow: var(--shadow), 0 0 0 1px rgba(var(--white-rgb), .03) inset;
+      transform: perspective(1100px) rotateY(-6deg) rotateX(3deg);
+    }
+    .window-top { height: 48px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-bottom: 1px solid rgba(var(--slate-400-rgb), .12); background: rgba(var(--slate-950-rgb), .42); }
+    .dots { display: flex; gap: 7px; } .dot { width: 10px; height: 10px; border-radius: 999px; background: var(--slate-600); } .dot:nth-child(1){background:var(--pink)} .dot:nth-child(2){background:var(--yellow)} .dot:nth-child(3){background:var(--sage)}
+    .window-title { color: var(--muted); font-size: 12px; font-weight: 900; letter-spacing: .05em; text-transform: uppercase; }
+    .live-chip { padding: 5px 8px; border-radius: 999px; background: rgba(var(--sage-rgb), .12); color: var(--sage); border: 1px solid rgba(var(--sage-rgb), .28); font-size: 10px; font-weight: 950; }
+    .optimizer-body { display: grid; grid-template-columns: 1fr 214px; min-height: 430px; }
+    .sheet-canvas {
+      position: relative;
+      padding: 24px;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 50% 42%, rgba(var(--wood-oak-rgb), .13), transparent 38%),
+        linear-gradient(135deg, rgba(var(--slate-900-rgb), .88), rgba(var(--bg-950), .98));
+    }
+    .sheet-canvas::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(var(--slate-400-rgb), .055) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(var(--slate-400-rgb), .055) 1px, transparent 1px);
+      background-size: 28px 28px;
+      opacity: .8;
+    }
+    .sheet {
+      position: relative;
+      z-index: 1;
+      height: 360px;
+      border-radius: 20px;
+      padding: 16px;
+      background: linear-gradient(135deg, rgba(var(--wood-oak-rgb), .24), rgba(var(--wood-walnut-rgb), .09));
+      border: 1px solid rgba(var(--brass-rgb), .36);
+      box-shadow: 0 20px 54px rgba(0,0,0,.28), inset 0 0 0 1px rgba(var(--white-rgb), .05);
+      display: grid;
+      grid-template-columns: 1.1fr .76fr .6fr;
+      grid-template-rows: repeat(5, 1fr);
+      gap: 9px;
+    }
+    .part {
+      border-radius: 10px;
+      border: 1px solid rgba(var(--brass-rgb), .26);
+      background:
+        linear-gradient(135deg, rgba(var(--wood-oak-rgb), .34), rgba(var(--wood-walnut-rgb), .64)),
+        repeating-linear-gradient(90deg, transparent 0 8px, rgba(var(--white-rgb), .035) 8px 9px);
+      box-shadow: inset 0 0 0 1px rgba(var(--white-rgb), .04);
+      position: relative;
+      overflow: hidden;
+    }
+    .part::after { content: attr(data-label); position: absolute; left: 10px; top: 8px; color: rgba(var(--cream-rgb), .78); font-size: 10px; font-weight: 900; }
+    .p1 { grid-row: span 2; } .p2 { grid-row: span 3; } .p3 { grid-row: span 2; } .p4 { grid-column: span 1; } .p5 { grid-column: span 2; } .p6 { grid-row: span 2; } .p8 { background: rgba(var(--sage-rgb), .14); border-style: dashed; }
+    .scan-line { position: absolute; z-index: 3; left: 22px; right: 22px; height: 2px; top: 32%; background: linear-gradient(90deg, transparent, rgba(var(--brass-rgb), .98), transparent); filter: drop-shadow(0 0 12px rgba(var(--brass-rgb), .68)); animation: scan 3.4s ease-in-out infinite; }
+    @keyframes scan { 0%,100%{top:18%;opacity:.25} 45%{opacity:1} 72%{top:82%;opacity:.55} }
+    .canvas-badge { position: absolute; z-index: 4; left: 36px; bottom: 34px; padding: 11px 13px; border-radius: 14px; background: rgba(var(--slate-950-rgb), .72); border: 1px solid rgba(var(--slate-400-rgb), .16); backdrop-filter: blur(14px); font-size: 12px; color: var(--soft); box-shadow: 0 18px 40px rgba(0,0,0,.28); }
+    .canvas-badge strong { display: block; color: var(--text); margin-bottom: 3px; }
+    .side-panel { border-left: 1px solid rgba(var(--slate-400-rgb), .12); background: rgba(var(--slate-950-rgb), .30); padding: 17px; }
+    .panel-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; font-size: 13px; font-weight: 950; }
+    .stat-list { display: grid; gap: 9px; margin-bottom: 16px; }
+    .stat-row { padding: 11px; border-radius: 12px; background: rgba(var(--slate-400-rgb), .07); border: 1px solid rgba(var(--slate-400-rgb), .09); }
+    .stat-row span { display: block; color: var(--muted); font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 5px; }
+    .stat-row strong { color: var(--text); font-size: 16px; }
+    .export-box { padding: 14px; border-radius: 16px; background: linear-gradient(135deg, rgba(var(--wood-walnut-rgb), .26), rgba(var(--brass-rgb), .11)); border: 1px solid rgba(var(--brass-rgb), .32); }
+    .export-box strong { display: block; font-size: 13px; margin-bottom: 10px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+    .chip { font-size: 10px; font-weight: 950; padding: 6px 8px; border-radius: 8px; background: rgba(var(--white-rgb), .08); color: var(--amber-light); border: 1px solid rgba(var(--white-rgb), .10); }
+
+    .floating-note { position: absolute; z-index: 5; padding: 13px 14px; border-radius: 16px; background: rgba(var(--bg-850), .78); backdrop-filter: blur(14px); border: 1px solid rgba(var(--slate-400-rgb), .17); box-shadow: 0 18px 46px rgba(0,0,0,.30); animation: float 6s ease-in-out infinite; }
+    .floating-note strong { display: block; font-size: 13px; } .floating-note small { display: block; color: var(--muted); margin-top: 4px; font-size: 11px; }
+    .note-a { top: 86px; left: -12px; } .note-b { right: -14px; bottom: 74px; animation-delay: -2s; }
+
+    .metric-strip { padding: 28px 0; border-top: 1px solid rgba(var(--slate-400-rgb), .08); border-bottom: 1px solid rgba(var(--slate-400-rgb), .08); background: rgba(var(--bg-850), .32); backdrop-filter: blur(18px); }
+    .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+    .metric-card, .step-card, .feature-card {
+      position: relative;
+      border: 1px solid var(--border);
+      background: var(--card);
+      border-radius: var(--radius-md);
+      box-shadow: 0 20px 60px rgba(0,0,0,.18);
+      overflow: hidden;
+    }
+    .metric-card::before, .step-card::before, .feature-card::before {
+      content: "";
+      position: absolute;
+      inset: -1px;
+      background: radial-gradient(circle at 18% 0%, rgba(var(--brass-rgb), .20), transparent 36%);
+      opacity: 0;
+      transition: opacity .2s ease;
+      pointer-events: none;
+    }
+    .metric-card:hover::before, .step-card:hover::before, .feature-card:hover::before { opacity: 1; }
+    .metric-card { padding: 25px; text-align: center; transition: transform .22s ease, border-color .22s ease, background .22s ease; }
+    .metric-card:hover { transform: translateY(-6px); border-color: rgba(var(--brass-rgb), .34); background: var(--card-strong); }
+    .metric-value { color: var(--amber); font-size: 40px; line-height: 1; font-weight: 950; letter-spacing: -.045em; margin-bottom: 9px; }
+    .metric-card h3 { font-size: 14px; margin-bottom: 5px; }
+    .metric-card p { color: var(--muted); font-size: 12px; line-height: 1.55; }
+
+    section { padding: 88px 0; }
+    .section-heading { text-align: center; max-width: 750px; margin: 0 auto 46px; }
+    .section-heading h2 { font-size: clamp(30px, 4vw, 48px); line-height: 1.05; letter-spacing: -.045em; margin-bottom: 14px; }
+    .section-heading p { color: var(--muted); font-size: 16px; line-height: 1.7; }
+    .steps-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+    .step-card { min-height: 210px; padding: 24px; transition: transform .22s ease, border-color .22s ease; }
+    .step-card:hover { transform: translateY(-7px); border-color: rgba(var(--brass-rgb), .34); }
+    .step-number { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 14px; background: linear-gradient(135deg, var(--brass), var(--wood-walnut)); color: #111827; font-weight: 950; box-shadow: 0 14px 28px rgba(var(--brass-rgb), .22); margin-bottom: 20px; }
+    .step-card h3 { font-size: 17px; margin-bottom: 10px; }
+    .step-card p { color: var(--muted); font-size: 13px; line-height: 1.65; }
+
+    .feature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .feature-card { padding: 26px; display: flex; gap: 18px; transition: transform .22s ease, border-color .22s ease, background .22s ease; }
+    .feature-card:hover { transform: translateY(-7px); border-color: rgba(var(--brass-rgb), .34); background: var(--card-strong); }
+    .icon-box { width: 48px; height: 48px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 15px; background: rgba(var(--brass-rgb), .14); border: 1px solid rgba(var(--brass-rgb), .24); color: var(--amber-light); }
+    .icon-box svg { width: 22px; height: 22px; }
+    .feature-card h3 { font-size: 17px; margin-bottom: 8px; }
+    .feature-card p { color: var(--muted); font-size: 13px; line-height: 1.7; }
+
+    .cta-panel {
+      position: relative;
+      margin: 0 auto 86px;
+      padding: 48px;
+      border-radius: var(--radius-lg);
+      text-align: center;
+      overflow: hidden;
+      border: 1px solid rgba(var(--brass-rgb), .24);
+      background:
+        radial-gradient(circle at 50% 0%, rgba(var(--white-rgb), .18), transparent 33%),
+        linear-gradient(135deg, rgba(var(--sage-rgb), .98), rgba(var(--olive-rgb, 95, 122, 70), .90) 48%, rgba(var(--wood-dark-rgb), .92));
+      box-shadow: var(--shadow);
+    }
+    .cta-panel::after { content: ""; position: absolute; inset: 0; background-image: linear-gradient(rgba(var(--white-rgb), .05) 1px, transparent 1px), linear-gradient(90deg, rgba(var(--white-rgb), .05) 1px, transparent 1px); background-size: 40px 40px; opacity: .26; pointer-events: none; }
+    .cta-panel > * { position: relative; z-index: 1; }
+    .cta-panel h2 { font-size: clamp(30px, 4vw, 44px); line-height: 1.05; letter-spacing: -.045em; margin-bottom: 14px; color: var(--white); }
+    .cta-panel p { max-width: 660px; margin: 0 auto 26px; color: rgba(255,255,255,.82); line-height: 1.7; }
+    .cta-panel .btn { background: var(--white); color: #0f5138; box-shadow: 0 16px 36px rgba(0,0,0,.18); }
+
+    footer { border-top: 1px solid rgba(var(--slate-400-rgb), .08); background: rgba(var(--bg-950), .72); padding: 28px 0; }
+    .footer-inner { display: flex; justify-content: space-between; align-items: center; gap: 18px; color: var(--muted); font-size: 13px; }
+    .footer-links { display: flex; gap: 20px; color: var(--soft); font-weight: 700; }
+    .help-button { position: fixed; right: 22px; bottom: 22px; z-index: 70; display: inline-flex; align-items: center; gap: 10px; height: 48px; padding: 0 15px 0 17px; border-radius: 999px; background: rgba(var(--amber-rgb), .96); color: #111827; font-weight: 950; font-size: 12px; box-shadow: 0 16px 42px rgba(var(--amber-rgb), .32); border: 1px solid rgba(var(--white-rgb), .22); }
+    .help-button .q { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: rgba(var(--white-rgb), .18); }
+
+    @media (max-width: 1060px) {
+      .hero-grid { grid-template-columns: 1fr; }
+      .hero-visual { min-height: 520px; }
+      .optimizer-window { transform: none; }
+      .steps-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 820px) {
+      .container { width: min(100% - 28px, var(--max)); }
+      .nav-links { display: none; }
+      .hero { padding-top: 56px; }
+      .hero-actions { flex-direction: column; align-items: stretch; }
+      .btn { width: 100%; }
+      .metrics, .feature-grid { grid-template-columns: 1fr; }
+      .optimizer-body { grid-template-columns: 1fr; }
+      .side-panel { display: none; }
+      .floating-note { display: none; }
+      .footer-inner { flex-direction: column; align-items: flex-start; }
+      .help-button span { display: none; }
+      .help-button { width: 48px; justify-content: center; padding: 0; }
+    }
+    @media (max-width: 560px) {
+      .steps-grid { grid-template-columns: 1fr; }
+      .nav-actions .btn-primary { display: none; }
+      .hero-visual { min-height: 420px; }
+      .sheet { height: 300px; }
+      .cta-panel { padding: 34px 22px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="#top" aria-label="CabEngine home">
+        <svg class="brand-mark" viewBox="0 0 42 42" aria-hidden="true">
+          <path d="M21 4 35 12v7.5L21 11.4 7 19.5V12L21 4Z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round" opacity=".88"/>
+          <path d="M35 22.5 21 30.6 7 22.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".88"/>
+          <path d="M35 14.5 21 22.6 7 14.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".5"/>
+        </svg>
+        <span class="brand-word">CabEngine</span>
+      </a>
+      <div class="nav-links" aria-label="Main navigation">
+        <a href="#features">Features</a>
+        <a href="#workflow">How it works</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#contact">Contact</a>
+        <a href="#docs">Documentation</a>
+        <a href="#terms">Terms & Conditions</a>
+      </div>
+      <div class="nav-actions">
+        <button class="btn btn-ghost theme-toggle" type="button" id="themeToggle" aria-label="Toggle theme">☼</button>
+        <a class="btn btn-primary" href="#start">Get Started Free</a>
+      </div>
+    </div>
+  </nav>
+
+  <main id="top">
+    <header class="hero">
+      <div class="container hero-grid">
+        <div>
+          <div class="eyebrow">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2"/><path d="M8 7h8M8 11h8M8 15h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Panel Optimization Engine
+          </div>
+          <h1>Reduce Sheet Waste by Up to <span class="gradient-text">30%</span></h1>
+          <p class="hero-copy">Automated plywood sheet nesting and cabinet cut list generation for cabinet makers. Optimize panel layouts across multiple sheet sizes, thicknesses, and material types without slowing down production.</p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="#start">Start Optimizing Free →</a>
+            <a class="btn btn-ghost" href="#workflow">See How It Works</a>
+          </div>
+          <div class="trust-row">
+            <span class="trust-pill"><span class="trust-dot"></span> DXF and CNC-ready exports</span>
+            <span>•</span>
+            <span>Quote-ready reporting for workshops</span>
+          </div>
+        </div>
+
+        <div class="hero-visual" aria-label="Sheet nesting optimizer interface preview">
+          <div class="orb"></div>
+          <div class="floating-note note-a"><strong>30% less waste</strong><small>Yield improved after nesting pass</small></div>
+          <div class="floating-note note-b"><strong>DXF ready</strong><small>Cut sheets and CNC output prepared</small></div>
+          <div class="optimizer-window">
+            <div class="window-top">
+              <div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+              <div class="window-title">CabEngine Nesting / Sheet 01</div>
+              <div class="live-chip">LIVE</div>
+            </div>
+            <div class="optimizer-body">
+              <div class="sheet-canvas">
+                <div class="scan-line"></div>
+                <div class="sheet">
+                  <div class="part p1" data-label="SIDE A"></div>
+                  <div class="part p2" data-label="BACK"></div>
+                  <div class="part p3" data-label="DOOR"></div>
+                  <div class="part p4" data-label="RAIL"></div>
+                  <div class="part p5" data-label="SHELF"></div>
+                  <div class="part p6" data-label="SIDE B"></div>
+                  <div class="part p7" data-label="TOP"></div>
+                  <div class="part p8" data-label="REMNANT"></div>
+                </div>
+                <div class="canvas-badge"><strong>18mm Birch Ply · 2440 × 1220</strong>Kerf applied · grain locked · remnants tracked</div>
+              </div>
+              <aside class="side-panel">
+                <div class="panel-heading"><span>Optimization</span><span class="live-chip">Done</span></div>
+                <div class="stat-list">
+                  <div class="stat-row"><span>Yield</span><strong>91.8%</strong></div>
+                  <div class="stat-row"><span>Waste</span><strong>8.2%</strong></div>
+                  <div class="stat-row"><span>Sheets</span><strong>6 → 4</strong></div>
+                  <div class="stat-row"><span>Saving</span><strong>£142.50</strong></div>
+                </div>
+                <div class="export-box">
+                  <strong>Export package</strong>
+                  <div class="chips"><span class="chip">PDF</span><span class="chip">DXF</span><span class="chip">CSV</span><span class="chip">CNC</span></div>
+                </div>
+              </aside>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="metric-strip">
+      <div class="container metrics">
+        <article class="metric-card">
+          <div class="metric-value">30%</div>
+          <h3>Average Waste Reduction</h3>
+          <p>Compared to manual layout estimation and rough workshop planning.</p>
+        </article>
+        <article class="metric-card">
+          <div class="metric-value">500+</div>
+          <h3>Sheet Sizes Supported</h3>
+          <p>Use custom dimensions, standard plywood boards, MDF, particle board, and melamine.</p>
+        </article>
+        <article class="metric-card">
+          <div class="metric-value">1-Click</div>
+          <h3>Export Ready</h3>
+          <p>Generate cut sheets, DXF files, CNC-ready output, and professional reports.</p>
+        </article>
+      </div>
+    </div>
+
+    <section id="workflow">
+      <div class="container">
+        <div class="section-heading">
+          <h2>How the Nesting Engine Works</h2>
+          <p>From part list to optimized sheet layout in a clean four-step production flow.</p>
+        </div>
+        <div class="steps-grid">
+          <article class="step-card"><div class="step-number">1</div><h3>Input Parts</h3><p>Your cabinet design generates a complete part list — panels, doors, shelves, rails, and internal components.</p></article>
+          <article class="step-card"><div class="step-number">2</div><h3>Select Materials</h3><p>Choose sheet sizes, thicknesses, materials, and grain rules. Mix material types in the same project.</p></article>
+          <article class="step-card"><div class="step-number">3</div><h3>Optimize Layout</h3><p>The engine arranges parts across sheets to maximize yield, reduce scrap, and keep production practical.</p></article>
+          <article class="step-card"><div class="step-number">4</div><h3>Generate Output</h3><p>Export optimized cut sheets, material reports, DXF files, and CNC-ready nesting packages.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section id="features">
+      <div class="container">
+        <div class="section-heading">
+          <h2>Built for Cabinet Workshops</h2>
+          <p>Practical features that connect design, costing, cutting, and production output.</p>
+        </div>
+        <div class="feature-grid">
+          <article class="feature-card">
+            <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h6v10H4V7Zm10-3h6v13h-6V4ZM8 20h12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div><h3>Multi-Sheet Optimization</h3><p>Process multiple sheet thicknesses and material types in a single layout pass. The engine handles plywood, MDF, particle board, and melamine simultaneously.</p></div>
+          </article>
+          <article class="feature-card">
+            <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3 4 7l8 4 8-4-8-4Zm-8 8 8 4 8-4M4 15l8 4 8-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div><h3>Grain Direction Awareness</h3><p>Respect wood grain orientation for visible panels. The nesting engine intelligently aligns parts for consistent grain flow.</p></div>
+          </article>
+          <article class="feature-card">
+            <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 3h8l4 4v14H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2"/><path d="M14 3v5h5M8 13h8M8 17h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+            <div><h3>Financial Reporting</h3><p>Get complete cost breakdowns: raw sheet totals, hardware unit costs, estimated assembly time, and final quote matrix for client proposals.</p></div>
+          </article>
+          <article class="feature-card">
+            <div class="icon-box"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M19 5 5 19M7.5 8.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm9 11a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+            <div><h3>Waste Tracking</h3><p>Every layout includes detailed scrap metrics. Track yield percentages, remnant management, and cost impact of waste across your projects.</p></div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <div class="container" id="start">
+      <div class="cta-panel">
+        <h2>Start Saving on Material Costs Today</h2>
+        <p>Free tier includes full nesting optimization. See how much you can save on your next cabinet project before committing to production.</p>
+        <a class="btn" href="#pricing">Try the Optimizer Free →</a>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container footer-inner">
+      <div>© 2026 CabEngine. Cabinet design, cut lists, and sheet optimization.</div>
+      <div class="footer-links"><a href="#docs">Docs</a><a href="#contact">Contact</a><a href="#terms">Terms</a></div>
+    </div>
+  </footer>
+
+  <a class="help-button" href="#contact"><span>Need help?</span><span class="q">?</span></a>
+
+  <script>
+    const root = document.documentElement;
+    const toggle = document.getElementById('themeToggle');
+    const applyThemeLabel = () => {
+      toggle.textContent = root.classList.contains('lp-dark-theme') ? '☼' : '☾';
+      toggle.setAttribute('aria-label', root.classList.contains('lp-dark-theme') ? 'Switch to light theme' : 'Switch to dark theme');
+    };
+    toggle.addEventListener('click', () => {
+      root.classList.toggle('lp-dark-theme');
+      root.classList.toggle('lp-light-theme');
+      applyThemeLabel();
+    });
+    applyThemeLabel();
+  </script>
+</body>
+</html>

@@ -56,6 +56,7 @@
   --beige-rgb: 241, 232, 218;
   --bg-light-900-rgb: 248, 243, 234;
   --black-rgb: 0, 0, 0;
+  --olive-rgb: 95, 122, 70;
   --brass-rgb: 214, 168, 79;
   --cream-rgb: 254, 243, 199;
   --light-brass-rgb: 184, 135, 47;
@@ -148,6 +149,7 @@
   --black: #000000;
 
   /* RGB values — keep these aligned with the hex values above */
+  --olive-rgb: 82, 111, 58;
   --amber-rgb: 234, 138, 0;
   --beige-rgb: 239, 226, 208;
   --bg-light-900-rgb: 247, 239, 227;
