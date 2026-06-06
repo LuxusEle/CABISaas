@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CabEngine — Advanced Direct Entry Mode</title>
+  <meta name="description" content="Advanced manual cabinet design controls for cabinet makers who need dimensional precision, custom hardware settings, and full cut-list control." />
+  <style>
+    .lp-dark-theme {
+      --bg-950: #070A0F;
+      --bg-900: #0D131C;
+      --bg-850: #101823;
+      --bg-800: #131B27;
+      --card: rgba(19, 27, 39, 0.78);
+      --card-strong: rgba(24, 32, 43, 0.94);
+      --border: rgba(214, 168, 79, 0.18);
+      --border-strong: rgba(214, 168, 79, 0.58);
+      --text: #F8FAFC;
+      --muted: #9AA7B7;
+      --soft: #D7DEE8;
+      --wood-walnut: #7A4E2D;
+      --wood-oak: #C49A6C;
+      --wood-dark: #3A2416;
+      --brass: #D6A84F;
+      --amber: #F59E0B;
+      --sage: #8FAF8D;
+      --olive: #5F7A46;
+      --purple: #8B5CF6;
+      --purple-2: #A78BFA;
+      --purple-3: #6D28D9;
+      --orange: #F59E0B;
+      --green: #8FAF8D;
+      --cyan: #C49A6C;
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
+      --grid-line: rgba(255,255,255,0.025);
+      --radius-lg: 28px;
+      --radius-md: 18px;
+      --radius-sm: 12px;
+      --max: 1180px;
+      --amber-light: #F4D79B;
+      --ink: #111827;
+      --cream: #fef3c7;
+      --bg-hero: #05070B;
+      --pink: #fb7185;
+      --yellow: #facc15;
+      --slate-400: #94a3b8;
+      --slate-600: #475569;
+      --slate-700: #334155;
+      --slate-500: #64748b;
+      --slate-50: #f8fafc;
+      --terracotta: #E07A5F;
+      --beige: #F1E8DA;
+      --off-white: #FFFDF8;
+      --slate-900: #0F172A;
+      --bg-light-900: #F8F3EA;
+      --light-brass: #B8872F;
+      --slate-950: #020617;
+      --white: #FFFFFF;
+      --black: #000000;
+      --amber-rgb: 245, 158, 11;
+      --beige-rgb: 241, 232, 218;
+      --bg-light-900-rgb: 248, 243, 234;
+      --black-rgb: 0, 0, 0;
+      --brass-rgb: 214, 168, 79;
+      --cream-rgb: 254, 243, 199;
+      --light-brass-rgb: 184, 135, 47;
+      --off-white-rgb: 255, 253, 248;
+      --sage-rgb: 143, 175, 141;
+      --slate-400-rgb: 148, 163, 184;
+      --slate-500-rgb: 100, 116, 139;
+      --slate-600-rgb: 71, 85, 105;
+      --slate-700-rgb: 51, 65, 85;
+      --slate-900-rgb: 15, 23, 42;
+      --slate-950-rgb: 2, 6, 23;
+      --white-rgb: 255, 255, 255;
+      --wood-dark-rgb: 58, 36, 22;
+      --wood-oak-rgb: 196, 154, 108;
+      --wood-walnut-rgb: 122, 78, 45;
+    }
+
+    .lp-light-theme {
+      --bg-950: #FFFCF6;
+      --bg-900: #F7EFE3;
+      --bg-850: #EFE2D0;
+      --bg-800: #E2D0B8;
+      --card: rgba(255, 252, 246, 0.88);
+      --card-strong: rgba(255, 249, 240, 0.98);
+      --border: rgba(92, 61, 37, 0.14);
+      --border-strong: rgba(183, 121, 31, 0.46);
+      --text: #172033;
+      --muted: #687386;
+      --soft: #3A4658;
+      --wood-walnut: #7A4E2D;
+      --wood-oak: #BE8550;
+      --wood-dark: #3A2416;
+      --brass: #B7791F;
+      --amber: #EA8A00;
+      --amber-light: #F1C874;
+      --light-brass: #A86F1D;
+      --sage: #78966F;
+      --olive: #526F3A;
+      --purple: #7C3AED;
+      --purple-2: #8B5CF6;
+      --purple-3: #5B21B6;
+      --orange: #EA8A00;
+      --green: #78966F;
+      --cyan: #BE8550;
+      --shadow: 0 24px 70px rgba(64, 43, 25, 0.14);
+      --grid-line: rgba(64, 43, 25, 0.045);
+      --radius-lg: 28px;
+      --radius-md: 18px;
+      --radius-sm: 12px;
+      --max: 1180px;
+      --ink: #172033;
+      --cream: #FFF3CF;
+      --bg-hero: #F8EFE1;
+      --pink: #D96B54;
+      --yellow: #D88A00;
+      --terracotta: #D96B54;
+      --beige: #EFE2D0;
+      --off-white: #FFFCF6;
+      --slate-50: #F8FAFC;
+      --slate-400: #94A3B8;
+      --slate-500: #64748B;
+      --slate-600: #475569;
+      --slate-700: #334155;
+      --slate-900: #0F172A;
+      --slate-950: #020617;
+      --white: #FFFFFF;
+      --black: #000000;
+      --amber-rgb: 234, 138, 0;
+      --beige-rgb: 239, 226, 208;
+      --bg-light-900-rgb: 247, 239, 227;
+      --black-rgb: 0, 0, 0;
+      --brass-rgb: 183, 121, 31;
+      --cream-rgb: 255, 243, 207;
+      --light-brass-rgb: 168, 111, 29;
+      --off-white-rgb: 255, 252, 246;
+      --sage-rgb: 120, 150, 111;
+      --slate-400-rgb: 148, 163, 184;
+      --slate-500-rgb: 100, 116, 139;
+      --slate-600-rgb: 71, 85, 105;
+      --slate-700-rgb: 51, 65, 85;
+      --slate-900-rgb: 15, 23, 42;
+      --slate-950-rgb: 2, 6, 23;
+      --white-rgb: 255, 255, 255;
+      --wood-dark-rgb: 58, 36, 22;
+      --wood-oak-rgb: 190, 133, 80;
+      --wood-walnut-rgb: 122, 78, 45;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 16% 8%, rgba(var(--wood-walnut-rgb), 0.28), transparent 30%),
+        radial-gradient(circle at 88% 18%, rgba(var(--brass-rgb), 0.15), transparent 28%),
+        radial-gradient(circle at 50% 0%, rgba(var(--sage-rgb), 0.08), transparent 32%),
+        linear-gradient(180deg, var(--bg-950), var(--bg-900) 42%, var(--bg-950) 100%);
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+      background-size: 72px 72px;
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent 78%);
+      z-index: -2;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    .container { width: min(var(--max), calc(100% - 40px)); margin-inline: auto; }
+
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      border-bottom: 1px solid rgba(var(--slate-400-rgb), 0.11);
+      background: color-mix(in srgb, var(--bg-hero) 76%, transparent);
+      backdrop-filter: blur(22px);
+    }
+
+    .nav-inner {
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 850;
+      letter-spacing: -0.03em;
+      font-size: 21px;
+    }
+
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, rgba(var(--brass-rgb), .95), rgba(var(--wood-walnut-rgb), .95));
+      box-shadow: 0 14px 34px rgba(var(--brass-rgb), 0.25);
+    }
+
+    .brand-mark svg { width: 22px; height: 22px; }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 26px;
+      color: var(--soft);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .nav-links a { opacity: .86; transition: 180ms ease; }
+    .nav-links a:hover { color: var(--text); opacity: 1; transform: translateY(-1px); }
+
+    .nav-actions { display: flex; align-items: center; gap: 10px; }
+
+    .theme-toggle {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(var(--slate-400-rgb), .16);
+      background: rgba(var(--slate-400-rgb), .08);
+      color: var(--soft);
+      cursor: pointer;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      min-height: 46px;
+      padding: 0 20px;
+      border-radius: 13px;
+      border: 1px solid transparent;
+      font-weight: 900;
+      font-size: 14px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease, background 180ms ease;
+    }
+
+    .btn:hover { transform: translateY(-2px); }
+
+    .btn-primary {
+      color: var(--ink);
+      background: linear-gradient(135deg, var(--brass), var(--amber) 72%);
+      box-shadow: 0 16px 38px rgba(var(--amber-rgb), .28);
+    }
+
+    .btn-primary:hover { box-shadow: 0 20px 48px rgba(var(--amber-rgb), .38); }
+
+    .btn-ghost {
+      color: var(--soft);
+      background: rgba(var(--slate-400-rgb), .08);
+      border-color: rgba(var(--slate-400-rgb), .14);
+    }
+
+    .btn-ghost:hover { background: rgba(var(--slate-400-rgb), .13); color: var(--text); }
+
+    .hero {
+      position: relative;
+      padding: 112px 0 48px;
+      text-align: center;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: rgba(var(--wood-walnut-rgb), 0.20);
+      border: 1px solid rgba(var(--brass-rgb), 0.35);
+      color: var(--amber-light);
+      font-size: 12px;
+      font-weight: 950;
+      margin-bottom: 22px;
+    }
+
+    .eyebrow svg { width: 14px; height: 14px; }
+
+    .hero h1 {
+      max-width: 850px;
+      margin: 0 auto 20px;
+      font-size: clamp(42px, 6.8vw, 76px);
+      line-height: .96;
+      letter-spacing: -0.07em;
+    }
+
+    .gradient-text {
+      background: linear-gradient(135deg, var(--amber-light), var(--brass) 45%, var(--wood-oak));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .hero p {
+      max-width: 690px;
+      margin: 0 auto 30px;
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1.7;
+    }
+
+    .hero-actions { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; }
+
+    .comparison-section { padding: 38px 0 50px; }
+
+    .comparison-shell {
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, var(--card-strong), var(--card));
+      border-radius: 22px;
+      box-shadow: var(--shadow), inset 0 1px 0 rgba(var(--white-rgb), .04);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .comparison-shell::before {
+      content: "";
+      position: absolute;
+      inset: -1px;
+      background: radial-gradient(circle at 72% 0%, rgba(var(--brass-rgb), 0.16), transparent 30%);
+      pointer-events: none;
+    }
+
+    .table-head {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 22px 24px;
+      border-bottom: 1px solid rgba(var(--slate-400-rgb), .12);
+      background: rgba(var(--slate-400-rgb), .06);
+    }
+
+    .table-head h2 {
+      font-size: 20px;
+      letter-spacing: -0.03em;
+    }
+
+    .table-head span {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .comparison-table-wrap { position: relative; z-index: 1; overflow-x: auto; }
+
+    table {
+      width: 100%;
+      min-width: 760px;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 18px 24px;
+      border-bottom: 1px solid rgba(var(--slate-400-rgb), .10);
+      text-align: left;
+      vertical-align: top;
+      font-size: 14px;
+    }
+
+    th {
+      color: var(--text);
+      font-weight: 950;
+      background: rgba(var(--slate-400-rgb), .035);
+    }
+
+    td:first-child, th:first-child { width: 28%; color: var(--text); font-weight: 850; }
+    td:nth-child(2) { color: var(--muted); }
+    td:nth-child(3), th:nth-child(3) { color: var(--yellow); font-weight: 850; }
+    tr:last-child td { border-bottom: 0; }
+
+    .mode-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: rgba(var(--brass-rgb), .11);
+      border: 1px solid rgba(var(--brass-rgb), .22);
+      color: var(--amber-light);
+      font-size: 11px;
+      font-weight: 950;
+    }
+
+    .cards-section { padding: 38px 0 50px; }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 22px;
+    }
+
+    .feature-card {
+      position: relative;
+      min-height: 230px;
+      border-radius: var(--radius-md);
+      padding: 26px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      box-shadow: 0 20px 54px rgba(0,0,0,.18);
+      overflow: hidden;
+      transition: transform 220ms ease, border-color 220ms ease, background 220ms ease;
+    }
+
+    .feature-card::before {
+      content: "";
+      position: absolute;
+      inset: -1px;
+      background: radial-gradient(circle at 20% 0%, rgba(var(--brass-rgb), .19), transparent 34%);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 220ms ease;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-7px);
+      border-color: rgba(var(--brass-rgb), .38);
+      background: var(--card-strong);
+    }
+
+    .feature-card:hover::before { opacity: 1; }
+
+    .icon-box {
+      position: relative;
+      width: 48px;
+      height: 48px;
+      border-radius: 15px;
+      display: grid;
+      place-items: center;
+      margin-bottom: 22px;
+      color: var(--amber-light);
+      background: rgba(var(--brass-rgb), .13);
+      border: 1px solid rgba(var(--brass-rgb), .24);
+      box-shadow: 0 12px 28px rgba(var(--brass-rgb), .12);
+    }
+
+    .icon-box svg { width: 22px; height: 22px; }
+
+    .feature-card h3 {
+      position: relative;
+      font-size: 19px;
+      line-height: 1.24;
+      margin-bottom: 12px;
+      letter-spacing: -0.025em;
+    }
+
+    .feature-card p {
+      position: relative;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.65;
+    }
+
+    .visual-section { padding: 48px 0 70px; }
+
+    .visual-grid {
+      display: grid;
+      grid-template-columns: 1.05fr .95fr;
+      gap: 24px;
+      align-items: stretch;
+    }
+
+    .control-panel, .mockup-panel {
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      background: var(--card);
+      box-shadow: 0 24px 64px rgba(0,0,0,.18);
+      overflow: hidden;
+    }
+
+    .control-panel { padding: 28px; }
+    .control-panel h2 { font-size: clamp(28px, 3.4vw, 44px); letter-spacing: -0.055em; line-height: 1.05; margin-bottom: 14px; }
+    .control-panel p { color: var(--muted); line-height: 1.7; margin-bottom: 22px; }
+
+    .check-list { list-style: none; display: grid; gap: 14px; }
+    .check-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      color: var(--soft);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .check-list li::before {
+      content: "✓";
+      flex: 0 0 24px;
+      width: 24px;
+      height: 24px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      color: var(--ink);
+      background: linear-gradient(135deg, var(--brass), var(--amber));
+      font-weight: 950;
+      font-size: 13px;
+    }
+
+    .mockup-panel { position: relative; min-height: 420px; background: linear-gradient(135deg, rgba(var(--slate-950-rgb), .72), rgba(var(--slate-900-rgb), .32)); }
+
+    .mockup-top {
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      border-bottom: 1px solid rgba(var(--slate-400-rgb), .12);
+      background: rgba(var(--slate-950-rgb), .32);
+    }
+
+    .dots { display: flex; gap: 7px; }
+    .dot { width: 10px; height: 10px; border-radius: 999px; background: var(--slate-500); }
+    .dot:nth-child(1) { background: var(--pink); }
+    .dot:nth-child(2) { background: var(--yellow); }
+    .dot:nth-child(3) { background: var(--sage); }
+
+    .mockup-body {
+      display: grid;
+      grid-template-columns: 1fr 170px;
+      gap: 16px;
+      padding: 20px;
+    }
+
+    .cabinet-preview {
+      min-height: 322px;
+      border-radius: 20px;
+      border: 1px solid rgba(var(--slate-400-rgb), .13);
+      background:
+        radial-gradient(circle at 55% 38%, rgba(var(--brass-rgb), .14), transparent 32%),
+        linear-gradient(135deg, rgba(var(--slate-950-rgb), .58), rgba(var(--slate-900-rgb), .34));
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cabinet-preview::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(var(--white-rgb), .045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(var(--white-rgb), .045) 1px, transparent 1px);
+      background-size: 28px 28px;
+      opacity: .65;
+    }
+
+    .cabinet-shape {
+      position: absolute;
+      left: 50%;
+      top: 54%;
+      width: 190px;
+      height: 230px;
+      transform: translate(-50%, -50%) perspective(800px) rotateY(-20deg) rotateX(8deg);
+      transform-style: preserve-3d;
+    }
+
+    .cabinet-face, .cabinet-side, .cabinet-top {
+      position: absolute;
+      border: 1px solid rgba(var(--brass-rgb), .34);
+      box-shadow: 0 24px 42px rgba(0,0,0,.28);
+    }
+
+    .cabinet-face {
+      inset: 0;
+      border-radius: 12px;
+      background: linear-gradient(145deg, rgba(var(--wood-walnut-rgb), .92), rgba(var(--wood-dark-rgb), .82));
+    }
+
+    .cabinet-face::before {
+      content: "";
+      position: absolute;
+      top: 20px;
+      bottom: 20px;
+      left: 50%;
+      width: 1px;
+      background: rgba(0,0,0,.28);
+    }
+
+    .cabinet-face::after {
+      content: "";
+      position: absolute;
+      top: 52px;
+      left: 76px;
+      width: 38px;
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(0,0,0,.60);
+      box-shadow: 42px 0 0 rgba(0,0,0,.60);
+    }
+
+    .cabinet-side {
+      width: 62px;
+      height: 230px;
+      right: -62px;
+      top: 0;
+      transform: rotateY(90deg);
+      transform-origin: left center;
+      border-radius: 0 12px 12px 0;
+      background: linear-gradient(145deg, rgba(var(--wood-oak-rgb), .58), rgba(var(--wood-walnut-rgb), .84));
+    }
+
+    .cabinet-top {
+      width: 190px;
+      height: 62px;
+      left: 0;
+      top: -62px;
+      transform: rotateX(90deg);
+      transform-origin: bottom center;
+      border-radius: 12px 12px 0 0;
+      background: linear-gradient(145deg, rgba(var(--wood-oak-rgb), .52), rgba(var(--brass-rgb), .24));
+    }
+
+    .dimension-tag {
+      position: absolute;
+      z-index: 3;
+      padding: 8px 10px;
+      border-radius: 999px;
+      color: var(--amber-light);
+      background: rgba(var(--slate-950-rgb), .68);
+      border: 1px solid rgba(var(--brass-rgb), .28);
+      font-size: 11px;
+      font-weight: 950;
+      backdrop-filter: blur(12px);
+    }
+
+    .tag-a { left: 24px; top: 28px; }
+    .tag-b { right: 24px; bottom: 30px; }
+
+    .side-form {
+      display: grid;
+      gap: 10px;
+    }
+
+    .field {
+      padding: 12px;
+      border-radius: 13px;
+      background: rgba(var(--slate-400-rgb), .07);
+      border: 1px solid rgba(var(--slate-400-rgb), .10);
+    }
+
+    .field span { display: block; color: var(--muted); font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; margin-bottom: 6px; }
+    .field strong { font-size: 14px; color: var(--text); }
+
+    .cta-section { padding: 24px 0 92px; }
+
+    .cta {
+      position: relative;
+      overflow: hidden;
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(var(--brass-rgb), .22);
+      background:
+        radial-gradient(circle at 50% 0%, rgba(var(--white-rgb), .16), transparent 28%),
+        linear-gradient(135deg, rgba(var(--wood-dark-rgb), .88), rgba(var(--wood-walnut-rgb), .68) 46%, rgba(var(--slate-950-rgb), .88));
+      box-shadow: var(--shadow);
+      padding: 56px 28px;
+      text-align: center;
+    }
+
+    .cta h2 { font-size: clamp(28px, 4vw, 44px); line-height: 1.08; letter-spacing: -0.045em; margin-bottom: 14px; }
+    .cta p { color: var(--soft); max-width: 650px; margin: 0 auto 26px; line-height: 1.7; }
+
+    .help-button {
+      position: fixed;
+      right: 22px;
+      bottom: 22px;
+      z-index: 60;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      height: 46px;
+      padding: 0 14px 0 16px;
+      border-radius: 999px;
+      background: rgba(var(--amber-rgb), .96);
+      color: var(--ink);
+      font-weight: 950;
+      font-size: 12px;
+      box-shadow: 0 16px 42px rgba(var(--amber-rgb), .32);
+      border: 1px solid rgba(var(--white-rgb), .22);
+    }
+
+    .help-button::after {
+      content: "?";
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      background: rgba(var(--white-rgb), .22);
+      color: var(--ink);
+      font-size: 16px;
+    }
+
+    @media (max-width: 1040px) {
+      .feature-grid { grid-template-columns: repeat(2, 1fr); }
+      .visual-grid { grid-template-columns: 1fr; }
+      .mockup-body { grid-template-columns: 1fr; }
+      .side-form { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    @media (max-width: 780px) {
+      .container { width: min(100% - 28px, var(--max)); }
+      .nav-links { display: none; }
+      .nav-actions .btn-primary { display: none; }
+      .hero { padding-top: 72px; }
+      .hero-actions { flex-direction: column; align-items: stretch; }
+      .btn { width: 100%; }
+      .feature-grid, .side-form { grid-template-columns: 1fr; }
+      .table-head { flex-direction: column; align-items: flex-start; }
+      .help-button span { display: none; }
+      .help-button { width: 48px; padding: 0; justify-content: center; }
+      .help-button::after { background: transparent; }
+    }
+  </style>
+</head>
+<body class="lp-dark-theme">
+  <nav class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="#top" aria-label="CabEngine home">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 2 4 6.6v10.8L12 22l8-4.6v-5.2l-8 4.6-4-2.3V9.9l4-2.3 8 4.6V7L12 2Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+        </span>
+        <span>CabEngine</span>
+      </a>
+      <div class="nav-links" aria-label="Main navigation">
+        <a href="#features">Features</a>
+        <a href="#comparison">How it works</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#contact">Contact</a>
+        <a href="#docs">Documentation</a>
+        <a href="#terms">Terms & Conditions</a>
+      </div>
+      <div class="nav-actions">
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">☼</button>
+        <a class="btn btn-primary" href="#start">Get Started Free</a>
+      </div>
+    </div>
+  </nav>
+
+  <main id="top">
+    <header class="hero">
+      <div class="container">
+        <div class="eyebrow">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 3 4.5 7.2v8.6L12 20l7.5-4.2V7.2L12 3Z" stroke="currentColor" stroke-width="1.7"/><path d="M12 7v10M8 9.5l8 5M16 9.5l-8 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          Advanced Direct Entry Mode
+        </div>
+        <h1>Full Control Cabinet Design — <span class="gradient-text">No Auto-Layout Lock-In</span></h1>
+        <p>Veteran woodworkers and custom cabinet builders deserve complete control. Set every dimension manually. Override any parameter. Your design, your rules.</p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#start">Start Building Free</a>
+          <a class="btn btn-ghost" href="#signin">Sign In</a>
+        </div>
+      </div>
+    </header>
+
+    <section class="comparison-section" id="comparison">
+      <div class="container">
+        <div class="comparison-shell">
+          <div class="table-head">
+            <div>
+              <h2>Auto Mode vs Advanced Direct Entry</h2>
+              <span>Use Auto Mode for speed. Use Direct Entry when every millimetre matters.</span>
+            </div>
+            <span class="mode-pill">Professional manual control</span>
+          </div>
+          <div class="comparison-table-wrap">
+            <table aria-label="Auto Mode vs Advanced Direct Entry comparison">
+              <thead>
+                <tr>
+                  <th>Feature</th>
+                  <th>Auto Mode Standard</th>
+                  <th>Advanced Direct Entry</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Cabinet Dimensions</td>
+                  <td>Auto-calculated from room size</td>
+                  <td>Full manual override per cabinet</td>
+                </tr>
+                <tr>
+                  <td>Carcass Side Thickness</td>
+                  <td>Standard preset only</td>
+                  <td>Any thickness, any material</td>
+                </tr>
+                <tr>
+                  <td>Door Overlay Tolerance</td>
+                  <td>Fixed values</td>
+                  <td>Custom overlay and reveal settings</td>
+                </tr>
+                <tr>
+                  <td>Drawer Box Depths</td>
+                  <td>Predefined options</td>
+                  <td>Any depth, any configuration</td>
+                </tr>
+                <tr>
+                  <td>Back Panel Channel</td>
+                  <td>Default channel size</td>
+                  <td>Custom groove depth and position</td>
+                </tr>
+                <tr>
+                  <td>Toe Kick Height</td>
+                  <td>Standard 4&quot; default</td>
+                  <td>Any height, any offset</td>
+                </tr>
+                <tr>
+                  <td>Corner Cabinet Geometry</td>
+                  <td>Auto-generated</td>
+                  <td>Custom angled and blind corner specs</td>
+                </tr>
+                <tr>
+                  <td>Cut List Generation</td>
+                  <td>Standard layout</td>
+                  <td>Custom cut list with full part control</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="cards-section" id="features">
+      <div class="container">
+        <div class="feature-grid">
+          <article class="feature-card">
+            <div class="icon-box"><svg viewBox="0 0 24 24" fill="none"><path d="M4 17 17 4l3 3L7 20H4v-3Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="m14 7 3 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+            <h3>Precise Dimensional Input</h3>
+            <p>Enter exact values for width, height, depth, and material thickness. Down to the millimetre.</p>
+          </article>
+          <article class="feature-card">
+            <div class="icon-box"><svg viewBox="0 0 24 24" fill="none"><path d="M7 4v16M17 4v16M4 8h6M14 8h6M4 16h6M14 16h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+            <h3>Complete Geometric Override</h3>
+            <p>Override any automatic calculation. Perfect for complex blind panels, service voids, and custom joinery.</p>
+          </article>
+          <article class="feature-card">
+            <div class="icon-box"><svg viewBox="0 0 24 24" fill="none"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L4 17v3h3l5.3-5.3a4 4 0 0 0 5.4-5.4l-3 3-3-3 3-3Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></div>
+            <h3>Custom Hardware Integration</h3>
+            <p>Fine-tune hardware placement, hinge boring, and drawer slide mounting for any system.</p>
+          </article>
+          <article class="feature-card">
+            <div class="icon-box"><svg viewBox="0 0 24 24" fill="none"><path d="m5 12 4 4L19 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <h3>No Auto-Solver Required</h3>
+            <p>Work entirely in manual mode. The auto-layout is optional — you stay in complete control.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="visual-section">
+      <div class="container visual-grid">
+        <div class="control-panel">
+          <div class="eyebrow" style="margin-bottom:18px;">Builder-first workflow</div>
+          <h2>Manual controls for cabinet makers who demand control.</h2>
+          <p>Advanced Direct Entry Mode is built for real workshop decisions: unusual site measurements, non-standard panels, edge cases, angled units, and client-specific construction methods.</p>
+          <ul class="check-list">
+            <li>Input non-standard measurements without fighting the auto-layout engine.</li>
+            <li>Control construction parameters cabinet-by-cabinet instead of globally.</li>
+            <li>Generate cut lists from your chosen values, not guessed defaults.</li>
+            <li>Keep Auto Mode available when speed matters, then switch to manual when precision matters.</li>
+          </ul>
+        </div>
+        <div class="mockup-panel" aria-label="Cabinet direct entry interface mockup">
+          <div class="mockup-top">
+            <div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+            <span class="mode-pill">Direct Entry Active</span>
+          </div>
+          <div class="mockup-body">
+            <div class="cabinet-preview">
+              <span class="dimension-tag tag-a">W 720 × H 870</span>
+              <span class="dimension-tag tag-b">Side 18mm · Reveal 2mm</span>
+              <div class="cabinet-shape">
+                <div class="cabinet-top"></div>
+                <div class="cabinet-side"></div>
+                <div class="cabinet-face"></div>
+              </div>
+            </div>
+            <div class="side-form">
+              <div class="field"><span>Width</span><strong>720 mm</strong></div>
+              <div class="field"><span>Depth</span><strong>560 mm</strong></div>
+              <div class="field"><span>Carcass</span><strong>18 mm MDF</strong></div>
+              <div class="field"><span>Back Groove</span><strong>8 mm / 12 mm</strong></div>
+              <div class="field"><span>Toe Kick</span><strong>100 mm</strong></div>
+              <div class="field"><span>Output</span><strong>Cut list ready</strong></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="cta-section" id="start">
+      <div class="container">
+        <div class="cta">
+          <h2>Built for Cabinet Makers Who Demand Control</h2>
+          <p>Stop fighting rigid auto-layout tools. Advanced Direct Entry Mode gives you the freedom to build exactly what your client needs.</p>
+          <a class="btn btn-primary" href="#signup">Try Advanced Mode Free →</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <a class="help-button" href="#help"><span>NEED HELP?</span></a>
+
+  <script>
+    const body = document.body;
+    const toggle = document.getElementById('themeToggle');
+    toggle.addEventListener('click', () => {
+      const isDark = body.classList.contains('lp-dark-theme');
+      body.classList.toggle('lp-dark-theme', !isDark);
+      body.classList.toggle('lp-light-theme', isDark);
+      toggle.textContent = isDark ? '☾' : '☼';
+    });
+  </script>
+</body>
+</html>

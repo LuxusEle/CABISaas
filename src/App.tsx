@@ -709,6 +709,7 @@ export default function App() {
               <ManualCabinetSoftwarePage
                 onSignIn={() => openAuthModal('login')}
                 onGetStarted={() => openAuthModal('signup')}
+                onQuickStart={handleQuickStart}
                 isDark={isDark}
                 setIsDark={setIsDark}
               />
