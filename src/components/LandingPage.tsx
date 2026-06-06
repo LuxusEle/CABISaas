@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { LandingHeader } from './LandingHeader';
+import { LandingCabinetScene } from './LandingCabinetScene';
 
 interface LandingPageProps {
   onGetStarted: () => void;
@@ -188,6 +189,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
               </div>
             </div>
           </section>
+
+          <LandingCabinetScene />
 
           <section id="features">
             <div className="container">
@@ -931,10 +934,85 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             gap: 8px;
             margin-top: 18px;
           }
-          .lp-landing .features-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 22px;
+            .lp-landing .cabinet-3d-section {
+              position: relative;
+              padding: 8vh 0;
+              overflow: visible;
+              background:
+                radial-gradient(circle at 30% 16%, rgba(var(--brass-rgb), 0.09), transparent 30%),
+                radial-gradient(circle at 70% 84%, rgba(var(--wood-walnut-rgb), 0.14), transparent 34%),
+                linear-gradient(180deg, rgba(var(--slate-900-rgb), 0.24), transparent);
+            }
+            .lp-landing .cabinet-canvas-scene {
+              position: relative;
+              width: 100%;
+              max-width: 1100px;
+              height: 820px;
+              margin: 0 auto;
+            }
+
+           .lp-landing .scroll-progress-track {
+             width: min(100%, 420px);
+             height: 4px;
+             margin: 28px auto 0;
+             border-radius: 999px;
+             background: rgba(var(--slate-400-rgb), 0.14);
+             overflow: hidden;
+           }
+           .lp-landing .scroll-progress-fill {
+             height: 100%;
+             border-radius: inherit;
+             background: linear-gradient(90deg, var(--amber), var(--brass));
+             transition: width 80ms linear;
+           }
+           .lp-landing .scroll-hint {
+             display: flex;
+             align-items: center;
+             justify-content: center;
+             gap: 14px;
+             margin-top: 18px;
+             color: var(--muted);
+             font-size: 12px;
+             font-weight: 800;
+           }
+           .lp-landing .scroll-dots {
+             display: flex;
+             gap: 6px;
+           }
+           .lp-landing .scroll-dots span {
+             width: 8px;
+             height: 8px;
+             border-radius: 50%;
+             background: rgba(var(--slate-400-rgb), 0.22);
+             transition: background 180ms ease, transform 180ms ease;
+           }
+           .lp-landing .scroll-dots span.active {
+             background: var(--brass);
+             transform: scale(1.4);
+           }
+           .lp-light-theme .cabinet-3d-section {
+             background:
+               radial-gradient(circle at 30% 16%, rgba(183, 121, 31, 0.08), transparent 30%),
+               radial-gradient(circle at 70% 84%, rgba(122, 78, 45, 0.10), transparent 34%),
+               linear-gradient(180deg, rgba(var(--off-white-rgb), 0.5), transparent);
+           }
+
+           .lp-light-theme .scroll-progress-track {
+             background: rgba(92, 61, 37, 0.12);
+           }
+           .lp-light-theme .scroll-progress-fill {
+             background: linear-gradient(90deg, #C7821C, #7A4E2D);
+           }
+           .lp-light-theme .scroll-dots span {
+             background: rgba(92, 61, 37, 0.18);
+           }
+           .lp-light-theme .scroll-dots span.active {
+             background: var(--brass);
+           }
+           .lp-landing .features-grid {
+             display: grid;
+             grid-template-columns: repeat(3, 1fr);
+             gap: 22px;
           }
           .lp-landing .feature-card {
             position: relative;
@@ -1436,7 +1514,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
             .lp-landing .floating-card { display: none; }
             .lp-landing .proof-grid { grid-template-columns: repeat(2, 1fr); }
             .lp-landing .features-grid, .lp-landing .workflow-grid, .lp-landing .workflow-media-grid, .lp-landing .stats-grid, .lp-landing .pricing-grid, .lp-landing .contact-grid { grid-template-columns: 1fr; }
-            .lp-landing .pricing-card.featured { transform: none; }
+              .lp-landing .pricing-card.featured { transform: none; }
+             .lp-landing .cabinet-canvas-scene { max-width: 100%; height: 420px; }
+             .lp-landing .scroll-hint { font-size: 10px; gap: 8px; }
+             .lp-landing .cabinet-3d-section { padding: 4vh 0; }
             .lp-landing .comparison-card { overflow-x: auto; }
             .lp-landing .comparison-table { min-width: 620px; }
             .lp-landing .footer-inner { flex-direction: column; align-items: flex-start; }

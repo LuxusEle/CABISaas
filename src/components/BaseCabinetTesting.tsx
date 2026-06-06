@@ -17,11 +17,12 @@ import { PresetType } from '../types';
 
 interface Props {
   settings: TestingSettings;
+  separationProgress?: number;
 }
 
 
 
-export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
+export const BaseCabinetTesting: React.FC<Props> = ({ settings, separationProgress }) => {
   const {
     width, height, depth, panelThickness, backPanelThickness,
     doorMaterialThickness, grooveDepth, doorToDoorGap, doorToPanelGap,
@@ -82,7 +83,8 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
   const backPanelHeight = innerHeight - panelThickness * 2 + grooveDepth * 2;
 
   const getOffset = (part: string, index: number = 0): [number, number, number] => {
-    if (!partsSeparatedView || selectedPart !== 'all' && selectedPart !== part) return [0, 0, 0];
+    const factor = separationProgress ?? (partsSeparatedView && (selectedPart === 'all' || selectedPart === part) ? 1 : 0);
+    if (!factor) return [0, 0, 0];
     const d = 200;
     const idx = index;
     const idxOffset = idx * d * 1.5;
@@ -101,7 +103,8 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
       toeKick: [0, -d * 2, d],
       shelf: [0, 0, d * 2],
     };
-    return offsets[part] || [0, 0, 0];
+    const base = offsets[part] || [0, 0, 0];
+    return [base[0] * factor, base[1] * factor, base[2] * factor];
   };
 
   const nailHolePositions = useMemo(() => {
@@ -454,6 +457,7 @@ export const BaseCabinetTesting: React.FC<Props> = ({ settings }) => {
   }, [innerWidth, panelThickness, shelfDepth]);
 
   const shouldShow = (part: string): boolean => {
+    if (separationProgress !== undefined) return true;
     if (!partsSeparatedView) return true;
     if (selectedPart === 'all' || selectedPart === part) return true;
     if (selectedPart === 'drawer' && (part === 'drawerFront' || part === 'drawerSide' || part === 'drawerBack' || part === 'drawerBottom')) return true;
