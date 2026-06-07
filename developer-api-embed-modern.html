@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en" class="lp-dark-theme">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CabEngine — Developer Embed API</title>
+  <meta name="description" content="Embed a white-label 3D cabinet designer into your website with iframe integration, API events, quotes, BOM, and cut-list output." />
+  <style>
+    .lp-dark-theme {
+      --bg-950: #070A0F;
+      --bg-900: #0D131C;
+      --bg-850: #101823;
+      --bg-800: #131B27;
+      --card: rgba(19, 27, 39, 0.78);
+      --card-strong: rgba(24, 32, 43, 0.94);
+      --border: rgba(214, 168, 79, 0.18);
+      --border-strong: rgba(214, 168, 79, 0.58);
+      --text: #F8FAFC;
+      --muted: #9AA7B7;
+      --soft: #D7DEE8;
+      --wood-walnut: #7A4E2D;
+      --wood-oak: #C49A6C;
+      --wood-dark: #3A2416;
+      --brass: #D6A84F;
+      --amber: #F59E0B;
+      --sage: #8FAF8D;
+      --olive: #5F7A46;
+      --purple: #8B5CF6;
+      --purple-2: #A78BFA;
+      --purple-3: #6D28D9;
+      --orange: #F59E0B;
+      --green: #8FAF8D;
+      --cyan: #C49A6C;
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
+      --grid-line: rgba(255,255,255,0.025);
+      --radius-lg: 28px;
+      --radius-md: 18px;
+      --radius-sm: 12px;
+      --max: 1180px;
+      --amber-light: #F4D79B;
+      --ink: #111827;
+      --cream: #fef3c7;
+      --bg-hero: #05070B;
+      --pink: #fb7185;
+      --yellow: #facc15;
+      --slate-400: #94a3b8;
+      --slate-600: #475569;
+      --slate-700: #334155;
+      --slate-500: #64748b;
+      --slate-50: #f8fafc;
+      --terracotta: #E07A5F;
+      --beige: #F1E8DA;
+      --off-white: #FFFDF8;
+      --slate-900: #0F172A;
+      --bg-light-900: #F8F3EA;
+      --light-brass: #B8872F;
+      --slate-950: #020617;
+      --white: #FFFFFF;
+      --black: #000000;
+      --amber-rgb: 245, 158, 11;
+      --beige-rgb: 241, 232, 218;
+      --bg-light-900-rgb: 248, 243, 234;
+      --black-rgb: 0, 0, 0;
+      --brass-rgb: 214, 168, 79;
+      --cream-rgb: 254, 243, 199;
+      --light-brass-rgb: 184, 135, 47;
+      --off-white-rgb: 255, 253, 248;
+      --sage-rgb: 143, 175, 141;
+      --slate-400-rgb: 148, 163, 184;
+      --slate-500-rgb: 100, 116, 139;
+      --slate-600-rgb: 71, 85, 105;
+      --slate-700-rgb: 51, 65, 85;
+      --slate-900-rgb: 15, 23, 42;
+      --slate-950-rgb: 2, 6, 23;
+      --white-rgb: 255, 255, 255;
+      --wood-dark-rgb: 58, 36, 22;
+      --wood-oak-rgb: 196, 154, 108;
+      --wood-walnut-rgb: 122, 78, 45;
+    }
+
+    .lp-light-theme {
+      --bg-950: #FFFCF6;
+      --bg-900: #F7EFE3;
+      --bg-850: #EFE2D0;
+      --bg-800: #E2D0B8;
+      --card: rgba(255, 252, 246, 0.88);
+      --card-strong: rgba(255, 249, 240, 0.98);
+      --border: rgba(92, 61, 37, 0.14);
+      --border-strong: rgba(183, 121, 31, 0.46);
+      --text: #172033;
+      --muted: #687386;
+      --soft: #3A4658;
+      --wood-walnut: #7A4E2D;
+      --wood-oak: #BE8550;
+      --wood-dark: #3A2416;
+      --brass: #B7791F;
+      --amber: #EA8A00;
+      --amber-light: #F1C874;
+      --light-brass: #A86F1D;
+      --sage: #78966F;
+      --olive: #526F3A;
+      --purple: #7C3AED;
+      --purple-2: #8B5CF6;
+      --purple-3: #5B21B6;
+      --orange: #EA8A00;
+      --green: #78966F;
+      --cyan: #BE8550;
+      --shadow: 0 24px 70px rgba(64, 43, 25, 0.14);
+      --grid-line: rgba(64, 43, 25, 0.045);
+      --radius-lg: 28px;
+      --radius-md: 18px;
+      --radius-sm: 12px;
+      --max: 1180px;
+      --ink: #172033;
+      --cream: #FFF3CF;
+      --bg-hero: #F8EFE1;
+      --pink: #D96B54;
+      --yellow: #D88A00;
+      --terracotta: #D96B54;
+      --beige: #EFE2D0;
+      --off-white: #FFFCF6;
+      --slate-50: #F8FAFC;
+      --slate-400: #94A3B8;
+      --slate-500: #64748B;
+      --slate-600: #475569;
+      --slate-700: #334155;
+      --slate-900: #0F172A;
+      --slate-950: #020617;
+      --white: #FFFFFF;
+      --black: #000000;
+      --amber-rgb: 234, 138, 0;
+      --beige-rgb: 239, 226, 208;
+      --bg-light-900-rgb: 247, 239, 227;
+      --black-rgb: 0, 0, 0;
+      --brass-rgb: 183, 121, 31;
+      --cream-rgb: 255, 243, 207;
+      --light-brass-rgb: 168, 111, 29;
+      --off-white-rgb: 255, 252, 246;
+      --sage-rgb: 120, 150, 111;
+      --slate-400-rgb: 148, 163, 184;
+      --slate-500-rgb: 100, 116, 139;
+      --slate-600-rgb: 71, 85, 105;
+      --slate-700-rgb: 51, 65, 85;
+      --slate-900-rgb: 15, 23, 42;
+      --slate-950-rgb: 2, 6, 23;
+      --white-rgb: 255, 255, 255;
+      --wood-dark-rgb: 58, 36, 22;
+      --wood-oak-rgb: 190, 133, 80;
+      --wood-walnut-rgb: 122, 78, 45;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 16% 0%, rgba(var(--wood-walnut-rgb), 0.34), transparent 30%),
+        radial-gradient(circle at 82% 12%, rgba(var(--brass-rgb), 0.16), transparent 26%),
+        radial-gradient(circle at 50% 18%, rgba(var(--sage-rgb), 0.07), transparent 34%),
+        linear-gradient(180deg, var(--bg-950), var(--bg-900) 46%, #05070B 100%);
+      color: var(--text);
+      overflow-x: hidden;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+      background-size: 72px 72px;
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,0.95), transparent 82%);
+      z-index: -2;
+    }
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(circle at 50% 0%, rgba(var(--brass-rgb), 0.08), transparent 42%);
+      z-index: -1;
+    }
+    a { color: inherit; text-decoration: none; }
+    .container { width: min(var(--max), calc(100% - 40px)); margin-inline: auto; }
+
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      border-bottom: 1px solid rgba(var(--slate-400-rgb), 0.12);
+      background: rgba(5, 8, 21, 0.74);
+      backdrop-filter: blur(22px);
+    }
+    .nav-inner { height: 66px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 850; letter-spacing: -0.03em; }
+    .brand-mark { width: 32px; height: 32px; display: grid; place-items: center; color: var(--soft); }
+    .brand-mark svg { width: 30px; height: 30px; }
+    .nav-links { display: flex; align-items: center; gap: 28px; color: var(--soft); font-size: 13px; font-weight: 750; }
+    .nav-links a { opacity: .88; transition: color .18s ease, opacity .18s ease, transform .18s ease; }
+    .nav-links a:hover { opacity: 1; color: var(--text); transform: translateY(-1px); }
+    .nav-actions { display: flex; align-items: center; gap: 10px; }
+    .theme-btn { width: 38px; height: 38px; border-radius: 13px; display: grid; place-items: center; background: rgba(var(--slate-400-rgb), 0.08); border: 1px solid rgba(var(--slate-400-rgb), 0.16); color: var(--muted); }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      min-height: 46px;
+      padding: 0 20px;
+      border-radius: 13px;
+      border: 1px solid transparent;
+      font-weight: 900;
+      font-size: 14px;
+      cursor: pointer;
+      transition: transform .18s ease, box-shadow .18s ease, background .18s ease, border-color .18s ease;
+      white-space: nowrap;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .btn-primary { color: #111827; background: linear-gradient(135deg, var(--brass), var(--amber) 78%); box-shadow: 0 18px 42px rgba(var(--amber-rgb), .28); }
+    .btn-secondary { color: var(--soft); background: rgba(var(--slate-400-rgb), .10); border-color: rgba(var(--slate-400-rgb), .14); }
+    .btn-secondary:hover { color: var(--text); background: rgba(var(--slate-400-rgb), .14); }
+
+    .hero { padding: 112px 0 54px; text-align: center; position: relative; }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      width: fit-content;
+      margin: 0 auto 22px;
+      padding: 8px 13px;
+      border-radius: 999px;
+      color: var(--amber-light);
+      background: rgba(var(--wood-walnut-rgb), .18);
+      border: 1px solid rgba(var(--brass-rgb), .34);
+      font-weight: 900;
+      font-size: 12px;
+    }
+    .hero h1 {
+      max-width: 860px;
+      margin: 0 auto 22px;
+      font-size: clamp(42px, 6vw, 76px);
+      line-height: .94;
+      letter-spacing: -.065em;
+    }
+    .gradient-text { color: transparent; background: linear-gradient(135deg, #fff, var(--amber-light) 42%, var(--wood-oak)); -webkit-background-clip: text; background-clip: text; }
+    .hero p { max-width: 690px; margin: 0 auto 30px; color: var(--muted); font-size: 18px; line-height: 1.65; }
+    .hero-actions { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; }
+
+    .embed-showcase { padding: 18px 0 58px; }
+    .showcase-shell {
+      position: relative;
+      display: grid;
+      grid-template-columns: 1.05fr .95fr;
+      gap: 22px;
+      align-items: stretch;
+    }
+    .browser-card, .code-card, .feature-card, .persona-card, .cta-panel, .timeline-card, .metric-card {
+      border: 1px solid var(--border);
+      background: var(--card);
+      box-shadow: 0 22px 64px rgba(0,0,0,.24);
+      backdrop-filter: blur(18px);
+    }
+    .browser-card { border-radius: var(--radius-lg); overflow: hidden; min-height: 520px; }
+    .browser-top {
+      height: 50px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 16px;
+      background: rgba(var(--slate-950-rgb), .48);
+      border-bottom: 1px solid rgba(var(--slate-400-rgb), .11);
+    }
+    .dots { display: flex; gap: 7px; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--slate-600); }
+    .dot:nth-child(1) { background: var(--pink); }
+    .dot:nth-child(2) { background: var(--yellow); }
+    .dot:nth-child(3) { background: var(--sage); }
+    .url-bar {
+      width: min(56%, 360px);
+      border-radius: 999px;
+      padding: 8px 12px;
+      color: var(--muted);
+      background: rgba(var(--slate-400-rgb), .07);
+      border: 1px solid rgba(var(--slate-400-rgb), .09);
+      font-size: 12px;
+      text-align: left;
+    }
+    .status-pill { border-radius: 999px; padding: 6px 10px; background: rgba(var(--brass-rgb), .12); border: 1px solid rgba(var(--brass-rgb), .25); color: var(--amber-light); font-size: 11px; font-weight: 950; }
+    .iframe-preview {
+      position: relative;
+      min-height: 470px;
+      padding: 20px;
+      background:
+        radial-gradient(circle at 64% 18%, rgba(var(--brass-rgb), .18), transparent 26%),
+        linear-gradient(135deg, rgba(var(--slate-950-rgb), .84), rgba(var(--slate-900-rgb), .62));
+      overflow: hidden;
+    }
+    .iframe-preview::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(var(--white-rgb), .04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(var(--white-rgb), .04) 1px, transparent 1px);
+      background-size: 32px 32px;
+      opacity: .68;
+    }
+    .customer-site {
+      position: relative;
+      z-index: 2;
+      height: 100%;
+      min-height: 430px;
+      border-radius: 22px;
+      border: 1px solid rgba(var(--slate-400-rgb), .16);
+      background: rgba(var(--bg-950-rgb, 2, 6, 23), .55);
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 56px 1fr;
+    }
+    .fake-store-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      border-bottom: 1px solid rgba(var(--slate-400-rgb), .12);
+      background: rgba(var(--slate-950-rgb), .46);
+      color: var(--soft);
+      font-size: 12px;
+      font-weight: 850;
+    }
+    .site-links { display: flex; gap: 14px; color: var(--muted); }
+    .configurator-frame {
+      display: grid;
+      grid-template-columns: 1fr 190px;
+      gap: 14px;
+      padding: 16px;
+      min-height: 370px;
+    }
+    .cabinet-viewport {
+      position: relative;
+      border-radius: 18px;
+      border: 1px solid rgba(var(--slate-400-rgb), .12);
+      background: radial-gradient(circle at 50% 32%, rgba(var(--wood-oak-rgb), .18), transparent 34%), rgba(3,7,18,.56);
+      overflow: hidden;
+      display: grid;
+      place-items: center;
+    }
+    .cabinet-viewport::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(var(--slate-400-rgb), .05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(var(--slate-400-rgb), .05) 1px, transparent 1px);
+      background-size: 26px 26px;
+    }
+    .cabinet-cube {
+      position: relative;
+      width: 230px;
+      height: 250px;
+      transform: perspective(720px) rotateY(-28deg) rotateX(6deg);
+      transform-style: preserve-3d;
+      animation: cabinetFloat 6s ease-in-out infinite;
+    }
+    @keyframes cabinetFloat { 0%,100%{ transform: perspective(720px) rotateY(-28deg) rotateX(6deg) translateY(0);} 50%{ transform: perspective(720px) rotateY(-22deg) rotateX(5deg) translateY(-12px);} }
+    .face { position: absolute; border: 1px solid rgba(var(--brass-rgb), .24); box-shadow: 0 18px 44px rgba(0,0,0,.34); }
+    .face.front { width: 170px; height: 230px; left: 30px; top: 15px; background: linear-gradient(135deg, var(--wood-walnut), #412210); transform: translateZ(68px); border-radius: 8px; }
+    .face.side { width: 136px; height: 230px; left: 116px; top: 15px; background: linear-gradient(135deg, #0E6C9F, #084C75); transform: rotateY(90deg) translateZ(68px); transform-origin: left; border-radius: 8px; }
+    .face.top { width: 170px; height: 136px; left: 30px; top: -53px; background: linear-gradient(135deg, var(--wood-oak), var(--brass)); transform: rotateX(90deg) translateZ(68px); transform-origin: bottom; border-radius: 8px; }
+    .door-line { position: absolute; left: 84px; top: 20px; bottom: 20px; width: 1px; background: rgba(0,0,0,.36); }
+    .handle { position: absolute; top: 52px; width: 6px; height: 48px; border-radius: 999px; background: rgba(0,0,0,.72); }
+    .handle.one { left: 68px; }
+    .handle.two { right: 68px; }
+    .frame-badge { position: absolute; z-index: 3; left: 18px; top: 18px; border-radius: 999px; padding: 7px 10px; background: rgba(var(--slate-950-rgb), .72); color: var(--amber-light); border: 1px solid rgba(var(--brass-rgb), .22); font-weight: 950; font-size: 11px; }
+    .quote-badge { position: absolute; z-index: 3; right: 18px; bottom: 18px; border-radius: 999px; padding: 8px 11px; background: rgba(var(--sage-rgb), .12); color: var(--sage); border: 1px solid rgba(var(--sage-rgb), .28); font-weight: 950; font-size: 11px; }
+    .embed-controls { display: grid; gap: 10px; }
+    .control-row { padding: 13px; border-radius: 15px; background: rgba(var(--slate-400-rgb), .08); border: 1px solid rgba(var(--slate-400-rgb), .10); }
+    .control-row span { display: block; color: var(--muted); font-size: 10px; font-weight: 950; text-transform: uppercase; letter-spacing: .07em; margin-bottom: 7px; }
+    .control-row strong { font-size: 14px; }
+    .slider { height: 5px; margin-top: 10px; border-radius: 999px; background: rgba(var(--slate-400-rgb), .2); position: relative; }
+    .slider::after { content: ""; position: absolute; width: 12px; height: 12px; border-radius: 999px; top: 50%; left: var(--x, 62%); transform: translate(-50%,-50%); background: var(--amber); box-shadow: 0 0 0 5px rgba(var(--amber-rgb), .12); }
+
+    .showcase-side { display: grid; gap: 22px; }
+    .code-card { border-radius: var(--radius-lg); overflow: hidden; }
+    .card-head { padding: 18px 20px; border-bottom: 1px solid rgba(var(--slate-400-rgb), .11); display: flex; align-items: center; justify-content: space-between; gap: 14px; background: rgba(var(--slate-400-rgb), .05); }
+    .card-head h2, .card-head h3 { font-size: 18px; letter-spacing: -.025em; }
+    .copy-btn { height: 34px; padding: 0 12px; border-radius: 10px; border: 1px solid rgba(var(--brass-rgb), .24); background: rgba(var(--brass-rgb), .1); color: var(--amber-light); font-weight: 900; font-size: 12px; }
+    .code-body { padding: 18px; }
+    pre { white-space: pre-wrap; word-break: break-word; background: rgba(0,0,0,.72); border: 1px solid rgba(var(--white-rgb), .08); border-radius: 18px; padding: 18px; color: #D7DEE8; line-height: 1.65; font-size: 13px; overflow: hidden; }
+    code .accent { color: var(--amber); font-weight: 900; }
+    .timeline-card { border-radius: var(--radius-lg); padding: 20px; }
+    .timeline-card h3 { font-size: 18px; margin-bottom: 14px; }
+    .timeline { display: grid; gap: 12px; }
+    .timeline-step { display: grid; grid-template-columns: 34px 1fr; gap: 12px; align-items: start; }
+    .num { width: 34px; height: 34px; border-radius: 12px; display: grid; place-items: center; background: rgba(var(--brass-rgb), .12); color: var(--amber-light); border: 1px solid rgba(var(--brass-rgb), .22); font-weight: 950; }
+    .timeline-step strong { display: block; font-size: 14px; margin-bottom: 3px; }
+    .timeline-step span { color: var(--muted); font-size: 13px; line-height: 1.45; }
+
+    section { padding: 70px 0; }
+    .section-heading { text-align: center; max-width: 720px; margin: 0 auto 36px; }
+    .section-heading h2 { font-size: clamp(30px, 4vw, 46px); line-height: 1.05; letter-spacing: -.045em; margin-bottom: 12px; }
+    .section-heading p { color: var(--muted); font-size: 16px; line-height: 1.65; }
+
+    .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .feature-card { border-radius: var(--radius-md); padding: 24px; position: relative; overflow: hidden; transition: transform .2s ease, border-color .2s ease, background .2s ease; }
+    .feature-card::before { content: ""; position: absolute; inset: -1px; background: radial-gradient(circle at 18% 0%, rgba(var(--brass-rgb), .18), transparent 38%); opacity: 0; transition: opacity .2s ease; pointer-events: none; }
+    .feature-card:hover { transform: translateY(-6px); border-color: rgba(var(--brass-rgb), .36); background: var(--card-strong); }
+    .feature-card:hover::before { opacity: 1; }
+    .icon-box { width: 48px; height: 48px; border-radius: 15px; display: grid; place-items: center; margin-bottom: 18px; color: var(--amber-light); background: rgba(var(--wood-walnut-rgb), .28); border: 1px solid rgba(var(--brass-rgb), .22); }
+    .feature-card h3 { font-size: 18px; letter-spacing: -.02em; margin-bottom: 9px; position: relative; }
+    .feature-card p { color: var(--muted); line-height: 1.65; font-size: 14px; position: relative; }
+
+    .metrics { padding-top: 0; }
+    .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .metric-card { border-radius: 20px; padding: 20px; text-align: center; }
+    .metric-card strong { display: block; color: var(--amber-light); font-size: 28px; letter-spacing: -.04em; margin-bottom: 4px; }
+    .metric-card span { color: var(--muted); font-weight: 750; font-size: 13px; }
+
+    .personas-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .persona-card { border-radius: 20px; padding: 24px; }
+    .persona-card h3 { font-size: 17px; margin-bottom: 10px; }
+    .persona-card p { color: var(--muted); line-height: 1.65; font-size: 14px; }
+
+    .cta-panel {
+      overflow: hidden;
+      border-radius: var(--radius-lg);
+      padding: 56px 26px;
+      text-align: center;
+      background:
+        radial-gradient(circle at 50% -10%, rgba(var(--white-rgb), .18), transparent 32%),
+        linear-gradient(135deg, var(--wood-dark), var(--wood-walnut) 48%, var(--bg-800));
+      border-color: rgba(var(--brass-rgb), .28);
+    }
+    .cta-panel h2 { font-size: clamp(30px, 4vw, 46px); letter-spacing: -.045em; margin-bottom: 12px; }
+    .cta-panel p { color: var(--amber-light); max-width: 620px; margin: 0 auto 24px; line-height: 1.65; }
+
+    footer { padding: 30px 0; border-top: 1px solid rgba(var(--slate-400-rgb), .1); background: rgba(2,6,23,.42); }
+    .footer-inner { display: flex; justify-content: space-between; align-items: center; gap: 18px; color: var(--muted); font-size: 13px; }
+    .footer-links { display: flex; gap: 22px; color: var(--soft); font-weight: 800; }
+
+    @media (max-width: 1040px) {
+      .showcase-shell { grid-template-columns: 1fr; }
+      .features-grid, .personas-grid { grid-template-columns: repeat(2, 1fr); }
+      .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 760px) {
+      .container { width: min(100% - 28px, var(--max)); }
+      .nav-links { display: none; }
+      .theme-btn { display: none; }
+      .hero { padding-top: 76px; }
+      .btn { width: 100%; }
+      .hero-actions { flex-direction: column; align-items: stretch; }
+      .browser-card { min-height: auto; }
+      .configurator-frame { grid-template-columns: 1fr; }
+      .embed-controls { grid-template-columns: repeat(2, 1fr); }
+      .features-grid, .personas-grid, .metrics-grid { grid-template-columns: 1fr; }
+      .footer-inner { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="#top" aria-label="CabEngine home">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M17 3 5 9.8v12.4L17 29l10-5.7v-5.5l-10 5.8-7-4V12l7-4 10 5.8V8.3L17 3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="m17 11 7 4-7 4-7-4 7-4Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+        </span>
+        <span>CabEngine</span>
+      </a>
+      <div class="nav-links" aria-label="Main navigation">
+        <a href="#features">Features</a>
+        <a href="#how">How it works</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#contact">Contact</a>
+        <a href="#docs">Documentation</a>
+        <a href="#terms">Terms &amp; Conditions</a>
+      </div>
+      <div class="nav-actions">
+        <button class="theme-btn" type="button" aria-label="Theme toggle">☼</button>
+        <a class="btn btn-primary" href="#cta">Get Started Free</a>
+      </div>
+    </div>
+  </nav>
+
+  <main id="top">
+    <header class="hero">
+      <div class="container">
+        <div class="eyebrow">◇ Developer API</div>
+        <h1>Add a 3D Cabinet Designer to <span class="gradient-text">Your Website in Minutes</span></h1>
+        <p>Embed a fully functional cabinet configurator with a secure iframe. Let customers design cabinets, generate cut lists, and request quotes without leaving your website.</p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#integration">Get API Access</a>
+          <a class="btn btn-secondary" href="#demo">View Embed Demo</a>
+        </div>
+      </div>
+    </header>
+
+    <section class="embed-showcase" id="demo">
+      <div class="container showcase-shell">
+        <div class="browser-card">
+          <div class="browser-top">
+            <div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+            <div class="url-bar">yourdomain.com/design/cabinets</div>
+            <div class="status-pill">White-label</div>
+          </div>
+          <div class="iframe-preview">
+            <div class="customer-site">
+              <div class="fake-store-nav">
+                <strong>Oakline Kitchens</strong>
+                <div class="site-links"><span>Ranges</span><span>Design</span><span>Quote</span></div>
+              </div>
+              <div class="configurator-frame">
+                <div class="cabinet-viewport">
+                  <div class="frame-badge">Embedded CabEngine configurator</div>
+                  <div class="quote-badge">Quote ready · £1,840</div>
+                  <div class="cabinet-cube" aria-hidden="true">
+                    <div class="face front"><span class="door-line"></span><span class="handle one"></span><span class="handle two"></span></div>
+                    <div class="face side"></div>
+                    <div class="face top"></div>
+                  </div>
+                </div>
+                <div class="embed-controls">
+                  <div class="control-row"><span>Cabinet width</span><strong>900 mm</strong><div class="slider" style="--x:66%"></div></div>
+                  <div class="control-row"><span>Material</span><strong>Oak veneer</strong><div class="slider" style="--x:52%"></div></div>
+                  <div class="control-row"><span>Door style</span><strong>Shaker</strong><div class="slider" style="--x:76%"></div></div>
+                  <div class="control-row"><span>Output</span><strong>BOM + DXF</strong><div class="slider" style="--x:88%"></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="showcase-side">
+          <div class="code-card" id="integration">
+            <div class="card-head">
+              <h2>Quick Integration</h2>
+              <button class="copy-btn" type="button">Copy snippet</button>
+            </div>
+            <div class="code-body">
+<pre><code>&lt;!-- Secure CabEngine iframe integration --&gt;
+&lt;div style="position:relative;width:100%;height:640px;"&gt;
+  &lt;iframe
+    src="https://app.cabengine.com/embed/setup?apiKey=<span class="accent">YOUR_API_KEY</span>&amp;theme=dark"
+    style="width:100%;height:100%;border:0;border-radius:18px;"
+    allow="fullscreen; clipboard-write; xr-spatial-tracking;"
+  &gt;&lt;/iframe&gt;
+&lt;/div&gt;</code></pre>
+            </div>
+          </div>
+
+          <div class="timeline-card" id="how">
+            <h3>From embed to quote request</h3>
+            <div class="timeline">
+              <div class="timeline-step"><div class="num">1</div><div><strong>Register domain</strong><span>Whitelist approved store, portal, or manufacturer domains.</span></div></div>
+              <div class="timeline-step"><div class="num">2</div><div><strong>Paste iframe</strong><span>Drop the configurator into any CMS, builder, or custom app.</span></div></div>
+              <div class="timeline-step"><div class="num">3</div><div><strong>Receive events</strong><span>Listen for saved designs, quote requests, BOM updates, and project exports.</span></div></div>
+              <div class="timeline-step"><div class="num">4</div><div><strong>Produce faster</strong><span>Send approved designs into quoting, cut lists, and workshop workflows.</span></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="features">
+      <div class="container">
+        <div class="section-heading">
+          <h2>Everything needed for a production-ready cabinet embed</h2>
+          <p>Use the configurator as a white-label sales tool, a dealer portal feature, or a lead-generation engine for custom cabinet orders.</p>
+        </div>
+        <div class="features-grid">
+          <article class="feature-card"><div class="icon-box">〈〉</div><h3>Simple iframe embed</h3><p>Copy one HTML snippet and add the cabinet designer to any website builder, CMS, ecommerce store, or custom framework.</p></article>
+          <article class="feature-card"><div class="icon-box">盾</div><h3>Domain whitelisting</h3><p>Lock your API key to approved domains to prevent unauthorized embedding, token theft, and accidental public exposure.</p></article>
+          <article class="feature-card"><div class="icon-box">↯</div><h3>Event-driven API</h3><p>Listen for design changes, quote requests, project saves, material choices, and output exports via secure postMessage events.</p></article>
+          <article class="feature-card"><div class="icon-box">▣</div><h3>Responsive and mobile</h3><p>The configurator adapts to desktop, tablet, and mobile containers without breaking your page layout or checkout flow.</p></article>
+          <article class="feature-card"><div class="icon-box">✓</div><h3>White-label ready</h3><p>Remove CabEngine branding, apply your logo and colors, and keep the customer experience inside your own domain.</p></article>
+          <article class="feature-card"><div class="icon-box">→</div><h3>Quote and BOM output</h3><p>Capture customer designs with instant quotes, cut lists, DXF exports, and material reports ready for production review.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="metrics">
+      <div class="container metrics-grid">
+        <div class="metric-card"><strong>1</strong><span>snippet to embed</span></div>
+        <div class="metric-card"><strong>100%</strong><span>white-label option</span></div>
+        <div class="metric-card"><strong>4</strong><span>core API events</span></div>
+        <div class="metric-card"><strong>BOM</strong><span>production output</span></div>
+      </div>
+    </section>
+
+    <section>
+      <div class="container">
+        <div class="section-heading">
+          <h2>Who uses the embed configurator?</h2>
+          <p>Best suited for businesses that want cabinet design inside their own sales journey instead of sending users to a separate tool.</p>
+        </div>
+        <div class="personas-grid">
+          <article class="persona-card"><h3>E-commerce stores</h3><p>Let customers design kitchen cabinets before purchasing, while capturing leads, dimensions, and project specs directly.</p></article>
+          <article class="persona-card"><h3>Builder portals</h3><p>Give home builders, remodelers, and dealers a controlled cabinet configurator inside their project management platform.</p></article>
+          <article class="persona-card"><h3>Manufacturer websites</h3><p>Offer a branded cabinet design tool to dealer networks and direct customers while keeping output aligned with your production rules.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section id="cta">
+      <div class="container">
+        <div class="cta-panel">
+          <h2>Start embedding the 3D Cabinet Planner</h2>
+          <p>Get your API key, integration docs, and starter embed. Free tier available — no credit card required.</p>
+          <a class="btn btn-primary" href="#pricing">Get Started Free →</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container footer-inner">
+      <a class="brand" href="#top"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M17 3 5 9.8v12.4L17 29l10-5.7v-5.5l-10 5.8-7-4V12l7-4 10 5.8V8.3L17 3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="m17 11 7 4-7 4-7-4 7-4Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span><span>CabEngine</span></a>
+      <div class="footer-links"><a href="#docs">Docs</a><a href="#terms">Terms</a><a href="#pricing">Pricing</a></div>
+      <p>© 2026 CabEngine. Cabinet design, cut lists, and sheet optimization.</p>
+    </div>
+  </footer>
+</body>
+</html>
