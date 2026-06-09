@@ -153,7 +153,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({
 
   const currentPlanId = currentSubscription?.plan_id || 'free';
   const isPro = currentSubscription?.plan_id === 'pro' && currentSubscription?.status === 'active';
-  const showLaunchOverlay = true;
+  const showLaunchOverlay = false;
 
   return (
     <>
