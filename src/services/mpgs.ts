@@ -1,5 +1,5 @@
 export const MPGS_MERCHANT_ID = import.meta.env.VITE_MPGS_MERCHANT_ID || ''
-export const MPGS_GATEWAY_URL = import.meta.env.VITE_MPGS_GATEWAY_URL || 'https://test-seylan.mtf.gateway.mastercard.com'
+export const MPGS_GATEWAY_URL = import.meta.env.VITE_MPGS_GATEWAY_URL || 'https://seylan.gateway.mastercard.com'
 
 declare global {
   interface Window {
