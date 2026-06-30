@@ -248,7 +248,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({
           )}
 
           <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {SUBSCRIPTION_PLANS.map((plan) => {
+            {SUBSCRIPTION_PLANS.filter(p => p.id !== 'test-plan').map((plan) => {
               const isCurrentPlan = currentPlanId === plan.id;
               const Icon = plan.id === 'free' ? User : Sparkles;
 
@@ -376,6 +376,40 @@ export const PricingPage: React.FC<PricingPageProps> = ({
               );
             })}
           </div>
+
+          {import.meta.env.VITE_SHOW_TEST_PLAN === 'true' && (
+            <div className="mt-12 pt-8 border-t-2 border-dashed border-red-300 dark:border-red-700">
+              <div className="max-w-md mx-auto">
+                <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-lg border-2 border-red-400 dark:border-red-500 overflow-hidden">
+                  <div className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">
+                    TEST PLAN
+                  </div>
+                  <div className="p-6">
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1">
+                      Test Plan — $1/mo
+                    </h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+                      For payment gateway testing only
+                    </p>
+                    <button
+                      onClick={() => handleSubscribe('test-plan')}
+                      disabled={isProcessing}
+                      className="w-full py-3 px-4 rounded-lg font-bold bg-red-500 text-white hover:bg-red-600 transition-all disabled:opacity-50"
+                    >
+                      {isProcessing ? (
+                        <div className="flex items-center justify-center gap-2">
+                          <Loader2 className="animate-spin" size={20} />
+                          Redirecting...
+                        </div>
+                      ) : (
+                        'Subscribe — $1'
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="mt-16 text-center">
             <p className="text-slate-500 dark:text-slate-400 mb-4">

@@ -30,6 +30,17 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       'Material management'
     ],
     maxProjects: -1,
+  },
+  {
+    id: 'test-plan',
+    name: 'Test Plan',
+    price: 1,
+    interval: 'month',
+    description: 'Test plan for payment gateway validation',
+    features: [
+      'Only for testing'
+    ],
+    maxProjects: -1,
   }
 ];
 
