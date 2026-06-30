@@ -27,6 +27,17 @@ export default defineConfig(({ mode }) => {
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
         'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
       },
+      build: {
+        rollupOptions: {
+          output: {
+            manualChunks: {
+              react: ['react', 'react-dom', 'react-router-dom'],
+              three: ['three', '@react-three/fiber', '@react-three/drei', '@react-three/postprocessing'],
+              ui: ['lucide-react', 'framer-motion', 'zustand', 'react-helmet-async'],
+            },
+          },
+        },
+      },
       resolve: {
         alias: {
           '@': path.resolve(__dirname, './src'),
