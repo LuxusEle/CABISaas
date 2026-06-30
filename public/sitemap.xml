@@ -1,42 +1,42 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://www.protradee.com/</loc>
+    <loc>https://www.cabenginepro.com/</loc>
     <priority>1.0</priority>
     <changefreq>weekly</changefreq>
   </url>
   <url>
-    <loc>https://www.protradee.com/pricing</loc>
+    <loc>https://www.cabenginepro.com/pricing</loc>
     <priority>0.9</priority>
     <changefreq>monthly</changefreq>
   </url>
   <url>
-    <loc>https://www.protradee.com/docs</loc>
+    <loc>https://www.cabenginepro.com/docs</loc>
     <priority>0.8</priority>
     <changefreq>weekly</changefreq>
   </url>
   <url>
-    <loc>https://www.protradee.com/terms</loc>
+    <loc>https://www.cabenginepro.com/terms</loc>
     <priority>0.3</priority>
     <changefreq>yearly</changefreq>
   </url>
   <url>
-    <loc>https://www.protradee.com/embed/setup</loc>
+    <loc>https://www.cabenginepro.com/embed/setup</loc>
     <priority>0.7</priority>
     <changefreq>monthly</changefreq>
   </url>
   <url>
-    <loc>https://www.protradee.com/embed-cabinet-planner</loc>
+    <loc>https://www.cabenginepro.com/embed-cabinet-planner</loc>
     <priority>0.8</priority>
     <changefreq>weekly</changefreq>
   </url>
   <url>
-    <loc>https://www.protradee.com/manual-cabinet-software</loc>
+    <loc>https://www.cabenginepro.com/manual-cabinet-software</loc>
     <priority>0.8</priority>
     <changefreq>weekly</changefreq>
   </url>
   <url>
-    <loc>https://www.protradee.com/cut-list-generator</loc>
+    <loc>https://www.cabenginepro.com/cut-list-generator</loc>
     <priority>0.8</priority>
     <changefreq>weekly</changefreq>
   </url>
