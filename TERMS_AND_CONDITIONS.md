@@ -57,7 +57,7 @@ Table of Contents
 ### 12. Entire Agreement
 CabEngine — Policies & Legal
 Documentation
-Website: www.protradee.com
+Website: www.cabenginepro.com
 Product: CabEngine — Professional Cabinet Engineering Suite
 ## Effective Date: February 18, 2026
 ## Last Updated: February 18, 2026
@@ -78,7 +78,7 @@ Table of Contents
 ## 9. Contact Information
 - Terms of Service
 1.1 Agreement to Terms
-By accessing or using CabEngine ("the Service"), available at www.protradee.com, you
+By accessing or using CabEngine ("the Service"), available at www.cabenginepro.com, you
 ("User", "you", "your") agree to be bound by these Terms of Service ("Terms"). If you do
 not agree to these Terms, you must not access or use the Service.
 1.2 Description of Service
@@ -366,8 +366,8 @@ We may retain anonymised, aggregated data (which cannot be used to identify you)
 analytics and service improvement purposes indefinitely.
 ## 9. Contact Information
 For questions, concerns, or requests regarding these policies, please contact us:
-Email: support@protradee.com
-Website: www.protradee.com
+Email: support@cabenginepro.com
+Website: www.cabenginepro.com
 In-App: Use the "Report an Issue" button within the application
 ## 10. Governing Law & Dispute Resolution
 ## 10.1 Governing Law
@@ -393,4 +393,4 @@ These Terms, together with the Privacy Policy, Acceptable Use Policy, Cookie Pol
 and all other policies referenced herein, constitute the entire agreement between you
 and CabEngine regarding your use of the Service and supersede all prior agreements,
 representations, and understandings.
-© 2026 CabEngine / ProTradee. All rights reserved.
+© 2026 CabEngine / cabenginepro. All rights reserved.

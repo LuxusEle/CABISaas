@@ -217,7 +217,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
         <>
           <h3>Cabinet Configurator API — Embeddable 3D Planner</h3>
           <p>Our cabinet configurator API lets you embed the 3D kitchen planner directly into your own website or client portals. This cabinet software integration allows your customers to configure their cabinetry layout and submit specifications without leaving your site.</p>
-          <div className="info-box accent"><strong>Quick Integration Steps</strong><ol className="numbered"><li>Register your domain under your developer/admin settings to generate an <strong>API Key</strong>.</li><li>Embed our secure iframe pointing to <code>https://www.protradee.com/embed/setup?apiKey=YOUR_API_KEY</code>.</li><li>Listen to parent window messages to automatically capture project completion events.</li></ol></div>
+          <div className="info-box accent"><strong>Quick Integration Steps</strong><ol className="numbered"><li>Register your domain under your developer/admin settings to generate an <strong>API Key</strong>.</li><li>Embed our secure iframe pointing to <code>https://www.cabenginepro.com/embed/setup?apiKey=YOUR_API_KEY</code>.</li><li>Listen to parent window messages to automatically capture project completion events.</li></ol></div>
           <div className="code-card">
             <div className="code-head"><span>Standard HTML Embedding Snippet</span><span>HTML</span></div>
             <pre>{`<!-- Start Cabinet Widget Button -->
@@ -229,7 +229,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
 <div id="cabinetModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:99999; justify-content:center; align-items:center;">
   <div style="position:relative; width:96%; max-width:1400px; height:90%; background:#1e293b; border-radius:24px; overflow:hidden; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);">
     <button onclick="closeCabinetModal()" style="position:absolute; top:16px; right:16px; border:none; background:rgba(255,255,255,0.05); color:#94a3b8; border-radius:99px; width:36px; height:36px; font-size:22px; cursor:pointer; display:flex; align-items:center; justify-content:center; z-index:100;">&times;</button>
-    <iframe src="https://www.protradee.com/embed/setup?apiKey=YOUR_API_KEY" style="width:100%; height:100%; border:none;"></iframe>
+    <iframe src="https://www.cabenginepro.com/embed/setup?apiKey=YOUR_API_KEY" style="width:100%; height:100%; border:none;"></iframe>
   </div>
 </div>
 
@@ -267,7 +267,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
             <details open><summary>Q: Why are my backsplash tiles looking stretched?</summary><p>A: Verify the physical <strong>Tile Dimensions</strong> in your Accessory library. Realistic textures require accurate dimensions to calculate real-world scaling.</p></details>
             <details><summary>Q: How do I jump directly to BOM from the dashboard?</summary><p>A: Click any project card on the dashboard to open the <strong>Action Menu overlay</strong>. Select "Reports & BOM" to skip direct to production data.</p></details>
             <details><summary>Q: Does Advanced Mode affect BOM precision?</summary><p>A: No. Advanced Mode only changes the entry method (manual vs automated solver). Engineering logic and cost calculations remain 100% accurate.</p></details>
-            <details id="support"><summary>Technical Support</summary><p>For complex engineering queries or hardware integration help, contact us at <span className="support-email">support@protradee.com</span>.</p></details>
+            <details id="support"><summary>Technical Support</summary><p>For complex engineering queries or hardware integration help, contact us at <span className="support-email">support@cabenginepro.com</span>.</p></details>
           </div>
         </>
       ),
@@ -282,7 +282,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
     <>
       <Helmet>
         <title>Cabinet Software Integration Docs — CabEngine Pro | Cabinet Configurator API &amp; Embeddable 3D Planner</title>
-        <link rel="canonical" href="https://www.protradee.com/docs" />
+        <link rel="canonical" href="https://www.cabenginepro.com/docs" />
         <meta name="description" content="Complete CabEngine Pro documentation covering cabinet software integration, the cabinet configurator API, embeddable 3D planner setup, project workflows, and BOM generation." />
       </Helmet>
 
@@ -1325,7 +1325,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
 
             <section className="docs-cta">
               <h2>Need more help?</h2>
-              <p>Contact support at support@protradee.com, or return to the app and open the relevant project from your dashboard.</p>
+              <p>Contact support at support@cabenginepro.com, or return to the app and open the relevant project from your dashboard.</p>
               <button className="btn-primary" onClick={() => document.querySelector('.overflow-y-auto')?.scrollTo({ top: 0, behavior: 'smooth' })}>Back to top</button>
             </section>
           </section>

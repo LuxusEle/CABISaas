@@ -44,7 +44,7 @@ In `src/App.tsx`, add a `<Helmet>` with:
 - `<title>` — `CabEngine Pro | 3D Cabinet Design Software & Cut List Optimizer`
 - `<meta name="description">` — Professional-grade cloud-based cabinet design software...
 - `<meta name="robots">` — `index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1`
-- `<link rel="canonical">` — `https://www.protradee.com/`
+- `<link rel="canonical">` — `https://www.cabenginepro.com/`
 - Open Graph tags (`og:type`, `og:title`, `og:description`, `og:url`, `og:site_name`)
 - JSON-LD `SoftwareApplication` schema with Free + Pro offers (from blueprint §4)
 
@@ -54,7 +54,7 @@ In `src/App.tsx`, add a `<Helmet>` with:
 User-agent: *
 Allow: /
 
-Sitemap: https://www.protradee.com/sitemap.xml
+Sitemap: https://www.cabenginepro.com/sitemap.xml
 ```
 
 ### 1.4 Create `public/sitemap.xml`
@@ -188,22 +188,22 @@ Add `<link rel="canonical">` to every public page via `react-helmet-async` (alre
 
 **Step 1 — Add property in Search Console**
 1. Go to https://search.google.com/search-console
-2. Sign in with the Google account that manages `protradee.com`
-3. Choose **"URL prefix"** and enter `https://www.protradee.com/`
+2. Sign in with the Google account that manages `cabenginepro.com`
+3. Choose **"URL prefix"** and enter `https://www.cabenginepro.com/`
 4. Select **"DNS"** verification method
 5. Copy the TXT record value provided
 
 **Step 2 — Add DNS TXT record (via domain registrar / DNS provider)**
 1. Log in to your DNS provider (e.g., Cloudflare, Namecheap, GoDaddy)
 2. Add a new TXT record:
-   - **Name/Host:** `@` (or `protradee.com`)
+   - **Name/Host:** `@` (or `cabenginepro.com`)
    - **Value:** the TXT record from step 1
    - **TTL:** 300 (or default)
 3. Wait up to 30 minutes for propagation, then click **"Verify"** in Search Console
 
 **Step 3 — Submit sitemap**
 1. In Search Console, go to **Sitemaps** (left sidebar)
-2. Enter `https://www.protradee.com/sitemap.xml`
+2. Enter `https://www.cabenginepro.com/sitemap.xml`
 3. Click **Submit**
 4. Verify status shows "Success" — you should see 8 URLs discovered
 

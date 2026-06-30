@@ -1,6 +1,6 @@
 ### SEARCH ENGINE OPTIMIZATION & STRATEGIC GROWTH ENGINE
 
-# CabEngine Pro (protradee.com)
+# CabEngine Pro (cabenginepro.com)
 
 #### Target Product: Browser-Based 3D Cabinet Design & Manufacturing Suite
 #### Prepared For: System Architecture, Deployment, and Organic Inbound Strategy
@@ -79,7 +79,7 @@ natively to execute logic.
 <!-- Secure CabEngine Pro Iframe Integration Template -->
 <div class="cabengine-widget-container" style="position:relative; width:100%; height: 600px;">
   <iframe
-    src="https://www.protradee.com/embed/setup?apiKey=YOUR_PRODUCTION_API_KEY&theme=light"
+    src="https://www.cabenginepro.com/embed/setup?apiKey=YOUR_PRODUCTION_API_KEY&theme=light"
     style="width:100%; height:100%; border:none; border-radius:12px;"
     allow="accelerometer; gyroscope; vr;">
   </iframe>
@@ -118,12 +118,12 @@ highly optimized social graph previews:
   <title>CabEngine Pro | 3D Cabinet Design Software & Cut List Optimizer</title>
   <meta name="description" content="Professional-grade cloud-based cabinet design software. Generate instant 3D visualization, automated cut lists, optimized material sheet nesting, and dynamic BOM reports.">
   <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
-  <link rel="canonical" href="https://www.protradee.com/" />
+  <link rel="canonical" href="https://www.cabenginepro.com/" />
   <!-- Open Graph / Framework Indexation Protocols -->
   <meta property="og:type" content="website">
   <meta property="og:title" content="CabEngine Pro | Professional Cabinet Design Suite">
   <meta property="og:description" content="Cloud-based engineering suite for cabinet makers. Real-time 3D Studio, material nesting algorithms, and embeddable configurator APIs.">
-  <meta property="og:url" content="https://www.protradee.com/">
+  <meta property="og:url" content="https://www.cabenginepro.com/">
   <meta property="og:site_name" content="CabEngine Pro">
 </head>
 ```
@@ -137,7 +137,7 @@ licensing value:
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
   "name": "CabEngine Pro",
-  "url": "https://www.protradee.com/",
+  "url": "https://www.cabenginepro.com/",
   "operatingSystem": "All (Cloud-Based, Cross-Platform)",
   "applicationCategory": "DesignApplication",
   "browserRequirements": "Requires WebGL capability and HTML5 modern browser compliance",

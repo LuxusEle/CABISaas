@@ -26,7 +26,7 @@ export const CutListGeneratorPage: React.FC<CutListGeneratorPageProps> = ({
     <>
       <Helmet>
         <title>Cabinet Cut List Generator & Sheet Nesting Tool | CabEngine Pro</title>
-        <link rel="canonical" href="https://www.protradee.com/cut-list-generator" />
+        <link rel="canonical" href="https://www.cabenginepro.com/cut-list-generator" />
         <meta name="description" content="Online plywood sheet nesting and cabinet cut list generator. Optimize panel layouts to minimize waste, reduce material costs, and generate professional cut sheets." />
       </Helmet>
       <div className={`clg-page ${isDark ? 'lp-dark-theme' : 'lp-light-theme'}`}>
@@ -37,7 +37,7 @@ export const CutListGeneratorPage: React.FC<CutListGeneratorPageProps> = ({
             <div className="container clg-hero-grid">
               <div>
                 <div className="clg-eyebrow">
-                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" width="15" height="15"><path d="M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" stroke="currentColor" strokeWidth="2"/><path d="M8 7h8M8 11h8M8 15h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" width="15" height="15"><path d="M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" stroke="currentColor" strokeWidth="2" /><path d="M8 7h8M8 11h8M8 15h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
                   Panel Optimization Engine
                 </div>
                 <h1>Reduce Sheet Waste by Up to <span className="clg-gradient-text">30%</span></h1>
@@ -140,19 +140,19 @@ export const CutListGeneratorPage: React.FC<CutListGeneratorPageProps> = ({
               </div>
               <div className="clg-feature-grid">
                 <article className="clg-feature-card">
-                  <div className="clg-icon-box"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true" width="22" height="22"><path d="M4 7h6v10H4V7Zm10-3h6v13h-6V4ZM8 20h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
+                  <div className="clg-icon-box"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true" width="22" height="22"><path d="M4 7h6v10H4V7Zm10-3h6v13h-6V4ZM8 20h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg></div>
                   <div><h3>Multi-Sheet Optimization</h3><p>Process multiple sheet thicknesses and material types in a single layout pass. The engine handles plywood, MDF, particle board, and melamine simultaneously.</p></div>
                 </article>
                 <article className="clg-feature-card">
-                  <div className="clg-icon-box"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true" width="22" height="22"><path d="M12 3 4 7l8 4 8-4-8-4Zm-8 8 8 4 8-4M4 15l8 4 8-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
+                  <div className="clg-icon-box"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true" width="22" height="22"><path d="M12 3 4 7l8 4 8-4-8-4Zm-8 8 8 4 8-4M4 15l8 4 8-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg></div>
                   <div><h3>Grain Direction Awareness</h3><p>Respect wood grain orientation for visible panels. The nesting engine intelligently aligns parts for consistent grain flow.</p></div>
                 </article>
                 <article className="clg-feature-card">
-                  <div className="clg-icon-box"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true" width="22" height="22"><path d="M7 3h8l4 4v14H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" stroke="currentColor" strokeWidth="2"/><path d="M14 3v5h5M8 13h8M8 17h5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></div>
+                  <div className="clg-icon-box"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true" width="22" height="22"><path d="M7 3h8l4 4v14H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" stroke="currentColor" strokeWidth="2" /><path d="M14 3v5h5M8 13h8M8 17h5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg></div>
                   <div><h3>Financial Reporting</h3><p>Get a complete cost breakdown: raw sheet totals, hardware unit costs, estimated assembly time, and final quote matrix for client proposals.</p></div>
                 </article>
                 <article className="clg-feature-card">
-                  <div className="clg-icon-box"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true" width="22" height="22"><path d="M19 5 5 19M7.5 8.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm9 11a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></div>
+                  <div className="clg-icon-box"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true" width="22" height="22"><path d="M19 5 5 19M7.5 8.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm9 11a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg></div>
                   <div><h3>Waste Tracking</h3><p>Every layout includes detailed scrap metrics. Track yield percentages, remnant management, and cost impact of waste across your projects.</p></div>
                 </article>
               </div>
@@ -171,7 +171,7 @@ export const CutListGeneratorPage: React.FC<CutListGeneratorPageProps> = ({
         <footer className="clg-footer">
           <div className="container clg-footer-inner">
             <Link to="/" className="clg-brand">
-              <svg viewBox="0 0 42 42" width="28" height="28" aria-hidden="true"><path d="M21 4 35 12v7.5L21 11.4 7 19.5V12L21 4Z" fill="none" stroke="currentColor" strokeWidth="3" strokeLinejoin="round" opacity=".88"/><path d="M35 22.5 21 30.6 7 22.5" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" opacity=".88"/><path d="M35 14.5 21 22.6 7 14.5" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" opacity=".5"/></svg>
+              <svg viewBox="0 0 42 42" width="28" height="28" aria-hidden="true"><path d="M21 4 35 12v7.5L21 11.4 7 19.5V12L21 4Z" fill="none" stroke="currentColor" strokeWidth="3" strokeLinejoin="round" opacity=".88" /><path d="M35 22.5 21 30.6 7 22.5" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" opacity=".88" /><path d="M35 14.5 21 22.6 7 14.5" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" opacity=".5" /></svg>
               CabEngine
             </Link>
             <div className="clg-footer-links">

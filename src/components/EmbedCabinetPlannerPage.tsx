@@ -69,7 +69,7 @@ export const EmbedCabinetPlannerPage: React.FC<EmbedCabinetPlannerPageProps> = (
     <>
       <Helmet>
         <title>Embeddable 3D Cabinet Configurator API | CabEngine Pro</title>
-        <link rel="canonical" href="https://www.protradee.com/embed-cabinet-planner" />
+        <link rel="canonical" href="https://www.cabenginepro.com/embed-cabinet-planner" />
         <meta name="description" content="Embed a 3D kitchen cabinet configurator directly in your website. White-label cabinet design API with iframe integration. Let your customers design cabinets on your site." />
       </Helmet>
       <div className={`ecp-page ${isDark ? 'lp-dark-theme' : 'lp-light-theme'}`}>
@@ -134,7 +134,7 @@ export const EmbedCabinetPlannerPage: React.FC<EmbedCabinetPlannerPageProps> = (
                   <pre><code>{`<!-- Secure CabEngine Pro Iframe Integration -->
 <div style="position:relative; width:100%; height:600px;">
   <iframe
-    src="https://www.protradee.com/embed/setup?apiKey=YOUR_PRODUCTION_API_KEY&theme=light"
+    src="https://www.cabenginepro.com/embed/setup?apiKey=YOUR_PRODUCTION_API_KEY&theme=light"
     style="width:100%; height:100%; border:none; border-radius:12px;"
     allow="accelerometer; gyroscope; vr;">
   </iframe>
@@ -165,17 +165,17 @@ export const EmbedCabinetPlannerPage: React.FC<EmbedCabinetPlannerPageProps> = (
                   <article key={i} className="ecp-feature-card ecp-reveal" style={{ transitionDelay: `${i * 0.08}s` } as React.CSSProperties}>
                     <div className="ecp-icon-box">
                       {f.icon === '<>' ? (
-                        <svg viewBox="0 0 24 24" fill="none" width="22" height="22"><path d="M7 8 3 12l4 4M17 8l4 4-4 4M14 4l-4 16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                        <svg viewBox="0 0 24 24" fill="none" width="22" height="22"><path d="M7 8 3 12l4 4M17 8l4 4-4 4M14 4l-4 16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
                       ) : f.icon === 'shield' ? (
-                        <svg viewBox="0 0 24 24" fill="none" width="22" height="22"><path d="M12 2 3 7v6c0 5.25 9 9 9 9s9-3.75 9-9V7l-9-5Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/><path d="M8 12 11 15 16 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                        <svg viewBox="0 0 24 24" fill="none" width="22" height="22"><path d="M12 2 3 7v6c0 5.25 9 9 9 9s9-3.75 9-9V7l-9-5Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" /><path d="M8 12 11 15 16 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
                       ) : f.icon === 'zap' ? (
-                        <svg viewBox="0 0 24 24" fill="none" width="22" height="22"><path d="M13 2 3 14h8l-2 8 10-12h-8l2-8Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/></svg>
+                        <svg viewBox="0 0 24 24" fill="none" width="22" height="22"><path d="M13 2 3 14h8l-2 8 10-12h-8l2-8Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" /></svg>
                       ) : f.icon === 'smartphone' ? (
-                        <svg viewBox="0 0 24 24" fill="none" width="22" height="22"><path d="M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><path d="M12 17v.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                        <svg viewBox="0 0 24 24" fill="none" width="22" height="22"><path d="M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /><path d="M12 17v.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
                       ) : f.icon === 'check' ? (
-                        <svg viewBox="0 0 24 24" fill="none" width="22" height="22"><path d="M20 6 9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                        <svg viewBox="0 0 24 24" fill="none" width="22" height="22"><path d="M20 6 9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
                       ) : (
-                        <svg viewBox="0 0 24 24" fill="none" width="22" height="22"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                        <svg viewBox="0 0 24 24" fill="none" width="22" height="22"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
                       )}
                     </div>
                     <h3>{f.title}</h3>
@@ -226,7 +226,7 @@ export const EmbedCabinetPlannerPage: React.FC<EmbedCabinetPlannerPageProps> = (
         <footer className="ecp-footer">
           <div className="container ecp-footer-inner">
             <Link to="/" className="ecp-brand">
-              <svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true"><path d="M17 3 5 9.8v12.4L17 29l10-5.7v-5.5l-10 5.8-7-4V12l7-4 10 5.8V8.3L17 3Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/><path d="m17 11 7 4-7 4-7-4 7-4Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/></svg>
+              <svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true"><path d="M17 3 5 9.8v12.4L17 29l10-5.7v-5.5l-10 5.8-7-4V12l7-4 10 5.8V8.3L17 3Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" /><path d="m17 11 7 4-7 4-7-4 7-4Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" /></svg>
               CabEngine
             </Link>
             <div className="ecp-footer-links">

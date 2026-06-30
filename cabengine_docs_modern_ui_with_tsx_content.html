@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Cabinet Software Integration Docs — CabEngine Pro | Cabinet Configurator API & Embeddable 3D Planner</title>
-  <link rel="canonical" href="https://www.protradee.com/docs" />
-  <meta name="description" content="Complete CabEngine Pro documentation covering cabinet software integration, the cabinet configurator API, embeddable 3D planner setup, project workflows, and BOM generation." />
+  <link rel="canonical" href="https://www.cabenginepro.com/docs" />
+  <meta name="description"
+    content="Complete CabEngine Pro documentation covering cabinet software integration, the cabinet configurator API, embeddable 3D planner setup, project workflows, and BOM generation." />
   <style>
-
     /* =========================================================
        CABENGINE DOCS PAGE
        Uses the same landing page variables from index.css:
@@ -40,7 +41,7 @@
       --green: #8FAF8D;
       --cyan: #C49A6C;
       --shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
-      --grid-line: rgba(255,255,255,0.025);
+      --grid-line: rgba(255, 255, 255, 0.025);
       --radius-lg: 28px;
       --radius-md: 18px;
       --radius-sm: 12px;
@@ -157,9 +158,19 @@
       --wood-walnut-rgb: 122, 78, 45;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; }
-    :root { --docs-nav-height: 72px; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    :root {
+      --docs-nav-height: 72px;
+    }
 
     body {
       min-height: 100vh;
@@ -183,12 +194,18 @@
         linear-gradient(var(--grid-line) 1px, transparent 1px),
         linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
       background-size: 72px 72px;
-      mask-image: linear-gradient(to bottom, rgba(0,0,0,0.75), transparent 82%);
+      mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.75), transparent 82%);
       z-index: -2;
     }
 
-    a { color: inherit; text-decoration: none; }
-    button { font: inherit; }
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button {
+      font: inherit;
+    }
 
     .container {
       width: min(var(--max), calc(100% - 40px));
@@ -256,10 +273,22 @@
       font-weight: 750;
     }
 
-    .nav-links a { opacity: .82; transition: opacity .18s ease, color .18s ease, transform .18s ease; }
-    .nav-links a:hover { opacity: 1; color: var(--brass); transform: translateY(-1px); }
+    .nav-links a {
+      opacity: .82;
+      transition: opacity .18s ease, color .18s ease, transform .18s ease;
+    }
 
-    .nav-actions { display: flex; align-items: center; gap: 11px; }
+    .nav-links a:hover {
+      opacity: 1;
+      color: var(--brass);
+      transform: translateY(-1px);
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+    }
 
     .btn {
       display: inline-flex;
@@ -277,12 +306,16 @@
       white-space: nowrap;
     }
 
-    .btn:hover { transform: translateY(-2px); }
+    .btn:hover {
+      transform: translateY(-2px);
+    }
+
     .btn-primary {
       color: #1B1207;
       background: linear-gradient(135deg, var(--brass), var(--amber) 72%);
       box-shadow: 0 14px 36px rgba(var(--amber-rgb), .28);
     }
+
     .btn-soft {
       color: var(--soft);
       background: rgba(var(--slate-500-rgb), .09);
@@ -341,7 +374,11 @@
     }
 
     .side-links,
-    .toc-links { padding: 12px; display: grid; gap: 7px; }
+    .toc-links {
+      padding: 12px;
+      display: grid;
+      gap: 7px;
+    }
 
     .side-link,
     .toc-links a {
@@ -435,9 +472,17 @@
     }
 
     @keyframes pulse {
-      0% { box-shadow: 0 0 0 0 rgba(var(--sage-rgb), .5); }
-      70% { box-shadow: 0 0 0 9px rgba(var(--sage-rgb), 0); }
-      100% { box-shadow: 0 0 0 0 rgba(var(--sage-rgb), 0); }
+      0% {
+        box-shadow: 0 0 0 0 rgba(var(--sage-rgb), .5);
+      }
+
+      70% {
+        box-shadow: 0 0 0 9px rgba(var(--sage-rgb), 0);
+      }
+
+      100% {
+        box-shadow: 0 0 0 0 rgba(var(--sage-rgb), 0);
+      }
     }
 
     h1 {
@@ -518,7 +563,9 @@
       font-weight: 650;
     }
 
-    .search-shell input::placeholder { color: var(--muted); }
+    .search-shell input::placeholder {
+      color: var(--muted);
+    }
 
     .doc-section {
       border: 1px solid var(--border);
@@ -558,7 +605,9 @@
       text-transform: uppercase;
     }
 
-    .doc-body { padding: 26px; }
+    .doc-body {
+      padding: 26px;
+    }
 
     .doc-body h3 {
       font-size: 20px;
@@ -608,7 +657,11 @@
 
     .info-box ul,
     .step-list,
-    .plain-list { list-style: none; display: grid; gap: 9px; }
+    .plain-list {
+      list-style: none;
+      display: grid;
+      gap: 9px;
+    }
 
     .plain-list li::before,
     .info-box li::before {
@@ -637,7 +690,11 @@
       margin-bottom: 7px;
     }
 
-    .callout p { margin: 0; font-size: 13px; color: var(--soft); }
+    .callout p {
+      margin: 0;
+      font-size: 13px;
+      color: var(--soft);
+    }
 
     .workflow-list {
       display: grid;
@@ -667,8 +724,15 @@
       box-shadow: 0 12px 28px rgba(var(--amber-rgb), .22);
     }
 
-    .workflow-item h3 { font-size: 16px; margin-bottom: 6px; }
-    .workflow-item p { margin: 0; font-size: 13px; }
+    .workflow-item h3 {
+      font-size: 16px;
+      margin-bottom: 6px;
+    }
+
+    .workflow-item p {
+      margin: 0;
+      font-size: 13px;
+    }
 
     .code-card {
       overflow: hidden;
@@ -698,7 +762,10 @@
       line-height: 1.7;
     }
 
-    .faq-grid { display: grid; gap: 12px; }
+    .faq-grid {
+      display: grid;
+      gap: 12px;
+    }
 
     details {
       border-radius: 18px;
@@ -717,8 +784,15 @@
       list-style: none;
     }
 
-    summary::-webkit-details-marker { display: none; }
-    details p { padding: 0 18px 18px; margin: 0; font-size: 13px; }
+    summary::-webkit-details-marker {
+      display: none;
+    }
+
+    details p {
+      padding: 0 18px 18px;
+      margin: 0;
+      font-size: 13px;
+    }
 
     .stat-strip {
       display: grid;
@@ -735,8 +809,17 @@
       border: 1px solid rgba(var(--brass-rgb), .18);
     }
 
-    .stat strong { display: block; color: var(--brass); font-size: 26px; letter-spacing: -0.04em; }
-    .stat span { color: var(--muted); font-size: 12px; }
+    .stat strong {
+      display: block;
+      color: var(--brass);
+      font-size: 26px;
+      letter-spacing: -0.04em;
+    }
+
+    .stat span {
+      color: var(--muted);
+      font-size: 12px;
+    }
 
     .docs-cta {
       border-radius: var(--radius-lg);
@@ -767,7 +850,10 @@
       font-size: 14px;
     }
 
-    .toc-links a { font-size: 12px; padding: 10px 11px; }
+    .toc-links a {
+      font-size: 12px;
+      padding: 10px 11px;
+    }
 
     .help-bubble {
       position: fixed;
@@ -796,8 +882,17 @@
       font-size: 13px;
     }
 
-    .footer-inner { display: flex; justify-content: space-between; align-items: center; gap: 18px; }
-    .footer-links { display: flex; gap: 18px; }
+    .footer-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 18px;
+    }
 
     /* Theme-specific polish */
     .lp-light-theme .sidebar,
@@ -807,7 +902,7 @@
     .lp-light-theme .search-shell {
       box-shadow:
         0 22px 70px rgba(64, 43, 25, 0.12),
-        inset 0 1px 0 rgba(255,255,255,.72);
+        inset 0 1px 0 rgba(255, 255, 255, .72);
     }
 
     .lp-light-theme .docs-cta {
@@ -816,35 +911,102 @@
         linear-gradient(135deg, #6B3D21 0%, #996236 48%, #C79862 100%);
     }
 
-    .lp-dark-theme .lp-dark-only { display: inline; }
-    .lp-dark-theme .lp-light-only { display: none; }
-    .lp-light-theme .lp-dark-only { display: none; }
-    .lp-light-theme .lp-light-only { display: inline; }
+    .lp-dark-theme .lp-dark-only {
+      display: inline;
+    }
+
+    .lp-dark-theme .lp-light-only {
+      display: none;
+    }
+
+    .lp-light-theme .lp-dark-only {
+      display: none;
+    }
+
+    .lp-light-theme .lp-light-only {
+      display: inline;
+    }
 
     @media (max-width: 1180px) {
-      .layout { grid-template-columns: 260px minmax(0, 1fr); }
-      .toc { display: none; }
+      .layout {
+        grid-template-columns: 260px minmax(0, 1fr);
+      }
+
+      .toc {
+        display: none;
+      }
     }
 
     @media (max-width: 860px) {
-      .container { width: min(100% - 28px, var(--max)); }
-      .nav-links { display: none; }
-      .layout { grid-template-columns: 1fr; padding-top: 24px; }
-      .sidebar { position: relative; top: 0; }
-      .side-links { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .hero-card { padding: 28px; }
-      .hero-grid, .info-grid, .stat-strip { grid-template-columns: 1fr; }
-      .section-title { align-items: flex-start; flex-direction: column; }
-      .footer-inner { flex-direction: column; align-items: flex-start; }
+      .container {
+        width: min(100% - 28px, var(--max));
+      }
+
+      .nav-links {
+        display: none;
+      }
+
+      .layout {
+        grid-template-columns: 1fr;
+        padding-top: 24px;
+      }
+
+      .sidebar {
+        position: relative;
+        top: 0;
+      }
+
+      .side-links {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .hero-card {
+        padding: 28px;
+      }
+
+      .hero-grid,
+      .info-grid,
+      .stat-strip {
+        grid-template-columns: 1fr;
+      }
+
+      .section-title {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .footer-inner {
+        flex-direction: column;
+        align-items: flex-start;
+      }
     }
 
     @media (max-width: 560px) {
-      .nav-actions .btn-soft { display: none; }
-      .side-links { grid-template-columns: 1fr; }
-      h1 { font-size: 44px; }
-      .workflow-item { grid-template-columns: 1fr; }
-      .help-bubble span { display: none; }
-      .help-bubble { width: 48px; justify-content: center; padding: 0; }
+      .nav-actions .btn-soft {
+        display: none;
+      }
+
+      .side-links {
+        grid-template-columns: 1fr;
+      }
+
+      h1 {
+        font-size: 44px;
+      }
+
+      .workflow-item {
+        grid-template-columns: 1fr;
+      }
+
+      .help-bubble span {
+        display: none;
+      }
+
+      .help-bubble {
+        width: 48px;
+        justify-content: center;
+        padding: 0;
+      }
     }
 
 
@@ -866,7 +1028,11 @@
       -webkit-text-size-adjust: 100%;
     }
 
-    img, svg, video, canvas, iframe {
+    img,
+    svg,
+    video,
+    canvas,
+    iframe {
       max-width: 100%;
     }
 
@@ -881,7 +1047,8 @@
       min-width: 0;
     }
 
-    pre, code {
+    pre,
+    code {
       max-width: 100%;
       white-space: pre;
     }
@@ -899,7 +1066,9 @@
     }
 
     @media (max-width: 940px) {
-      :root { --docs-nav-height: 68px; }
+      :root {
+        --docs-nav-height: 68px;
+      }
 
       .container {
         width: min(100% - 32px, var(--max));
@@ -1023,7 +1192,7 @@
         border-radius: 10px;
       }
 
-      .brand > span:last-child {
+      .brand>span:last-child {
         max-width: 132px;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -1225,7 +1394,7 @@
         display: none;
       }
 
-      .brand > span:last-child {
+      .brand>span:last-child {
         max-width: 156px;
       }
 
@@ -1406,7 +1575,10 @@
 
 
     @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after {
+
+      *,
+      *::before,
+      *::after {
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
         scroll-behavior: auto !important;
@@ -1424,6 +1596,7 @@
     }
 
     @media (max-width: 940px) {
+
       .doc-section,
       .docs-hero,
       .docs-cta,
@@ -1433,6 +1606,7 @@
     }
 
     @media (max-width: 560px) {
+
       .doc-section,
       .docs-hero,
       .docs-cta,
@@ -1441,29 +1615,118 @@
       }
     }
 
-  
+
 
     /* Content fidelity helpers for DocsPage.tsx content */
-    .bullets { list-style: none; display: grid; gap: 10px; margin: 14px 0 0; }
-    .bullets li { color: var(--soft); font-size: 14px; line-height: 1.65; }
-    .bullets li::before { content: "•"; color: var(--brass); font-weight: 950; margin-right: 9px; }
-    .numbered { counter-reset: steps; list-style: none; display: grid; gap: 10px; }
-    .numbered li { counter-increment: steps; color: var(--muted); font-size: 13px; line-height: 1.65; }
-    .numbered li::before { content: counter(steps) "."; color: var(--brass); font-weight: 950; margin-right: 8px; }
-    .mini-location { display: block; margin-top: 9px; color: var(--muted); opacity: .72; font-size: 10px; font-weight: 950; text-transform: uppercase; letter-spacing: .06em; font-style: italic; }
-    .left-accent { border-left: 4px solid var(--brass); padding-left: 17px; }
-    .left-accent.blue { border-left-color: var(--purple-2); }
-    .left-accent.green { border-left-color: var(--sage); }
-    .left-accent.purple { border-left-color: var(--purple); }
-    .stack { display: grid; gap: 16px; }
-    .cabinet-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 24px; }
-    .cabinet-grid li { list-style: none; color: var(--muted); font-size: 13px; line-height: 1.55; }
-    .support-email { color: var(--brass); font-weight: 900; }
-    .doc-body code:not(pre code) { color: var(--brass); background: rgba(var(--brass-rgb), .10); border: 1px solid rgba(var(--brass-rgb), .18); padding: 1px 5px; border-radius: 7px; }
-    @media (max-width: 680px) { .cabinet-grid { grid-template-columns: 1fr; } }
+    .bullets {
+      list-style: none;
+      display: grid;
+      gap: 10px;
+      margin: 14px 0 0;
+    }
 
+    .bullets li {
+      color: var(--soft);
+      font-size: 14px;
+      line-height: 1.65;
+    }
+
+    .bullets li::before {
+      content: "•";
+      color: var(--brass);
+      font-weight: 950;
+      margin-right: 9px;
+    }
+
+    .numbered {
+      counter-reset: steps;
+      list-style: none;
+      display: grid;
+      gap: 10px;
+    }
+
+    .numbered li {
+      counter-increment: steps;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.65;
+    }
+
+    .numbered li::before {
+      content: counter(steps) ".";
+      color: var(--brass);
+      font-weight: 950;
+      margin-right: 8px;
+    }
+
+    .mini-location {
+      display: block;
+      margin-top: 9px;
+      color: var(--muted);
+      opacity: .72;
+      font-size: 10px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      font-style: italic;
+    }
+
+    .left-accent {
+      border-left: 4px solid var(--brass);
+      padding-left: 17px;
+    }
+
+    .left-accent.blue {
+      border-left-color: var(--purple-2);
+    }
+
+    .left-accent.green {
+      border-left-color: var(--sage);
+    }
+
+    .left-accent.purple {
+      border-left-color: var(--purple);
+    }
+
+    .stack {
+      display: grid;
+      gap: 16px;
+    }
+
+    .cabinet-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px 24px;
+    }
+
+    .cabinet-grid li {
+      list-style: none;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .support-email {
+      color: var(--brass);
+      font-weight: 900;
+    }
+
+    .doc-body code:not(pre code) {
+      color: var(--brass);
+      background: rgba(var(--brass-rgb), .10);
+      border: 1px solid rgba(var(--brass-rgb), .18);
+      padding: 1px 5px;
+      border-radius: 7px;
+    }
+
+    @media (max-width: 680px) {
+      .cabinet-grid {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
+
 <body class="lp-dark-theme">
   <nav class="nav">
     <div class="container nav-inner">
@@ -1479,7 +1742,8 @@
         <a href="#faq">FAQ</a>
       </div>
       <div class="nav-actions">
-        <button class="btn btn-soft theme-toggle" type="button" id="themeToggle" aria-label="Toggle light and dark theme">
+        <button class="btn btn-soft theme-toggle" type="button" id="themeToggle"
+          aria-label="Toggle light and dark theme">
           <span class="lp-dark-only">☀</span><span class="lp-light-only">☾</span>
         </button>
         <a class="btn btn-soft" href="#support">Support</a>
@@ -1510,11 +1774,15 @@
       <article class="hero-card">
         <div class="eyebrow"><span class="pulse-dot"></span> Cabinet software integration docs</div>
         <h1>CabEngine Pro <span class="gradient-text">documentation</span>.</h1>
-        <p class="hero-copy">Complete CabEngine Pro documentation covering cabinet software integration, the cabinet configurator API, embeddable 3D planner setup, project workflows, and BOM generation.</p>
+        <p class="hero-copy">Complete CabEngine Pro documentation covering cabinet software integration, the cabinet
+          configurator API, embeddable 3D planner setup, project workflows, and BOM generation.</p>
         <div class="hero-grid">
-          <div class="quick-card"><strong>Project workflow</strong><span>Move from identity and material setup into studio visualisation and production export.</span></div>
-          <div class="quick-card"><strong>Manufacturing reports</strong><span>Understand BOM, costing, cut plans, wall elevations and technical dossier outputs.</span></div>
-          <div class="quick-card"><strong>Embeddable planner</strong><span>Use the configurator API to add a client-facing cabinet planner to your site.</span></div>
+          <div class="quick-card"><strong>Project workflow</strong><span>Move from identity and material setup into
+              studio visualisation and production export.</span></div>
+          <div class="quick-card"><strong>Manufacturing reports</strong><span>Understand BOM, costing, cut plans, wall
+              elevations and technical dossier outputs.</span></div>
+          <div class="quick-card"><strong>Embeddable planner</strong><span>Use the configurator API to add a
+              client-facing cabinet planner to your site.</span></div>
         </div>
       </article>
 
@@ -1524,10 +1792,14 @@
       </div>
 
       <article id="overview" class="doc-section">
-        <header class="section-title"><h2><span class="side-icon">01</span> Getting Started</h2><span class="label">Overview</span></header>
+        <header class="section-title">
+          <h2><span class="side-icon">01</span> Getting Started</h2><span class="label">Overview</span>
+        </header>
         <div class="doc-body">
           <h3>Welcome to CabEngine Pro</h3>
-          <p>CabEngine Pro is an advanced cabinet software integration suite for high-fidelity 3D cabinet design and manufacturing. Use the cabinet configurator API and embeddable 3D planner to streamline your workflow. It enables you to:</p>
+          <p>CabEngine Pro is an advanced cabinet software integration suite for high-fidelity 3D cabinet design and
+            manufacturing. Use the cabinet configurator API and embeddable 3D planner to streamline your workflow. It
+            enables you to:</p>
           <ul class="bullets">
             <li>Design complex kitchen layouts with multiple wall zones</li>
             <li>Generate accurate Bill of Materials (BOM) and costings</li>
@@ -1536,82 +1808,225 @@
             <li>Manage global material libraries and hardware</li>
           </ul>
           <div class="info-grid">
-            <div class="info-box accent"><strong>New Here?</strong><span>Use the <strong>Quick Start Demo</strong> from the dashboard to instantly load a professional layout and explore all features.</span></div>
-            <div class="info-box"><strong>Workspace Theme</strong><span>Toggle <strong>Light/Dark mode</strong> in the sidebar. The entire interface is theme-aware for different design environments.</span></div>
+            <div class="info-box accent"><strong>New Here?</strong><span>Use the <strong>Quick Start Demo</strong> from
+                the dashboard to instantly load a professional layout and explore all features.</span></div>
+            <div class="info-box"><strong>Workspace Theme</strong><span>Toggle <strong>Light/Dark mode</strong> in the
+                sidebar. The entire interface is theme-aware for different design environments.</span></div>
           </div>
-          <div class="callout"><strong>💡 Quick Tip</strong><p>Access any project directly from the <strong>Dashboard</strong> using the Action Menu overlay to jump straight to Setup, 3D Studio, or BOM.</p></div>
+          <div class="callout"><strong>💡 Quick Tip</strong>
+            <p>Access any project directly from the <strong>Dashboard</strong> using the Action Menu overlay to jump
+              straight to Setup, 3D Studio, or BOM.</p>
+          </div>
         </div>
       </article>
 
       <article id="workflow" class="doc-section">
-        <header class="section-title"><h2><span class="side-icon">02</span> Complete Project Workflow</h2><span class="label">Engineering process</span></header>
+        <header class="section-title">
+          <h2><span class="side-icon">02</span> Complete Project Workflow</h2><span class="label">Engineering
+            process</span>
+        </header>
         <div class="doc-body">
           <h3>Step-by-Step Engineering Process</h3>
           <div class="workflow-list">
-            <div class="workflow-item"><div class="step-num">1</div><div><h3>Project Identity & Mode</h3><p>Configure site address and contact info. Enable <strong>Advanced Mode</strong> if you prefer manual weaponry box entry over automatic solvers.</p><span class="mini-location">Location: Sidebar → Setup → Step 1: Identity</span></div></div>
-            <div class="workflow-item"><div class="step-num">2</div><div><h3>Materials & Branding</h3><p>Define your sheet library, hardware, and material allocation. Visit the <strong>Business Profile</strong> to sync your company logo for reports.</p><span class="mini-location">Location: Sidebar → Setup → Steps 2-8</span></div></div>
-            <div class="workflow-item"><div class="step-num">3</div><div><h3>Studio Visualization</h3><p>Design your walls in the <strong>3D Studio</strong>. Toggle between Realistic and Technical views to verify textures and dimensions.</p><span class="mini-location">Location: Sidebar → 3D Design Studio</span></div></div>
-            <div class="workflow-item"><div class="step-num">4</div><div><h3>Production Export</h3><p>Review your BOM, check material nesting in the Cut Plan, and export your final technical dossier (Excel/PDF/JSON).</p><span class="mini-location">Location: Sidebar → Reports & BOM</span></div></div>
+            <div class="workflow-item">
+              <div class="step-num">1</div>
+              <div>
+                <h3>Project Identity & Mode</h3>
+                <p>Configure site address and contact info. Enable <strong>Advanced Mode</strong> if you prefer manual
+                  weaponry box entry over automatic solvers.</p><span class="mini-location">Location: Sidebar → Setup →
+                  Step 1: Identity</span>
+              </div>
+            </div>
+            <div class="workflow-item">
+              <div class="step-num">2</div>
+              <div>
+                <h3>Materials & Branding</h3>
+                <p>Define your sheet library, hardware, and material allocation. Visit the <strong>Business
+                    Profile</strong> to sync your company logo for reports.</p><span class="mini-location">Location:
+                  Sidebar → Setup → Steps 2-8</span>
+              </div>
+            </div>
+            <div class="workflow-item">
+              <div class="step-num">3</div>
+              <div>
+                <h3>Studio Visualization</h3>
+                <p>Design your walls in the <strong>3D Studio</strong>. Toggle between Realistic and Technical views to
+                  verify textures and dimensions.</p><span class="mini-location">Location: Sidebar → 3D Design
+                  Studio</span>
+              </div>
+            </div>
+            <div class="workflow-item">
+              <div class="step-num">4</div>
+              <div>
+                <h3>Production Export</h3>
+                <p>Review your BOM, check material nesting in the Cut Plan, and export your final technical dossier
+                  (Excel/PDF/JSON).</p><span class="mini-location">Location: Sidebar → Reports & BOM</span>
+              </div>
+            </div>
           </div>
         </div>
       </article>
 
       <article id="setup" class="doc-section">
-        <header class="section-title"><h2><span class="side-icon">03</span> Project Setup & Modes</h2><span class="label">Configuration</span></header>
+        <header class="section-title">
+          <h2><span class="side-icon">03</span> Project Setup & Modes</h2><span class="label">Configuration</span>
+        </header>
         <div class="doc-body">
           <h3>Configuration Options</h3>
-          <div class="callout"><strong>⚙ Advanced Mode (Direct Entry)</strong><p>Enables precise manual control over cabinetry boxes. Skip the automatic layout solver to define exact widths, blind panels, and placement sequence.</p></div>
-          <div class="info-grid">
-            <div class="info-box"><strong>Materials & Hardware</strong><ul><li><strong>Sheet Types:</strong> Define name, thickness, and sheet price.</li><li><strong>Accessories:</strong> Add hardware with custom unit costs.</li><li><strong>Tile Scaling:</strong> Set backsplash tile dimensions for 3D realism.</li></ul></div>
-            <div class="info-box"><strong>Material Allocation</strong><span>Assign defaults to:</span><ul><li><strong>Carcass (Box):</strong> Sides, top, and bottom.</li><li><strong>Front Doors:</strong> Finished exterior faces.</li><li><strong>Drawer Boxes:</strong> Bottoms and internal sides.</li><li><strong>Back Panels:</strong> Typically thinner materials.</li></ul></div>
+          <div class="callout"><strong>⚙ Advanced Mode (Direct Entry)</strong>
+            <p>Enables precise manual control over cabinetry boxes. Skip the automatic layout solver to define exact
+              widths, blind panels, and placement sequence.</p>
           </div>
-          <div class="info-box"><strong>Business Profile & Branding</strong><p>Your company identity is global and persists across projects:</p><ul><li><strong>Company Logo:</strong> Automatically scales for BOM and Wall Plan headers.</li><li><strong>Business Metadata:</strong> Syncs company name and address to all invoices.</li><li><strong>Real-time Sync:</strong> Ensures all devices show your latest pro status.</li></ul></div>
+          <div class="info-grid">
+            <div class="info-box"><strong>Materials & Hardware</strong>
+              <ul>
+                <li><strong>Sheet Types:</strong> Define name, thickness, and sheet price.</li>
+                <li><strong>Accessories:</strong> Add hardware with custom unit costs.</li>
+                <li><strong>Tile Scaling:</strong> Set backsplash tile dimensions for 3D realism.</li>
+              </ul>
+            </div>
+            <div class="info-box"><strong>Material Allocation</strong><span>Assign defaults to:</span>
+              <ul>
+                <li><strong>Carcass (Box):</strong> Sides, top, and bottom.</li>
+                <li><strong>Front Doors:</strong> Finished exterior faces.</li>
+                <li><strong>Drawer Boxes:</strong> Bottoms and internal sides.</li>
+                <li><strong>Back Panels:</strong> Typically thinner materials.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="info-box"><strong>Business Profile & Branding</strong>
+            <p>Your company identity is global and persists across projects:</p>
+            <ul>
+              <li><strong>Company Logo:</strong> Automatically scales for BOM and Wall Plan headers.</li>
+              <li><strong>Business Metadata:</strong> Syncs company name and address to all invoices.</li>
+              <li><strong>Real-time Sync:</strong> Ensures all devices show your latest pro status.</li>
+            </ul>
+          </div>
         </div>
       </article>
 
       <article id="walls" class="doc-section">
-        <header class="section-title"><h2><span class="side-icon">04</span> 3D Design Studio</h2><span class="label">Visualization</span></header>
+        <header class="section-title">
+          <h2><span class="side-icon">04</span> 3D Design Studio</h2><span class="label">Visualization</span>
+        </header>
         <div class="doc-body">
           <h3>Studio Tools & Visualization</h3>
           <div class="stack">
-            <div class="info-box accent"><strong>Realistic Visualization</strong><p>The studio uses physically accurate rendering for professional presentations:</p><ul><li><strong>View Toggles:</strong> Switch between Realistic (Textures) and Technical (Wireframe).</li><li><strong>Tile Scaling:</strong> Backsplash textures scale based on your hardware library dimensions.</li><li><strong>ISO Elevation:</strong> View specific wall zones in flattened technical elevation.</li></ul></div>
-            <div class="info-box"><strong>Cabinet Presets Library</strong><ul class="cabinet-grid"><li>• <strong>Base 2-Door:</strong> Standard base unit</li><li>• <strong>Base 3-Drawer:</strong> Multi-drawer base</li><li>• <strong>Base Corner:</strong> L-shaped corner unit</li><li>• <strong>Wall Standard:</strong> Upper wall cabinet</li><li>• <strong>Tall Utility:</strong> Full-height storage</li><li>• <strong>Tall Oven/Micro:</strong> Appliance housing</li><li>• <strong>Sink Unit:</strong> Plumbing-ready base</li><li>• <strong>Open Box:</strong> Decorative shelving</li></ul></div>
-            <div class="info-box"><strong>Obstacles & Site Constraints</strong><span>Define on-site obstacles (Windows, Doors, Pipes) to ensure layout feasibility. Obstacles appear as hatched regions in the technical elevation view.</span></div>
+            <div class="info-box accent"><strong>Realistic Visualization</strong>
+              <p>The studio uses physically accurate rendering for professional presentations:</p>
+              <ul>
+                <li><strong>View Toggles:</strong> Switch between Realistic (Textures) and Technical (Wireframe).</li>
+                <li><strong>Tile Scaling:</strong> Backsplash textures scale based on your hardware library dimensions.
+                </li>
+                <li><strong>ISO Elevation:</strong> View specific wall zones in flattened technical elevation.</li>
+              </ul>
+            </div>
+            <div class="info-box"><strong>Cabinet Presets Library</strong>
+              <ul class="cabinet-grid">
+                <li>• <strong>Base 2-Door:</strong> Standard base unit</li>
+                <li>• <strong>Base 3-Drawer:</strong> Multi-drawer base</li>
+                <li>• <strong>Base Corner:</strong> L-shaped corner unit</li>
+                <li>• <strong>Wall Standard:</strong> Upper wall cabinet</li>
+                <li>• <strong>Tall Utility:</strong> Full-height storage</li>
+                <li>• <strong>Tall Oven/Micro:</strong> Appliance housing</li>
+                <li>• <strong>Sink Unit:</strong> Plumbing-ready base</li>
+                <li>• <strong>Open Box:</strong> Decorative shelving</li>
+              </ul>
+            </div>
+            <div class="info-box"><strong>Obstacles & Site Constraints</strong><span>Define on-site obstacles (Windows,
+                Doors, Pipes) to ensure layout feasibility. Obstacles appear as hatched regions in the technical
+                elevation view.</span></div>
           </div>
         </div>
       </article>
 
       <article id="bom" class="doc-section">
-        <header class="section-title"><h2><span class="side-icon">05</span> Reports & BOM</h2><span class="label">Production analytics</span></header>
+        <header class="section-title">
+          <h2><span class="side-icon">05</span> Reports & BOM</h2><span class="label">Production analytics</span>
+        </header>
         <div class="doc-body">
           <h3>Production Analytics</h3>
           <div class="stack">
-            <div class="info-box accent"><strong>Cost Breakdown & Estimates</strong><p>The summary card tracks financial metrics in real-time:</p><ul><li><strong>Material Cost:</strong> Raw sheet material totals.</li><li><strong>Hardware Totals:</strong> Hinges (2/door), handles, and drawer slides.</li><li><strong>Labor Estimate:</strong> Projected assembly/install time.</li><li><strong>Total Quote:</strong> Final project cost including margin.</li></ul></div>
-            <div class="info-grid"><div class="info-box"><strong>Cut Plan Optimization</strong><span>Visual layout of parts on sheets to minimize waste and optimize material usage.</span></div><div class="info-box"><strong>Wall Elevations</strong><span>Technical drawings for each wall zone with unit schedules and dimensions.</span></div></div>
-            <div class="info-box"><strong>Export & Technical Dossier</strong><ul><li><strong>Print / PDF:</strong> Full dossier with title blocks and branding.</li><li><strong>Excel (XLSX):</strong> Detailed parts list for procurement.</li><li><strong>Raw JSON:</strong> Full project state for technical integration.</li></ul></div>
+            <div class="info-box accent"><strong>Cost Breakdown & Estimates</strong>
+              <p>The summary card tracks financial metrics in real-time:</p>
+              <ul>
+                <li><strong>Material Cost:</strong> Raw sheet material totals.</li>
+                <li><strong>Hardware Totals:</strong> Hinges (2/door), handles, and drawer slides.</li>
+                <li><strong>Labor Estimate:</strong> Projected assembly/install time.</li>
+                <li><strong>Total Quote:</strong> Final project cost including margin.</li>
+              </ul>
+            </div>
+            <div class="info-grid">
+              <div class="info-box"><strong>Cut Plan Optimization</strong><span>Visual layout of parts on sheets to
+                  minimize waste and optimize material usage.</span></div>
+              <div class="info-box"><strong>Wall Elevations</strong><span>Technical drawings for each wall zone with
+                  unit schedules and dimensions.</span></div>
+            </div>
+            <div class="info-box"><strong>Export & Technical Dossier</strong>
+              <ul>
+                <li><strong>Print / PDF:</strong> Full dossier with title blocks and branding.</li>
+                <li><strong>Excel (XLSX):</strong> Detailed parts list for procurement.</li>
+                <li><strong>Raw JSON:</strong> Full project state for technical integration.</li>
+              </ul>
+            </div>
           </div>
         </div>
       </article>
 
       <article id="pricing" class="doc-section">
-        <header class="section-title"><h2><span class="side-icon">06</span> Access & Subscription</h2><span class="label">Subscription policies</span></header>
+        <header class="section-title">
+          <h2><span class="side-icon">06</span> Access & Subscription</h2><span class="label">Subscription
+            policies</span>
+        </header>
         <div class="doc-body">
           <h3>Subscription Policies</h3>
-          <div class="callout"><strong>New User Privilege</strong><p>Experience the full power of the platform: your <strong>first three projects</strong> are automatically granted <strong>PRO status</strong>, enabling all export formats and Advanced mode.</p></div>
+          <div class="callout"><strong>New User Privilege</strong>
+            <p>Experience the full power of the platform: your <strong>first three projects</strong> are automatically
+              granted <strong>PRO status</strong>, enabling all export formats and Advanced mode.</p>
+          </div>
           <div class="info-grid">
-            <div class="info-box"><strong>Free Tier</strong><ul><li>Design up to 3 projects</li><li>Realistic 3D visuals</li><li>Limited to basic presets</li><li>No Excel/PDF branding</li></ul></div>
-            <div class="info-box accent"><strong>Pro Tier</strong><ul><li>Unlimited projects</li><li>Full export suite</li><li>Custom business branding</li><li>Advanced Direct Entry mode</li></ul></div>
+            <div class="info-box"><strong>Free Tier</strong>
+              <ul>
+                <li>Design up to 3 projects</li>
+                <li>Realistic 3D visuals</li>
+                <li>Limited to basic presets</li>
+                <li>No Excel/PDF branding</li>
+              </ul>
+            </div>
+            <div class="info-box accent"><strong>Pro Tier</strong>
+              <ul>
+                <li>Unlimited projects</li>
+                <li>Full export suite</li>
+                <li>Custom business branding</li>
+                <li>Advanced Direct Entry mode</li>
+              </ul>
+            </div>
           </div>
         </div>
       </article>
 
       <article id="embed" class="doc-section">
-        <header class="section-title"><h2><span class="side-icon">07</span> Cabinet Configurator API & Embeddable 3D Planner</h2><span class="label">Integration</span></header>
+        <header class="section-title">
+          <h2><span class="side-icon">07</span> Cabinet Configurator API & Embeddable 3D Planner</h2><span
+            class="label">Integration</span>
+        </header>
         <div class="doc-body">
           <h3>Cabinet Configurator API — Embeddable 3D Planner</h3>
-          <p>Our cabinet configurator API lets you embed the 3D kitchen planner directly into your own website or client portals. This cabinet software integration allows your customers to configure their cabinetry layout and submit specifications without leaving your site.</p>
-          <div class="info-box accent"><strong>Quick Integration Steps</strong><ol class="numbered"><li>Register your domain under your developer/admin settings to generate an <strong>API Key</strong>.</li><li>Embed our secure iframe pointing to <code>https://www.protradee.com/embed/setup?apiKey=YOUR_API_KEY</code>.</li><li>Listen to parent window messages to automatically capture project completion events.</li></ol></div>
-          <div class="code-card"><div class="code-head"><span>Standard HTML Embedding Snippet</span><span>HTML</span></div><pre><code>&lt;!-- Start Cabinet Widget Button --&gt;
+          <p>Our cabinet configurator API lets you embed the 3D kitchen planner directly into your own website or client
+            portals. This cabinet software integration allows your customers to configure their cabinetry layout and
+            submit specifications without leaving your site.</p>
+          <div class="info-box accent"><strong>Quick Integration Steps</strong>
+            <ol class="numbered">
+              <li>Register your domain under your developer/admin settings to generate an <strong>API Key</strong>.</li>
+              <li>Embed our secure iframe pointing to
+                <code>https://www.cabenginepro.com/embed/setup?apiKey=YOUR_API_KEY</code>.
+              </li>
+              <li>Listen to parent window messages to automatically capture project completion events.</li>
+            </ol>
+          </div>
+          <div class="code-card">
+            <div class="code-head"><span>Standard HTML Embedding Snippet</span><span>HTML</span></div>
+            <pre><code>&lt;!-- Start Cabinet Widget Button --&gt;
 &lt;button onclick=&quot;openCabinetModal()&quot; style=&quot;padding: 14px 28px; background: #f59e0b; color: white; border: none; border-radius: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; cursor: pointer; transition: all 0.2s;&quot;&gt;
   Configure Cabinets
 &lt;/button&gt;
@@ -1620,7 +2035,7 @@
 &lt;div id=&quot;cabinetModal&quot; style=&quot;display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:99999; justify-content:center; align-items:center;&quot;&gt;
   &lt;div style=&quot;position:relative; width:96%; max-width:1400px; height:90%; background:#1e293b; border-radius:24px; overflow:hidden; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);&quot;&gt;
     &lt;button onclick=&quot;closeCabinetModal()&quot; style=&quot;position:absolute; top:16px; right:16px; border:none; background:rgba(255,255,255,0.05); color:#94a3b8; border-radius:99px; width:36px; height:36px; font-size:22px; cursor:pointer; display:flex; align-items:center; justify-content:center; z-index:100;&quot;&gt;&amp;times;&lt;/button&gt;
-    &lt;iframe src=&quot;https://www.protradee.com/embed/setup?apiKey=YOUR_API_KEY&quot; style=&quot;width:100%; height:100%; border:none;&quot;&gt;&lt;/iframe&gt;
+    &lt;iframe src=&quot;https://www.cabenginepro.com/embed/setup?apiKey=YOUR_API_KEY&quot; style=&quot;width:100%; height:100%; border:none;&quot;&gt;&lt;/iframe&gt;
   &lt;/div&gt;
 &lt;/div&gt;
 
@@ -1640,26 +2055,46 @@
       console.log(&#x27;Project completed successfully:&#x27;, event.data.projectId);
     }
   });
-&lt;/script&gt;</code></pre></div>
+&lt;/script&gt;</code></pre>
+          </div>
         </div>
       </article>
 
       <article id="faq" class="doc-section">
-        <header class="section-title"><h2><span class="side-icon">08</span> FAQ & Troubleshooting</h2><span class="label">Support</span></header>
+        <header class="section-title">
+          <h2><span class="side-icon">08</span> FAQ & Troubleshooting</h2><span class="label">Support</span>
+        </header>
         <div class="doc-body">
           <h3>Common Questions</h3>
           <div class="faq-grid">
-            <details open><summary>Q: Why are my backsplash tiles looking stretched?</summary><p>A: Verify the physical <strong>Tile Dimensions</strong> in your Accessory library. Realistic textures require accurate dimensions to calculate real-world scaling.</p></details>
-            <details><summary>Q: How do I jump directly to BOM from the dashboard?</summary><p>A: Click any project card on the dashboard to open the <strong>Action Menu overlay</strong>. Select "Reports & BOM" to skip direct to production data.</p></details>
-            <details><summary>Q: Does Advanced Mode affect BOM precision?</summary><p>A: No. Advanced Mode only changes the entry method (manual vs automated solver). Engineering logic and cost calculations remain 100% accurate.</p></details>
-            <details id="support"><summary>Technical Support</summary><p>For complex engineering queries or hardware integration help, contact us at <span class="support-email">support@protradee.com</span>.</p></details>
+            <details open>
+              <summary>Q: Why are my backsplash tiles looking stretched?</summary>
+              <p>A: Verify the physical <strong>Tile Dimensions</strong> in your Accessory library. Realistic textures
+                require accurate dimensions to calculate real-world scaling.</p>
+            </details>
+            <details>
+              <summary>Q: How do I jump directly to BOM from the dashboard?</summary>
+              <p>A: Click any project card on the dashboard to open the <strong>Action Menu overlay</strong>. Select
+                "Reports & BOM" to skip direct to production data.</p>
+            </details>
+            <details>
+              <summary>Q: Does Advanced Mode affect BOM precision?</summary>
+              <p>A: No. Advanced Mode only changes the entry method (manual vs automated solver). Engineering logic and
+                cost calculations remain 100% accurate.</p>
+            </details>
+            <details id="support">
+              <summary>Technical Support</summary>
+              <p>For complex engineering queries or hardware integration help, contact us at <span
+                  class="support-email">support@cabenginepro.com</span>.</p>
+            </details>
           </div>
         </div>
       </article>
 
       <section class="docs-cta">
         <h2>Need more help?</h2>
-        <p>Contact support at support@protradee.com, or return to the app and open the relevant project from your dashboard.</p>
+        <p>Contact support at support@cabenginepro.com, or return to the app and open the relevant project from your
+          dashboard.</p>
         <a class="btn btn-primary" href="#top">Back to top</a>
       </section>
     </section>
@@ -1779,4 +2214,5 @@
     setActiveLink();
   </script>
 </body>
+
 </html>

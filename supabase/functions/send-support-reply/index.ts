@@ -24,7 +24,7 @@ serve(async (req: Request) => {
         Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: "CABENGINE Support <support@protradee.com>", 
+        from: "CABENGINE Support <support@cabenginepro.com>",
         to: [recipient],
         subject: `Support Response: CABENGINE Feedback #${originalFeedbackId.substring(0, 5).toUpperCase()}`,
         html: `

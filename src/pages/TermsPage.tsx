@@ -84,7 +84,7 @@ export const TermsPage: React.FC<TermsPageProps> = ({
     <>
       <Helmet>
         <title>Terms of Service - CabEngine Pro</title>
-        <link rel="canonical" href="https://www.protradee.com/terms" />
+        <link rel="canonical" href="https://www.cabenginepro.com/terms" />
         <meta name="description" content="CabEngine Pro terms of service and conditions of use for our cabinet design software platform." />
       </Helmet>
       <div className={`legal-page ${isDark ? 'lp-dark-theme' : 'lp-light-theme'}`}>
@@ -555,7 +555,7 @@ export const TermsPage: React.FC<TermsPageProps> = ({
                   </div>
                   <div className="card-body">
                     <h3 id="1-1-agreement-to-terms">1.1 Agreement to Terms</h3>
-                    <p>By accessing or using CabEngine (&quot;the Service&quot;), available at <a href="https://www.protradee.com" target="_blank" rel="noopener noreferrer">www.protradee.com</a>, you (&quot;User&quot;, &quot;you&quot;, &quot;your&quot;) agree to be bound by these Terms of Service (&quot;Terms&quot;). If you do not agree to these Terms, you must not access or use the Service.</p>
+                    <p>By accessing or using CabEngine (&quot;the Service&quot;), available at <a href="https://www.cabenginepro.com" target="_blank" rel="noopener noreferrer">www.cabenginepro.com</a>, you (&quot;User&quot;, &quot;you&quot;, &quot;your&quot;) agree to be bound by these Terms of Service (&quot;Terms&quot;). If you do not agree to these Terms, you must not access or use the Service.</p>
                     <h3 id="1-2-description-of-service">1.2 Description of Service</h3>
                     <p>CabEngine is a cloud-based Software-as-a-Service (SaaS) application designed for cabinet makers and tradespeople. The Service provides tools for:</p>
                     <ul><li><strong>Project Management</strong> — Create and manage cabinet projects</li><li><strong>Cabinet Design & Editing</strong> — Elevation view (XY) and 3D visual editor for wall zones and cabinet layouts</li><li><strong>Bill of Materials (BOM)</strong> — Automated material, hardware, and labour cost estimation with configurable margin calculations</li><li><strong>Cutting Plan Optimisation</strong> — Material nesting and cut plan generation to minimise waste</li><li><strong>Wall Plans</strong> — Technical elevation drawings for workshop reference</li><li><strong>Quick Parts Calculator</strong> — Standalone parts calculation for individual components</li><li><strong>Area Calculator</strong> — Surface area and coverage calculations</li><li><strong>Export & Reporting</strong> — Print, JSON, Excel, and Quotation exports</li></ul>
@@ -731,7 +731,7 @@ export const TermsPage: React.FC<TermsPageProps> = ({
                   </div>
                   <div className="card-body">
                     <p>For questions, concerns, or requests regarding these policies, please contact us:</p>
-                    <ul><li><strong>Email:</strong> <a href="mailto:support@protradee.com">support@protradee.com</a></li><li><strong>Website:</strong> <a href="https://www.protradee.com" target="_blank" rel="noopener noreferrer">www.protradee.com</a></li><li><strong>In-App:</strong> Use the &quot;Report an Issue&quot; button within the application</li></ul>
+                    <ul><li><strong>Email:</strong> <a href="mailto:support@cabenginepro.com">support@cabenginepro.com</a></li><li><strong>Website:</strong> <a href="https://www.cabenginepro.com" target="_blank" rel="noopener noreferrer">www.cabenginepro.com</a></li><li><strong>In-App:</strong> Use the &quot;Report an Issue&quot; button within the application</li></ul>
                   </div>
                 </section>
 
@@ -776,7 +776,7 @@ export const TermsPage: React.FC<TermsPageProps> = ({
                     <a href="#9-contact-information" onClick={(e) => { e.preventDefault(); scrollToSection('9-contact-information'); }}>Support</a>
                     <a href="#top" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Back to top</a>
                   </div>
-                  <span>&copy; 2026 CabEngine / ProTradee. All rights reserved.</span>
+                  <span>&copy; 2026 CabEngine / cabenginepro. All rights reserved.</span>
                 </footer>
               </div>
             </div>

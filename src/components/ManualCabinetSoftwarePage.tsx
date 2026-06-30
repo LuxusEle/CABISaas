@@ -57,7 +57,7 @@ export const ManualCabinetSoftwarePage: React.FC<ManualCabinetSoftwarePageProps>
     <>
       <Helmet>
         <title>Manual Cabinet Layout Software | Full Control Cabinet Design | CabEngine Pro</title>
-        <link rel="canonical" href="https://www.protradee.com/manual-cabinet-software" />
+        <link rel="canonical" href="https://www.cabenginepro.com/manual-cabinet-software" />
         <meta name="description" content="Manual cabinet layout software with full geometric override. No auto-solver lock-in. Design custom cabinet boxes, set exact dimensions, and generate cut lists on your terms." />
       </Helmet>
       <div className={`mcs-page ${isDark ? 'lp-dark-theme' : 'lp-light-theme'}`}>
@@ -92,14 +92,14 @@ export const ManualCabinetSoftwarePage: React.FC<ManualCabinetSoftwarePageProps>
                   <ManualCabinetScene settings={interactiveSettings} />
                 </div>
                 <div className="mcs-side-form">
-                    <div className="mcs-slider-field">
+                  <div className="mcs-slider-field">
                     <span>Width</span>
                     <strong>{width} mm</strong>
                     <div className="mcs-slider-track-wrap">
                       <input type="range" min="300" max="1200" value={width} onChange={e => updateSetting('width', Number(e.target.value))} className="mcs-slider" />
                       {slidersUnused && (
                         <svg className="mcs-hand-anim" viewBox="0 0 32 32" width="22" height="22" fill="none" aria-hidden="true" style={{ '--hand-start': `${((width - 300) / 900) * 100}%` } as React.CSSProperties}>
-                          <path d="M8 20V6a2 2 0 0 1 4 0v10m0-10V4a2 2 0 0 1 4 0v10m0-10V6a2 2 0 0 1 4 0v12l2-2a4 4 0 0 1 6 6l-4 6a8 8 0 0 1-6.5 3.5H18a6 6 0 0 1-4.5-2L8 24" stroke="var(--hand-stroke, var(--amber))" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="var(--hand-fill, rgba(var(--amber-rgb), 0.15))"/>
+                          <path d="M8 20V6a2 2 0 0 1 4 0v10m0-10V4a2 2 0 0 1 4 0v10m0-10V6a2 2 0 0 1 4 0v12l2-2a4 4 0 0 1 6 6l-4 6a8 8 0 0 1-6.5 3.5H18a6 6 0 0 1-4.5-2L8 24" stroke="var(--hand-stroke, var(--amber))" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="var(--hand-fill, rgba(var(--amber-rgb), 0.15))" />
                         </svg>
                       )}
                     </div>
@@ -221,7 +221,7 @@ export const ManualCabinetSoftwarePage: React.FC<ManualCabinetSoftwarePageProps>
                 </div>
                 <div className="mcs-workflow-body">
                   <div className="mcs-workflow-step mcs-step-done">
-                    <span className="mcs-step-icon"><svg viewBox="0 0 20 20" width="16" height="16" fill="none"><circle cx="10" cy="10" r="8" stroke="var(--sage)" strokeWidth="1.5"/><path d="m6.5 10 2.5 2.5 4.5-4.5" stroke="var(--sage)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg></span>
+                    <span className="mcs-step-icon"><svg viewBox="0 0 20 20" width="16" height="16" fill="none"><circle cx="10" cy="10" r="8" stroke="var(--sage)" strokeWidth="1.5" /><path d="m6.5 10 2.5 2.5 4.5-4.5" stroke="var(--sage)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
                     <div className="mcs-step-info">
                       <span className="mcs-step-label">Cabinet Dimensions</span>
                       <span className="mcs-step-value">{width} × {height} × {depth} mm</span>
@@ -229,7 +229,7 @@ export const ManualCabinetSoftwarePage: React.FC<ManualCabinetSoftwarePageProps>
                     <span className="mcs-step-status mcs-status-complete">Complete</span>
                   </div>
                   <div className="mcs-workflow-step mcs-step-done">
-                    <span className="mcs-step-icon"><svg viewBox="0 0 20 20" width="16" height="16" fill="none"><circle cx="10" cy="10" r="8" stroke="var(--sage)" strokeWidth="1.5"/><path d="m6.5 10 2.5 2.5 4.5-4.5" stroke="var(--sage)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg></span>
+                    <span className="mcs-step-icon"><svg viewBox="0 0 20 20" width="16" height="16" fill="none"><circle cx="10" cy="10" r="8" stroke="var(--sage)" strokeWidth="1.5" /><path d="m6.5 10 2.5 2.5 4.5-4.5" stroke="var(--sage)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
                     <div className="mcs-step-info">
                       <span className="mcs-step-label">Construction Rules</span>
                       <span className="mcs-step-value">Panel {panelThickness}mm · Toe 4"</span>
@@ -237,7 +237,7 @@ export const ManualCabinetSoftwarePage: React.FC<ManualCabinetSoftwarePageProps>
                     <span className="mcs-step-status mcs-status-complete">Complete</span>
                   </div>
                   <div className="mcs-workflow-step mcs-step-active">
-                    <span className="mcs-step-icon mcs-icon-pulse"><svg viewBox="0 0 20 20" width="16" height="16" fill="none"><circle cx="10" cy="10" r="8" stroke="var(--amber)" strokeWidth="1.5"/><circle cx="10" cy="10" r="2" fill="var(--amber)"/></svg></span>
+                    <span className="mcs-step-icon mcs-icon-pulse"><svg viewBox="0 0 20 20" width="16" height="16" fill="none"><circle cx="10" cy="10" r="8" stroke="var(--amber)" strokeWidth="1.5" /><circle cx="10" cy="10" r="2" fill="var(--amber)" /></svg></span>
                     <div className="mcs-step-info">
                       <span className="mcs-step-label">Door Overlay</span>
                       <span className="mcs-step-value">{doorOpenAngle}° door open angle</span>
@@ -245,7 +245,7 @@ export const ManualCabinetSoftwarePage: React.FC<ManualCabinetSoftwarePageProps>
                     <span className="mcs-step-status mcs-status-editing">Editing</span>
                   </div>
                   <div className="mcs-workflow-step mcs-step-ready">
-                    <span className="mcs-step-icon"><svg viewBox="0 0 20 20" width="16" height="16" fill="none"><circle cx="10" cy="10" r="8" stroke="var(--sage)" strokeWidth="1.5"/><path d="M14 8 9 13l-3-3" stroke="var(--sage)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg></span>
+                    <span className="mcs-step-icon"><svg viewBox="0 0 20 20" width="16" height="16" fill="none"><circle cx="10" cy="10" r="8" stroke="var(--sage)" strokeWidth="1.5" /><path d="M14 8 9 13l-3-3" stroke="var(--sage)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
                     <div className="mcs-step-info">
                       <span className="mcs-step-label">Cut List Output</span>
                       <span className="mcs-step-value">7 parts · 2 sheets</span>
@@ -253,7 +253,7 @@ export const ManualCabinetSoftwarePage: React.FC<ManualCabinetSoftwarePageProps>
                     <span className="mcs-step-status mcs-status-ready">Ready</span>
                   </div>
                   <div className="mcs-workflow-step mcs-step-ready">
-                    <span className="mcs-step-icon"><svg viewBox="0 0 20 20" width="16" height="16" fill="none"><circle cx="10" cy="10" r="8" stroke="var(--sage)" strokeWidth="1.5"/><path d="M14 8 9 13l-3-3" stroke="var(--sage)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg></span>
+                    <span className="mcs-step-icon"><svg viewBox="0 0 20 20" width="16" height="16" fill="none"><circle cx="10" cy="10" r="8" stroke="var(--sage)" strokeWidth="1.5" /><path d="M14 8 9 13l-3-3" stroke="var(--sage)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
                     <div className="mcs-step-info">
                       <span className="mcs-step-label">Bill Of Materials</span>
                       <span className="mcs-step-value">32 line items</span>
@@ -261,7 +261,7 @@ export const ManualCabinetSoftwarePage: React.FC<ManualCabinetSoftwarePageProps>
                     <span className="mcs-step-status mcs-status-ready">Ready</span>
                   </div>
                   <div className="mcs-workflow-step mcs-step-ready">
-                    <span className="mcs-step-icon"><svg viewBox="0 0 20 20" width="16" height="16" fill="none"><circle cx="10" cy="10" r="8" stroke="var(--sage)" strokeWidth="1.5"/><path d="M14 8 9 13l-3-3" stroke="var(--sage)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg></span>
+                    <span className="mcs-step-icon"><svg viewBox="0 0 20 20" width="16" height="16" fill="none"><circle cx="10" cy="10" r="8" stroke="var(--sage)" strokeWidth="1.5" /><path d="M14 8 9 13l-3-3" stroke="var(--sage)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
                     <div className="mcs-step-info">
                       <span className="mcs-step-label">Quotation</span>
                       <span className="mcs-step-value">$1,280.00 estimate</span>

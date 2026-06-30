@@ -20,9 +20,9 @@ const parseMarkdown = (content: string): React.ReactNode => {
   const flushParagraph = () => {
     if (currentParagraph.trim()) {
       let text = currentParagraph.trim();
-      
+
       const generateId = (txt: string) => txt.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-      
+
       if (text.startsWith('## ')) {
         const id = generateId(text.slice(3));
         elements.push(<h3 key={elements.length} id={id} className="text-xl font-bold text-slate-900 dark:text-white mt-6 mb-3 scroll-mt-20">{text.slice(3)}</h3>);
@@ -55,7 +55,7 @@ const parseMarkdown = (content: string): React.ReactNode => {
         elements.push(
           <ul key={elements.length} className="list-disc list-inside space-y-1 text-slate-600 dark:text-slate-300 ml-4 my-2">
             {currentList.map((item, i) => (
-              <li key={i} dangerouslySetInnerHTML={{ 
+              <li key={i} dangerouslySetInnerHTML={{
                 __html: item
                   .replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-slate-900 dark:text-white">$1</strong>')
                   .replace(/\*(.*?)\*/g, '<em>$1</em>')
@@ -69,7 +69,7 @@ const parseMarkdown = (content: string): React.ReactNode => {
         elements.push(
           <ol key={elements.length} className="list-decimal list-inside space-y-1 text-slate-600 dark:text-slate-300 ml-4 my-2">
             {currentList.map((item, i) => (
-              <li key={i} dangerouslySetInnerHTML={{ 
+              <li key={i} dangerouslySetInnerHTML={{
                 __html: item
                   .replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-slate-900 dark:text-white">$1</strong>')
                   .replace(/\*(.*?)\*/g, '<em>$1</em>')
@@ -224,7 +224,7 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({ isOpen, onClose }) => 
 
 ### 1.1 Agreement to Terms
 
-By accessing or using CabEngine ("the Service"), available at www.protradee.com, you ("User", "you", "your") agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, you must not access or use the Service.
+By accessing or using CabEngine ("the Service"), available at www.cabenginepro.com, you ("User", "you", "your") agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, you must not access or use the Service.
 
 ### 1.2 Description of Service
 
@@ -536,8 +536,8 @@ We may retain anonymised, aggregated data (which cannot be used to identify you)
 
 For questions, concerns, or requests regarding these policies, please contact us:
 
-- **Email:** support@protradee.com
-- **Website:** www.protradee.com
+- **Email:** support@cabenginepro.com
+- **Website:** www.cabenginepro.com
 - **In-App:** Use the "Report an Issue" button within the application
 
 ------------------------------------------------------------------------------------------------------------------------------------------
@@ -568,7 +568,7 @@ If any provision of these Terms is found to be unenforceable or invalid by a cou
 
 These Terms, together with the Privacy Policy, Acceptable Use Policy, Cookie Policy, and all other policies referenced herein, constitute the entire agreement between you and CabEngine regarding your use of the Service and supersede all prior agreements, representations, and understandings.
 
-© 2026 CabEngine / ProTradee. All rights reserved.
+© 2026 CabEngine / cabenginepro. All rights reserved.
 `;
 
   const scrollToSection = (id: string) => {
@@ -618,11 +618,10 @@ These Terms, together with the Privacy Policy, Acceptable Use Policy, Cookie Pol
                 <button
                   key={section.id}
                   onClick={() => scrollToSection(section.id)}
-                  className={`w-full flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors text-left ${
-                    activeSection === section.id
+                  className={`w-full flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors text-left ${activeSection === section.id
                       ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
                       : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                  }`}
+                    }`}
                 >
                   <FileText className="w-4 h-4" />
                   <span className="flex-1 truncate">{section.title}</span>
