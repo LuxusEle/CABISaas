@@ -13,29 +13,30 @@ import type { User } from '@supabase/supabase-js';
 import { AuthModal } from './components/AuthModal';
 import { LandingPage } from './components/LandingPage';
 import { projectService } from './services/projectService';
-import { PricingPage } from './components/PricingPage';
 import { HelpButton } from './components/HelpButton';
-import { DocsPage } from './components/DocsPage';
 import { PolicyModal } from './components/PolicyModal';
 import { logoService } from './services/logoService';
-import TermsPage from './pages/TermsPage';
-import { CabinetTestingPage } from './components/CabinetTestingPage';
-import { EmbedCabinetPlannerPage } from './components/EmbedCabinetPlannerPage';
-import { ManualCabinetSoftwarePage } from './components/ManualCabinetSoftwarePage';
-import { CutListGeneratorPage } from './components/CutListGeneratorPage';
-import ScreenWallEditor from './screens/ScreenWallEditor';
-import ScreenHome from './screens/ScreenHome';
-import ScreenProjectSetup from './screens/ScreenProjectSetup';
-import ScreenBOMReport from './screens/ScreenBOMReport';
-import { ProfilePage } from './components/ProfilePage';
-import ScreenEmbedSetup from './screens/ScreenEmbedSetup';
 import { Helmet } from 'react-helmet-async';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import { track } from '@vercel/analytics';
-import ScreenAdminDashboard from './screens/ScreenAdminDashboard';
 import { UserProfile, profileService } from './services/profileService';
 import { createDemoProject } from './utils/demoProject';
+
+const PricingPage = React.lazy(() => import('./components/PricingPage').then(m => ({ default: m.PricingPage })));
+const DocsPage = React.lazy(() => import('./components/DocsPage').then(m => ({ default: m.DocsPage })));
+const TermsPage = React.lazy(() => import('./pages/TermsPage'));
+const CabinetTestingPage = React.lazy(() => import('./components/CabinetTestingPage').then(m => ({ default: m.CabinetTestingPage })));
+const EmbedCabinetPlannerPage = React.lazy(() => import('./components/EmbedCabinetPlannerPage').then(m => ({ default: m.EmbedCabinetPlannerPage })));
+const ManualCabinetSoftwarePage = React.lazy(() => import('./components/ManualCabinetSoftwarePage').then(m => ({ default: m.ManualCabinetSoftwarePage })));
+const CutListGeneratorPage = React.lazy(() => import('./components/CutListGeneratorPage').then(m => ({ default: m.CutListGeneratorPage })));
+const ProfilePage = React.lazy(() => import('./components/ProfilePage').then(m => ({ default: m.ProfilePage })));
+const ScreenWallEditor = React.lazy(() => import('./screens/ScreenWallEditor'));
+const ScreenHome = React.lazy(() => import('./screens/ScreenHome'));
+const ScreenProjectSetup = React.lazy(() => import('./screens/ScreenProjectSetup'));
+const ScreenBOMReport = React.lazy(() => import('./screens/ScreenBOMReport'));
+const ScreenEmbedSetup = React.lazy(() => import('./screens/ScreenEmbedSetup'));
+const ScreenAdminDashboard = React.lazy(() => import('./screens/ScreenAdminDashboard'));
 
 import { useProjectStore } from './store/useProjectStore';
 
@@ -598,6 +599,7 @@ export default function App() {
               </div>
             )}
             <div className="flex-1 overflow-y-auto">
+              <React.Suspense fallback={<div className="flex items-center justify-center h-full"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>}>
               <Routes>
                 <Route path="/" element={
                   <LandingPage
@@ -746,6 +748,7 @@ export default function App() {
                   />
                 } />
               </Routes>
+              </React.Suspense>
             </div>
           </main>
         </div>
