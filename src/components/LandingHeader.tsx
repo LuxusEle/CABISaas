@@ -70,7 +70,7 @@ export const LandingHeader: React.FC<LandingHeaderProps> = ({
     <nav className={`nav ${scrolled ? 'nav-scrolled' : ''}`}>
       <div className="container nav-inner">
         <Link to="/" className="brand" aria-label="CabEngine Pro home" onClick={(e) => { if (location.pathname === '/') { e.preventDefault(); document.querySelector('.overflow-y-auto')?.scrollTo({ top: 0, behavior: 'smooth' }); } }}>
-          <img src="/landing.png" alt="CabEngine Pro" fetchPriority="high" className="brand-logo h-8 sm:h-10 w-auto object-contain" />
+          <picture><source srcSet="/landing.webp" type="image/webp" /><img src="/landing.png" alt="CabEngine Pro" fetchPriority="high" className="brand-logo h-8 sm:h-10 w-auto object-contain" /></picture>
         </Link>
         <div className="nav-links" aria-label="Main navigation">
           {navLinks.map((link) => (

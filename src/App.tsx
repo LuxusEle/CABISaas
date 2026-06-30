@@ -433,7 +433,7 @@ export default function App() {
         {/* MOBILE HEADER */}
         {!['/', '/terms', '/pricing', '/docs', '/reset-password', '/embed-cabinet-planner', '/manual-cabinet-software', '/cut-list-generator'].includes(location.pathname) && !location.pathname.startsWith('/embed') && (
           <div className="md:hidden h-14 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 shrink-0 z-40 print:hidden">
-            <img src="/landing.png" alt="CabEngine Logo" className="h-8 w-auto object-contain dark:invert-0 invert" />
+            <picture><source srcSet="/landing.webp" type="image/webp" /><img src="/landing.png" alt="CabEngine Logo" className="h-8 w-auto object-contain dark:invert-0 invert" /></picture>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowAuthModal(true)}

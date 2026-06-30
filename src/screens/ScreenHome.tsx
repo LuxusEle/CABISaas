@@ -124,7 +124,7 @@ const ScreenHome = ({ onNewProject, onQuickStart, onLoadProject, isUserPro, isDa
         {/* Top Navigation / Branding */}
         <div className="flex flex-col md:flex-row justify-between items-center mb-16 gap-8">
           <div className="flex flex-col items-center md:items-start gap-2">
-            <img src="/landing.png" alt="CabEngine Logo" className={`h-12 w-auto object-contain transition-all ${isDark ? 'brightness-0 invert' : 'brightness-100'}`} />
+            <picture><source srcSet="/landing.webp" type="image/webp" /><img src="/landing.png" alt="CabEngine Logo" className={`h-12 w-auto object-contain transition-all ${isDark ? 'brightness-0 invert' : 'brightness-100'}`} /></picture>
             <div className="flex items-center gap-3 mt-2">
               <span className="px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full text-[10px] font-black uppercase tracking-[0.2em] text-amber-600 dark:text-amber-500">
                 Engineering Suite

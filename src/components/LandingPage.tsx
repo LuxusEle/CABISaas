@@ -164,7 +164,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
                   </div>
                   <div className="showcase-preview">
                     <div className="real-media-card" aria-label="Real CabEngine 3D cabinet design screenshot">
-                      <img className="real-product-image" src="/3d-design.png" alt="3D cabinet design" />
+                      <picture><source srcSet="/3d-design.webp" type="image/webp" /><img className="real-product-image" src="/3d-design.png" alt="3D cabinet design" /></picture>
                       <div className="media-caption-bar"><span>Design walls, cabinets, sink, hob and finishes in 3D</span><span className="chip">3D DESIGN</span></div>
                     </div>
                   </div>
@@ -252,14 +252,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
               </div>
               <div className="workflow-media-grid reveal">
                 <div className="workflow-media-card">
-                  <img src="/bom.png" alt="BOM export" />
+                  <picture><source srcSet="/bom.webp" type="image/webp" /><img src="/bom.png" alt="BOM export" /></picture>
                   <div className="workflow-media-copy">
                     <h3>Quote-ready costing</h3>
                     <p>Show material, hardware, labour, transport and margin in one clear estimate.</p>
                   </div>
                 </div>
                 <div className="workflow-media-card">
-                  <img src="/cut-list.png" alt="Cut list export" />
+                  <picture><source srcSet="/cut-list.webp" type="image/webp" /><img src="/cut-list.png" alt="Cut list export" /></picture>
                   <div className="workflow-media-copy">
                     <h3>Cut optimisation and DXF export</h3>
                     <p>Turn project parts into sheet layouts and workshop-ready manufacturing exports.</p>
@@ -355,7 +355,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onSignIn
         <footer id="docs">
           <div className="container footer-inner">
             <Link to="/" className="brand">
-              <img src="/landing.png" alt="CabEngine Pro" className="brand-logo h-6 sm:h-8 w-auto object-contain" />
+              <picture><source srcSet="/landing.webp" type="image/webp" /><img src="/landing.png" alt="CabEngine Pro" className="brand-logo h-6 sm:h-8 w-auto object-contain" /></picture>
             </Link>
             <div className="footer-links">
               <Link to="/docs">Docs</Link>
