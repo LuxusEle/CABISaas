@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* CabEngine Pro - Main Styles */
 
 /* Landing page dark theme variables (matches cabengine_front_page.html) */
